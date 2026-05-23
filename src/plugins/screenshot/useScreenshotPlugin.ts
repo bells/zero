@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import type { TranslationKey } from "../preferences/i18n";
 
 export type ScreenshotAction = "copy" | "save";
 
 interface ScreenshotCapabilities {
   platform: string;
-  wechat_visual: boolean;
+  selection_visual: boolean;
   custom_overlay: boolean;
   system_launcher: boolean;
   active_actions: string[];
@@ -20,7 +21,7 @@ interface ScreenshotStartResult {
 
 const defaultCapabilities: ScreenshotCapabilities = {
   platform: "Unknown",
-  wechat_visual: true,
+  selection_visual: true,
   custom_overlay: false,
   system_launcher: false,
   active_actions: [],
@@ -30,38 +31,51 @@ const defaultCapabilities: ScreenshotCapabilities = {
 export function useScreenshotPlugin() {
   const [capabilities, setCapabilities] =
     useState<ScreenshotCapabilities>(defaultCapabilities);
-  const [message, setMessage] = useState("截图插件准备中");
+  const [messageKey, setMessageKey] =
+    useState<TranslationKey>("screenshot.status.initializing");
+  const [messageDetail, setMessageDetail] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     const next = await invoke<ScreenshotCapabilities>("get_screenshot_capabilities");
     setCapabilities(next);
-    setMessage(
-      next.wechat_visual
-        ? "第一阶段已采用微信式截图界面，截取后端使用系统能力"
-        : "当前平台先使用系统截图入口",
+    setMessageKey(
+      next.selection_visual
+        ? "screenshot.status.ready"
+        : "screenshot.status.fallback",
     );
+    setMessageDetail(null);
   }, []);
 
   const start = useCallback(async (action: ScreenshotAction) => {
     setIsBusy(true);
     try {
       const result = await invoke<ScreenshotStartResult>("start_screenshot", { action });
-      setMessage(result.message);
+      setMessageKey(
+        result.action === "save"
+          ? "screenshot.status.saveStarted"
+          : "screenshot.status.copyStarted",
+      );
+      setMessageDetail(null);
     } catch (err) {
-      setMessage(`截图工具打开失败: ${String(err)}`);
+      setMessageKey("screenshot.status.startError");
+      setMessageDetail(String(err));
     } finally {
       setIsBusy(false);
     }
   }, []);
 
   useEffect(() => {
-    refresh().catch((err) => setMessage(`截图插件初始化失败: ${String(err)}`));
+    refresh().catch((err) => {
+      setMessageKey("screenshot.status.initError");
+      setMessageDetail(String(err));
+    });
   }, [refresh]);
 
   return {
     capabilities,
-    message,
+    messageKey,
+    messageDetail,
     isBusy,
     start,
   };

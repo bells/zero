@@ -4,6 +4,7 @@ import "./App.css";
 import { CaffeinePanel } from "./plugins/caffeine/CaffeinePanel";
 import { AboutPanel } from "./plugins/preferences/AboutPanel";
 import { PreferencesPanel } from "./plugins/preferences/PreferencesPanel";
+import { createTranslator, resolveLanguage } from "./plugins/preferences/i18n";
 import { usePreferences } from "./plugins/preferences/usePreferences";
 import { ScreenshotPanel } from "./plugins/screenshot/ScreenshotPanel";
 import { PluginId, PluginMeta } from "./plugins/types";
@@ -13,14 +14,14 @@ type MainView = "tool" | "preferences" | "about";
 const plugins: PluginMeta[] = [
   {
     id: "screenshot",
-    title: "截图工具",
-    subtitle: "选区、复制、保存",
+    title: "Screenshot",
+    subtitle: "Shortcut, copy, save",
     health: "active",
   },
   {
     id: "caffeine",
-    title: "咖啡因模式",
-    subtitle: "保持屏幕与系统唤醒",
+    title: "Caffeine",
+    subtitle: "Keep awake",
     health: "ready",
   },
 ];
@@ -31,8 +32,27 @@ function App() {
   const [selectedPlugin, setSelectedPlugin] = useState<PluginId>("screenshot");
   const [mainView, setMainView] = useState<MainView>("tool");
   const preferences = usePreferences(pluginIds);
-  const visiblePlugins = plugins.filter((plugin) => preferences.visiblePluginIds.includes(plugin.id));
+  const resolvedLanguage = resolveLanguage(
+    preferences.preferences.language,
+    navigator.language,
+  );
+  const t = createTranslator(resolvedLanguage);
+  const localizedPlugins = plugins.map((plugin) => ({
+    ...plugin,
+    title: t(plugin.id === "screenshot" ? "plugin.screenshot.title" : "plugin.caffeine.title"),
+    subtitle: t(
+      plugin.id === "screenshot"
+        ? "plugin.screenshot.subtitle"
+        : "plugin.caffeine.subtitle",
+    ),
+  }));
+  const visiblePlugins = localizedPlugins.filter((plugin) =>
+    preferences.visiblePluginIds.includes(plugin.id),
+  );
   const activePlugin = visiblePlugins.find((plugin) => plugin.id === selectedPlugin) ?? visiblePlugins[0];
+  const preferenceMessage = preferences.messageDetail
+    ? `${t(preferences.messageKey)}: ${preferences.messageDetail}`
+    : t(preferences.messageKey);
 
   useEffect(() => {
     if (activePlugin && activePlugin.id !== selectedPlugin) {
@@ -49,10 +69,10 @@ function App() {
       <header className="app-header" data-tauri-drag-region>
         <div>
           <h1>ZTool</h1>
-          <p>Tray utilities, shaped as plugins</p>
+          <p>{t("app.tagline")}</p>
         </div>
         <span className="shell-badge">
-          {visiblePlugins.length}/{plugins.length} plugins
+          {visiblePlugins.length}/{plugins.length} {t("app.pluginCount")}
         </span>
       </header>
 
@@ -84,19 +104,21 @@ function App() {
 
       {mainView === "preferences" ? (
         <PreferencesPanel
-          plugins={plugins}
+          plugins={localizedPlugins}
           preferences={preferences.preferences}
           isAutostartBusy={preferences.isAutostartBusy}
-          message={preferences.message}
+          message={preferenceMessage}
+          t={t}
           onLaunchAtLoginChange={preferences.setLaunchAtLogin}
+          onLanguageChange={preferences.setLanguage}
           onToolVisibleChange={preferences.setToolVisible}
         />
       ) : mainView === "about" ? (
-        <AboutPanel plugins={plugins} />
+        <AboutPanel plugins={localizedPlugins} t={t} />
       ) : activePlugin?.id === "caffeine" ? (
-        <CaffeinePanel />
+        <CaffeinePanel t={t} />
       ) : (
-        <ScreenshotPanel />
+        <ScreenshotPanel t={t} />
       )}
 
       <footer className="system-strip" aria-label="系统功能">
@@ -106,7 +128,7 @@ function App() {
           onClick={() => setMainView("preferences")}
         >
           <span>S</span>
-          偏好
+          {t("nav.preferences")}
         </button>
         <button
           type="button"
@@ -114,11 +136,11 @@ function App() {
           onClick={() => setMainView("about")}
         >
           <span>i</span>
-          关于
+          {t("nav.about")}
         </button>
         <button type="button" className="system-action danger" onClick={quitApp}>
           <span>Q</span>
-          退出
+          {t("nav.quit")}
         </button>
       </footer>
     </main>

@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "autostart:default",
+    "global-shortcut:default",
     "opener:default"
   ]
 }

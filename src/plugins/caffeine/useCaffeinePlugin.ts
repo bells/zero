@@ -67,7 +67,7 @@ export function useCaffeinePlugin() {
 
   return {
     enabled: snapshot.enabled,
-    message: error ? `设置失败: ${error}` : snapshot.message,
+    error,
     elapsed,
     isBusy,
     toggle,

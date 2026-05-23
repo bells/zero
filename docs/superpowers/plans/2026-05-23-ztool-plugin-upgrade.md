@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Upgrade caffeine and screenshot into plugin-shaped tools, with WeChat-style screenshot visual direction delivered in a phase-1 cross-platform way.
+**Goal:** Upgrade caffeine and screenshot into plugin-shaped tools, with a polished screenshot visual direction delivered in a phase-1 cross-platform way.
 
 **Architecture:** Split frontend features into `src/plugins/caffeine` and `src/plugins/screenshot`, with a compact app shell in `src/App.tsx`. Split Rust commands into `commands` and platform services so macOS and Windows behavior can evolve independently.
 
@@ -18,7 +18,7 @@
 - Create: `src/plugins/caffeine/useCaffeinePlugin.ts` for caffeine state, elapsed timer, and invoke calls.
 - Create: `src/plugins/caffeine/CaffeinePanel.tsx` for the caffeine plugin UI.
 - Create: `src/plugins/screenshot/useScreenshotPlugin.ts` for platform capability and screenshot invoke calls.
-- Create: `src/plugins/screenshot/ScreenshotPanel.tsx` for WeChat-style phase-1 screenshot UI.
+- Create: `src/plugins/screenshot/ScreenshotPanel.tsx` for phase-1 screenshot UI.
 - Modify: `src-tauri/src/lib.rs` to register modules and preserve tray behavior.
 - Create: `src-tauri/src/commands/mod.rs`, `src-tauri/src/commands/caffeine.rs`, `src-tauri/src/commands/screenshot.rs`.
 - Create: `src-tauri/src/services/mod.rs`, `src-tauri/src/services/caffeine.rs`, `src-tauri/src/services/screenshot.rs`.
@@ -42,7 +42,7 @@
 - [ ] Refactor `App.tsx` into plugin navigation plus selected panel.
 - [ ] Preserve simple status feedback for native command failures.
 
-### Task 3: WeChat-Style Phase-1 UI
+### Task 3: Screenshot Phase-1 UI
 
 - [ ] Replace `App.css` with compact tray UI styling.
 - [ ] Add screenshot preview with dark overlay, green selection, dimensions, handles, and toolbar buttons.

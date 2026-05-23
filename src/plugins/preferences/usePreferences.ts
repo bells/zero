@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { PluginId } from "../types";
+import type { TranslationKey } from "./i18n";
 import {
   AppPreferences,
   DEFAULT_PREFERENCES,
+  LanguagePreference,
   getVisiblePluginIds,
   normalizePreferences,
+  setLanguagePreference,
   setToolVisibility,
 } from "./preferencesModel";
 
@@ -16,7 +19,8 @@ export function usePreferences(pluginIds: PluginId[]) {
     normalizePreferences(readStoredPreferences(), pluginIds),
   );
   const [isAutostartBusy, setIsAutostartBusy] = useState(false);
-  const [message, setMessage] = useState("偏好设置已准备好");
+  const [messageKey, setMessageKey] = useState<TranslationKey>("prefs.message.ready");
+  const [messageDetail, setMessageDetail] = useState<string | null>(null);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
@@ -31,7 +35,8 @@ export function usePreferences(pluginIds: PluginId[]) {
         }));
       })
       .catch((error) => {
-        setMessage(`读取登录启动状态失败: ${String(error)}`);
+        setMessageKey("prefs.message.autostartReadError");
+        setMessageDetail(String(error));
       });
   }, []);
 
@@ -52,9 +57,11 @@ export function usePreferences(pluginIds: PluginId[]) {
         ...current,
         launchAtLogin: enabled,
       }));
-      setMessage(enabled ? "已设置为登录时打开" : "已关闭登录时打开");
+      setMessageKey(enabled ? "prefs.message.autostartOn" : "prefs.message.autostartOff");
+      setMessageDetail(null);
     } catch (error) {
-      setMessage(`设置登录启动失败: ${String(error)}`);
+      setMessageKey("prefs.message.autostartWriteError");
+      setMessageDetail(String(error));
     } finally {
       setIsAutostartBusy(false);
     }
@@ -63,18 +70,27 @@ export function usePreferences(pluginIds: PluginId[]) {
   const setToolVisible = useCallback(
     (pluginId: PluginId, visible: boolean) => {
       setPreferences((current) => setToolVisibility(current, pluginId, visible, pluginIds));
-      setMessage("工具展示偏好已保存");
+      setMessageKey("prefs.message.toolsSaved");
+      setMessageDetail(null);
     },
     [pluginIds],
   );
+
+  const setLanguage = useCallback((language: LanguagePreference) => {
+    setPreferences((current) => setLanguagePreference(current, language));
+    setMessageKey("prefs.message.languageSaved");
+    setMessageDetail(null);
+  }, []);
 
   return {
     preferences,
     visiblePluginIds,
     isAutostartBusy,
-    message,
+    messageKey,
+    messageDetail,
     setLaunchAtLogin,
     setToolVisible,
+    setLanguage,
   };
 }
 

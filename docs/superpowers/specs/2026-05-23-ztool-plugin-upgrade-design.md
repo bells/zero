@@ -2,14 +2,14 @@
 
 ## Goal
 
-ZTool is a tray-first desktop utility collection. The current caffeine and screenshot actions should become first-class plugins with a consistent UI, reliable native state, and a screenshot product direction that visually follows WeChat while landing in phases.
+ZTool is a tray-first desktop utility collection. The current caffeine and screenshot actions should become first-class plugins with a consistent UI, reliable native state, and a screenshot product direction that can land in phases.
 
 ## Scope
 
 Phase 1 keeps the app small and usable:
 
 - Caffeine mode exposes queryable state, reliable toggle behavior, elapsed time in the UI, and cleanup on app exit.
-- Screenshot uses a WeChat-like product language: darkened full-screen capture surface, bright green selection, live dimensions, resize handles, and a bottom toolbar.
+- Screenshot uses a focused capture product language: darkened full-screen capture surface, bright green selection, live dimensions, resize handles, and a bottom toolbar.
 - macOS receives the first custom capture path. Windows keeps a working system screenshot launcher inside the same plugin contract, ready for a later custom backend.
 - Annotation tools are visible as disabled or pending controls in phase 1. Cancel, confirm/copy, and save are the active screenshot actions.
 

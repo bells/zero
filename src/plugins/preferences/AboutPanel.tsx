@@ -1,16 +1,18 @@
 import { PluginMeta } from "../types";
+import type { TranslationKey } from "./i18n";
 
 interface AboutPanelProps {
   plugins: PluginMeta[];
+  t: (key: TranslationKey) => string;
 }
 
-export function AboutPanel({ plugins }: AboutPanelProps) {
+export function AboutPanel({ plugins, t }: AboutPanelProps) {
   return (
     <section className="plugin-panel system-panel about-panel">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">About</span>
-          <h2>关于 ZTool</h2>
+          <span className="eyebrow">{t("about.eyebrow")}</span>
+          <h2>{t("about.title")}</h2>
         </div>
         <span className="status-pill">v0.1.0</span>
       </div>
@@ -18,14 +20,14 @@ export function AboutPanel({ plugins }: AboutPanelProps) {
       <div className="about-mark">Z</div>
 
       <div className="panel-copy">
-        <strong>一个托盘优先的工具集合应用</strong>
-        <span>每个工具都是独立插件，当前已接入截图工具和咖啡因模式。</span>
+        <strong>{t("about.descriptionTitle")}</strong>
+        <span>{t("about.description")}</span>
       </div>
 
       <div className="about-grid">
-        <span>插件数量</span>
+        <span>{t("about.pluginCount")}</span>
         <strong>{plugins.length}</strong>
-        <span>运行方式</span>
+        <span>{t("about.runtime")}</span>
         <strong>Tray App</strong>
       </div>
     </section>

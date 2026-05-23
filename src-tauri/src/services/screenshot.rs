@@ -4,7 +4,7 @@ use tauri::Manager;
 #[derive(Debug, Clone, Serialize)]
 pub struct ScreenshotCapabilities {
     pub platform: String,
-    pub wechat_visual: bool,
+    pub selection_visual: bool,
     pub custom_overlay: bool,
     pub system_launcher: bool,
     pub active_actions: Vec<String>,
@@ -21,7 +21,7 @@ pub struct ScreenshotStartResult {
 pub fn screenshot_capabilities() -> ScreenshotCapabilities {
     ScreenshotCapabilities {
         platform: platform_name().into(),
-        wechat_visual: true,
+        selection_visual: true,
         custom_overlay: false,
         system_launcher: cfg!(any(target_os = "macos", target_os = "windows")),
         active_actions: vec!["copy".into(), "save".into(), "cancel".into()],

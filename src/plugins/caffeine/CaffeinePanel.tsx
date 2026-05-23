@@ -1,17 +1,27 @@
 import { useCaffeinePlugin } from "./useCaffeinePlugin";
+import type { TranslationKey } from "../preferences/i18n";
 
-export function CaffeinePanel() {
+interface CaffeinePanelProps {
+  t: (key: TranslationKey) => string;
+}
+
+export function CaffeinePanel({ t }: CaffeinePanelProps) {
   const caffeine = useCaffeinePlugin();
+  const message = caffeine.error
+    ? `${t("caffeine.message.error")}: ${caffeine.error}`
+    : caffeine.enabled
+      ? t("caffeine.message.active")
+      : t("caffeine.message.inactive");
 
   return (
     <section className="plugin-panel caffeine-panel">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">Power guard</span>
-          <h2>咖啡因模式</h2>
+          <span className="eyebrow">{t("caffeine.eyebrow")}</span>
+          <h2>{t("caffeine.title")}</h2>
         </div>
         <span className={caffeine.enabled ? "status-pill active" : "status-pill"}>
-          {caffeine.enabled ? "保持唤醒" : "正常休眠"}
+          {caffeine.enabled ? t("caffeine.active") : t("caffeine.inactive")}
         </span>
       </div>
 
@@ -22,8 +32,10 @@ export function CaffeinePanel() {
       </div>
 
       <div className="panel-copy">
-        <strong>{caffeine.enabled ? "屏幕和系统将持续保持活跃" : "系统会按原设置进入休眠"}</strong>
-        <span>{caffeine.message}</span>
+        <strong>
+          {caffeine.enabled ? t("caffeine.activeTitle") : t("caffeine.inactiveTitle")}
+        </strong>
+        <span>{message}</span>
       </div>
 
       <button
@@ -34,7 +46,7 @@ export function CaffeinePanel() {
         aria-pressed={caffeine.enabled}
       >
         <span className="button-icon">{caffeine.enabled ? "×" : "✓"}</span>
-        {caffeine.enabled ? "关闭咖啡因" : "开启咖啡因"}
+        {caffeine.enabled ? t("caffeine.disable") : t("caffeine.enable")}
       </button>
     </section>
   );

@@ -1,12 +1,16 @@
 import type { PluginId } from "../types";
 
+export type LanguagePreference = "system" | "zh-CN" | "en-US";
+
 export interface AppPreferences {
   launchAtLogin: boolean;
+  language: LanguagePreference;
   visibleTools: Record<PluginId, boolean>;
 }
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   launchAtLogin: false,
+  language: "system",
   visibleTools: {
     screenshot: true,
     caffeine: true,
@@ -28,6 +32,7 @@ export function normalizePreferences(
 
   return {
     launchAtLogin: input.launchAtLogin ?? false,
+    language: normalizeLanguage(input.language),
     visibleTools: ensureAtLeastOneVisible(visibleTools, pluginIds),
   };
 }
@@ -57,6 +62,24 @@ export function setToolVisibility(
     ...preferences,
     visibleTools,
   };
+}
+
+export function setLanguagePreference(
+  preferences: AppPreferences,
+  language: LanguagePreference,
+): AppPreferences {
+  return {
+    ...preferences,
+    language,
+  };
+}
+
+function normalizeLanguage(language: unknown): LanguagePreference {
+  if (language === "zh-CN" || language === "en-US" || language === "system") {
+    return language;
+  }
+
+  return "system";
 }
 
 function ensureAtLeastOneVisible(

@@ -5,11 +5,13 @@ import {
   getVisiblePluginIds,
   normalizePreferences,
   setToolVisibility,
-} from "/private/tmp/ztool-preferences-test/src/plugins/preferences/preferencesModel.js";
+  setLanguagePreference,
+} from "/private/tmp/ztool-preferences-test/preferences/preferencesModel.js";
 
 test("normalizes missing visibility to all tools visible", () => {
   const preferences = normalizePreferences({}, ["screenshot", "caffeine"]);
 
+  assert.equal(preferences.language, "system");
   assert.deepEqual(preferences.visibleTools, {
     screenshot: true,
     caffeine: true,
@@ -46,4 +48,23 @@ test("keeps the final visible tool enabled", () => {
 
   assert.equal(next.visibleTools.screenshot, true);
   assert.equal(next.visibleTools.caffeine, false);
+});
+
+test("normalizes invalid language to system and accepts explicit language", () => {
+  assert.equal(
+    normalizePreferences({ language: "pirate" }, ["screenshot", "caffeine"]).language,
+    "system",
+  );
+  assert.equal(
+    normalizePreferences({ language: "en-US" }, ["screenshot", "caffeine"]).language,
+    "en-US",
+  );
+});
+
+test("sets language preference without changing tool visibility", () => {
+  const preferences = normalizePreferences({}, ["screenshot", "caffeine"]);
+  const next = setLanguagePreference(preferences, "zh-CN");
+
+  assert.equal(next.language, "zh-CN");
+  assert.deepEqual(next.visibleTools, preferences.visibleTools);
 });

@@ -4,10 +4,12 @@ ZTool is a tray-first desktop utility collection built with Tauri 2, React, and 
 
 ## Current Features
 
-- Screenshot tool with a WeChat-inspired product direction: selection preview, dimensions, toolbar actions, copy, and save entry points.
+- Screenshot tool with selection preview, dimensions, toolbar actions, copy, and save entry points.
+- Global screenshot shortcut: `CommandOrControl+Shift+A`.
 - Caffeine mode to keep the screen and system awake.
 - Preferences panel with real login autostart support.
 - Tool visibility preferences so users can choose which plugins appear in the main tool list.
+- Language preference with system default, Chinese, and English.
 - About and Exit actions in a compact bottom system section.
 
 ## Tech Stack
@@ -86,6 +88,8 @@ src-tauri/
   capabilities/                   Tauri permission capabilities
 tests/
   preferencesModel.test.mjs       Preference model tests
+  i18n.test.mjs                   Language resolution and translation tests
+  screenshotMeta.test.mjs         Screenshot metadata tests
 ```
 
 ## Verification
@@ -95,6 +99,10 @@ Recommended checks before pushing:
 ```bash
 pnpm exec tsc src/plugins/preferences/preferencesModel.ts src/plugins/types.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-preferences-test --noEmit false --skipLibCheck
 node --test tests/preferencesModel.test.mjs
+pnpm exec tsc src/plugins/preferences/i18n.ts src/plugins/preferences/preferencesModel.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-i18n-test --noEmit false --skipLibCheck
+node --test tests/i18n.test.mjs
+pnpm exec tsc src/plugins/screenshot/screenshotMeta.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-screenshot-test --noEmit false --skipLibCheck
+node --test tests/screenshotMeta.test.mjs
 pnpm build
 cd src-tauri && cargo check && cargo test
 ```

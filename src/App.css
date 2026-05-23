@@ -33,20 +33,23 @@ button:disabled {
 
 .app-shell {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 8px;
+  padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: 18px;
   background:
     linear-gradient(145deg, rgba(254, 251, 244, 0.92), rgba(230, 238, 232, 0.88)),
     rgba(246, 247, 241, 0.9);
   box-sizing: border-box;
   backdrop-filter: blur(24px) saturate(1.25);
+  overflow: hidden;
 }
 
 .app-header {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -57,7 +60,7 @@ button:disabled {
 .app-header h1 {
   margin: 0;
   font-family: "Avenir Next Condensed", Avenir Next, sans-serif;
-  font-size: 25px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: 0;
 }
@@ -85,19 +88,20 @@ button:disabled {
 }
 
 .plugin-list {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
 }
 
 .plugin-card {
   min-width: 0;
-  min-height: 62px;
+  min-height: 44px;
   display: grid;
   grid-template-columns: 10px minmax(0, 1fr);
   align-items: center;
-  gap: 9px;
-  padding: 10px;
+  gap: 8px;
+  padding: 8px;
   border: 1px solid rgba(35, 40, 47, 0.11);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.55);
@@ -135,20 +139,20 @@ button:disabled {
 }
 
 .plugin-card strong {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.25;
 }
 
 .plugin-card small {
-  margin-top: 3px;
+  margin-top: 2px;
   color: #687076;
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.25;
 }
 
 .plugin-health {
   width: 8px;
-  height: 32px;
+  height: 24px;
   border-radius: 999px;
   background: var(--plugin-accent);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--plugin-accent) 18%, transparent);
@@ -156,15 +160,16 @@ button:disabled {
 
 .plugin-panel {
   min-height: 0;
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 8px;
+  padding: 10px;
   border: 1px solid rgba(35, 40, 47, 0.12);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.62);
   box-shadow: 0 20px 55px rgba(32, 35, 39, 0.12);
+  overflow: auto;
 }
 
 .system-panel {
@@ -189,7 +194,7 @@ button:disabled {
 
 .panel-heading h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   letter-spacing: 0;
 }
 
@@ -206,26 +211,26 @@ button:disabled {
 }
 
 .panel-copy strong {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
 .panel-copy span {
   color: #667078;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
 .primary-action,
 .secondary-action {
-  min-height: 38px;
+  min-height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 0 13px;
   border-radius: 7px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   transition:
     background-color 160ms ease,
@@ -280,8 +285,77 @@ button:disabled {
 .button-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: auto;
+  gap: 6px;
+  margin-top: 0;
+}
+
+.shortcut-card {
+  min-height: 56px;
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid rgba(35, 40, 47, 0.12);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(87, 246, 131, 0.42), transparent 38%),
+    linear-gradient(145deg, rgba(24, 31, 38, 0.94), rgba(38, 48, 54, 0.9));
+  color: #fff7dc;
+}
+
+.shortcut-card span {
+  color: rgba(255, 247, 220, 0.72);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.shortcut-card strong {
+  font-family: "Avenir Next Condensed", Avenir Next, sans-serif;
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.shortcut-card small {
+  color: rgba(255, 247, 220, 0.72);
+  font-size: 11px;
+}
+
+.usage-list {
+  display: grid;
+  gap: 5px;
+}
+
+.usage-list p {
+  margin: 0;
+  padding-left: 12px;
+  position: relative;
+  color: #525b62;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.usage-list p::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #32c96b;
+}
+
+.compact-tools {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid rgba(35, 40, 47, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.52);
 }
 
 .capture-preview {
@@ -437,6 +511,26 @@ button:disabled {
   background: rgba(255, 255, 255, 0.24);
 }
 
+.compact-tools .tool-button {
+  width: 25px;
+  height: 25px;
+  color: #303840;
+  font-size: 17px;
+}
+
+.compact-tools .tool-button:hover:not(:disabled) {
+  background: rgba(25, 32, 40, 0.08);
+}
+
+.compact-tools .tool-button.confirm {
+  color: #15924a;
+}
+
+.compact-tools .tool-divider {
+  height: 22px;
+  background: rgba(35, 40, 47, 0.14);
+}
+
 .caffeine-panel {
   justify-content: space-between;
 }
@@ -444,11 +538,11 @@ button:disabled {
 .caffeine-dial {
   display: grid;
   place-items: center;
-  padding: 8px 0;
+  padding: 0;
 }
 
 .dial-core {
-  width: 144px;
+  width: 96px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -470,7 +564,7 @@ button:disabled {
 .dial-core span {
   color: #1f252b;
   font-family: "Avenir Next Condensed", Avenir Next, sans-serif;
-  font-size: 30px;
+  font-size: 22px;
   font-weight: 900;
 }
 
@@ -481,11 +575,12 @@ button:disabled {
 }
 
 .system-strip {
-  min-height: 44px;
+  flex: 0 0 auto;
+  min-height: 38px;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  padding: 7px;
+  gap: 6px;
+  padding: 5px;
   border: 1px solid rgba(35, 40, 47, 0.12);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.52);
@@ -544,7 +639,7 @@ button:disabled {
 }
 
 .setting-row {
-  min-height: 58px;
+  min-height: 50px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -556,7 +651,7 @@ button:disabled {
 }
 
 .setting-row.compact {
-  min-height: 50px;
+  min-height: 44px;
 }
 
 .setting-row span {
@@ -620,6 +715,20 @@ button:disabled {
   opacity: 0.58;
 }
 
+.language-select {
+  max-width: 118px;
+  height: 28px;
+  flex: 0 0 auto;
+  padding: 0 26px 0 9px;
+  border: 1px solid rgba(35, 40, 47, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #20262d;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .settings-message {
   margin: auto 0 0;
   color: #667078;
@@ -632,8 +741,8 @@ button:disabled {
 }
 
 .about-mark {
-  width: 92px;
-  height: 92px;
+  width: 76px;
+  height: 76px;
   display: grid;
   place-items: center;
   align-self: center;
@@ -644,7 +753,7 @@ button:disabled {
     linear-gradient(145deg, #202730, #11151a);
   color: #fff7dc;
   font-family: "Avenir Next Condensed", Avenir Next, sans-serif;
-  font-size: 54px;
+  font-size: 46px;
   font-weight: 900;
   box-shadow: 0 22px 44px rgba(24, 28, 32, 0.22);
 }

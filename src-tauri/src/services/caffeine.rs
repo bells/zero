@@ -55,7 +55,11 @@ impl CaffeineState {
 
         {
             let mut started_at = self.started_at.lock().map_err(|e| e.to_string())?;
-            *started_at = if enabled { Some(SystemTime::now()) } else { None };
+            *started_at = if enabled {
+                Some(SystemTime::now())
+            } else {
+                None
+            };
         }
 
         self.snapshot()

@@ -15,11 +15,12 @@
         "title": "ztool",
         "width": 400,
         "height": 500,
+        "resizable": false,
         "decorations": false,   
         "transparent": true,
         "visible": false,     
         "skipTaskbar": true, 
-        "alwaysOnTop": true 
+        "alwaysOnTop": false
       }
     ],
     "security": {
