@@ -1,0 +1,51 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Frontend build output
+dist
+dist-ssr
+coverage
+*.local
+
+# Tauri / Rust build output
+src-tauri/target/
+src-tauri/gen/schemas/
+src-tauri/.cargo/
+
+# Superpowers visual brainstorming scratch files
+.superpowers/
+
+# Local agent skill/cache files
+.agents/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Temporary files
+*.tmp
+*.temp

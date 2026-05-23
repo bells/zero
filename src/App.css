@@ -1,0 +1,670 @@
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+:root {
+  color: #181a1f;
+  background: transparent;
+  font-family:
+    Avenir Next, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+body {
+  overflow: hidden;
+  background: transparent;
+}
+
+button {
+  flex: 0 0 auto;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+.app-shell {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  background:
+    linear-gradient(145deg, rgba(254, 251, 244, 0.92), rgba(230, 238, 232, 0.88)),
+    rgba(246, 247, 241, 0.9);
+  box-sizing: border-box;
+  backdrop-filter: blur(24px) saturate(1.25);
+}
+
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  user-select: none;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-family: "Avenir Next Condensed", Avenir Next, sans-serif;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.app-header p {
+  margin: 2px 0 0;
+  color: #666d72;
+  font-size: 11px;
+}
+
+.shell-badge,
+.status-pill {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  border: 1px solid rgba(35, 40, 47, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  color: #454b52;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.plugin-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.plugin-card {
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid rgba(35, 40, 47, 0.11);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+  text-align: left;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.plugin-card:hover,
+.plugin-card.selected {
+  border-color: color-mix(in srgb, var(--plugin-accent) 64%, rgba(35, 40, 47, 0.16));
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.plugin-card.accent-screenshot {
+  --plugin-accent: #55f280;
+}
+
+.plugin-card.accent-caffeine {
+  --plugin-accent: #f4bd4f;
+}
+
+.plugin-card:active {
+  transform: translateY(1px);
+}
+
+.plugin-card strong,
+.plugin-card small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plugin-card strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.plugin-card small {
+  margin-top: 3px;
+  color: #687076;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.plugin-health {
+  width: 8px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--plugin-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--plugin-accent) 18%, transparent);
+}
+
+.plugin-panel {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(35, 40, 47, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 20px 55px rgba(32, 35, 39, 0.12);
+}
+
+.system-panel {
+  overflow: hidden;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: #7a6845;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.status-pill.active {
+  border-color: rgba(31, 185, 91, 0.28);
+  background: rgba(219, 249, 230, 0.86);
+  color: #126b34;
+}
+
+.panel-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.panel-copy strong {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.panel-copy span {
+  color: #667078;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.primary-action,
+.secondary-action {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 13px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 800;
+  transition:
+    background-color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.primary-action {
+  background: #192028;
+  color: #f8fbf5;
+}
+
+.primary-action:hover {
+  background: #28313b;
+}
+
+.primary-action.danger {
+  background: #cd4242;
+}
+
+.primary-action.danger:hover {
+  background: #b73838;
+}
+
+.secondary-action {
+  border: 1px solid rgba(35, 40, 47, 0.14);
+  background: rgba(255, 255, 255, 0.76);
+  color: #252b31;
+}
+
+.primary-action:active,
+.secondary-action:active,
+.tool-button:active {
+  transform: translateY(1px);
+}
+
+.primary-action:disabled,
+.secondary-action:disabled,
+.tool-button:disabled {
+  opacity: 0.46;
+}
+
+.button-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.capture-preview {
+  position: relative;
+  height: 238px;
+  overflow: hidden;
+  border: 1px solid rgba(35, 40, 47, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(17, 20, 26, 0.66), rgba(17, 20, 26, 0.08)),
+    linear-gradient(135deg, #c9d6cf 0%, #7d8c82 46%, #363d3a 100%);
+}
+
+.capture-preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.45) 0 1px, transparent 2px),
+    radial-gradient(circle at 65% 18%, rgba(255, 255, 255, 0.36) 0 1px, transparent 2px),
+    radial-gradient(circle at 42% 76%, rgba(255, 255, 255, 0.26) 0 1px, transparent 2px);
+  background-size: 76px 54px;
+  opacity: 0.56;
+}
+
+.mock-sidebar {
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  width: 88px;
+  bottom: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.mock-sidebar span {
+  width: 56px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.selection-frame {
+  position: absolute;
+  left: 116px;
+  right: 18px;
+  top: 54px;
+  height: 82px;
+  border: 3px solid #57f683;
+  box-shadow:
+    0 0 0 999px rgba(8, 11, 14, 0.38),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  z-index: 1;
+}
+
+.size-badge {
+  position: absolute;
+  left: 2px;
+  top: -29px;
+  color: #fff7dc;
+  font-family: "Avenir Next Condensed", Avenir Next, sans-serif;
+  font-size: 19px;
+  font-weight: 900;
+  text-shadow: 0 2px 9px rgba(0, 0, 0, 0.56);
+  white-space: nowrap;
+}
+
+.handle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: #57f683;
+  box-shadow: 0 1px 8px rgba(19, 255, 100, 0.5);
+}
+
+.handle.top {
+  top: -7px;
+  left: 50%;
+}
+
+.handle.right {
+  right: -7px;
+  top: 50%;
+}
+
+.handle.bottom {
+  bottom: -7px;
+  left: 50%;
+}
+
+.handle.left {
+  left: -7px;
+  top: 50%;
+}
+
+.capture-toolbar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 14px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 2px solid rgba(255, 79, 91, 0.92);
+  background: rgba(24, 26, 30, 0.64);
+  backdrop-filter: blur(15px);
+  z-index: 2;
+}
+
+.tool-button {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 5px;
+  background: transparent;
+  color: #fff4ce;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.tool-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.tool-button.pending {
+  opacity: 0.42;
+}
+
+.tool-button.cancel {
+  color: #ff6868;
+}
+
+.tool-button.confirm {
+  color: #62ff8c;
+}
+
+.tool-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 2px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.caffeine-panel {
+  justify-content: space-between;
+}
+
+.caffeine-dial {
+  display: grid;
+  place-items: center;
+  padding: 8px 0;
+}
+
+.dial-core {
+  width: 144px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(35, 40, 47, 0.12);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.88) 0 46%, transparent 47%),
+    conic-gradient(#d1d7da, #f0d279, #d1d7da);
+  box-shadow: inset 0 0 0 10px rgba(255, 255, 255, 0.68), 0 20px 40px rgba(30, 33, 36, 0.12);
+}
+
+.dial-core.active {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 46%, transparent 47%),
+    conic-gradient(#f2b84f, #53e085, #f2b84f);
+  animation: slow-spin 7s linear infinite;
+}
+
+.dial-core span {
+  color: #1f252b;
+  font-family: "Avenir Next Condensed", Avenir Next, sans-serif;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+@keyframes slow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.system-strip {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid rgba(35, 40, 47, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.system-action {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  background: transparent;
+  color: #4c535a;
+  font-size: 12px;
+  font-weight: 800;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.system-action span {
+  width: 17px;
+  height: 17px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(35, 40, 47, 0.16);
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.system-action:hover,
+.system-action.selected {
+  background: rgba(25, 32, 40, 0.08);
+  color: #1d242b;
+}
+
+.system-action.danger:hover {
+  background: rgba(205, 66, 66, 0.12);
+  color: #b73838;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-title {
+  color: #7a6845;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.setting-row {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid rgba(35, 40, 47, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.54);
+}
+
+.setting-row.compact {
+  min-height: 50px;
+}
+
+.setting-row span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.setting-row strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.setting-row small {
+  overflow: hidden;
+  color: #697178;
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setting-row input[role="switch"] {
+  width: 42px;
+  height: 24px;
+  position: relative;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 0;
+  border-radius: 999px;
+  appearance: none;
+  background: #d1d8dc;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.setting-row input[role="switch"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 6px rgba(35, 40, 47, 0.22);
+  transition: transform 160ms ease;
+}
+
+.setting-row input[role="switch"]:checked {
+  background: #32c96b;
+}
+
+.setting-row input[role="switch"]:checked::after {
+  transform: translateX(18px);
+}
+
+.setting-row input[role="switch"]:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.settings-message {
+  margin: auto 0 0;
+  color: #667078;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.about-panel {
+  align-items: stretch;
+}
+
+.about-mark {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  border: 1px solid rgba(35, 40, 47, 0.12);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(87, 246, 131, 0.7), transparent 42%),
+    linear-gradient(145deg, #202730, #11151a);
+  color: #fff7dc;
+  font-family: "Avenir Next Condensed", Avenir Next, sans-serif;
+  font-size: 54px;
+  font-weight: 900;
+  box-shadow: 0 22px 44px rgba(24, 28, 32, 0.22);
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  padding: 12px;
+  border: 1px solid rgba(35, 40, 47, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.54);
+}
+
+.about-grid span {
+  color: #687076;
+  font-size: 12px;
+}
+
+.about-grid strong {
+  color: #20262d;
+  font-size: 12px;
+}
