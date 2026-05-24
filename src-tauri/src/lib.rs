@@ -27,6 +27,7 @@ fn should_accept_tray_toggle(
 pub fn run() {
     tauri::Builder::default()
         .manage(services::caffeine::CaffeineState::new())
+        .manage(services::screenshot::ScreenshotSessionStore::default())
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -93,6 +94,11 @@ pub fn run() {
             commands::caffeine::toggle_keep_awake,
             commands::screenshot::get_screenshot_capabilities,
             commands::screenshot::start_screenshot,
+            commands::screenshot::init_screenshot_session,
+            commands::screenshot::commit_screenshot,
+            commands::screenshot::cancel_screenshot_session,
+            commands::screenshot::pin_screenshot,
+            commands::screenshot::init_pin_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

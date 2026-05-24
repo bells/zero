@@ -28,7 +28,7 @@ const plugins: PluginMeta[] = [
 
 const pluginIds = plugins.map((plugin) => plugin.id);
 
-function App() {
+export function MainApp() {
   const [selectedPlugin, setSelectedPlugin] = useState<PluginId>("screenshot");
   const [mainView, setMainView] = useState<MainView>("tool");
   const preferences = usePreferences(pluginIds);
@@ -147,4 +147,4 @@ function App() {
   );
 }
 
-export default App;
+export default MainApp;
