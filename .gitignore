@@ -53,3 +53,4 @@ Thumbs.db
 # Local CodeGraph index
 .codegraph/
 
+.codex/
