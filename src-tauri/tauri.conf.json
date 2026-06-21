@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "tray",
         "title": "ztool",
         "width": 400,
         "height": 500,

@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use tauri::{Manager, WebviewUrl};
 
 const CAPTURE_WINDOW_LABEL: &str = "capture";
+const TRAY_WINDOW_LABEL: &str = "tray";
+const MAIN_WINDOW_LABEL: &str = "main";
 const PIN_WINDOW_LABEL: &str = "pin";
 const DEFAULT_SAVE_FILE_NAME: &str = "ztool-capture.png";
 const PIN_TITLEBAR_HEIGHT: f64 = 30.0;
@@ -75,6 +77,7 @@ struct ScreenshotSession {
     image_base64: String,
     width: u32,
     height: u32,
+    restore_window_label: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -138,17 +141,14 @@ pub fn start_screenshot_session(
     action: String,
 ) -> Result<ScreenshotStartResult, String> {
     let normalized_action = normalize_action(action);
-
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.hide();
-    }
+    let restore_window_label = hide_visible_shell_windows(&app);
 
     #[cfg(target_os = "macos")]
     {
         let (bytes, width, height) = match capture_fullscreen_png() {
             Ok(capture) => capture,
             Err(err) => {
-                restore_main_window(&app);
+                restore_shell_window(&app, restore_window_label.as_deref());
                 return Err(err);
             }
         };
@@ -156,17 +156,19 @@ pub fn start_screenshot_session(
         let image_base64 = base64::engine::general_purpose::STANDARD.encode(bytes);
 
         let store = app.state::<ScreenshotSessionStore>();
+        let restore_window_label_for_error = restore_window_label.clone();
         store.set_active(ScreenshotSession {
             id: session_id.clone(),
             initial_action: normalized_action.clone(),
             image_base64,
             width,
             height,
+            restore_window_label,
         });
 
         if let Err(err) = open_capture_window(&app) {
             store.clear_active();
-            restore_main_window(&app);
+            restore_shell_window(&app, restore_window_label_for_error.as_deref());
             return Err(err);
         }
 
@@ -182,7 +184,10 @@ pub fn start_screenshot_session(
 
     #[cfg(not(target_os = "macos"))]
     {
-        launch_system_screenshot(&normalized_action)?;
+        if let Err(err) = launch_system_screenshot(&normalized_action) {
+            restore_shell_window(&app, restore_window_label.as_deref());
+            return Err(err);
+        }
 
         Ok(ScreenshotStartResult {
             mode: "system-launcher".into(),
@@ -234,7 +239,7 @@ pub fn commit_screenshot(
     app: tauri::AppHandle,
     input: CommitScreenshotInput,
 ) -> Result<ScreenshotCommitResult, String> {
-    validate_session(&app, &input.session_id)?;
+    let active = validate_session(&app, &input.session_id)?;
 
     let action = normalize_action(input.action);
     let bytes = decode_png_base64(&input.png_base64)?;
@@ -262,7 +267,7 @@ pub fn commit_screenshot(
     if let Some(capture) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
         let _ = capture.close();
     }
-    restore_main_window(&app);
+    restore_shell_window(&app, active.restore_window_label.as_deref());
 
     let store = app.state::<ScreenshotSessionStore>();
     store.clear_active();
@@ -274,12 +279,12 @@ pub fn cancel_screenshot_session(
     app: tauri::AppHandle,
     session_id: String,
 ) -> Result<ScreenshotCancelResult, String> {
-    validate_session(&app, &session_id)?;
+    let active = validate_session(&app, &session_id)?;
 
     if let Some(capture) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
         let _ = capture.close();
     }
-    restore_main_window(&app);
+    restore_shell_window(&app, active.restore_window_label.as_deref());
 
     let store = app.state::<ScreenshotSessionStore>();
     store.clear_active();
@@ -297,7 +302,7 @@ pub fn pin_screenshot(
     app: tauri::AppHandle,
     input: PinScreenshotInput,
 ) -> Result<PinScreenshotResult, String> {
-    validate_session(&app, &input.session_id)?;
+    let _active = validate_session(&app, &input.session_id)?;
 
     let bytes = decode_png_base64(&input.png_base64)?;
     let (width, height) = png_dimensions(&bytes)?;
@@ -336,7 +341,10 @@ pub fn init_pin_window(
     Ok(PinPayload { image_base64 })
 }
 
-fn validate_session(app: &tauri::AppHandle, session_id: &str) -> Result<(), String> {
+fn validate_session(
+    app: &tauri::AppHandle,
+    session_id: &str,
+) -> Result<ScreenshotSession, String> {
     let store = app.state::<ScreenshotSessionStore>();
     let active = store
         .active()
@@ -346,13 +354,32 @@ fn validate_session(app: &tauri::AppHandle, session_id: &str) -> Result<(), Stri
         return Err("截图会话已失效，请重新截图".into());
     }
 
-    Ok(())
+    Ok(active)
 }
 
-fn restore_main_window(app: &tauri::AppHandle) {
-    if let Some(main) = app.get_webview_window("main") {
-        let _ = main.show();
-        let _ = main.set_focus();
+fn hide_visible_shell_windows(app: &tauri::AppHandle) -> Option<String> {
+    let mut restore_window_label = None;
+
+    for label in [TRAY_WINDOW_LABEL, MAIN_WINDOW_LABEL] {
+        if let Some(window) = app.get_webview_window(label) {
+            if window.is_visible().unwrap_or(false) {
+                if restore_window_label.is_none() {
+                    restore_window_label = Some(label.to_string());
+                }
+                let _ = window.hide();
+            }
+        }
+    }
+
+    restore_window_label
+}
+
+fn restore_shell_window(app: &tauri::AppHandle, label: Option<&str>) {
+    if let Some(label) = label {
+        if let Some(window) = app.get_webview_window(label) {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
     }
 }
 
@@ -552,6 +579,7 @@ mod tests {
             image_base64: "abc".into(),
             width: 100,
             height: 80,
+            restore_window_label: Some("tray".into()),
         });
 
         let active = store.active().expect("session should exist");

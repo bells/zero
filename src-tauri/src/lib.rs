@@ -10,6 +10,7 @@ pub mod services;
 
 const TRAY_CLICK_DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(280);
 const SCREENSHOT_SHORTCUT: &str = "CommandOrControl+Shift+A";
+const TRAY_WINDOW_LABEL: &str = "tray";
 
 fn should_accept_tray_toggle(
     last_toggle_at: &mut Option<std::time::Instant>,
@@ -73,7 +74,7 @@ pub fn run() {
                         }
 
                         let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
+                        if let Some(window) = app.get_webview_window(TRAY_WINDOW_LABEL) {
                             if window.is_visible().unwrap_or(false) {
                                 let _ = window.hide();
                             } else {
@@ -90,6 +91,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::app::quit_app,
+            commands::app::show_about_window,
+            commands::app::show_main_window,
+            commands::app::show_preferences_window,
             commands::caffeine::get_caffeine_state,
             commands::caffeine::toggle_keep_awake,
             commands::screenshot::get_screenshot_capabilities,

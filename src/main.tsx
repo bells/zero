@@ -2,12 +2,30 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.css";
-import MainApp from "./App";
+import {
+  AboutWindowApp,
+  MainWindowApp,
+  PreferencesWindowApp,
+  TrayPanelApp,
+} from "./App";
+import { resolveAppSurface } from "./appShell/appSurface";
 import CaptureApp from "./plugins/screenshot/capture/CaptureApp";
 import PinApp from "./plugins/screenshot/capture/PinApp";
 
 const label = getCurrentWindow().label;
-const RoutedApp = label === "capture" ? CaptureApp : label.startsWith("pin") ? PinApp : MainApp;
+const surface = resolveAppSurface(label);
+const RoutedApp =
+  surface === "capture"
+    ? CaptureApp
+    : surface === "pin"
+      ? PinApp
+      : surface === "main"
+        ? MainWindowApp
+        : surface === "preferences"
+          ? PreferencesWindowApp
+          : surface === "about"
+            ? AboutWindowApp
+            : TrayPanelApp;
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
