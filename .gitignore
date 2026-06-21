@@ -49,3 +49,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Local CodeGraph index
+.codegraph/
+
