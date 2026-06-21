@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  CaffeineDurationMinutes,
+  formatDurationClock,
+  getRemainingMs,
+} from "./caffeineDuration";
 
 interface CaffeineSnapshot {
   enabled: boolean;
   started_at_ms: number | null;
+  duration_minutes: CaffeineDurationMinutes;
+  expires_at_ms: number | null;
   message: string;
 }
 
@@ -11,8 +18,12 @@ export function useCaffeinePlugin() {
   const [snapshot, setSnapshot] = useState<CaffeineSnapshot>({
     enabled: false,
     started_at_ms: null,
+    duration_minutes: null,
+    expires_at_ms: null,
     message: "正在读取状态",
   });
+  const [selectedDurationMinutes, setSelectedDurationMinutes] =
+    useState<CaffeineDurationMinutes>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
@@ -20,25 +31,53 @@ export function useCaffeinePlugin() {
   const refresh = useCallback(async () => {
     const next = await invoke<CaffeineSnapshot>("get_caffeine_state");
     setSnapshot(next);
+    if (next.enabled) {
+      setSelectedDurationMinutes(next.duration_minutes);
+    }
     setError(null);
   }, []);
 
-  const toggle = useCallback(async () => {
+  const setKeepAwake = useCallback(async (
+    enabled: boolean,
+    durationMinutes: CaffeineDurationMinutes,
+  ) => {
     if (isBusy) return;
 
     setIsBusy(true);
     try {
       const next = await invoke<CaffeineSnapshot>("toggle_keep_awake", {
-        enabled: !snapshot.enabled,
+        enabled,
+        durationMinutes,
       });
       setSnapshot(next);
+      if (next.enabled) {
+        setSelectedDurationMinutes(next.duration_minutes);
+      }
       setError(null);
     } catch (err) {
       setError(String(err));
     } finally {
       setIsBusy(false);
     }
-  }, [isBusy, snapshot.enabled]);
+  }, [isBusy]);
+
+  const enable = useCallback(() => {
+    setKeepAwake(true, selectedDurationMinutes);
+  }, [selectedDurationMinutes, setKeepAwake]);
+
+  const disable = useCallback(() => {
+    setKeepAwake(false, null);
+  }, [setKeepAwake]);
+
+  const selectDuration = useCallback(
+    (durationMinutes: CaffeineDurationMinutes) => {
+      setSelectedDurationMinutes(durationMinutes);
+      if (snapshot.enabled) {
+        setKeepAwake(true, durationMinutes);
+      }
+    },
+    [setKeepAwake, snapshot.enabled],
+  );
 
   useEffect(() => {
     refresh().catch((err) => setError(String(err)));
@@ -50,27 +89,41 @@ export function useCaffeinePlugin() {
     return () => window.clearInterval(timer);
   }, [snapshot.enabled]);
 
+  const remainingMs = useMemo(
+    () => getRemainingMs(snapshot.expires_at_ms, now),
+    [now, snapshot.expires_at_ms],
+  );
+
+  useEffect(() => {
+    if (!snapshot.enabled || snapshot.expires_at_ms === null || remainingMs !== 0) {
+      return;
+    }
+
+    refresh().catch((err) => setError(String(err)));
+  }, [refresh, remainingMs, snapshot.enabled, snapshot.expires_at_ms]);
+
   const elapsed = useMemo(() => {
     if (!snapshot.enabled || !snapshot.started_at_ms) return "00:00";
 
-    const totalSeconds = Math.max(0, Math.floor((now - snapshot.started_at_ms) / 1000));
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    if (hours > 0) {
-      return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
-    }
-
-    return [minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+    return formatDurationClock(now - snapshot.started_at_ms);
   }, [now, snapshot.enabled, snapshot.started_at_ms]);
+
+  const remaining = useMemo(
+    () => (remainingMs === null ? null : formatDurationClock(remainingMs)),
+    [remainingMs],
+  );
 
   return {
     enabled: snapshot.enabled,
+    durationMinutes: snapshot.duration_minutes,
     error,
     elapsed,
+    remaining,
+    selectedDurationMinutes,
     isBusy,
-    toggle,
+    enable,
+    disable,
+    selectDuration,
     refresh,
   };
 }

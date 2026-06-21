@@ -568,6 +568,73 @@ button:disabled {
   font-weight: 900;
 }
 
+.duration-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid rgba(35, 40, 47, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.duration-chip {
+  min-width: 0;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: transparent;
+  color: #4f565d;
+  font-size: 11px;
+  font-weight: 900;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.duration-chip:hover:not(:disabled),
+.duration-chip.selected {
+  background: rgba(244, 189, 79, 0.26);
+  color: #47300b;
+}
+
+.duration-chip:active {
+  transform: translateY(1px);
+}
+
+.duration-chip:disabled {
+  opacity: 0.46;
+}
+
+.caffeine-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.caffeine-metrics span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 7px 8px;
+  border: 1px solid rgba(35, 40, 47, 0.1);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.52);
+  color: #252b31;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.caffeine-metrics strong {
+  color: #747c83;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
 @keyframes slow-spin {
   to {
     transform: rotate(360deg);
