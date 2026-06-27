@@ -68,3 +68,21 @@ test("sets language preference without changing tool visibility", () => {
   assert.equal(next.language, "zh-CN");
   assert.deepEqual(next.visibleTools, preferences.visibleTools);
 });
+
+test("supports registry plugin ids and migrates legacy bundled visibility keys", () => {
+  const preferences = normalizePreferences(
+    {
+      visibleTools: {
+        screenshot: false,
+        caffeine: true,
+      },
+    },
+    ["ztool.screenshot", "ztool.caffeine", "market-tool"],
+  );
+
+  assert.deepEqual(preferences.visibleTools, {
+    "ztool.screenshot": false,
+    "ztool.caffeine": true,
+    "market-tool": true,
+  });
+});

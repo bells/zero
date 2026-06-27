@@ -1,0 +1,256 @@
+import type {
+  PluginHealth,
+  PluginPermission,
+  PluginRecord,
+} from "./contracts";
+
+export interface ExtensionSurfacePolicy {
+  sandbox: "allow-scripts";
+  csp: string;
+}
+
+export interface ExtensionApiRequest {
+  requestId: string;
+  pluginName: string;
+  method: string;
+  payload?: unknown;
+}
+
+export interface ExtensionApiError {
+  code: string;
+  message: string;
+}
+
+export interface ExtensionApiResponse {
+  requestId: string;
+  ok: boolean;
+  result?: unknown;
+  error?: ExtensionApiError;
+}
+
+export interface ExtensionHostApis {
+  showMessage?: (message: string) => Promise<void> | void;
+  storageGet?: (pluginName: string, key: string) => Promise<unknown> | unknown;
+  storageSet?: (pluginName: string, key: string, value: unknown) => Promise<void> | void;
+  commandRegister?: (pluginName: string, commandId: string) => Promise<void> | void;
+  commandExecute?: (pluginName: string, commandId: string) => Promise<unknown> | unknown;
+  settingsGet?: (pluginName: string, key: string) => Promise<unknown> | unknown;
+  settingsSet?: (pluginName: string, key: string, value: unknown) => Promise<void> | void;
+  diagnosticsReport?: (pluginName: string, message: string) => Promise<void> | void;
+}
+
+export interface ExtensionBridge {
+  handle(request: unknown): Promise<ExtensionApiResponse>;
+}
+
+export function buildExtensionSurfacePolicy(): ExtensionSurfacePolicy {
+  return {
+    sandbox: "allow-scripts",
+    csp: [
+      "default-src 'none'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:",
+      "connect-src 'none'",
+      "frame-ancestors 'none'",
+    ].join("; "),
+  };
+}
+
+export function createExtensionBridge(
+  record: PluginRecord,
+  hostApis: ExtensionHostApis,
+): ExtensionBridge {
+  return {
+    async handle(request: unknown) {
+      const parsed = parseRequest(request);
+      if ("response" in parsed) {
+        return parsed.response;
+      }
+
+      if (parsed.request.pluginName !== record.name) {
+        return denied(parsed.request.requestId, "plugin.identity", "Plugin identity mismatch.");
+      }
+
+      if (!record.enabled || record.health === "disabled") {
+        return denied(parsed.request.requestId, "plugin.disabled", "Plugin is disabled.");
+      }
+
+      const permission = requiredPermission(parsed.request.method);
+      if (!permission) {
+        return denied(parsed.request.requestId, "method.unsupported", "Extension API method is not supported.");
+      }
+
+      if (!record.approvedPermissions.includes(permission)) {
+        return denied(parsed.request.requestId, "permission.denied", `Missing permission ${permission}.`);
+      }
+
+      try {
+        const result = await dispatchHostApi(record.name, parsed.request, hostApis);
+        const response: ExtensionApiResponse = {
+          requestId: parsed.request.requestId,
+          ok: true,
+        };
+        if (result !== undefined) {
+          response.result = result;
+        }
+        return response;
+      } catch (error) {
+        return denied(
+          parsed.request.requestId,
+          "host.error",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    },
+  };
+}
+
+export function markPluginFailure(
+  record: PluginRecord,
+  message: string,
+): PluginRecord & { lastError: string } {
+  return {
+    ...record,
+    enabled: false,
+    health: "error" satisfies PluginHealth,
+    lastError: message,
+  };
+}
+
+function parseRequest(request: unknown):
+  | { ok: true; request: ExtensionApiRequest }
+  | { ok: false; response: ExtensionApiResponse } {
+  if (!isRecord(request)) {
+    return {
+      ok: false,
+      response: denied("", "request.invalid", "Extension request must be an object."),
+    };
+  }
+
+  const requestId = request.requestId;
+  const pluginName = request.pluginName;
+  const method = request.method;
+
+  if (typeof requestId !== "string" ||
+    typeof pluginName !== "string" ||
+    typeof method !== "string"
+  ) {
+    return {
+      ok: false,
+      response: denied(
+        typeof requestId === "string" ? requestId : "",
+        "request.invalid",
+        "Extension request requires string requestId, pluginName, and method.",
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    request: {
+      requestId,
+      pluginName,
+      method,
+      payload: request.payload,
+    },
+  };
+}
+
+function requiredPermission(method: string): PluginPermission | null {
+  if (method === "ui.showMessage") {
+    return "ui.message";
+  }
+
+  if (method.startsWith("storage.")) {
+    return "storage.plugin";
+  }
+
+  if (method.startsWith("command.") || method.startsWith("settings.")) {
+    return "storage.plugin";
+  }
+
+  if (method === "diagnostics.report") {
+    return "ui.message";
+  }
+
+  if (method === "process.execute") {
+    return "process.execute";
+  }
+
+  return null;
+}
+
+async function dispatchHostApi(
+  pluginName: string,
+  request: ExtensionApiRequest,
+  hostApis: ExtensionHostApis,
+) {
+  const payload = isRecord(request.payload) ? request.payload : {};
+
+  switch (request.method) {
+    case "ui.showMessage": {
+      const message = readString(payload.message, "message");
+      await hostApis.showMessage?.(message);
+      return undefined;
+    }
+    case "storage.get": {
+      const key = readString(payload.key, "key");
+      return hostApis.storageGet?.(pluginName, key);
+    }
+    case "storage.set": {
+      const key = readString(payload.key, "key");
+      await hostApis.storageSet?.(pluginName, key, payload.value);
+      return undefined;
+    }
+    case "command.register": {
+      const commandId = readString(payload.commandId, "commandId");
+      await hostApis.commandRegister?.(pluginName, commandId);
+      return undefined;
+    }
+    case "command.execute": {
+      const commandId = readString(payload.commandId, "commandId");
+      return hostApis.commandExecute?.(pluginName, commandId);
+    }
+    case "settings.get": {
+      const key = readString(payload.key, "key");
+      return hostApis.settingsGet?.(pluginName, key);
+    }
+    case "settings.set": {
+      const key = readString(payload.key, "key");
+      await hostApis.settingsSet?.(pluginName, key, payload.value);
+      return undefined;
+    }
+    case "diagnostics.report": {
+      const message = readString(payload.message, "message");
+      await hostApis.diagnosticsReport?.(pluginName, message);
+      return undefined;
+    }
+    default:
+      throw new Error(`Unsupported method ${request.method}`);
+  }
+}
+
+function readString(value: unknown, key: string) {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`${key} must be a non-empty string`);
+  }
+
+  return value;
+}
+
+function denied(
+  requestId: string,
+  code: string,
+  message: string,
+): ExtensionApiResponse {
+  return {
+    requestId,
+    ok: false,
+    error: { code, message },
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

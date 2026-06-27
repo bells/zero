@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { CaffeinePanel } from "./plugins/caffeine/CaffeinePanel";
+import {
+  bundledPluginKind,
+  pluginAccentClass,
+} from "./plugins/pluginHost/bundledPlugins";
+import { PluginManagerPanel } from "./plugins/pluginHost/PluginManagerPanel";
+import type { PluginRecord } from "./plugins/pluginHost/contracts";
+import { usePluginHost } from "./plugins/pluginHost/usePluginHost";
 import { AboutPanel } from "./plugins/preferences/AboutPanel";
 import { PreferencesPanel } from "./plugins/preferences/PreferencesPanel";
 import { createTranslator, resolveLanguage } from "./plugins/preferences/i18n";
@@ -10,58 +17,63 @@ import { ScreenshotPanel } from "./plugins/screenshot/ScreenshotPanel";
 import { PluginId, PluginMeta } from "./plugins/types";
 import { appWindows } from "./services/appWindows";
 
-const plugins: PluginMeta[] = [
-  {
-    id: "screenshot",
-    title: "Screenshot",
-    subtitle: "Shortcut, copy, save",
-    health: "active",
-  },
-  {
-    id: "caffeine",
-    title: "Caffeine",
-    subtitle: "Keep awake",
-    health: "ready",
-  },
-];
-
-const pluginIds = plugins.map((plugin) => plugin.id);
-
 type ShellMessage = {
   tone: "error" | "info";
   text: string;
 };
 
 function useLocalizedPlugins() {
+  const pluginHost = usePluginHost();
+  const preferencePlugins = useMemo(
+    () => pluginHost.records.map(pluginRecordToMeta),
+    [pluginHost.records],
+  );
+  const navigationPlugins = useMemo(
+    () =>
+      pluginHost.navigationItems.map((item) => ({
+        id: item.id,
+        title: item.title,
+        subtitle: item.subtitle,
+        health: item.health,
+        enabled: item.enabled,
+      })),
+    [pluginHost.navigationItems],
+  );
+  const pluginIds = useMemo(
+    () => preferencePlugins.map((plugin) => plugin.id),
+    [preferencePlugins],
+  );
   const preferences = usePreferences(pluginIds);
   const resolvedLanguage = resolveLanguage(
     preferences.preferences.language,
     navigator.language,
   );
   const t = createTranslator(resolvedLanguage);
-  const localizedPlugins = plugins.map((plugin) => ({
-    ...plugin,
-    title: t(plugin.id === "screenshot" ? "plugin.screenshot.title" : "plugin.caffeine.title"),
-    subtitle: t(
-      plugin.id === "screenshot"
-        ? "plugin.screenshot.subtitle"
-        : "plugin.caffeine.subtitle",
-    ),
-  }));
-  const visiblePlugins = localizedPlugins.filter((plugin) =>
+  const localizedPlugins = preferencePlugins.map((plugin) =>
+    localizePluginMeta(plugin, t),
+  );
+  const visiblePlugins = navigationPlugins.map((plugin) =>
+    localizePluginMeta(plugin, t),
+  ).filter((plugin) =>
     preferences.visiblePluginIds.includes(plugin.id),
   );
 
   return {
+    pluginHost,
     preferences,
     t,
     localizedPlugins,
     visiblePlugins,
+    pluginSummary: pluginHost.summary,
+    totalPluginCount: pluginHost.summary.total,
   };
 }
 
-function useSelectedPlugin(visiblePlugins: PluginMeta[]) {
-  const [selectedPlugin, setSelectedPlugin] = useState<PluginId>("screenshot");
+function useSelectedPlugin(
+  visiblePlugins: PluginMeta[],
+  selectedPlugin: PluginId | null,
+  setSelectedPlugin: (pluginId: PluginId | null) => void,
+) {
   const activePlugin =
     visiblePlugins.find((plugin) => plugin.id === selectedPlugin) ?? visiblePlugins[0];
 
@@ -79,11 +91,19 @@ function useSelectedPlugin(visiblePlugins: PluginMeta[]) {
 }
 
 function pluginPanel(plugin: PluginMeta | undefined, t: (key: TranslationKey) => string) {
-  if (plugin?.id === "caffeine") {
+  if (!plugin) {
+    return <EmptyPluginState t={t} />;
+  }
+
+  if (bundledPluginKind(plugin.id) === "caffeine") {
     return <CaffeinePanel t={t} />;
   }
 
-  return <ScreenshotPanel t={t} />;
+  if (bundledPluginKind(plugin.id) === "screenshot") {
+    return <ScreenshotPanel t={t} />;
+  }
+
+  return <GenericPluginPanel plugin={plugin} />;
 }
 
 interface PluginPickerProps {
@@ -108,7 +128,7 @@ function PluginPicker({
           type="button"
           className={[
             "plugin-card",
-            `accent-${plugin.id}`,
+            pluginAccentClass(plugin.id),
             plugin.id === activePluginId ? "selected" : "",
           ]
             .filter(Boolean)
@@ -125,6 +145,78 @@ function PluginPicker({
       ))}
     </section>
   );
+}
+
+function EmptyPluginState({ t }: { t: (key: TranslationKey) => string }) {
+  return (
+    <section className="plugin-panel system-panel">
+      <div className="panel-heading">
+        <div>
+          <span className="eyebrow">{t("shell.pluginWorkspace")}</span>
+          <h2>ZTool</h2>
+        </div>
+        <span className="status-pill">{t("app.tagline")}</span>
+      </div>
+      <div className="panel-copy">
+        <strong>No enabled plugins</strong>
+        <span>Install a plugin from the market or restore bundled defaults.</span>
+      </div>
+    </section>
+  );
+}
+
+function GenericPluginPanel({ plugin }: { plugin: PluginMeta }) {
+  return (
+    <section className="plugin-panel system-panel">
+      <div className="panel-heading">
+        <div>
+          <span className="eyebrow">Extension</span>
+          <h2>{plugin.title}</h2>
+        </div>
+        <span className={`status-pill ${plugin.health === "ready" ? "active" : ""}`}>
+          {plugin.health}
+        </span>
+      </div>
+      <div className="panel-copy">
+        <strong>{plugin.subtitle}</strong>
+        <span>Generic extension rendering will be isolated in the extension surface.</span>
+      </div>
+    </section>
+  );
+}
+
+function pluginRecordToMeta(record: PluginRecord): PluginMeta {
+  return {
+    id: record.name,
+    title: record.manifest.displayName ?? record.name,
+    subtitle: record.manifest.description ?? `${record.source} · ${record.version}`,
+    health: record.health,
+    enabled: record.enabled,
+  };
+}
+
+function localizePluginMeta(
+  plugin: PluginMeta,
+  t: (key: TranslationKey) => string,
+): PluginMeta {
+  const builtin = bundledPluginKind(plugin.id);
+  if (builtin === "screenshot") {
+    return {
+      ...plugin,
+      title: t("plugin.screenshot.title"),
+      subtitle: t("plugin.screenshot.subtitle"),
+    };
+  }
+
+  if (builtin === "caffeine") {
+    return {
+      ...plugin,
+      title: t("plugin.caffeine.title"),
+      subtitle: t("plugin.caffeine.subtitle"),
+    };
+  }
+
+  return plugin;
 }
 
 async function runShellAction(
@@ -144,8 +236,12 @@ async function runShellAction(
 }
 
 export function TrayPanelApp() {
-  const { t, visiblePlugins } = useLocalizedPlugins();
-  const { activePlugin, setSelectedPlugin } = useSelectedPlugin(visiblePlugins);
+  const { pluginHost, t, visiblePlugins, totalPluginCount } = useLocalizedPlugins();
+  const { activePlugin, setSelectedPlugin } = useSelectedPlugin(
+    visiblePlugins,
+    pluginHost.selectedPluginName,
+    pluginHost.setSelectedPluginName,
+  );
   const [message, setMessage] = useState<ShellMessage | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -160,7 +256,7 @@ export function TrayPanelApp() {
           <p>{t("app.tagline")}</p>
         </div>
         <span className="shell-badge">
-          {visiblePlugins.length}/{plugins.length} {t("app.pluginCount")}
+          {visiblePlugins.length}/{totalPluginCount} {t("app.pluginCount")}
         </span>
       </header>
 
@@ -227,8 +323,12 @@ export function TrayPanelApp() {
 }
 
 export function MainWindowApp() {
-  const { t, visiblePlugins } = useLocalizedPlugins();
-  const { activePlugin, setSelectedPlugin } = useSelectedPlugin(visiblePlugins);
+  const { pluginHost, t, visiblePlugins, totalPluginCount } = useLocalizedPlugins();
+  const { activePlugin, setSelectedPlugin } = useSelectedPlugin(
+    visiblePlugins,
+    pluginHost.selectedPluginName,
+    pluginHost.setSelectedPluginName,
+  );
   const [message, setMessage] = useState<ShellMessage | null>(null);
   const runAction = (action: () => Promise<void>) => runShellAction(action, setMessage, t);
 
@@ -259,7 +359,7 @@ export function MainWindowApp() {
           <div>
             <strong>{t("shell.plugins")}</strong>
             <span>
-              {visiblePlugins.length}/{plugins.length} {t("app.pluginCount")}
+              {visiblePlugins.length}/{totalPluginCount} {t("app.pluginCount")}
             </span>
           </div>
           <PluginPicker
@@ -287,7 +387,7 @@ export function MainWindowApp() {
 }
 
 export function PreferencesWindowApp() {
-  const { preferences, t, localizedPlugins } = useLocalizedPlugins();
+  const { pluginHost, preferences, t, localizedPlugins } = useLocalizedPlugins();
   const preferenceMessage = preferences.messageDetail
     ? `${t(preferences.messageKey)}: ${preferences.messageDetail}`
     : t(preferences.messageKey);
@@ -311,12 +411,13 @@ export function PreferencesWindowApp() {
         onLanguageChange={preferences.setLanguage}
         onToolVisibleChange={preferences.setToolVisible}
       />
+      <PluginManagerPanel pluginHost={pluginHost} />
     </main>
   );
 }
 
 export function AboutWindowApp() {
-  const { t, localizedPlugins } = useLocalizedPlugins();
+  const { t, localizedPlugins, pluginSummary } = useLocalizedPlugins();
 
   return (
     <main className="app-shell standalone-shell about-window-shell">
@@ -327,7 +428,7 @@ export function AboutWindowApp() {
         </div>
       </header>
 
-      <AboutPanel plugins={localizedPlugins} t={t} />
+      <AboutPanel plugins={localizedPlugins} summary={pluginSummary} t={t} />
     </main>
   );
 }

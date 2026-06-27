@@ -1,0 +1,38 @@
+{
+  "name": "minimal-view-command-setting",
+  "version": "0.1.0",
+  "author": "watson",
+  "main": "dist/index.html",
+  "permissions": ["ui.message", "storage.plugin"],
+  "displayName": "Minimal Plugin",
+  "description": "A minimal plugin with one view, one command, and one setting.",
+  "engines": {
+    "ztool": "0.1.0",
+    "api": "1"
+  },
+  "platforms": ["macos", "windows", "linux"],
+  "runtime": "webview",
+  "contributes": {
+    "views": [
+      {
+        "id": "minimal-view-command-setting.main",
+        "title": "Minimal Plugin",
+        "surface": "main"
+      }
+    ],
+    "commands": [
+      {
+        "id": "minimal-view-command-setting.hello",
+        "title": "Say Hello"
+      }
+    ],
+    "settings": [
+      {
+        "key": "enabled",
+        "type": "boolean",
+        "default": true,
+        "label": "Enabled"
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # ZTool Memory
 
-Last updated: 2026-06-03
+Last updated: 2026-06-27
 
 This file is a compact project memory for future maintainers and Codex runs. Treat it as a starting map, then verify against the live tree before making changes.
 
@@ -10,7 +10,8 @@ This file is a compact project memory for future maintainers and Codex runs. Tre
 - Current stack: Tauri 2, Rust 2021, React 19, TypeScript, Vite, pnpm.
 - Package manager is `pnpm@10.33.0`; main npm scripts are `pnpm dev`, `pnpm build`, and `pnpm tauri ...`.
 - Current product surface is a compact undecorated tray window plus extra Tauri windows for screenshot workflows.
-- Current plugins are `screenshot` and `caffeine`; preferences/about live under the preferences plugin area.
+- Bundled plugins are registered as `ztool.screenshot` and `ztool.caffeine`; preferences/about remain protected host surfaces.
+- The plugin MVP is Git-based: plugin authors publish `.zplugin` ZIP packages through GitHub Releases, and ZTool reads a hosted static `market.json` instead of using a server-backed marketplace.
 
 ## Current Architecture
 
@@ -18,14 +19,16 @@ This file is a compact project memory for future maintainers and Codex runs. Tre
   - `main` renders `MainApp`.
   - `capture` renders the screenshot editor `CaptureApp`.
   - `pin-*` renders `PinApp`.
-- `src/App.tsx` owns the main tray shell, hard-coded plugin list, preferences/about navigation, and quit action.
-- `src/plugins/types.ts` is the plugin id contract. When adding a tool, update `PluginId`, the `plugins` array, i18n, preferences defaults, and tests together.
+- `src/App.tsx` renders plugin navigation from the Rust-backed plugin registry via `src/plugins/pluginHost/usePluginHost.ts`; screenshot/caffeine still render through bundled adapters.
+- `src/plugins/pluginHost/` owns the TypeScript side of the plugin host: IPC contracts, market/registry service wrappers, market and lifecycle models, bundled manifest definitions, extension isolation policy, and bridge permission checks.
+- `src/plugins/types.ts` now treats plugin ids as dynamic strings. Bundled ids are `ztool.screenshot` and `ztool.caffeine`; legacy `screenshot`/`caffeine` visibility keys are migrated by preferences normalization.
 - `src/plugins/preferences/` owns local preferences:
   - storage key: `ztool.preferences.v1`
   - launch-at-login uses `@tauri-apps/plugin-autostart`
   - language options are `system`, `zh-CN`, and `en-US`
   - at least one tool must stay visible.
 - `src-tauri/src/lib.rs` registers tray behavior, the global screenshot shortcut, managed native state, plugins, and command handlers.
+- `src-tauri/src/plugins/` owns Rust plugin contracts, Git market fetch/cache, `.zplugin` download/checksum/extraction, registry persistence under `~/.ztool/plugins/`, and guarded binary/script entrypoint execution.
 - `src-tauri/capabilities/default.json` must include every window family used by commands. It currently allows `main`, `capture`, and `pin-*`.
 
 ## Screenshot Memory
@@ -69,10 +72,18 @@ node --test tests/captureReducer.test.mjs tests/captureHotkeys.test.mjs tests/ca
 Other useful checks:
 
 ```bash
+node scripts/validate-plugin-package.mjs examples/plugins/minimal-view-command-setting
+node --test tests/pluginHostService.test.mjs tests/pluginHostModel.test.mjs tests/pluginMarketModel.test.mjs tests/extensionRuntime.test.mjs tests/bundledPlugins.test.mjs
 node --test tests/*.mjs
 pnpm build
 cd src-tauri && cargo check && cargo test
 git diff --check
+```
+
+For plugin lifecycle work, also run the focused Rust suites:
+
+```bash
+cargo test --manifest-path src-tauri/Cargo.toml --test plugin_package --test plugin_registry --test plugin_runtime
 ```
 
 For screenshot behavior, do at least one manual `pnpm tauri dev` pass on macOS when changing capture windows, copy/save, pin windows, or tray/shortcut behavior.

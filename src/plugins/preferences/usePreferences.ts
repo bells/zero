@@ -15,6 +15,7 @@ import {
 const STORAGE_KEY = "ztool.preferences.v1";
 
 export function usePreferences(pluginIds: PluginId[]) {
+  const pluginIdsKey = pluginIds.join("\u0000");
   const [preferences, setPreferences] = useState<AppPreferences>(() =>
     normalizePreferences(readStoredPreferences(), pluginIds),
   );
@@ -25,6 +26,10 @@ export function usePreferences(pluginIds: PluginId[]) {
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
   }, [preferences]);
+
+  useEffect(() => {
+    setPreferences((current) => normalizePreferences(current, pluginIds));
+  }, [pluginIdsKey]);
 
   useEffect(() => {
     isEnabled()

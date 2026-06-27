@@ -1,12 +1,14 @@
 import { PluginMeta } from "../types";
+import type { PluginHostSummary } from "../pluginHost/pluginHostModel";
 import type { TranslationKey } from "./i18n";
 
 interface AboutPanelProps {
   plugins: PluginMeta[];
+  summary?: PluginHostSummary;
   t: (key: TranslationKey) => string;
 }
 
-export function AboutPanel({ plugins, t }: AboutPanelProps) {
+export function AboutPanel({ plugins, summary, t }: AboutPanelProps) {
   return (
     <section className="plugin-panel system-panel about-panel">
       <div className="panel-heading">
@@ -26,7 +28,19 @@ export function AboutPanel({ plugins, t }: AboutPanelProps) {
 
       <div className="about-grid">
         <span>{t("about.pluginCount")}</span>
-        <strong>{plugins.length}</strong>
+        <strong>{summary?.total ?? plugins.length}</strong>
+        <span>Bundled</span>
+        <strong>{summary?.bundled ?? 0}</strong>
+        <span>Market</span>
+        <strong>{summary?.market ?? 0}</strong>
+        <span>Local</span>
+        <strong>{summary?.local ?? 0}</strong>
+        <span>Disabled</span>
+        <strong>{summary?.disabled ?? 0}</strong>
+        <span>Failed</span>
+        <strong>{summary?.failed ?? 0}</strong>
+        <span>Incompatible</span>
+        <strong>{summary?.incompatible ?? 0}</strong>
         <span>{t("about.runtime")}</span>
         <strong>Tray App</strong>
       </div>

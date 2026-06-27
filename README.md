@@ -11,6 +11,7 @@ ZTool is a tray-first desktop utility collection built with Tauri 2, React, and 
 - Tool visibility preferences so users can choose which plugins appear in the main tool list.
 - Language preference with system default, Chinese, and English.
 - About and Exit actions in a compact bottom system section.
+- MVP plugin host: GitHub Releases `.zplugin` packages, hosted `market.json`, local package validation/install, permission review, enable/disable/uninstall, and bundled restore.
 
 ## Tech Stack
 
@@ -78,6 +79,7 @@ src/
   App.tsx                         Main tray shell
   App.css                         Application styling
   plugins/
+    pluginHost/                   Runtime plugin registry, market, extension bridge, and host UI
     caffeine/                     Caffeine tool UI and state bridge
     screenshot/                   Screenshot tool UI and state bridge
     preferences/                  Preferences, about, and preference model
@@ -88,8 +90,33 @@ src-tauri/
   capabilities/                   Tauri permission capabilities
 tests/
   preferencesModel.test.mjs       Preference model tests
+  pluginHost*.test.mjs            Plugin host service/state tests
+  extensionRuntime.test.mjs       Extension bridge and isolation tests
   i18n.test.mjs                   Language resolution and translation tests
   screenshotMeta.test.mjs         Screenshot metadata tests
+```
+
+## Plugin MVP
+
+The first plugin market is repository-based, not server-backed:
+
+- plugin authors publish a `.zplugin` ZIP archive in their own GitHub Releases;
+- ZTool reads a hosted static `market.json`;
+- install extracts packages under `~/.ztool/plugins/<plugin>/<version>/`;
+- `manifest.json` requires `name`, `version`, `author`, `main`, and `permissions`;
+- permissions are reviewed before install and enforced by a host-mediated Extension API bridge.
+
+Developer docs:
+
+- [MVP protocol](docs/plugins/mvp-plugin-protocol.md)
+- [Developer guide](docs/plugins/developer-guide.md)
+- [GitHub Releases publishing guide](docs/plugins/publishing-github-releases.md)
+- [Minimal example plugin](examples/plugins/minimal-view-command-setting)
+
+Validate an unpacked plugin directory:
+
+```bash
+node scripts/validate-plugin-package.mjs examples/plugins/minimal-view-command-setting
 ```
 
 ## Verification
@@ -103,6 +130,8 @@ pnpm exec tsc src/plugins/preferences/i18n.ts src/plugins/preferences/preference
 node --test tests/i18n.test.mjs
 pnpm exec tsc src/plugins/screenshot/screenshotMeta.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-screenshot-test --noEmit false --skipLibCheck
 node --test tests/screenshotMeta.test.mjs
+./node_modules/.bin/tsc src/plugins/pluginHost/contracts.ts src/plugins/pluginHost/pluginHostServiceCore.ts src/plugins/pluginHost/pluginHostModel.ts src/plugins/pluginHost/pluginMarketModel.ts src/plugins/pluginHost/extensionBridge.ts --module ES2020 --moduleResolution bundler --target ES2022 --outDir /private/tmp/ztool-plugin-host-test --noEmit false --skipLibCheck
+node --test tests/pluginHostService.test.mjs tests/pluginHostModel.test.mjs tests/pluginMarketModel.test.mjs tests/extensionRuntime.test.mjs
 pnpm build
 cd src-tauri && cargo check && cargo test
 ```

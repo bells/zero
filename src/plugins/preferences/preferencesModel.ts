@@ -25,7 +25,7 @@ export function normalizePreferences(
   const visibleTools = pluginIds.reduce(
     (result, pluginId) => ({
       ...result,
-      [pluginId]: input.visibleTools?.[pluginId] ?? true,
+      [pluginId]: readPluginVisibility(input.visibleTools, pluginId) ?? true,
     }),
     {} as Record<PluginId, boolean>,
   );
@@ -107,4 +107,37 @@ function isPreferenceShape(value: unknown): Partial<AppPreferences> | null {
   }
 
   return value as Partial<AppPreferences>;
+}
+
+function readPluginVisibility(
+  visibleTools: Record<string, boolean> | undefined,
+  pluginId: PluginId,
+) {
+  if (!visibleTools) {
+    return undefined;
+  }
+
+  if (typeof visibleTools[pluginId] === "boolean") {
+    return visibleTools[pluginId];
+  }
+
+  for (const legacyId of legacyPluginIds(pluginId)) {
+    if (typeof visibleTools[legacyId] === "boolean") {
+      return visibleTools[legacyId];
+    }
+  }
+
+  return undefined;
+}
+
+function legacyPluginIds(pluginId: PluginId) {
+  if (pluginId === "ztool.screenshot") {
+    return ["screenshot"];
+  }
+
+  if (pluginId === "ztool.caffeine") {
+    return ["caffeine"];
+  }
+
+  return [];
 }

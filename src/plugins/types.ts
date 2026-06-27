@@ -1,10 +1,17 @@
-export type PluginId = "caffeine" | "screenshot";
+export type PluginId = string;
 
-export type PluginHealth = "ready" | "active" | "pending" | "error";
+export type PluginHealth =
+  | "ready"
+  | "active"
+  | "disabled"
+  | "incompatible"
+  | "pending"
+  | "error";
 
 export interface PluginMeta {
   id: PluginId;
   title: string;
   subtitle: string;
   health: PluginHealth;
+  enabled?: boolean;
 }

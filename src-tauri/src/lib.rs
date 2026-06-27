@@ -6,6 +6,7 @@ use tauri_plugin_global_shortcut::ShortcutState;
 use tauri_plugin_positioner::{on_tray_event, Position, WindowExt};
 
 pub mod commands;
+pub mod plugins;
 pub mod services;
 
 const TRAY_CLICK_DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(280);
@@ -28,6 +29,8 @@ fn should_accept_tray_toggle(
 pub fn run() {
     tauri::Builder::default()
         .manage(services::caffeine::CaffeineState::new())
+        .manage(plugins::market::PluginMarketState::default())
+        .manage(plugins::registry::PluginRegistryState::default())
         .manage(services::screenshot::ScreenshotSessionStore::default())
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
@@ -96,6 +99,15 @@ pub fn run() {
             commands::app::show_preferences_window,
             commands::caffeine::get_caffeine_state,
             commands::caffeine::toggle_keep_awake,
+            commands::plugins::refresh_plugin_market,
+            commands::plugins::list_market_plugins,
+            commands::plugins::list_plugins,
+            commands::plugins::validate_plugin_package,
+            commands::plugins::install_market_plugin,
+            commands::plugins::install_plugin_package,
+            commands::plugins::uninstall_plugin,
+            commands::plugins::set_plugin_enabled,
+            commands::plugins::restore_bundled_plugins,
             commands::screenshot::get_screenshot_capabilities,
             commands::screenshot::start_screenshot,
             commands::screenshot::init_screenshot_session,
