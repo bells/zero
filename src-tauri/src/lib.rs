@@ -25,6 +25,33 @@ fn should_accept_tray_toggle(
     true
 }
 
+pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window(TRAY_WINDOW_LABEL) {
+        if window
+            .is_visible()
+            .map_err(|error| format!("读取托盘窗口状态失败: {error}"))?
+        {
+            window
+                .hide()
+                .map_err(|error| format!("隐藏托盘窗口失败: {error}"))?;
+        } else {
+            window
+                .as_ref()
+                .window()
+                .move_window(Position::TrayCenter)
+                .map_err(|error| format!("移动托盘窗口失败: {error}"))?;
+            window
+                .show()
+                .map_err(|error| format!("显示托盘窗口失败: {error}"))?;
+            window
+                .set_focus()
+                .map_err(|error| format!("聚焦托盘窗口失败: {error}"))?;
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -32,6 +59,7 @@ pub fn run() {
         .manage(plugins::market::PluginMarketState::default())
         .manage(plugins::registry::PluginRegistryState::default())
         .manage(services::screenshot::ScreenshotSessionStore::default())
+        .manage(services::status_bar::StatusBarState::default())
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -58,8 +86,10 @@ pub fn run() {
             let last_tray_toggle_at = Arc::new(Mutex::new(None::<std::time::Instant>));
             let last_tray_toggle_at_tray = last_tray_toggle_at.clone();
 
-            let _tray = TrayIconBuilder::new()
+            let _tray = TrayIconBuilder::with_id("ztool.primary")
                 .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("ZTool")
+                .show_menu_on_left_click(false)
                 .on_tray_icon_event(move |tray, event| {
                     let app_handle = tray.app_handle();
                     on_tray_event(&app_handle, &event);
@@ -76,19 +106,12 @@ pub fn run() {
                             }
                         }
 
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window(TRAY_WINDOW_LABEL) {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.as_ref().window().move_window(Position::TrayCenter);
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
-                        }
+                        let _ = toggle_tray_quick_panel(tray.app_handle());
                     }
                 })
                 .build(app)?;
+
+            let _ = services::status_bar::refresh_status_bar(app.handle());
 
             Ok(())
         })
@@ -108,6 +131,10 @@ pub fn run() {
             commands::plugins::uninstall_plugin,
             commands::plugins::set_plugin_enabled,
             commands::plugins::restore_bundled_plugins,
+            commands::status_bar::get_status_bar_settings,
+            commands::status_bar::update_status_bar_settings,
+            commands::status_bar::get_status_bar_items,
+            commands::status_bar::run_status_bar_item_action,
             commands::screenshot::get_screenshot_capabilities,
             commands::screenshot::start_screenshot,
             commands::screenshot::init_screenshot_session,

@@ -20,19 +20,25 @@ pub fn toggle_keep_awake(
     let transition = state.set_enabled(enabled, duration_minutes)?;
 
     if let Some(expiry) = transition.expiry {
-        schedule_expiry(app, expiry);
+        schedule_expiry(app.clone(), expiry);
     }
+    let _ = crate::services::status_bar::refresh_status_bar(&app);
 
     Ok(transition.snapshot)
 }
 
-fn schedule_expiry(app: tauri::AppHandle, expiry: CaffeineExpiry) {
+pub fn schedule_expiry(app: tauri::AppHandle, expiry: CaffeineExpiry) {
     std::thread::spawn(move || {
         if let Ok(delay) = expiry.expires_at.duration_since(SystemTime::now()) {
             std::thread::sleep(delay);
         }
 
         let state = app.state::<CaffeineState>();
-        let _ = state.expire_if_current(expiry.generation, SystemTime::now());
+        if state
+            .expire_if_current(expiry.generation, SystemTime::now())
+            .unwrap_or(false)
+        {
+            let _ = crate::services::status_bar::refresh_status_bar(&app);
+        }
     });
 }

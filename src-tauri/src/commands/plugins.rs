@@ -63,14 +63,18 @@ pub fn validate_plugin_package(
 #[tauri::command]
 pub fn install_plugin_package(
     input: InstallPluginPackageInput,
+    app: tauri::AppHandle,
     state: State<'_, PluginRegistryState>,
 ) -> Result<PluginRecord, String> {
-    state.with_registry(|registry| registry.install_local_package(input))
+    let record = state.with_registry(|registry| registry.install_local_package(input))?;
+    let _ = crate::services::status_bar::refresh_status_bar(&app);
+    Ok(record)
 }
 
 #[tauri::command]
 pub async fn install_market_plugin(
     input: InstallMarketPluginInput,
+    app: tauri::AppHandle,
     state: State<'_, PluginRegistryState>,
 ) -> Result<PluginRecord, String> {
     let staging_dir = std::env::temp_dir().join(format!(
@@ -100,32 +104,43 @@ pub async fn install_market_plugin(
         });
     let _ = std::fs::remove_dir_all(&staging_dir);
 
-    result
+    let record = result?;
+    let _ = crate::services::status_bar::refresh_status_bar(&app);
+    Ok(record)
 }
 
 #[tauri::command]
 pub fn uninstall_plugin(
     input: PluginIdentityInput,
+    app: tauri::AppHandle,
     state: State<'_, PluginRegistryState>,
 ) -> Result<PluginLifecycleResult, String> {
-    state.with_registry(|registry| registry.uninstall_plugin(&input.name))
+    let result = state.with_registry(|registry| registry.uninstall_plugin(&input.name))?;
+    let _ = crate::services::status_bar::refresh_status_bar(&app);
+    Ok(result)
 }
 
 #[tauri::command]
 pub fn set_plugin_enabled(
     input: SetPluginEnabledInput,
+    app: tauri::AppHandle,
     state: State<'_, PluginRegistryState>,
 ) -> Result<PluginRecord, String> {
-    state.with_registry(|registry| {
+    let record = state.with_registry(|registry| {
         let record = registry.set_enabled(&input.name, input.enabled)?;
         registry.save()?;
         Ok(record)
-    })
+    })?;
+    let _ = crate::services::status_bar::refresh_status_bar(&app);
+    Ok(record)
 }
 
 #[tauri::command]
 pub fn restore_bundled_plugins(
+    app: tauri::AppHandle,
     state: State<'_, PluginRegistryState>,
 ) -> Result<Vec<PluginRecord>, String> {
-    state.with_registry(|registry| registry.restore_bundled_defaults())
+    let records = state.with_registry(|registry| registry.restore_bundled_defaults())?;
+    let _ = crate::services::status_bar::refresh_status_bar(&app);
+    Ok(records)
 }

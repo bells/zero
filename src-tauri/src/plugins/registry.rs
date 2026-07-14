@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use super::contracts::{
     InstallPluginPackageInput, PluginContributionCommand, PluginContributionSetting,
-    PluginContributionView, PluginContributions, PluginHealth, PluginLifecycleResult,
-    PluginManifest, PluginMarketEntry, PluginPermission, PluginPlatform, PluginRecord,
-    PluginRuntime, PluginSettingDefault, PluginSettingType, PluginSource, PluginViewSurface,
+    PluginContributionStatusBarItem, PluginContributionView, PluginContributions, PluginHealth,
+    PluginLifecycleResult, PluginManifest, PluginMarketEntry, PluginPermission, PluginPlatform,
+    PluginRecord, PluginRuntime, PluginSettingDefault, PluginSettingType, PluginSource,
+    PluginViewSurface, StatusBarAction, StatusBarActionType, StatusBarIconId,
 };
 use super::package::{extract_zplugin_package, format_validation_issues, validate_zplugin_package};
 
@@ -366,6 +367,18 @@ fn bundled_screenshot_record() -> PluginRecord {
                 },
             ]),
             settings: None,
+            status_bar_items: Some(vec![PluginContributionStatusBarItem {
+                id: "ztool.screenshot.status".into(),
+                title: "Screenshot".into(),
+                icon: StatusBarIconId::Screenshot,
+                active_icon: None,
+                action: StatusBarAction {
+                    action_type: StatusBarActionType::StartScreenshot,
+                    command_id: Some("ztool.screenshot.capture".into()),
+                },
+                order: Some(20),
+                visible_by_default: Some(true),
+            }]),
         }),
     })
 }
@@ -398,6 +411,18 @@ fn bundled_caffeine_record() -> PluginRecord {
                 setting_type: PluginSettingType::Number,
                 default: PluginSettingDefault::Number(0.0),
                 label: Some("Duration minutes".into()),
+            }]),
+            status_bar_items: Some(vec![PluginContributionStatusBarItem {
+                id: "ztool.caffeine.status".into(),
+                title: "Caffeine".into(),
+                icon: StatusBarIconId::CaffeineEmpty,
+                active_icon: Some(StatusBarIconId::CaffeineFull),
+                action: StatusBarAction {
+                    action_type: StatusBarActionType::ToggleCaffeine,
+                    command_id: Some("ztool.caffeine.toggle".into()),
+                },
+                order: Some(10),
+                visible_by_default: Some(true),
             }]),
         }),
     })

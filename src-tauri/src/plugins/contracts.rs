@@ -97,11 +97,52 @@ pub struct PluginContributionSetting {
     pub label: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum StatusBarIconId {
+    Ztool,
+    CaffeineEmpty,
+    CaffeineFull,
+    Screenshot,
+    Extension,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum StatusBarActionType {
+    ToggleTray,
+    ToggleCaffeine,
+    StartScreenshot,
+    OpenPlugin,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatusBarAction {
+    #[serde(rename = "type")]
+    pub action_type: StatusBarActionType,
+    pub command_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginContributionStatusBarItem {
+    pub id: String,
+    pub title: String,
+    pub icon: StatusBarIconId,
+    pub active_icon: Option<StatusBarIconId>,
+    pub action: StatusBarAction,
+    pub order: Option<u32>,
+    pub visible_by_default: Option<bool>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginContributions {
     pub views: Option<Vec<PluginContributionView>>,
     pub commands: Option<Vec<PluginContributionCommand>>,
     pub settings: Option<Vec<PluginContributionSetting>>,
+    #[serde(rename = "statusBarItems")]
+    pub status_bar_items: Option<Vec<PluginContributionStatusBarItem>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

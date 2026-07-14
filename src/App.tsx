@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import "./App.css";
+import { StatusBarGlyph } from "./components/StatusBarGlyph";
 import { CaffeinePanel } from "./plugins/caffeine/CaffeinePanel";
 import {
   bundledPluginKind,
@@ -16,6 +18,8 @@ import { usePreferences } from "./plugins/preferences/usePreferences";
 import { ScreenshotPanel } from "./plugins/screenshot/ScreenshotPanel";
 import { PluginId, PluginMeta } from "./plugins/types";
 import { appWindows } from "./services/appWindows";
+import type { StatusBarItemSnapshot } from "./services/statusBarModel";
+import { useStatusBar } from "./services/useStatusBar";
 
 type ShellMessage = {
   tone: "error" | "info";
@@ -58,6 +62,30 @@ function useLocalizedPlugins() {
     preferences.visiblePluginIds.includes(plugin.id),
   );
 
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+
+    listen<string>("status-bar-open-plugin", (event) => {
+      pluginHost.setSelectedPluginName(event.payload);
+    })
+      .then((unsubscribe) => {
+        if (cancelled) {
+          unsubscribe();
+        } else {
+          unlisten = unsubscribe;
+        }
+      })
+      .catch(() => {
+        // The native event bridge is best-effort; direct plugin navigation still works.
+      });
+
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [pluginHost.setSelectedPluginName]);
+
   return {
     pluginHost,
     preferences,
@@ -67,6 +95,48 @@ function useLocalizedPlugins() {
     pluginSummary: pluginHost.summary,
     totalPluginCount: pluginHost.summary.total,
   };
+}
+
+interface StatusBarFallbackRowProps {
+  disabled: boolean;
+  items: StatusBarItemSnapshot[];
+  t: (key: TranslationKey) => string;
+  onRunItem: (itemId: string) => void;
+}
+
+function StatusBarFallbackRow({
+  disabled,
+  items,
+  t,
+  onRunItem,
+}: StatusBarFallbackRowProps) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="status-bar-fallback-row" aria-label={t("statusBar.fallback.title")}>
+      <div>
+        <strong>{t("statusBar.fallback.title")}</strong>
+        <small>{t("statusBar.fallback.description")}</small>
+      </div>
+      <div className="status-bar-fallback-actions">
+        {items.map((item) => (
+          <button
+            type="button"
+            className="status-bar-fallback-action"
+            key={item.id}
+            title={item.title}
+            disabled={disabled}
+            onClick={() => onRunItem(item.id)}
+          >
+            <StatusBarGlyph icon={item.icon} />
+            <span>{item.title}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function useSelectedPlugin(
@@ -237,6 +307,7 @@ async function runShellAction(
 
 export function TrayPanelApp() {
   const { pluginHost, t, visiblePlugins, totalPluginCount } = useLocalizedPlugins();
+  const statusBar = useStatusBar(pluginHost.records);
   const { activePlugin, setSelectedPlugin } = useSelectedPlugin(
     visiblePlugins,
     pluginHost.selectedPluginName,
@@ -259,6 +330,13 @@ export function TrayPanelApp() {
           {visiblePlugins.length}/{totalPluginCount} {t("app.pluginCount")}
         </span>
       </header>
+
+      <StatusBarFallbackRow
+        disabled={statusBar.isBusy}
+        items={statusBar.fallbackItems}
+        t={t}
+        onRunItem={(itemId) => runAction(() => statusBar.runItemAction(itemId))}
+      />
 
       <PluginPicker
         activePluginId={activePlugin?.id}
@@ -388,6 +466,7 @@ export function MainWindowApp() {
 
 export function PreferencesWindowApp() {
   const { pluginHost, preferences, t, localizedPlugins } = useLocalizedPlugins();
+  const statusBar = useStatusBar(pluginHost.records);
   const preferenceMessage = preferences.messageDetail
     ? `${t(preferences.messageKey)}: ${preferences.messageDetail}`
     : t(preferences.messageKey);
@@ -406,6 +485,7 @@ export function PreferencesWindowApp() {
         preferences={preferences.preferences}
         isAutostartBusy={preferences.isAutostartBusy}
         message={preferenceMessage}
+        statusBar={statusBar}
         t={t}
         onLaunchAtLoginChange={preferences.setLaunchAtLogin}
         onLanguageChange={preferences.setLanguage}

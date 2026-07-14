@@ -46,10 +46,39 @@ export interface PluginContributionSetting {
   label?: string;
 }
 
+export type StatusBarIconId =
+  | "ztool"
+  | "caffeine-empty"
+  | "caffeine-full"
+  | "screenshot"
+  | "extension";
+
+export type StatusBarActionType =
+  | "toggle-tray"
+  | "toggle-caffeine"
+  | "start-screenshot"
+  | "open-plugin";
+
+export interface StatusBarAction {
+  type: StatusBarActionType;
+  commandId?: string;
+}
+
+export interface PluginContributionStatusBarItem {
+  id: string;
+  title: string;
+  icon: StatusBarIconId;
+  activeIcon?: StatusBarIconId;
+  action: StatusBarAction;
+  order?: number;
+  visibleByDefault?: boolean;
+}
+
 export interface PluginContributions {
   views?: PluginContributionView[];
   commands?: PluginContributionCommand[];
   settings?: PluginContributionSetting[];
+  statusBarItems?: PluginContributionStatusBarItem[];
 }
 
 export interface PluginManifest {

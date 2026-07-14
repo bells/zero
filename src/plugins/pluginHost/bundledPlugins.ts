@@ -36,6 +36,19 @@ export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
           title: "Capture and Save",
         },
       ],
+      statusBarItems: [
+        {
+          id: "ztool.screenshot.status",
+          title: "Screenshot",
+          icon: "screenshot",
+          action: {
+            type: "start-screenshot",
+            commandId: "ztool.screenshot.capture",
+          },
+          order: 20,
+          visibleByDefault: true,
+        },
+      ],
     },
   },
   {
@@ -69,6 +82,20 @@ export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
           type: "number",
           default: 0,
           label: "Duration minutes",
+        },
+      ],
+      statusBarItems: [
+        {
+          id: "ztool.caffeine.status",
+          title: "Caffeine",
+          icon: "caffeine-empty",
+          activeIcon: "caffeine-full",
+          action: {
+            type: "toggle-caffeine",
+            commandId: "ztool.caffeine.toggle",
+          },
+          order: 10,
+          visibleByDefault: true,
         },
       ],
     },

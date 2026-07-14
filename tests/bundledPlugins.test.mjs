@@ -42,6 +42,39 @@ test("bundled manifests declare views commands permissions and platforms", () =>
   assert.equal(caffeine.contributes.commands[0].id, "ztool.caffeine.toggle");
 });
 
+test("bundled manifests declare host-mediated status bar items", () => {
+  const screenshot = BUNDLED_PLUGIN_MANIFESTS[0];
+  const caffeine = BUNDLED_PLUGIN_MANIFESTS[1];
+
+  assert.deepEqual(screenshot.contributes.statusBarItems, [
+    {
+      id: "ztool.screenshot.status",
+      title: "Screenshot",
+      icon: "screenshot",
+      action: {
+        type: "start-screenshot",
+        commandId: "ztool.screenshot.capture",
+      },
+      order: 20,
+      visibleByDefault: true,
+    },
+  ]);
+  assert.deepEqual(caffeine.contributes.statusBarItems, [
+    {
+      id: "ztool.caffeine.status",
+      title: "Caffeine",
+      icon: "caffeine-empty",
+      activeIcon: "caffeine-full",
+      action: {
+        type: "toggle-caffeine",
+        commandId: "ztool.caffeine.toggle",
+      },
+      order: 10,
+      visibleByDefault: true,
+    },
+  ]);
+});
+
 test("resolves bundled plugin kind and accent class from registry names", () => {
   assert.equal(bundledPluginKind("ztool.screenshot"), "screenshot");
   assert.equal(bundledPluginKind("ztool.caffeine"), "caffeine");
