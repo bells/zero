@@ -77,12 +77,13 @@ test("supports registry plugin ids and migrates legacy bundled visibility keys",
         caffeine: true,
       },
     },
-    ["ztool.screenshot", "ztool.caffeine", "market-tool"],
+    ["ztool.screenshot", "ztool.caffeine", "ztool.bing-wallpaper", "market-tool"],
   );
 
   assert.deepEqual(preferences.visibleTools, {
     "ztool.screenshot": false,
     "ztool.caffeine": true,
+    "ztool.bing-wallpaper": true,
     "market-tool": true,
   });
 });

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 import { StatusBarGlyph } from "./components/StatusBarGlyph";
+import { BingWallpaperPanel } from "./plugins/bingWallpaper/BingWallpaperPanel";
 import { CaffeinePanel } from "./plugins/caffeine/CaffeinePanel";
 import {
   bundledPluginKind,
@@ -173,6 +174,10 @@ function pluginPanel(plugin: PluginMeta | undefined, t: (key: TranslationKey) =>
     return <ScreenshotPanel t={t} />;
   }
 
+  if (bundledPluginKind(plugin.id) === "bing-wallpaper") {
+    return <BingWallpaperPanel t={t} />;
+  }
+
   return <GenericPluginPanel plugin={plugin} />;
 }
 
@@ -283,6 +288,14 @@ function localizePluginMeta(
       ...plugin,
       title: t("plugin.caffeine.title"),
       subtitle: t("plugin.caffeine.subtitle"),
+    };
+  }
+
+  if (builtin === "bing-wallpaper") {
+    return {
+      ...plugin,
+      title: t("plugin.bingWallpaper.title"),
+      subtitle: t("plugin.bingWallpaper.subtitle"),
     };
   }
 

@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "startdate": "20260715",
+      "title": "Cliffs above a quiet bay",
+      "copyright": "Quiet Bay, Somewhere (© Example Photographer/Getty Images)",
+      "copyrightlink": "/search?q=Quiet+Bay&form=hpcapt&mkt=zh-cn",
+      "url": "/th?id=OHR.QuietBay_ZH-CN1234567890_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp",
+      "urlbase": "/th?id=OHR.QuietBay_ZH-CN1234567890",
+      "hsh": "quiet-bay-hash"
+    },
+    {
+      "startdate": "20260714",
+      "title": "Forest light",
+      "copyright": "Ancient forest (© Example Agency)",
+      "copyrightlink": "https://www.bing.com/search?q=Ancient+forest",
+      "urlbase": "/th?id=OHR.ForestLight_ZH-CN0987654321",
+      "hsh": "forest-light-hash"
+    }
+  ]
+}

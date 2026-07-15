@@ -24,3 +24,24 @@ test("translator returns localized labels", () => {
   assert.equal(createTranslator("zh-CN")("nav.preferences"), "偏好");
   assert.equal(createTranslator("en-US")("nav.preferences"), "Prefs");
 });
+
+test("Bing wallpaper metadata actions and states are translated", () => {
+  const zh = createTranslator("zh-CN");
+  const en = createTranslator("en-US");
+
+  assert.equal(zh("plugin.bingWallpaper.title"), "Bing 壁纸");
+  assert.equal(en("plugin.bingWallpaper.title"), "Bing Wallpaper");
+  for (const key of [
+    "wallpaper.download",
+    "wallpaper.apply",
+    "wallpaper.loading",
+    "wallpaper.stale",
+    "wallpaper.empty",
+    "wallpaper.applied",
+    "wallpaper.saved",
+    "wallpaper.platformUnsupported",
+  ]) {
+    assert.notEqual(zh(key), key);
+    assert.notEqual(en(key), key);
+  }
+});

@@ -72,8 +72,23 @@ Supported MVP permissions:
 | storage.plugin | Read/write plugin-scoped storage. |
 | ui.message | Show host-mediated user messages. |
 | process.execute | Request guarded binary/script execution. |
+| system.wallpaper | Apply a validated image from the calling plugin's data root as desktop wallpaper. |
 
 Plugins must declare permissions before install. Undeclared permissions are denied by default.
+
+## Permissioned native resources
+
+Extension API version 1 reserves three host-mediated resource methods. A request is accepted only when the permission is both present in the installed manifest and approved by the user; disabled plugins and identity mismatches are rejected before dispatch.
+
+| Bridge method | Permission | Request payload | Host policy |
+| --- | --- | --- | --- |
+| `network.fetch` | `network` | `{ "url": "https://…", "method": "GET" }` | HTTPS GET only; host allowlist, redirect, timeout, response-size, loopback and private-address checks. |
+| `storage.writeFile` | `storage.plugin` | `{ "relativePath": "images/today.jpg", "dataBase64": "…" }` | Normalized plugin-relative paths only; bounded bytes, staged replacement, and absolute/traversal/backslash/symlink escape rejection. |
+| `system.setWallpaper` | `system.wallpaper` | `{ "relativePath": "images/today.jpg" }` | File must resolve inside the calling plugin's data root and decode as a bounded supported image. |
+
+Responses use the standard bridge envelope `{ requestId, ok, result?, error? }`. Native failures include stable `code`, human-readable `message`, operation context, and retryability where the Rust service contract applies. These methods never grant a plugin arbitrary Tauri commands, absolute-path filesystem access, shell execution, or direct WebView networking.
+
+The bundled Bing wallpaper tool is the reference implementation. Its React surface calls typed Tauri commands that reuse the same Rust network, storage, and wallpaper services. Isolated third-party WebViews retain `connect-src 'none'` and request native resources through the postMessage Extension Bridge.
 
 ## market.json
 

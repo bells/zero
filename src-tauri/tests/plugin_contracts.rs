@@ -1,6 +1,8 @@
 use serde_json::json;
 use ztool_lib::plugins::contracts::{
-    PluginManifest, PluginMarketIndex, PluginPermission,
+    NativeResourceError, NetworkFetchRequest, NetworkFetchResponse, PluginManifest,
+    PluginMarketIndex, PluginPermission, StorageWriteFileRequest, StorageWriteFileResult,
+    SystemSetWallpaperRequest,
 };
 
 #[test]
@@ -24,6 +26,69 @@ fn deserializes_plugin_manifest_contract() {
         PluginPermission::Network,
     ]);
     assert_eq!(manifest.engines.expect("engines").api.as_deref(), Some("1"));
+}
+
+#[test]
+fn native_resource_contracts_use_stable_camel_case_fields() {
+    let network = NetworkFetchRequest {
+        url: "https://www.bing.com/".into(),
+        method: Some("GET".into()),
+    };
+    let response = NetworkFetchResponse {
+        status: 200,
+        content_type: Some("application/json".into()),
+        body_base64: "e30=".into(),
+    };
+    let write = StorageWriteFileRequest {
+        relative_path: "images/today.jpg".into(),
+        data_base64: "AA==".into(),
+    };
+    let written = StorageWriteFileResult {
+        relative_path: "images/today.jpg".into(),
+        bytes_written: 1,
+    };
+    let wallpaper = SystemSetWallpaperRequest {
+        relative_path: "images/today.jpg".into(),
+    };
+    let error = NativeResourceError {
+        operation: "network.fetch".into(),
+        code: "network.timeout".into(),
+        message: "timed out".into(),
+        retryable: true,
+    };
+
+    assert_eq!(serde_json::to_value(network).unwrap()["method"], "GET");
+    assert_eq!(
+        serde_json::to_value(response).unwrap()["contentType"],
+        "application/json"
+    );
+    assert_eq!(
+        serde_json::to_value(write).unwrap()["relativePath"],
+        "images/today.jpg"
+    );
+    assert_eq!(serde_json::to_value(written).unwrap()["bytesWritten"], 1);
+    assert_eq!(
+        serde_json::to_value(wallpaper).unwrap()["relativePath"],
+        "images/today.jpg"
+    );
+    assert_eq!(serde_json::to_value(error).unwrap()["retryable"], true);
+    assert!(serde_json::from_value::<NetworkFetchRequest>(json!({
+        "url": 42,
+        "method": "GET"
+    }))
+    .is_err());
+}
+
+#[test]
+fn system_wallpaper_permission_has_stable_wire_value() {
+    let serialized = serde_json::to_value(PluginPermission::SystemWallpaper)
+        .expect("permission should serialize");
+    assert_eq!(serialized, "system.wallpaper");
+    assert_eq!(
+        serde_json::from_value::<PluginPermission>(json!("system.wallpaper"))
+            .expect("permission should deserialize"),
+        PluginPermission::SystemWallpaper
+    );
 }
 
 #[test]

@@ -8,6 +8,7 @@ export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "storage.plugin",
   "ui.message",
   "process.execute",
+  "system.wallpaper",
 ] as const;
 
 export type PluginPermission = (typeof SUPPORTED_PLUGIN_PERMISSIONS)[number];
@@ -196,4 +197,36 @@ export interface PluginIdentityInput {
 export interface SetPluginEnabledInput {
   name: string;
   enabled: boolean;
+}
+
+export interface NetworkFetchRequest {
+  url: string;
+  method?: "GET";
+}
+
+export interface NetworkFetchResponse {
+  status: number;
+  contentType?: string;
+  bodyBase64: string;
+}
+
+export interface StorageWriteFileRequest {
+  relativePath: string;
+  dataBase64: string;
+}
+
+export interface StorageWriteFileResult {
+  relativePath: string;
+  bytesWritten: number;
+}
+
+export interface SystemSetWallpaperRequest {
+  relativePath: string;
+}
+
+export interface NativeResourceError {
+  operation: string;
+  code: string;
+  message: string;
+  retryable: boolean;
 }

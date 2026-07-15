@@ -17,6 +17,7 @@ export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "storage.plugin",
   "ui.message",
   "process.execute",
+  "system.wallpaper",
 ] as const;
 
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;

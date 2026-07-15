@@ -1,7 +1,10 @@
 import type {
+  NetworkFetchRequest,
   PluginHealth,
   PluginPermission,
   PluginRecord,
+  StorageWriteFileRequest,
+  SystemSetWallpaperRequest,
 } from "./contracts";
 
 export interface ExtensionSurfacePolicy {
@@ -37,6 +40,9 @@ export interface ExtensionHostApis {
   settingsGet?: (pluginName: string, key: string) => Promise<unknown> | unknown;
   settingsSet?: (pluginName: string, key: string, value: unknown) => Promise<void> | void;
   diagnosticsReport?: (pluginName: string, message: string) => Promise<void> | void;
+  networkFetch?: (pluginName: string, request: NetworkFetchRequest) => Promise<unknown> | unknown;
+  storageWriteFile?: (pluginName: string, request: StorageWriteFileRequest) => Promise<unknown> | unknown;
+  systemSetWallpaper?: (pluginName: string, request: SystemSetWallpaperRequest) => Promise<unknown> | unknown;
 }
 
 export interface ExtensionBridge {
@@ -81,7 +87,9 @@ export function createExtensionBridge(
         return denied(parsed.request.requestId, "method.unsupported", "Extension API method is not supported.");
       }
 
-      if (!record.approvedPermissions.includes(permission)) {
+      if (!record.manifest.permissions.includes(permission) ||
+        !record.approvedPermissions.includes(permission)
+      ) {
         return denied(parsed.request.requestId, "permission.denied", `Missing permission ${permission}.`);
       }
 
@@ -178,6 +186,14 @@ function requiredPermission(method: string): PluginPermission | null {
     return "process.execute";
   }
 
+  if (method === "network.fetch") {
+    return "network";
+  }
+
+  if (method === "system.setWallpaper") {
+    return "system.wallpaper";
+  }
+
   return null;
 }
 
@@ -226,6 +242,22 @@ async function dispatchHostApi(
       await hostApis.diagnosticsReport?.(pluginName, message);
       return undefined;
     }
+    case "network.fetch": {
+      const url = readString(payload.url, "url");
+      const method = payload.method === undefined
+        ? undefined
+        : readLiteral(payload.method, "method", ["GET"] as const);
+      return hostApis.networkFetch?.(pluginName, { url, method });
+    }
+    case "storage.writeFile": {
+      const relativePath = readString(payload.relativePath, "relativePath");
+      const dataBase64 = readString(payload.dataBase64, "dataBase64");
+      return hostApis.storageWriteFile?.(pluginName, { relativePath, dataBase64 });
+    }
+    case "system.setWallpaper": {
+      const relativePath = readString(payload.relativePath, "relativePath");
+      return hostApis.systemSetWallpaper?.(pluginName, { relativePath });
+    }
     default:
       throw new Error(`Unsupported method ${request.method}`);
   }
@@ -237,6 +269,17 @@ function readString(value: unknown, key: string) {
   }
 
   return value;
+}
+
+function readLiteral<T extends string>(
+  value: unknown,
+  key: string,
+  allowed: readonly T[],
+): T {
+  if (typeof value !== "string" || !allowed.includes(value as T)) {
+    throw new Error(`${key} must be one of: ${allowed.join(", ")}`);
+  }
+  return value as T;
 }
 
 function denied(

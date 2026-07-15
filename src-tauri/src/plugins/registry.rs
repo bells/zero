@@ -17,8 +17,12 @@ use super::package::{extract_zplugin_package, format_validation_issues, validate
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PluginRegistryDiskState {
+    #[serde(default)]
+    schema_version: u16,
     records: Vec<PluginRecord>,
 }
+
+const PLUGIN_REGISTRY_SCHEMA_VERSION: u16 = 2;
 
 pub struct PluginRegistry {
     root: PathBuf,
@@ -76,11 +80,19 @@ impl PluginRegistry {
                 serde_json::from_str::<PluginRegistryDiskState>(&content)
                     .map_err(|error| format!("failed to parse plugin registry: {error}"))
             }) {
-            Ok(state) => Ok(Self {
-                root,
-                records: state.records,
-                diagnostics: Vec::new(),
-            }),
+            Ok(mut state) => {
+                if state.schema_version < PLUGIN_REGISTRY_SCHEMA_VERSION {
+                    migrate_bundled_records(&mut state.records);
+                    state.schema_version = PLUGIN_REGISTRY_SCHEMA_VERSION;
+                }
+                let registry = Self {
+                    root,
+                    records: state.records,
+                    diagnostics: Vec::new(),
+                };
+                registry.save()?;
+                Ok(registry)
+            }
             Err(error) => Ok(Self {
                 root,
                 records: bundled_plugin_records(),
@@ -107,6 +119,7 @@ impl PluginRegistry {
 
     pub fn save(&self) -> Result<(), String> {
         let state = PluginRegistryDiskState {
+            schema_version: PLUGIN_REGISTRY_SCHEMA_VERSION,
             records: self.records.clone(),
         };
         let content = serde_json::to_string_pretty(&state)
@@ -330,7 +343,11 @@ fn plugin_version_root(root: &Path, name: &str, version: &str) -> PathBuf {
 }
 
 fn bundled_plugin_records() -> Vec<PluginRecord> {
-    vec![bundled_screenshot_record(), bundled_caffeine_record()]
+    vec![
+        bundled_screenshot_record(),
+        bundled_caffeine_record(),
+        bundled_bing_wallpaper_record(),
+    ]
 }
 
 fn bundled_screenshot_record() -> PluginRecord {
@@ -428,13 +445,58 @@ fn bundled_caffeine_record() -> PluginRecord {
     })
 }
 
+fn bundled_bing_wallpaper_record() -> PluginRecord {
+    bundled_record(PluginManifest {
+        name: "ztool.bing-wallpaper".into(),
+        version: "1.0.0".into(),
+        author: "bells".into(),
+        main: "plugins/bingWallpaper".into(),
+        permissions: vec![
+            PluginPermission::Network,
+            PluginPermission::StoragePlugin,
+            PluginPermission::SystemWallpaper,
+        ],
+        id: Some("bing-wallpaper".into()),
+        display_name: Some("Bing Wallpaper".into()),
+        description: Some("Browse, download, and apply Bing daily wallpapers".into()),
+        engines: None,
+        platforms: Some(desktop_platforms()),
+        runtime: Some(PluginRuntime::Webview),
+        contributes: Some(PluginContributions {
+            views: Some(vec![PluginContributionView {
+                id: "ztool.bing-wallpaper.main".into(),
+                title: "Bing Wallpaper".into(),
+                surface: Some(PluginViewSurface::Main),
+            }]),
+            commands: Some(vec![
+                PluginContributionCommand {
+                    id: "ztool.bing-wallpaper.refresh".into(),
+                    title: "Refresh Bing wallpapers".into(),
+                },
+                PluginContributionCommand {
+                    id: "ztool.bing-wallpaper.apply".into(),
+                    title: "Apply Bing wallpaper".into(),
+                },
+                PluginContributionCommand {
+                    id: "ztool.bing-wallpaper.download".into(),
+                    title: "Download Bing wallpaper".into(),
+                },
+            ]),
+            settings: None,
+            status_bar_items: None,
+        }),
+    })
+}
+
 fn bundled_record(manifest: PluginManifest) -> PluginRecord {
     let approved_permissions = manifest.permissions.clone();
+    let author = manifest.author.clone();
+    let version = manifest.version.clone();
 
     PluginRecord {
         name: manifest.name.clone(),
-        version: env!("CARGO_PKG_VERSION").into(),
-        author: "watson".into(),
+        version,
+        author,
         source: PluginSource::Bundled,
         enabled: true,
         health: PluginHealth::Ready,
@@ -442,6 +504,14 @@ fn bundled_record(manifest: PluginManifest) -> PluginRecord {
         installed_path: None,
         approved_permissions,
         package_sha256: None,
+    }
+}
+
+fn migrate_bundled_records(records: &mut Vec<PluginRecord>) {
+    for bundled in bundled_plugin_records() {
+        if !records.iter().any(|record| record.name == bundled.name) {
+            records.push(bundled);
+        }
     }
 }
 

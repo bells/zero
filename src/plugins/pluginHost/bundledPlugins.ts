@@ -1,6 +1,6 @@
 import type { PluginManifest } from "./contracts";
 
-export type BuiltinPluginKind = "screenshot" | "caffeine";
+export type BuiltinPluginKind = "screenshot" | "caffeine" | "bing-wallpaper";
 
 export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
   {
@@ -100,6 +100,41 @@ export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
       ],
     },
   },
+  {
+    name: "ztool.bing-wallpaper",
+    version: "1.0.0",
+    author: "bells",
+    main: "plugins/bingWallpaper",
+    permissions: ["network", "storage.plugin", "system.wallpaper"],
+    id: "bing-wallpaper",
+    displayName: "Bing Wallpaper",
+    description: "Browse, download, and apply Bing daily wallpapers",
+    platforms: ["macos", "windows", "linux"],
+    runtime: "webview",
+    contributes: {
+      views: [
+        {
+          id: "ztool.bing-wallpaper.main",
+          title: "Bing Wallpaper",
+          surface: "main",
+        },
+      ],
+      commands: [
+        {
+          id: "ztool.bing-wallpaper.refresh",
+          title: "Refresh Bing wallpapers",
+        },
+        {
+          id: "ztool.bing-wallpaper.apply",
+          title: "Apply Bing wallpaper",
+        },
+        {
+          id: "ztool.bing-wallpaper.download",
+          title: "Download Bing wallpaper",
+        },
+      ],
+    },
+  },
 ];
 
 export function bundledPluginKind(pluginId: string): BuiltinPluginKind | null {
@@ -109,6 +144,10 @@ export function bundledPluginKind(pluginId: string): BuiltinPluginKind | null {
 
   if (pluginId === "ztool.caffeine" || pluginId === "caffeine") {
     return "caffeine";
+  }
+
+  if (pluginId === "ztool.bing-wallpaper" || pluginId === "bing-wallpaper") {
+    return "bing-wallpaper";
   }
 
   return null;

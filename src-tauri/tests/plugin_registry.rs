@@ -81,7 +81,10 @@ fn first_load_seeds_bundled_plugins() {
         .map(|record| record.name.as_str())
         .collect::<Vec<_>>();
 
-    assert_eq!(names, vec!["ztool.screenshot", "ztool.caffeine"]);
+    assert_eq!(
+        names,
+        vec!["ztool.screenshot", "ztool.caffeine", "ztool.bing-wallpaper"]
+    );
     assert!(registry.records().iter().all(|record| record.enabled));
 }
 
@@ -100,6 +103,11 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
         .iter()
         .find(|record| record.name == "ztool.caffeine")
         .expect("caffeine record");
+    let bing = registry
+        .records()
+        .iter()
+        .find(|record| record.name == "ztool.bing-wallpaper")
+        .expect("Bing wallpaper record");
 
     assert_eq!(screenshot.manifest.runtime, Some(PluginRuntime::Webview));
     assert_eq!(screenshot.manifest.main, "plugins/screenshot");
@@ -119,6 +127,26 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
             .and_then(|contributes| contributes.commands.as_ref())
             .is_some_and(|commands| commands.iter().any(|command| command.id == "ztool.caffeine.toggle"))
     );
+    assert_eq!(bing.author, "bells");
+    assert_eq!(bing.version, "1.0.0");
+    assert_eq!(bing.manifest.version, "1.0.0");
+    assert_eq!(bing.manifest.id.as_deref(), Some("bing-wallpaper"));
+    assert_eq!(
+        bing.manifest.permissions,
+        vec![
+            PluginPermission::Network,
+            PluginPermission::StoragePlugin,
+            PluginPermission::SystemWallpaper,
+        ]
+    );
+    assert!(bing
+        .manifest
+        .contributes
+        .as_ref()
+        .and_then(|contributes| contributes.commands.as_ref())
+        .is_some_and(|commands| commands
+            .iter()
+            .any(|command| command.id == "ztool.bing-wallpaper.apply")));
 }
 
 #[test]
@@ -149,7 +177,7 @@ fn corrupt_registry_recovers_with_bundled_plugins() {
 
     let registry = PluginRegistry::load_or_seed(root).expect("registry should recover");
 
-    assert_eq!(registry.records().len(), 2);
+    assert_eq!(registry.records().len(), 3);
     assert!(
         registry
             .diagnostics()
@@ -206,7 +234,7 @@ fn install_validation_failure_leaves_registry_and_files_unchanged() {
         .expect_err("missing main asset should fail install");
 
     assert!(error.contains("package.main.missing"));
-    assert_eq!(registry.records().len(), 2);
+    assert_eq!(registry.records().len(), 3);
     assert!(!root.join("bad-tool").exists());
 }
 

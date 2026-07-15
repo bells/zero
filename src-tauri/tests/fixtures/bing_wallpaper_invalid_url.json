@@ -1,0 +1,19 @@
+{
+  "images": [
+    {
+      "startdate": "20260715",
+      "title": "HTTP is rejected",
+      "url": "http://www.bing.com/th?id=OHR.Insecure"
+    },
+    {
+      "startdate": "20260714",
+      "title": "Foreign host is rejected",
+      "url": "https://example.com/th?id=OHR.Foreign"
+    },
+    {
+      "startdate": "20260713",
+      "title": "Unexpected Bing path is rejected",
+      "url": "https://www.bing.com/search?q=not-an-image"
+    }
+  ]
+}

@@ -27,13 +27,17 @@ tauri-plugin-autostart = "2"
 tauri-plugin-global-shortcut = "2"
 base64 = "0.22"
 rfd = "0.15"
-image = { version = "0.25", default-features = false, features = ["png"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 reqwest = "0.13.3"
 sha2 = "0.10"
 zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2"] }
+futures-util = "0.3"
+tokio = { version = "1", features = ["sync"] }
+wallpaper = { version = "3.2", default-features = false }
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.26.1"
 objc = "0.2"
 window-vibrancy = "0.7.1"
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.52", features = ["Win32_System_Power"] }
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }

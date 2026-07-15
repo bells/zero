@@ -53,7 +53,22 @@ test("accepts a valid MVP plugin manifest", () => {
     "storage.plugin",
     "ui.message",
     "process.execute",
+    "system.wallpaper",
   ]);
+});
+
+test("accepts the system wallpaper permission and rejects near matches", () => {
+  const accepted = validatePluginManifest({
+    ...validManifest,
+    permissions: ["network", "storage.plugin", "system.wallpaper"],
+  });
+  const rejected = validatePluginManifest({
+    ...validManifest,
+    permissions: ["system.wallpapers"],
+  });
+
+  assert.equal(accepted.valid, true);
+  assertIssue(rejected, "manifest.permission.unsupported", "permissions[0]");
 });
 
 test("rejects manifest missing required fields", () => {

@@ -1,3 +1,6 @@
+pub mod bing_wallpaper;
 pub mod caffeine;
-pub mod status_bar;
+pub mod native_resources;
 pub mod screenshot;
+pub mod status_bar;
+pub mod wallpaper;

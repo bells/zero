@@ -14,6 +14,8 @@ pub enum PluginPermission {
     UiMessage,
     #[serde(rename = "process.execute")]
     ProcessExecute,
+    #[serde(rename = "system.wallpaper")]
+    SystemWallpaper,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -286,4 +288,48 @@ pub struct PluginIdentityInput {
 pub struct SetPluginEnabledInput {
     pub name: String,
     pub enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkFetchRequest {
+    pub url: String,
+    pub method: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkFetchResponse {
+    pub status: u16,
+    pub content_type: Option<String>,
+    pub body_base64: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageWriteFileRequest {
+    pub relative_path: String,
+    pub data_base64: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageWriteFileResult {
+    pub relative_path: String,
+    pub bytes_written: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemSetWallpaperRequest {
+    pub relative_path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeResourceError {
+    pub operation: String,
+    pub code: String,
+    pub message: String,
+    pub retryable: bool,
 }

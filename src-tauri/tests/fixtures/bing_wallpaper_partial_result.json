@@ -1,0 +1,20 @@
+{
+  "images": [
+    {
+      "startdate": "",
+      "title": "Missing date",
+      "url": "/th?id=OHR.MissingDate_ZH-CN1234567890_1920x1080.jpg"
+    },
+    {
+      "startdate": "20260713",
+      "title": "",
+      "copyright": "Fallback title (© Example Photographer)",
+      "url": "/th?id=OHR.ValidPartial_ZH-CN1234567890_1920x1080.jpg",
+      "hsh": "valid-partial-hash"
+    },
+    {
+      "startdate": "20260712",
+      "title": "Missing image URL"
+    }
+  ]
+}

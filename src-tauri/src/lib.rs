@@ -56,6 +56,7 @@ pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .manage(services::caffeine::CaffeineState::new())
+        .manage(services::bing_wallpaper::BingWallpaperState::default())
         .manage(plugins::market::PluginMarketState::default())
         .manage(plugins::registry::PluginRegistryState::default())
         .manage(services::screenshot::ScreenshotSessionStore::default())
@@ -120,6 +121,11 @@ pub fn run() {
             commands::app::show_about_window,
             commands::app::show_main_window,
             commands::app::show_preferences_window,
+            commands::bing_wallpaper::get_bing_wallpaper_snapshot,
+            commands::bing_wallpaper::refresh_bing_wallpapers,
+            commands::bing_wallpaper::get_bing_wallpaper_preview,
+            commands::bing_wallpaper::save_bing_wallpaper_to_downloads,
+            commands::bing_wallpaper::apply_bing_wallpaper,
             commands::caffeine::get_caffeine_state,
             commands::caffeine::toggle_keep_awake,
             commands::plugins::refresh_plugin_market,

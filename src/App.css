@@ -145,6 +145,10 @@ input:focus-visible {
   --plugin-accent: #f4bd4f;
 }
 
+.plugin-card.accent-bing-wallpaper {
+  --plugin-accent: #4b9fea;
+}
+
 .plugin-card:active {
   transform: translateY(1px);
 }
@@ -734,6 +738,299 @@ input:focus-visible {
   color: #747c83;
   font-size: 10px;
   text-transform: uppercase;
+}
+
+.bing-wallpaper-panel {
+  position: relative;
+  gap: 10px;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(75, 159, 234, 0.2), transparent 34%),
+    rgba(255, 255, 255, 0.66);
+}
+
+.wallpaper-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wallpaper-header h2 {
+  margin: 0;
+  color: #18232d;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.wallpaper-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid rgba(35, 40, 47, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.wallpaper-icon-action {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 6px;
+  background: transparent;
+  color: #35414b;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.wallpaper-icon-action:hover:not(:disabled) {
+  background: rgba(75, 159, 234, 0.14);
+  color: #1767a8;
+}
+
+.wallpaper-icon-action:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.wallpaper-icon-action:disabled {
+  opacity: 0.34;
+}
+
+.wallpaper-apply-action {
+  background: #1e71b5;
+  color: #f7fbff;
+}
+
+.wallpaper-apply-action:hover:not(:disabled) {
+  background: #185f9a;
+  color: #fff;
+}
+
+.wallpaper-content {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(148px, 1.15fr) minmax(120px, 0.85fr);
+  align-items: stretch;
+  gap: 10px;
+}
+
+.wallpaper-preview-button {
+  min-width: 0;
+  min-height: 92px;
+  position: relative;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(19, 45, 67, 0.2);
+  border-radius: 9px;
+  background:
+    radial-gradient(circle at 72% 24%, rgba(126, 198, 249, 0.58), transparent 28%),
+    linear-gradient(145deg, #1e526f, #162d3b);
+  box-shadow: 0 12px 28px rgba(25, 61, 86, 0.18);
+  color: rgba(255, 255, 255, 0.82);
+  transition:
+    box-shadow 180ms ease,
+    opacity 160ms ease,
+    transform 180ms ease;
+}
+
+.wallpaper-preview-button:hover:not(:disabled) {
+  box-shadow: 0 15px 32px rgba(25, 61, 86, 0.25);
+  transform: translateY(-1px);
+}
+
+.wallpaper-preview-button:disabled {
+  opacity: 0.78;
+}
+
+.wallpaper-preview-button img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.wallpaper-preview-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.wallpaper-preview-progress {
+  position: absolute;
+  inset: auto 8px 8px;
+  display: inline-flex;
+  justify-content: center;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(15, 25, 33, 0.78);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  backdrop-filter: blur(8px);
+}
+
+.wallpaper-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 2px;
+}
+
+.wallpaper-meta-topline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.wallpaper-meta-topline span {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(41, 104, 151, 0.09);
+  color: #3e667f;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.wallpaper-meta > strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #202b33;
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.wallpaper-meta p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #69757e;
+  font-size: 10px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.wallpaper-empty-state {
+  min-height: 104px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 14px;
+  border: 1px dashed rgba(43, 99, 141, 0.24);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.36);
+  color: #4b5b68;
+  font-size: 12px;
+  text-align: center;
+}
+
+.wallpaper-loading-orb {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(75, 159, 234, 0.22);
+  border-top-color: #3187cd;
+  border-radius: 50%;
+  animation: slow-spin 900ms linear infinite;
+}
+
+.wallpaper-feedback,
+.wallpaper-platform-note {
+  margin: 0;
+  padding: 7px 9px;
+  border-radius: 7px;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.wallpaper-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  background: rgba(41, 171, 94, 0.12);
+  color: #176a38;
+  font-weight: 800;
+}
+
+.wallpaper-feedback span {
+  min-width: 0;
+  overflow: hidden;
+  color: #50705d;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wallpaper-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: rgba(190, 57, 57, 0.11);
+  color: #8f2727;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.wallpaper-error span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wallpaper-error button {
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(143, 39, 39, 0.1);
+  color: inherit;
+  font-weight: 800;
+}
+
+.wallpaper-platform-note {
+  background: rgba(194, 135, 38, 0.12);
+  color: #755018;
+}
+
+@media (max-width: 420px) {
+  .wallpaper-header {
+    align-items: center;
+  }
+
+  .wallpaper-content {
+    grid-template-columns: 1fr;
+  }
+
+  .wallpaper-meta {
+    padding: 0 2px 2px;
+  }
+
+  .wallpaper-meta p {
+    -webkit-line-clamp: 2;
+  }
 }
 
 @keyframes slow-spin {

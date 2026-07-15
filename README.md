@@ -7,6 +7,7 @@ ZTool is a tray-first desktop utility collection built with Tauri 2, React, and 
 - Screenshot tool with selection preview, dimensions, toolbar actions, copy, and save entry points.
 - Global screenshot shortcut: `CommandOrControl+Shift+A`.
 - Caffeine mode to keep the screen and system awake.
+- Bing daily wallpaper browser with cache-first history, save-to-Downloads, and one-click desktop apply.
 - Preferences panel with real login autostart support.
 - Tool visibility preferences so users can choose which plugins appear in the main tool list.
 - Language preference with system default, Chinese, and English.
@@ -81,6 +82,7 @@ src/
   plugins/
     pluginHost/                   Runtime plugin registry, market, extension bridge, and host UI
     caffeine/                     Caffeine tool UI and state bridge
+    bingWallpaper/                Bing wallpaper contracts, model, hook, service, and card
     screenshot/                   Screenshot tool UI and state bridge
     preferences/                  Preferences, about, and preference model
 src-tauri/
@@ -95,6 +97,18 @@ tests/
   i18n.test.mjs                   Language resolution and translation tests
   screenshotMeta.test.mjs         Screenshot metadata tests
 ```
+
+## Bing Wallpaper
+
+`ztool.bing-wallpaper` is the third bundled tool. It reads up to 10 records from Bing's `zh-CN` daily image feed, shows a validated cached snapshot immediately, and refreshes metadata and missing images in Rust. The card supports older/newer navigation, a separate Downloads action, and applying the selected image as the desktop wallpaper. Clicking the preview is equivalent to Apply.
+
+The cache lives at `~/.ztool/data/wallpaper/`. `index.json` and image files are written through plugin-scoped, staged replacement; the service retains at most 10 indexed entries and removes only obsolete files that an earlier index owned. Unknown files are not deleted. A failed refresh leaves usable cached records visible with stale/error state.
+
+The bundled manifest requests `network`, `storage.plugin`, and `system.wallpaper`. The WebView does not fetch Bing or receive unrestricted filesystem access: Rust restricts requests to bounded HTTPS Bing endpoints, validates image content, resolves paths inside the wallpaper root, and passes only one selected preview back as a bounded data URL.
+
+Desktop wallpaper apply uses the replaceable `WallpaperSetter` adapter around `wallpaper 3.2`. macOS and Windows are supported by the adapter. Linux support depends on the detected desktop environment and its required desktop command; unsupported or missing backends return a structured error while browse/download remain available. Mobile wallpaper apply is not part of this release.
+
+This bundled plugin uses the existing `webview` runtime and React renderer. It intentionally does not introduce a `plugin.wasm` or WASI runtime.
 
 ## Plugin MVP
 
@@ -132,6 +146,8 @@ pnpm exec tsc src/plugins/screenshot/screenshotMeta.ts --module ES2020 --moduleR
 node --test tests/screenshotMeta.test.mjs
 ./node_modules/.bin/tsc src/plugins/pluginHost/contracts.ts src/plugins/pluginHost/pluginHostServiceCore.ts src/plugins/pluginHost/pluginHostModel.ts src/plugins/pluginHost/pluginMarketModel.ts src/plugins/pluginHost/extensionBridge.ts --module ES2020 --moduleResolution bundler --target ES2022 --outDir /private/tmp/ztool-plugin-host-test --noEmit false --skipLibCheck
 node --test tests/pluginHostService.test.mjs tests/pluginHostModel.test.mjs tests/pluginMarketModel.test.mjs tests/extensionRuntime.test.mjs
+pnpm exec tsc src/plugins/bingWallpaper/contracts.ts src/plugins/bingWallpaper/bingWallpaperModel.ts src/plugins/bingWallpaper/bingWallpaperController.ts src/plugins/bingWallpaper/bingWallpaperServiceCore.ts --module ES2020 --moduleResolution bundler --target ES2022 --outDir /private/tmp/ztool-bing-wallpaper-test --noEmit false --skipLibCheck
+node --test tests/bingWallpaperModel.test.mjs tests/bingWallpaperController.test.mjs tests/bingWallpaperService.test.mjs
 pnpm build
 cd src-tauri && cargo check && cargo test
 ```

@@ -24,6 +24,11 @@ test("defines stable bundled plugin manifests with safe main paths", () => {
         main: "plugins/caffeine",
         runtime: "webview",
       },
+      {
+        name: "ztool.bing-wallpaper",
+        main: "plugins/bingWallpaper",
+        runtime: "webview",
+      },
     ],
   );
   assert.equal(
@@ -35,11 +40,16 @@ test("defines stable bundled plugin manifests with safe main paths", () => {
 test("bundled manifests declare views commands permissions and platforms", () => {
   const screenshot = BUNDLED_PLUGIN_MANIFESTS[0];
   const caffeine = BUNDLED_PLUGIN_MANIFESTS[1];
+  const bing = BUNDLED_PLUGIN_MANIFESTS[2];
 
   assert.deepEqual(screenshot.platforms, ["macos", "windows", "linux"]);
   assert.deepEqual(caffeine.permissions, ["ui.message"]);
+  assert.deepEqual(bing.permissions, ["network", "storage.plugin", "system.wallpaper"]);
+  assert.equal(bing.id, "bing-wallpaper");
+  assert.equal(bing.author, "bells");
   assert.equal(screenshot.contributes.views[0].id, "ztool.screenshot.main");
   assert.equal(caffeine.contributes.commands[0].id, "ztool.caffeine.toggle");
+  assert.equal(bing.contributes.commands[1].id, "ztool.bing-wallpaper.apply");
 });
 
 test("bundled manifests declare host-mediated status bar items", () => {
@@ -78,7 +88,10 @@ test("bundled manifests declare host-mediated status bar items", () => {
 test("resolves bundled plugin kind and accent class from registry names", () => {
   assert.equal(bundledPluginKind("ztool.screenshot"), "screenshot");
   assert.equal(bundledPluginKind("ztool.caffeine"), "caffeine");
+  assert.equal(bundledPluginKind("ztool.bing-wallpaper"), "bing-wallpaper");
+  assert.equal(bundledPluginKind("bing-wallpaper"), "bing-wallpaper");
   assert.equal(bundledPluginKind("market-tool"), null);
   assert.equal(pluginAccentClass("ztool.screenshot"), "accent-screenshot");
+  assert.equal(pluginAccentClass("ztool.bing-wallpaper"), "accent-bing-wallpaper");
   assert.equal(pluginAccentClass("market-tool"), "accent-extension");
 });
