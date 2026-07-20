@@ -1,6 +1,6 @@
 import type { PluginManifest } from "./contracts";
 
-export type BuiltinPluginKind = "screenshot" | "caffeine" | "bing-wallpaper";
+export type BuiltinPluginKind = "screenshot" | "caffeine" | "bing-wallpaper" | "quick-launcher";
 
 export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
   {
@@ -135,6 +135,42 @@ export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
       ],
     },
   },
+  {
+    name: "ztool.quick-launcher",
+    version: "1.0.0",
+    author: "bells",
+    main: "plugins/quickLauncher",
+    permissions: [
+      "system.apps.read",
+      "system.apps.execute",
+      "system.window.focus",
+      "system.settings.open",
+    ],
+    id: "quick-launcher",
+    displayName: "Quick Launcher",
+    description: "Search, launch, and switch local apps and system settings",
+    platforms: ["macos", "windows"],
+    runtime: "webview",
+    contributes: {
+      views: [
+        {
+          id: "ztool.quick-launcher.main",
+          title: "Quick Launcher",
+          surface: "main",
+        },
+      ],
+      commands: [
+        {
+          id: "ztool.quick-launcher.show",
+          title: "Show Quick Launcher",
+        },
+        {
+          id: "ztool.quick-launcher.refresh",
+          title: "Refresh application index",
+        },
+      ],
+    },
+  },
 ];
 
 export function bundledPluginKind(pluginId: string): BuiltinPluginKind | null {
@@ -148,6 +184,10 @@ export function bundledPluginKind(pluginId: string): BuiltinPluginKind | null {
 
   if (pluginId === "ztool.bing-wallpaper" || pluginId === "bing-wallpaper") {
     return "bing-wallpaper";
+  }
+
+  if (pluginId === "ztool.quick-launcher" || pluginId === "quick-launcher") {
+    return "quick-launcher";
   }
 
   return null;

@@ -18,6 +18,10 @@ export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "ui.message",
   "process.execute",
   "system.wallpaper",
+  "system.apps.read",
+  "system.apps.execute",
+  "system.window.focus",
+  "system.settings.open",
 ] as const;
 
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;

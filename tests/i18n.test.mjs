@@ -31,6 +31,9 @@ test("Bing wallpaper metadata actions and states are translated", () => {
 
   assert.equal(zh("plugin.bingWallpaper.title"), "Bing 壁纸");
   assert.equal(en("plugin.bingWallpaper.title"), "Bing Wallpaper");
+  assert.equal(zh("plugin.quickLauncher.title"), "快速启动");
+  assert.equal(en("plugin.quickLauncher.title"), "Quick Launcher");
+  assert.equal(zh("launcher.errorStale"), "该项目已变化，请刷新后重试");
   for (const key of [
     "wallpaper.download",
     "wallpaper.apply",

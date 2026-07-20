@@ -11,12 +11,15 @@ import {
 import { resolveAppSurface } from "./appShell/appSurface";
 import CaptureApp from "./plugins/screenshot/capture/CaptureApp";
 import PinApp from "./plugins/screenshot/capture/PinApp";
+import QuickLauncherApp from "./plugins/quickLauncher/QuickLauncherApp";
 
 const label = getCurrentWindow().label;
 const surface = resolveAppSurface(label);
 const RoutedApp =
   surface === "capture"
     ? CaptureApp
+    : surface === "launcher"
+      ? QuickLauncherApp
     : surface === "pin"
       ? PinApp
       : surface === "main"

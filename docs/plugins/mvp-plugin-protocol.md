@@ -73,6 +73,10 @@ Supported MVP permissions:
 | ui.message | Show host-mediated user messages. |
 | process.execute | Request guarded binary/script execution. |
 | system.wallpaper | Apply a validated image from the calling plugin's data root as desktop wallpaper. |
+| system.apps.read | Search/read the bounded host application index and lazy icons. |
+| system.apps.execute | Launch a host-indexed application by stable item ID. |
+| system.window.focus | Focus a running indexed application; required with system.apps.execute. |
+| system.settings.open | Open a host-catalog system setting by stable item ID. |
 
 Plugins must declare permissions before install. Undeclared permissions are denied by default.
 
@@ -85,8 +89,14 @@ Extension API version 1 reserves three host-mediated resource methods. A request
 | `network.fetch` | `network` | `{ "url": "https://…", "method": "GET" }` | HTTPS GET only; host allowlist, redirect, timeout, response-size, loopback and private-address checks. |
 | `storage.writeFile` | `storage.plugin` | `{ "relativePath": "images/today.jpg", "dataBase64": "…" }` | Normalized plugin-relative paths only; bounded bytes, staged replacement, and absolute/traversal/backslash/symlink escape rejection. |
 | `system.setWallpaper` | `system.wallpaper` | `{ "relativePath": "images/today.jpg" }` | File must resolve inside the calling plugin's data root and decode as a bounded supported image. |
+| `launcher.scanApps` | `system.apps.read` | `{}` | Returns the bounded current index snapshot; no raw paths or cache access. |
+| `launcher.search` | `system.apps.read` | `{ "query": "wx", "limit": 24 }` | In-memory bounded search; query is not persisted. |
+| `launcher.launchOrFocus` | `system.apps.execute` + `system.window.focus` | `{ "itemId": "app:…", "revision": 3 }` | Resolves only the host-issued current item and reports the truthful OS action. |
+| `launcher.openSystemSetting` | `system.settings.open` | `{ "itemId": "setting:…", "revision": 3 }` | Resolves only a built-in catalog setting and its private platform URI. |
 
 Responses use the standard bridge envelope `{ requestId, ok, result?, error? }`. Native failures include stable `code`, human-readable `message`, operation context, and retryability where the Rust service contract applies. These methods never grant a plugin arbitrary Tauri commands, absolute-path filesystem access, shell execution, or direct WebView networking.
+
+Launcher payloads use an exact-field contract. Paths, Bundle IDs, executable identities, command lines, shortcut targets, and URIs are invalid even when a plugin has launcher permissions. The Bridge checks ExtensionSurface identity, enabled state, declared permissions, and every approved permission required by the method before it touches the shared Rust launcher service. Cached application metadata and bounded success-only usage history stay under `~/.ztool/data/quick-launcher/`; raw queries are never saved or uploaded.
 
 The bundled Bing wallpaper tool is the reference implementation. Its React surface calls typed Tauri commands that reuse the same Rust network, storage, and wallpaper services. Isolated third-party WebViews retain `connect-src 'none'` and request native resources through the postMessage Extension Bridge.
 

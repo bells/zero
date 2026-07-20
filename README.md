@@ -8,6 +8,7 @@ ZTool is a tray-first desktop utility collection built with Tauri 2, React, and 
 - Global screenshot shortcut: `CommandOrControl+Shift+A`.
 - Caffeine mode to keep the screen and system awake.
 - Bing daily wallpaper browser with cache-first history, save-to-Downloads, and one-click desktop apply.
+- Quick Launcher for fuzzy application/system-setting search, app launch/focus, and a reusable `CommandOrControl+Shift+Space` window on macOS and Windows.
 - Preferences panel with real login autostart support.
 - Tool visibility preferences so users can choose which plugins appear in the main tool list.
 - Language preference with system default, Chinese, and English.
@@ -83,6 +84,7 @@ src/
     pluginHost/                   Runtime plugin registry, market, extension bridge, and host UI
     caffeine/                     Caffeine tool UI and state bridge
     bingWallpaper/                Bing wallpaper contracts, model, hook, service, and card
+    quickLauncher/                Launcher contracts, model, hook, shared view, panel, and window
     screenshot/                   Screenshot tool UI and state bridge
     preferences/                  Preferences, about, and preference model
 src-tauri/
@@ -109,6 +111,16 @@ The bundled manifest requests `network`, `storage.plugin`, and `system.wallpaper
 Desktop wallpaper apply uses the replaceable `WallpaperSetter` adapter around `wallpaper 3.2`. macOS and Windows are supported by the adapter. Linux support depends on the detected desktop environment and its required desktop command; unsupported or missing backends return a structured error while browse/download remain available. Mobile wallpaper apply is not part of this release.
 
 This bundled plugin uses the existing `webview` runtime and React renderer. It intentionally does not introduce a `plugin.wasm` or WASI runtime.
+
+## Quick Launcher
+
+`ztool.quick-launcher` is the fourth bundled tool. The main plugin panel and the floating `launcher` window share one React view and one Rust-owned index. Press `CommandOrControl+Shift+Space`, type an English/Chinese name, full pinyin, initials, acronym, or bundled alias such as `wx`/`ps`, then use `ArrowUp`/`ArrowDown` and `Enter`. `Escape` or loss of focus hides only the floating window.
+
+Rust scans macOS application bundles in `/Applications`, `~/Applications`, `/System/Applications`, and `/System/Applications/Utilities`; Windows scans machine/user Start Menu Programs `.lnk` and `.exe` entries. Running applications are focused when the OS provides a reliable identity; otherwise the validated indexed entry is launched. Common system settings are host-maintained catalog records mapped privately to `x-apple.systempreferences:` or `ms-settings:` destinations. Linux and mobile return explicit unsupported state in this release.
+
+The versioned local data is stored under `~/.ztool/data/quick-launcher/`: `apps_cache.json` contains rebuildable application metadata, `usage.json` contains bounded success-only counts and last-used timestamps, and icons are lazy/rebuildable. Raw queries are never persisted or uploaded. Startup uses the cache immediately, refreshes in the background, and coalesces application-directory changes.
+
+The manifest requests `system.apps.read`, `system.apps.execute`, `system.window.focus`, and `system.settings.open`. Bundled Tauri commands and approved Extension Bridge methods resolve only host-issued `itemId` values; callers cannot submit arbitrary paths, Bundle IDs, command lines, shortcut targets, or URIs. Like the other bundled tools, Quick Launcher uses the existing React `webview` renderer and intentionally does not add `plugin.wasm`/WASI.
 
 ## Plugin MVP
 
@@ -148,8 +160,11 @@ node --test tests/screenshotMeta.test.mjs
 node --test tests/pluginHostService.test.mjs tests/pluginHostModel.test.mjs tests/pluginMarketModel.test.mjs tests/extensionRuntime.test.mjs
 pnpm exec tsc src/plugins/bingWallpaper/contracts.ts src/plugins/bingWallpaper/bingWallpaperModel.ts src/plugins/bingWallpaper/bingWallpaperController.ts src/plugins/bingWallpaper/bingWallpaperServiceCore.ts --module ES2020 --moduleResolution bundler --target ES2022 --outDir /private/tmp/ztool-bing-wallpaper-test --noEmit false --skipLibCheck
 node --test tests/bingWallpaperModel.test.mjs tests/bingWallpaperController.test.mjs tests/bingWallpaperService.test.mjs
+pnpm exec tsc src/plugins/quickLauncher/contracts.ts src/plugins/quickLauncher/quickLauncherModel.ts src/plugins/quickLauncher/quickLauncherServiceCore.ts --module ES2020 --moduleResolution bundler --target ES2022 --rootDir src/plugins/quickLauncher --outDir /private/tmp/ztool-quick-launcher-test --noEmit false --skipLibCheck
+node --test tests/quickLauncherModel.test.mjs tests/quickLauncherService.test.mjs
 pnpm build
 cd src-tauri && cargo check && cargo test
+cargo test --release --test quick_launcher_benchmark -- --ignored --nocapture
 ```
 
 ## Notes

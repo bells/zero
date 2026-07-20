@@ -68,6 +68,10 @@ The MVP permission vocabulary is:
 | `ui.message` | Show host-mediated messages and diagnostics. |
 | `process.execute` | Request guarded binary/script execution. |
 | `system.wallpaper` | Apply a validated plugin-owned image as the desktop wallpaper. |
+| `system.apps.read` | Search the host-owned installed-application index and load indexed icons. |
+| `system.apps.execute` | Launch an application selected by host-issued item ID. |
+| `system.window.focus` | Focus a running indexed application; required together with app execution. |
+| `system.settings.open` | Open a setting from the host-maintained system catalog. |
 
 Permissions are reviewed before install. The Extension API bridge denies undeclared or unapproved permissions.
 
@@ -87,6 +91,10 @@ await ztool.system.setWallpaper("images/today.jpg");
 
 The bridge message methods are `network.fetch`, `storage.writeFile`, and `system.setWallpaper`. Network access is HTTPS GET with host, redirect, timeout, private-address, and response-size policy. Storage paths are normalized relative paths inside the plugin data root; absolute paths, `..`, backslashes, symlink escapes, and oversized content fail. Wallpaper paths must refer to a bounded, decodable local image already inside that same data root.
 
+Launcher methods are `launcher.scanApps`, `launcher.search`, `launcher.launchOrFocus`, and `launcher.openSystemSetting`. Scan/search require `system.apps.read`; launch/focus requires both `system.apps.execute` and `system.window.focus`; settings require `system.settings.open`. Search accepts only `{ query, limit? }`, while activation accepts only `{ itemId, revision }`. The item ID must come from the current host index. Any extra path, Bundle ID, executable, command-line, shortcut-target, or URI field is rejected before native dispatch.
+
+Launcher metadata and success-only usage weights remain local under `~/.ztool/data/quick-launcher/`. The host does not persist raw queries or expose cache/usage files to isolated extensions. Launcher calls reuse the same Rust index/catalog/activation service as the bundled Quick Launcher panel.
+
 Treat errors as structured host failures and surface `message` to the user; callers may use `code` and `retryable` for retry behavior. Never infer success from a completed UI click.
 
 ## Runtime and lifecycle
@@ -96,7 +104,7 @@ Treat errors as structured host failures and surface `message` to the user; call
 - The host launches process entrypoints directly with `Command::new`; shell-string interpolation is not allowed.
 - Plugin failures are isolated. A failed plugin can be disabled, retried, or uninstalled without taking down preferences/about or other bundled plugins.
 
-The bundled Bing wallpaper tool uses the existing `webview` runtime plus a built-in React renderer. ZTool does not currently provide a `plugin.wasm`/WASI runtime; declaring `main: "plugin.wasm"` will not make a package executable. Native network, storage, and wallpaper behavior remains in Rust services, while plugin UI and interaction state remain in React.
+The bundled Bing wallpaper and Quick Launcher tools use the existing `webview` runtime plus built-in React renderers. ZTool does not currently provide a `plugin.wasm`/WASI runtime; declaring `main: "plugin.wasm"` will not make a package executable. Native network, storage, wallpaper, application, window, and setting behavior remains in Rust services, while plugin UI and interaction state remain in React.
 
 Desktop wallpaper apply is available on macOS and Windows through the host adapter. Linux support depends on the active desktop and installed backend commands (for example GNOME/Unity/Pantheon, KDE, Cinnamon, MATE, XFCE, LXDE, Deepin, or the `swaybg`/`feh` fallback); plugins must handle `platform_unsupported`, missing dependency, and backend failure results. Mobile wallpaper apply is not part of Extension API version 1.
 

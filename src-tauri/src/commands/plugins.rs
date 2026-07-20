@@ -5,12 +5,8 @@ use crate::plugins::contracts::{
     PluginLifecycleResult, PluginMarketEntry, PluginPackageValidationReport, PluginRecord,
     SetPluginEnabledInput, ValidatePluginPackageInput,
 };
-use crate::plugins::market::{
-    fetch_market_json, PluginMarketSnapshot, PluginMarketState,
-};
-use crate::plugins::package::{
-    download_package_to_staging, PluginPackageDownloadRequest,
-};
+use crate::plugins::market::{fetch_market_json, PluginMarketSnapshot, PluginMarketState};
+use crate::plugins::package::{download_package_to_staging, PluginPackageDownloadRequest};
 use crate::plugins::registry::PluginRegistryState;
 
 #[tauri::command]
@@ -46,9 +42,7 @@ pub fn list_market_plugins(
 }
 
 #[tauri::command]
-pub fn list_plugins(
-    state: State<'_, PluginRegistryState>,
-) -> Result<Vec<PluginRecord>, String> {
+pub fn list_plugins(state: State<'_, PluginRegistryState>) -> Result<Vec<PluginRecord>, String> {
     state.with_registry(|registry| Ok(registry.records().to_vec()))
 }
 
@@ -68,6 +62,9 @@ pub fn install_plugin_package(
 ) -> Result<PluginRecord, String> {
     let record = state.with_registry(|registry| registry.install_local_package(input))?;
     let _ = crate::services::status_bar::refresh_status_bar(&app);
+    if record.name == "ztool.quick-launcher" {
+        let _ = crate::sync_quick_launcher_shortcut(&app, record.enabled);
+    }
     Ok(record)
 }
 
@@ -98,10 +95,9 @@ pub async fn install_market_plugin(
         enabled: input.enabled,
     };
 
-    let result = state
-        .with_registry(|registry| {
-            registry.install_market_package_from_path(&input.entry, install_input)
-        });
+    let result = state.with_registry(|registry| {
+        registry.install_market_package_from_path(&input.entry, install_input)
+    });
     let _ = std::fs::remove_dir_all(&staging_dir);
 
     let record = result?;
@@ -132,6 +128,9 @@ pub fn set_plugin_enabled(
         Ok(record)
     })?;
     let _ = crate::services::status_bar::refresh_status_bar(&app);
+    if record.name == "ztool.quick-launcher" {
+        let _ = crate::sync_quick_launcher_shortcut(&app, record.enabled);
+    }
     Ok(record)
 }
 
@@ -142,5 +141,6 @@ pub fn restore_bundled_plugins(
 ) -> Result<Vec<PluginRecord>, String> {
     let records = state.with_registry(|registry| registry.restore_bundled_defaults())?;
     let _ = crate::services::status_bar::refresh_status_bar(&app);
+    let _ = crate::sync_quick_launcher_shortcut(&app, true);
     Ok(records)
 }

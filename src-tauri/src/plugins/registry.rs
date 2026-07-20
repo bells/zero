@@ -22,7 +22,7 @@ struct PluginRegistryDiskState {
     records: Vec<PluginRecord>,
 }
 
-const PLUGIN_REGISTRY_SCHEMA_VERSION: u16 = 2;
+const PLUGIN_REGISTRY_SCHEMA_VERSION: u16 = 3;
 
 pub struct PluginRegistry {
     root: PathBuf,
@@ -243,7 +243,11 @@ impl PluginRegistry {
             validate_market_entry_matches_manifest(entry, &manifest)?;
         }
 
-        if self.records.iter().any(|record| record.name == manifest.name) {
+        if self
+            .records
+            .iter()
+            .any(|record| record.name == manifest.name)
+        {
             return Err(format!("plugin {} is already installed", manifest.name));
         }
 
@@ -271,8 +275,7 @@ impl PluginRegistry {
         }
 
         let install_result = (|| -> Result<(), String> {
-            extract_zplugin_package(&package_path, &staging_root)
-                .map_err(|error| error.message)?;
+            extract_zplugin_package(&package_path, &staging_root).map_err(|error| error.message)?;
 
             if let Some(parent) = final_root.parent() {
                 fs::create_dir_all(parent)
@@ -347,6 +350,7 @@ fn bundled_plugin_records() -> Vec<PluginRecord> {
         bundled_screenshot_record(),
         bundled_caffeine_record(),
         bundled_bing_wallpaper_record(),
+        bundled_quick_launcher_record(),
     ]
 }
 
@@ -488,6 +492,46 @@ fn bundled_bing_wallpaper_record() -> PluginRecord {
     })
 }
 
+fn bundled_quick_launcher_record() -> PluginRecord {
+    bundled_record(PluginManifest {
+        name: "ztool.quick-launcher".into(),
+        version: "1.0.0".into(),
+        author: "bells".into(),
+        main: "plugins/quickLauncher".into(),
+        permissions: vec![
+            PluginPermission::SystemAppsRead,
+            PluginPermission::SystemAppsExecute,
+            PluginPermission::SystemWindowFocus,
+            PluginPermission::SystemSettingsOpen,
+        ],
+        id: Some("quick-launcher".into()),
+        display_name: Some("Quick Launcher".into()),
+        description: Some("Search, launch, and switch local apps and system settings".into()),
+        engines: None,
+        platforms: Some(vec![PluginPlatform::Macos, PluginPlatform::Windows]),
+        runtime: Some(PluginRuntime::Webview),
+        contributes: Some(PluginContributions {
+            views: Some(vec![PluginContributionView {
+                id: "ztool.quick-launcher.main".into(),
+                title: "Quick Launcher".into(),
+                surface: Some(PluginViewSurface::Main),
+            }]),
+            commands: Some(vec![
+                PluginContributionCommand {
+                    id: "ztool.quick-launcher.show".into(),
+                    title: "Show Quick Launcher".into(),
+                },
+                PluginContributionCommand {
+                    id: "ztool.quick-launcher.refresh".into(),
+                    title: "Refresh application index".into(),
+                },
+            ]),
+            settings: None,
+            status_bar_items: None,
+        }),
+    })
+}
+
 fn bundled_record(manifest: PluginManifest) -> PluginRecord {
     let approved_permissions = manifest.permissions.clone();
     let author = manifest.author.clone();
@@ -523,10 +567,7 @@ fn desktop_platforms() -> Vec<PluginPlatform> {
     ]
 }
 
-fn permissions_are_approved(
-    requested: &[PluginPermission],
-    approved: &[PluginPermission],
-) -> bool {
+fn permissions_are_approved(requested: &[PluginPermission], approved: &[PluginPermission]) -> bool {
     requested
         .iter()
         .all(|permission| approved.iter().any(|approved| approved == permission))
@@ -536,7 +577,10 @@ fn validate_market_entry_matches_manifest(
     entry: &PluginMarketEntry,
     manifest: &PluginManifest,
 ) -> Result<(), String> {
-    if entry.name != manifest.name || entry.version != manifest.version || entry.author != manifest.author {
+    if entry.name != manifest.name
+        || entry.version != manifest.version
+        || entry.author != manifest.author
+    {
         return Err(format!(
             "market metadata does not match package manifest for {}",
             entry.name

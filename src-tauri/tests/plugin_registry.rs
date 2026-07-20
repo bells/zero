@@ -3,13 +3,12 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use ztool_lib::plugins::contracts::{
-    InstallPluginPackageInput, PluginMarketEntry, PluginPermission, PluginRuntime,
-    PluginSource,
-};
-use ztool_lib::plugins::registry::PluginRegistry;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
+use ztool_lib::plugins::contracts::{
+    InstallPluginPackageInput, PluginMarketEntry, PluginPermission, PluginRuntime, PluginSource,
+};
+use ztool_lib::plugins::registry::PluginRegistry;
 
 fn unique_registry_root() -> PathBuf {
     std::env::temp_dir().join(format!(
@@ -83,7 +82,12 @@ fn first_load_seeds_bundled_plugins() {
 
     assert_eq!(
         names,
-        vec!["ztool.screenshot", "ztool.caffeine", "ztool.bing-wallpaper"]
+        vec![
+            "ztool.screenshot",
+            "ztool.caffeine",
+            "ztool.bing-wallpaper",
+            "ztool.quick-launcher",
+        ]
     );
     assert!(registry.records().iter().all(|record| record.enabled));
 }
@@ -108,25 +112,28 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
         .iter()
         .find(|record| record.name == "ztool.bing-wallpaper")
         .expect("Bing wallpaper record");
+    let launcher = registry
+        .records()
+        .iter()
+        .find(|record| record.name == "ztool.quick-launcher")
+        .expect("Quick Launcher record");
 
     assert_eq!(screenshot.manifest.runtime, Some(PluginRuntime::Webview));
     assert_eq!(screenshot.manifest.main, "plugins/screenshot");
-    assert!(
-        screenshot
-            .manifest
-            .contributes
-            .as_ref()
-            .and_then(|contributes| contributes.views.as_ref())
-            .is_some_and(|views| views.iter().any(|view| view.id == "ztool.screenshot.main"))
-    );
-    assert!(
-        caffeine
-            .manifest
-            .contributes
-            .as_ref()
-            .and_then(|contributes| contributes.commands.as_ref())
-            .is_some_and(|commands| commands.iter().any(|command| command.id == "ztool.caffeine.toggle"))
-    );
+    assert!(screenshot
+        .manifest
+        .contributes
+        .as_ref()
+        .and_then(|contributes| contributes.views.as_ref())
+        .is_some_and(|views| views.iter().any(|view| view.id == "ztool.screenshot.main")));
+    assert!(caffeine
+        .manifest
+        .contributes
+        .as_ref()
+        .and_then(|contributes| contributes.commands.as_ref())
+        .is_some_and(|commands| commands
+            .iter()
+            .any(|command| command.id == "ztool.caffeine.toggle")));
     assert_eq!(bing.author, "bells");
     assert_eq!(bing.version, "1.0.0");
     assert_eq!(bing.manifest.version, "1.0.0");
@@ -147,6 +154,18 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
         .is_some_and(|commands| commands
             .iter()
             .any(|command| command.id == "ztool.bing-wallpaper.apply")));
+    assert_eq!(launcher.author, "bells");
+    assert_eq!(launcher.version, "1.0.0");
+    assert_eq!(launcher.manifest.id.as_deref(), Some("quick-launcher"));
+    assert_eq!(
+        launcher.manifest.permissions,
+        vec![
+            PluginPermission::SystemAppsRead,
+            PluginPermission::SystemAppsExecute,
+            PluginPermission::SystemWindowFocus,
+            PluginPermission::SystemSettingsOpen,
+        ]
+    );
 }
 
 #[test]
@@ -170,6 +189,41 @@ fn registry_state_persists_across_reloads() {
 }
 
 #[test]
+fn older_registry_migration_adds_only_quick_launcher_and_preserves_lifecycle_state() {
+    let root = unique_registry_root();
+    let mut registry = PluginRegistry::load_or_seed(root.clone()).expect("registry should load");
+    registry
+        .set_enabled("ztool.caffeine", false)
+        .expect("plugin should update");
+    registry.save().expect("registry should save");
+
+    let path = root.join("registry.json");
+    let mut disk: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    disk["schemaVersion"] = serde_json::json!(2);
+    disk["records"] = serde_json::Value::Array(
+        disk["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|record| record["name"] != "ztool.quick-launcher")
+            .cloned()
+            .collect(),
+    );
+    fs::write(&path, serde_json::to_vec_pretty(&disk).unwrap()).unwrap();
+
+    let migrated = PluginRegistry::load_or_seed(root).expect("registry should migrate");
+    assert!(migrated
+        .records()
+        .iter()
+        .any(|record| record.name == "ztool.quick-launcher" && record.enabled));
+    assert!(migrated
+        .records()
+        .iter()
+        .any(|record| record.name == "ztool.caffeine" && !record.enabled));
+}
+
+#[test]
 fn corrupt_registry_recovers_with_bundled_plugins() {
     let root = unique_registry_root();
     fs::create_dir_all(&root).expect("root");
@@ -177,13 +231,11 @@ fn corrupt_registry_recovers_with_bundled_plugins() {
 
     let registry = PluginRegistry::load_or_seed(root).expect("registry should recover");
 
-    assert_eq!(registry.records().len(), 3);
-    assert!(
-        registry
-            .diagnostics()
-            .iter()
-            .any(|diagnostic| diagnostic.contains("registry recovery"))
-    );
+    assert_eq!(registry.records().len(), 4);
+    assert!(registry
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.contains("registry recovery")));
 }
 
 #[test]
@@ -204,18 +256,19 @@ fn local_package_install_extracts_versioned_assets_and_persists_record() {
     let installed_path = root.join("local-tool").join("0.1.0");
     assert_eq!(record.name, "local-tool");
     assert_eq!(record.source, PluginSource::Local);
-    assert_eq!(record.installed_path.as_deref(), Some(installed_path.to_str().unwrap()));
+    assert_eq!(
+        record.installed_path.as_deref(),
+        Some(installed_path.to_str().unwrap())
+    );
     assert!(record.package_sha256.is_some());
     assert!(installed_path.join("manifest.json").exists());
     assert!(installed_path.join("dist").join("index.html").exists());
 
     let reloaded = PluginRegistry::load_or_seed(root).expect("registry should reload");
-    assert!(
-        reloaded
-            .records()
-            .iter()
-            .any(|record| record.name == "local-tool" && record.enabled)
-    );
+    assert!(reloaded
+        .records()
+        .iter()
+        .any(|record| record.name == "local-tool" && record.enabled));
 }
 
 #[test]
@@ -234,7 +287,7 @@ fn install_validation_failure_leaves_registry_and_files_unchanged() {
         .expect_err("missing main asset should fail install");
 
     assert!(error.contains("package.main.missing"));
-    assert_eq!(registry.records().len(), 3);
+    assert_eq!(registry.records().len(), 4);
     assert!(!root.join("bad-tool").exists());
 }
 
@@ -262,7 +315,10 @@ fn duplicate_plugin_install_is_rejected_without_overwriting_existing_assets() {
         .join("0.1.0")
         .join("dist")
         .join("index.html");
-    assert_eq!(fs::read_to_string(installed_file).expect("installed file"), "first");
+    assert_eq!(
+        fs::read_to_string(installed_file).expect("installed file"),
+        "first"
+    );
 }
 
 #[test]
@@ -280,7 +336,9 @@ fn market_package_install_requires_manifest_to_match_market_entry() {
         author: "watson".into(),
         repository: "https://github.com/watson/market-tool".into(),
         release_url: "https://github.com/watson/market-tool/releases/tag/v0.1.0".into(),
-        download_url: "https://github.com/watson/market-tool/releases/download/v0.1.0/market-tool.zplugin".into(),
+        download_url:
+            "https://github.com/watson/market-tool/releases/download/v0.1.0/market-tool.zplugin"
+                .into(),
         permissions: vec![PluginPermission::UiMessage],
         description: None,
         sha256: None,
@@ -316,13 +374,14 @@ fn uninstall_removes_market_or_local_assets_but_keeps_host_registry_usable() {
 
     assert!(result.message.contains("uninstalled"));
     assert!(!root.join("remove-me").exists());
-    assert!(!registry.records().iter().any(|record| record.name == "remove-me"));
-    assert!(
-        registry
-            .records()
-            .iter()
-            .any(|record| record.name == "ztool.screenshot")
-    );
+    assert!(!registry
+        .records()
+        .iter()
+        .any(|record| record.name == "remove-me"));
+    assert!(registry
+        .records()
+        .iter()
+        .any(|record| record.name == "ztool.screenshot"));
 }
 
 #[test]
@@ -333,18 +392,21 @@ fn bundled_restore_readds_removed_default_plugins() {
     registry
         .uninstall_plugin("ztool.screenshot")
         .expect("bundled uninstall should remove active record");
-    assert!(!registry.records().iter().any(|record| record.name == "ztool.screenshot"));
+    assert!(!registry
+        .records()
+        .iter()
+        .any(|record| record.name == "ztool.screenshot"));
 
     let restored = registry
         .restore_bundled_defaults()
         .expect("restore should succeed");
 
-    assert!(restored.iter().any(|record| record.name == "ztool.screenshot"));
+    assert!(restored
+        .iter()
+        .any(|record| record.name == "ztool.screenshot"));
     let reloaded = PluginRegistry::load_or_seed(root).expect("registry should reload");
-    assert!(
-        reloaded
-            .records()
-            .iter()
-            .any(|record| record.name == "ztool.screenshot" && record.enabled)
-    );
+    assert!(reloaded
+        .records()
+        .iter()
+        .any(|record| record.name == "ztool.screenshot" && record.enabled));
 }

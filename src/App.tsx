@@ -13,6 +13,7 @@ import type { PluginRecord } from "./plugins/pluginHost/contracts";
 import { usePluginHost } from "./plugins/pluginHost/usePluginHost";
 import { AboutPanel } from "./plugins/preferences/AboutPanel";
 import { PreferencesPanel } from "./plugins/preferences/PreferencesPanel";
+import { QuickLauncherPanel } from "./plugins/quickLauncher/QuickLauncherPanel";
 import { createTranslator, resolveLanguage } from "./plugins/preferences/i18n";
 import type { TranslationKey } from "./plugins/preferences/i18n";
 import { usePreferences } from "./plugins/preferences/usePreferences";
@@ -178,6 +179,10 @@ function pluginPanel(plugin: PluginMeta | undefined, t: (key: TranslationKey) =>
     return <BingWallpaperPanel t={t} />;
   }
 
+  if (bundledPluginKind(plugin.id) === "quick-launcher") {
+    return <QuickLauncherPanel t={t} />;
+  }
+
   return <GenericPluginPanel plugin={plugin} />;
 }
 
@@ -296,6 +301,14 @@ function localizePluginMeta(
       ...plugin,
       title: t("plugin.bingWallpaper.title"),
       subtitle: t("plugin.bingWallpaper.subtitle"),
+    };
+  }
+
+  if (builtin === "quick-launcher") {
+    return {
+      ...plugin,
+      title: t("plugin.quickLauncher.title"),
+      subtitle: t("plugin.quickLauncher.subtitle"),
     };
   }
 

@@ -328,7 +328,15 @@ export function PluginManagerPanel({ pluginHost }: PluginManagerPanelProps) {
 }
 
 function formatPermissions(permissions: PluginPermission[]) {
-  return permissions.length > 0 ? permissions.join(", ") : "no host permissions";
+  const labels: Partial<Record<PluginPermission, string>> = {
+    "system.apps.read": "read installed applications",
+    "system.apps.execute": "launch indexed applications",
+    "system.window.focus": "focus running application windows",
+    "system.settings.open": "open approved system settings",
+  };
+  return permissions.length > 0
+    ? permissions.map((permission) => labels[permission] ?? permission).join(", ")
+    : "no host permissions";
 }
 
 function validationSummary(report: PluginPackageValidationReport) {

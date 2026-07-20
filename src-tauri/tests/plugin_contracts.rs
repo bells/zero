@@ -21,10 +21,10 @@ fn deserializes_plugin_manifest_contract() {
     .expect("manifest should deserialize");
 
     assert_eq!(manifest.name, "clipboard-helper");
-    assert_eq!(manifest.permissions, vec![
-        PluginPermission::ClipboardRead,
-        PluginPermission::Network,
-    ]);
+    assert_eq!(
+        manifest.permissions,
+        vec![PluginPermission::ClipboardRead, PluginPermission::Network,]
+    );
     assert_eq!(manifest.engines.expect("engines").api.as_deref(), Some("1"));
 }
 
@@ -89,6 +89,22 @@ fn system_wallpaper_permission_has_stable_wire_value() {
             .expect("permission should deserialize"),
         PluginPermission::SystemWallpaper
     );
+}
+
+#[test]
+fn launcher_permissions_have_stable_wire_values() {
+    for (permission, wire) in [
+        (PluginPermission::SystemAppsRead, "system.apps.read"),
+        (PluginPermission::SystemAppsExecute, "system.apps.execute"),
+        (PluginPermission::SystemWindowFocus, "system.window.focus"),
+        (PluginPermission::SystemSettingsOpen, "system.settings.open"),
+    ] {
+        assert_eq!(serde_json::to_value(&permission).unwrap(), wire);
+        assert_eq!(
+            serde_json::from_value::<PluginPermission>(json!(wire)).unwrap(),
+            permission
+        );
+    }
 }
 
 #[test]

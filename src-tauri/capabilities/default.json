@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the ZTool app shell windows",
-  "windows": ["tray", "main", "preferences", "about", "capture", "pin-*"],
+  "windows": ["tray", "main", "preferences", "about", "capture", "pin-*", "launcher"],
   "permissions": [
     "core:default",
     "autostart:default",

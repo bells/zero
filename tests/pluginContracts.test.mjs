@@ -54,6 +54,10 @@ test("accepts a valid MVP plugin manifest", () => {
     "ui.message",
     "process.execute",
     "system.wallpaper",
+    "system.apps.read",
+    "system.apps.execute",
+    "system.window.focus",
+    "system.settings.open",
   ]);
 });
 
@@ -69,6 +73,21 @@ test("accepts the system wallpaper permission and rejects near matches", () => {
 
   assert.equal(accepted.valid, true);
   assertIssue(rejected, "manifest.permission.unsupported", "permissions[0]");
+});
+
+test("accepts every launcher permission and rejects near matches", () => {
+  const permissions = [
+    "system.apps.read",
+    "system.apps.execute",
+    "system.window.focus",
+    "system.settings.open",
+  ];
+  assert.equal(validatePluginManifest({ ...validManifest, permissions }).valid, true);
+  assertIssue(
+    validatePluginManifest({ ...validManifest, permissions: ["system.app.read"] }),
+    "manifest.permission.unsupported",
+    "permissions[0]",
+  );
 });
 
 test("rejects manifest missing required fields", () => {

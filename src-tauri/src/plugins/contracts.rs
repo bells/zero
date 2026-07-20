@@ -16,6 +16,14 @@ pub enum PluginPermission {
     ProcessExecute,
     #[serde(rename = "system.wallpaper")]
     SystemWallpaper,
+    #[serde(rename = "system.apps.read")]
+    SystemAppsRead,
+    #[serde(rename = "system.apps.execute")]
+    SystemAppsExecute,
+    #[serde(rename = "system.window.focus")]
+    SystemWindowFocus,
+    #[serde(rename = "system.settings.open")]
+    SystemSettingsOpen,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -4,7 +4,7 @@ import {
   buildExtensionSurfacePolicy,
   createExtensionBridge,
   markPluginFailure,
-} from "/private/tmp/ztool-extension-runtime-test/extensionBridge.js";
+} from "/private/tmp/ztool-extension-runtime-test/pluginHost/extensionBridge.js";
 
 function pluginRecord(permissions = ["ui.message"], enabled = true) {
   return {
@@ -184,4 +184,78 @@ test("failed plugin records are isolated from host shell state", () => {
   assert.equal(failed.enabled, false);
   assert.equal(failed.health, "error");
   assert.equal(failed.lastError, "view failed to load");
+});
+
+test("launcher activation requires the complete permission set", async () => {
+  const calls = [];
+  const payload = { itemId: "app:macos:abc", revision: 7 };
+  const fullyApproved = createExtensionBridge(
+    pluginRecord(["system.apps.execute", "system.window.focus"]),
+    {
+      launcherLaunchOrFocus: async (pluginName, request) => {
+        calls.push([pluginName, request]);
+        return { itemId: request.itemId, action: "focused" };
+      },
+    },
+  );
+  const missingFocus = createExtensionBridge(
+    pluginRecord(["system.apps.execute"]),
+    { launcherLaunchOrFocus: async () => calls.push(["unexpected"]) },
+  );
+
+  const allowed = await fullyApproved.handle({
+    requestId: "launcher-ok",
+    pluginName: "bridge-tool",
+    method: "launcher.launchOrFocus",
+    payload,
+  });
+  const denied = await missingFocus.handle({
+    requestId: "launcher-denied",
+    pluginName: "bridge-tool",
+    method: "launcher.launchOrFocus",
+    payload,
+  });
+
+  assert.equal(allowed.ok, true);
+  assert.equal(denied.error?.code, "permission.denied");
+  assert.deepEqual(calls, [["bridge-tool", payload]]);
+});
+
+test("launcher bridge validates exact safe payloads before host dispatch", async () => {
+  let dispatches = 0;
+  const bridge = createExtensionBridge(
+    pluginRecord([
+      "system.apps.read",
+      "system.apps.execute",
+      "system.window.focus",
+      "system.settings.open",
+    ]),
+    {
+      launcherSearch: async () => { dispatches += 1; },
+      launcherLaunchOrFocus: async () => { dispatches += 1; },
+      launcherOpenSystemSetting: async () => { dispatches += 1; },
+    },
+  );
+
+  const attempts = [
+    ["launcher.search", { query: "code", limit: 500 }],
+    ["launcher.launchOrFocus", { itemId: "app:macos:abc", revision: 1, path: "/Applications/Bad.app" }],
+    ["launcher.openSystemSetting", { itemId: "setting:macos:abc", revision: 1, uri: "file:///tmp/bad" }],
+    ["launcher.unknown", {}],
+  ];
+  const responses = [];
+  for (const [method, payload] of attempts) {
+    responses.push(await bridge.handle({
+      requestId: method,
+      pluginName: "bridge-tool",
+      method,
+      payload,
+    }));
+  }
+
+  assert.equal(dispatches, 0);
+  assert.deepEqual(
+    responses.map((response) => response.error?.code),
+    ["host.error", "host.error", "host.error", "method.unsupported"],
+  );
 });

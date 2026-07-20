@@ -83,6 +83,14 @@ jobs:
         if: runner.os == 'macOS'
         run: node --test tests/bingWallpaperModel.test.mjs tests/bingWallpaperController.test.mjs tests/bingWallpaperService.test.mjs
 
+      - name: Compile Quick Launcher tests
+        if: runner.os == 'macOS'
+        run: pnpm exec tsc src/plugins/quickLauncher/contracts.ts src/plugins/quickLauncher/quickLauncherModel.ts src/plugins/quickLauncher/quickLauncherServiceCore.ts --module ES2020 --moduleResolution bundler --target ES2022 --rootDir src/plugins/quickLauncher --outDir /private/tmp/ztool-quick-launcher-test --noEmit false --skipLibCheck
+
+      - name: Run Quick Launcher tests
+        if: runner.os == 'macOS'
+        run: node --test tests/quickLauncherModel.test.mjs tests/quickLauncherService.test.mjs
+
       - name: Build frontend
         run: pnpm build
 
@@ -91,3 +99,7 @@ jobs:
 
       - name: Test Rust
         run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+
+      - name: Benchmark Quick Launcher search
+        if: runner.os == 'macOS'
+        run: cargo test --release --manifest-path src-tauri/Cargo.toml --test quick_launcher_benchmark -- --ignored --nocapture

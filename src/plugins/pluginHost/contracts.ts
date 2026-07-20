@@ -9,6 +9,10 @@ export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "ui.message",
   "process.execute",
   "system.wallpaper",
+  "system.apps.read",
+  "system.apps.execute",
+  "system.window.focus",
+  "system.settings.open",
 ] as const;
 
 export type PluginPermission = (typeof SUPPORTED_PLUGIN_PERMISSIONS)[number];

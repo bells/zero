@@ -6,6 +6,10 @@ import type {
   StorageWriteFileRequest,
   SystemSetWallpaperRequest,
 } from "./contracts";
+import type {
+  QuickLauncherActivateInput,
+  QuickLauncherSearchInput,
+} from "../quickLauncher/contracts";
 
 export interface ExtensionSurfacePolicy {
   sandbox: "allow-scripts";
@@ -43,6 +47,10 @@ export interface ExtensionHostApis {
   networkFetch?: (pluginName: string, request: NetworkFetchRequest) => Promise<unknown> | unknown;
   storageWriteFile?: (pluginName: string, request: StorageWriteFileRequest) => Promise<unknown> | unknown;
   systemSetWallpaper?: (pluginName: string, request: SystemSetWallpaperRequest) => Promise<unknown> | unknown;
+  launcherScanApps?: (pluginName: string) => Promise<unknown> | unknown;
+  launcherSearch?: (pluginName: string, request: QuickLauncherSearchInput) => Promise<unknown> | unknown;
+  launcherLaunchOrFocus?: (pluginName: string, request: QuickLauncherActivateInput) => Promise<unknown> | unknown;
+  launcherOpenSystemSetting?: (pluginName: string, request: QuickLauncherActivateInput) => Promise<unknown> | unknown;
 }
 
 export interface ExtensionBridge {
@@ -82,15 +90,16 @@ export function createExtensionBridge(
         return denied(parsed.request.requestId, "plugin.disabled", "Plugin is disabled.");
       }
 
-      const permission = requiredPermission(parsed.request.method);
-      if (!permission) {
+      const permissions = requiredPermissions(parsed.request.method);
+      if (!permissions) {
         return denied(parsed.request.requestId, "method.unsupported", "Extension API method is not supported.");
       }
 
-      if (!record.manifest.permissions.includes(permission) ||
-        !record.approvedPermissions.includes(permission)
-      ) {
-        return denied(parsed.request.requestId, "permission.denied", `Missing permission ${permission}.`);
+      const missingPermission = permissions.find((permission) =>
+        !record.manifest.permissions.includes(permission) ||
+        !record.approvedPermissions.includes(permission));
+      if (missingPermission) {
+        return denied(parsed.request.requestId, "permission.denied", `Missing permission ${missingPermission}.`);
       }
 
       try {
@@ -165,33 +174,45 @@ function parseRequest(request: unknown):
   };
 }
 
-function requiredPermission(method: string): PluginPermission | null {
+function requiredPermissions(method: string): readonly PluginPermission[] | null {
   if (method === "ui.showMessage") {
-    return "ui.message";
+    return ["ui.message"];
   }
 
   if (method.startsWith("storage.")) {
-    return "storage.plugin";
+    return ["storage.plugin"];
   }
 
   if (method.startsWith("command.") || method.startsWith("settings.")) {
-    return "storage.plugin";
+    return ["storage.plugin"];
   }
 
   if (method === "diagnostics.report") {
-    return "ui.message";
+    return ["ui.message"];
   }
 
   if (method === "process.execute") {
-    return "process.execute";
+    return ["process.execute"];
   }
 
   if (method === "network.fetch") {
-    return "network";
+    return ["network"];
   }
 
   if (method === "system.setWallpaper") {
-    return "system.wallpaper";
+    return ["system.wallpaper"];
+  }
+
+  if (method === "launcher.scanApps" || method === "launcher.search") {
+    return ["system.apps.read"];
+  }
+
+  if (method === "launcher.launchOrFocus") {
+    return ["system.apps.execute", "system.window.focus"];
+  }
+
+  if (method === "launcher.openSystemSetting") {
+    return ["system.settings.open"];
   }
 
   return null;
@@ -258,8 +279,66 @@ async function dispatchHostApi(
       const relativePath = readString(payload.relativePath, "relativePath");
       return hostApis.systemSetWallpaper?.(pluginName, { relativePath });
     }
+    case "launcher.scanApps": {
+      assertExactKeys(payload, []);
+      return hostApis.launcherScanApps?.(pluginName);
+    }
+    case "launcher.search": {
+      assertExactKeys(payload, ["query", "limit"]);
+      const query = readQuery(payload.query);
+      const limit = payload.limit === undefined ? undefined : readLimit(payload.limit);
+      return hostApis.launcherSearch?.(pluginName, { query, limit });
+    }
+    case "launcher.launchOrFocus": {
+      const input = readLauncherActivation(payload);
+      return hostApis.launcherLaunchOrFocus?.(pluginName, input);
+    }
+    case "launcher.openSystemSetting": {
+      const input = readLauncherActivation(payload);
+      return hostApis.launcherOpenSystemSetting?.(pluginName, input);
+    }
     default:
       throw new Error(`Unsupported method ${request.method}`);
+  }
+}
+
+function readLauncherActivation(payload: Record<string, unknown>): QuickLauncherActivateInput {
+  assertExactKeys(payload, ["itemId", "revision"]);
+  return {
+    itemId: readString(payload.itemId, "itemId"),
+    revision: readNonNegativeInteger(payload.revision, "revision"),
+  };
+}
+
+function readQuery(value: unknown) {
+  if (typeof value !== "string" || value.length > 128) {
+    throw new Error("query must be a string of at most 128 characters");
+  }
+  return value;
+}
+
+function readLimit(value: unknown) {
+  const limit = readNonNegativeInteger(value, "limit");
+  if (limit < 1 || limit > 50) {
+    throw new Error("limit must be between 1 and 50");
+  }
+  return limit;
+}
+
+function readNonNegativeInteger(value: unknown, key: string) {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${key} must be a non-negative safe integer`);
+  }
+  return value;
+}
+
+function assertExactKeys(
+  payload: Record<string, unknown>,
+  allowed: readonly string[],
+) {
+  const unexpected = Object.keys(payload).find((key) => !allowed.includes(key));
+  if (unexpected) {
+    throw new Error(`Unexpected launcher field ${unexpected}`);
   }
 }
 
