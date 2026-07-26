@@ -103,7 +103,7 @@ The system SHALL route bundled typed Tauri commands and approved Extension Bridg
 The system MUST keep direct Tauri commands, application paths, usage files, cache files, process APIs, window APIs, and system-setting URIs unavailable to isolated plugin WebViews.
 
 #### Scenario: Extension attempts direct Tauri invoke
-- **WHEN** isolated plugin code tries to invoke an internal Quick Launcher command
+- **WHEN** isolated plugin code tries to invoke an internal Zero Launch command
 - **THEN** the extension surface cannot reach the unrestricted command and must use its approved message Bridge
 
 #### Scenario: Extension attempts direct filesystem discovery
@@ -118,7 +118,7 @@ The system MUST keep direct Tauri commands, application paths, usage files, cach
 The system SHALL restrict creation, showing, hiding, focus, and shortcut handling for the `launcher` window to trusted host code and SHALL keep Tauri window capabilities synchronized with its label.
 
 #### Scenario: Host shortcut shows the window
-- **WHEN** the registered Quick Launcher shortcut fires for an enabled bundled plugin
+- **WHEN** the registered Zero Launch shortcut fires for an enabled bundled plugin
 - **THEN** trusted Rust code shows and focuses the one `launcher` window without accepting plugin-provided window options
 
 #### Scenario: Window already exists

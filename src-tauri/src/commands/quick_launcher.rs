@@ -95,7 +95,7 @@ pub fn show_quick_launcher_window(app: tauri::AppHandle) -> Result<(), String> {
         window
     } else {
         tauri::WebviewWindowBuilder::new(&app, options.label, WebviewUrl::App("".into()))
-            .title("Quick Launcher")
+            .title("Zero Launch")
             .inner_size(options.width, options.height)
             .min_inner_size(options.min_width, options.min_height)
             .resizable(options.resizable)
@@ -106,17 +106,17 @@ pub fn show_quick_launcher_window(app: tauri::AppHandle) -> Result<(), String> {
             .focused(true)
             .visible(false)
             .build()
-            .map_err(|error| format!("failed to create Quick Launcher window: {error}"))?
+            .map_err(|error| format!("failed to create Zero Launch window: {error}"))?
     };
     window
         .center()
-        .map_err(|error| format!("failed to center Quick Launcher window: {error}"))?;
+        .map_err(|error| format!("failed to center Zero Launch window: {error}"))?;
     window
         .show()
-        .map_err(|error| format!("failed to show Quick Launcher window: {error}"))?;
+        .map_err(|error| format!("failed to show Zero Launch window: {error}"))?;
     window
         .set_focus()
-        .map_err(|error| format!("failed to focus Quick Launcher window: {error}"))?;
+        .map_err(|error| format!("failed to focus Zero Launch window: {error}"))?;
     let _ = window.emit("quick-launcher-shown", ());
     Ok(())
 }
@@ -143,7 +143,7 @@ pub fn hide_quick_launcher_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(LAUNCHER_WINDOW_LABEL) {
         window
             .hide()
-            .map_err(|error| format!("failed to hide Quick Launcher window: {error}"))?;
+            .map_err(|error| format!("failed to hide Zero Launch window: {error}"))?;
     }
     Ok(())
 }

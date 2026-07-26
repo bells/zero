@@ -1,6 +1,6 @@
 ## Context
 
-ZTool currently creates one native tray/status item in `src-tauri/src/lib.rs`. Clicking that item toggles the `tray` WebView and the tray panel then renders plugin cards from the registry-backed `usePluginHost()` data. The main window, preferences, about, screenshot capture, pin windows, and caffeine commands are already separated across React surfaces and Rust commands/services.
+Zero currently creates one native tray/status item in `src-tauri/src/lib.rs`. Clicking that item toggles the `tray` WebView and the tray panel then renders plugin cards from the registry-backed `usePluginHost()` data. The main window, preferences, about, screenshot capture, pin windows, and caffeine commands are already separated across React surfaces and Rust commands/services.
 
 The requested status bar shape is closer to Lemon/KeepYouAwake: the menu bar itself should show a primary app mark followed by compact tool marks. That crosses the React/Rust boundary. React can render the preferences UI and preview, but Rust must own native status item creation, click events, and startup restoration.
 
@@ -8,8 +8,8 @@ The requested status bar shape is closer to Lemon/KeepYouAwake: the menu bar its
 
 **Goals:**
 
-- Show a primary ZTool status item followed by installed, enabled, status-bar-visible plugin items.
-- Keep the primary ZTool item responsible for toggling the tray quick panel.
+- Show a primary Zero status item followed by installed, enabled, status-bar-visible plugin items.
+- Keep the primary Zero item responsible for toggling the tray quick panel.
 - Make caffeine a stateful status item: empty cup when inactive, full cup when active, click to toggle.
 - Make screenshot a direct status item: click to enter the screenshot flow.
 - Add a Lemon-inspired preferences section with enable/show controls, arrangement preview, and per-plugin visibility.
@@ -92,7 +92,7 @@ Extend plugin contribution metadata with a status bar item contribution:
 export interface PluginContributionStatusBarItem {
   id: string;
   title: string;
-  icon: "ztool" | "caffeine-empty" | "caffeine-full" | "screenshot" | "extension";
+  icon: "zero" | "caffeine-empty" | "caffeine-full" | "screenshot" | "extension";
   action: {
     type: "toggle-tray" | "toggle-caffeine" | "start-screenshot" | "open-plugin";
     commandId?: string;
@@ -104,8 +104,8 @@ export interface PluginContributionStatusBarItem {
 
 The Rust contract mirrors this shape for native item construction. Bundled adapters provide precise actions:
 
-- `ztool.caffeine`: `toggle-caffeine`, icon changes from empty cup to full cup based on `CaffeineSnapshot.enabled`.
-- `ztool.screenshot`: `start-screenshot`, using the same default action as the global shortcut.
+- `zero.awake`: `toggle-caffeine`, icon changes from empty cup to full cup based on `CaffeineSnapshot.enabled`.
+- `zero.snap`: `start-screenshot`, using the same default action as the global shortcut.
 - Generic enabled plugins: default to `open-plugin`, which opens the tray panel or standalone main window with that plugin selected.
 
 Rationale: every installed/enabled tool can receive a sub-logo, while native-sensitive actions remain host-mediated. Third-party plugins do not get raw tray event access.
@@ -119,7 +119,7 @@ Alternatives considered:
 
 On macOS, create separate status items in this order:
 
-1. Primary ZTool logo.
+1. Primary Zero logo.
 2. Enabled plugin items sorted by status bar order and plugin host order.
 
 When the platform cannot provide a polished multi-item status bar experience, keep the primary tray icon and expose the same plugin actions in the tray quick panel/action row. The user-facing preferences and item model remain the same so Windows/Linux can improve later without a data migration.
@@ -151,7 +151,7 @@ Defaults:
 - bundled screenshot and caffeine visible by default
 - unknown enabled plugins visible by default unless the user hides them
 
-The primary ZTool logo remains available while the app is running so users can recover preferences; the `enabled` flag controls plugin sub-items rather than removing every possible app entry point.
+The primary Zero logo remains available while the app is running so users can recover preferences; the `enabled` flag controls plugin sub-items rather than removing every possible app entry point.
 
 Rationale: native startup needs a Rust-readable source of truth. Separating this from existing `visibleTools` avoids a broad preferences migration while still making status bar display configurable.
 
@@ -164,7 +164,7 @@ Alternatives considered:
 
 The caffeine status item updates after `toggle_keep_awake`, `get_caffeine_state`, expiry, and manual disable paths. The status bar service should expose a small refresh function that recomputes snapshots and updates native icons after actions complete.
 
-Screenshot click routes directly to `services::screenshot::start_screenshot_session(app, "copy".into())`, matching the current global shortcut default. If the platform returns unsupported or permission errors, the item remains visible and the next tray panel open can show the captured error state.
+Zero Snap click routes directly to `services::screenshot::start_screenshot_session(app, "copy".into())`, matching the current global shortcut default. If the platform returns unsupported or permission errors, the item remains visible and the next tray panel open can show the captured error state.
 
 Rationale: stateful icon accuracy matters for a KeepYouAwake-like caffeine affordance, but the existing native services should stay the source of truth.
 
@@ -177,7 +177,7 @@ Alternatives considered:
 
 - [Risk] Multiple native status items behave differently across desktop platforms -> Mitigation: implement the full multi-item layout for macOS first and provide an action-row fallback elsewhere.
 - [Risk] Rust-owned status bar settings drift from frontend visibility settings -> Mitigation: keep the concepts separate in copy and data names: plugin enabled state controls availability, status bar settings control status item display.
-- [Risk] Caffeine icon becomes stale after timer expiry -> Mitigation: refresh status items from `expire_if_current` and after every toggle/state command.
+- [Risk] Zero Awake icon becomes stale after timer expiry -> Mitigation: refresh status items from `expire_if_current` and after every toggle/state command.
 - [Risk] Third-party plugin status items could imply native permissions they do not have -> Mitigation: default generic plugin items open the plugin surface; only host-approved action types run native behavior.
 - [Risk] Icon assets look blurry or inconsistent in the menu bar -> Mitigation: use template-friendly monochrome status bar PNGs at appropriate sizes and verify on real macOS menu bar.
 - [Risk] Preferences preview diverges from native layout -> Mitigation: generate preview rows from the same normalized item snapshots used by native layout.
@@ -186,14 +186,14 @@ Alternatives considered:
 
 1. Add shared TypeScript/Rust contracts for status bar settings, item snapshots, status bar contribution metadata, action types, and error states.
 2. Add Rust `status_bar` service/state with persisted settings, default migration, item normalization, icon asset loading, and native item refresh.
-3. Add native click routing for primary ZTool, caffeine toggle, screenshot start, and generic open-plugin behavior.
+3. Add native click routing for primary Zero, caffeine toggle, screenshot start, and generic open-plugin behavior.
 4. Add typed frontend service/hook for reading/updating status bar settings and item snapshots.
 5. Add a preferences status bar section with enable/show switches, arrangement preview, and per-plugin item controls.
 6. Update bundled plugin manifests/adapters with status bar item contributions and icon metadata.
 7. Add tests for settings normalization, item filtering/order, icon state mapping, and action payload construction.
 8. Manually verify real menu bar behavior in `pnpm tauri dev`.
 
-Rollback strategy: if multi-item status bar behavior is unstable, keep the primary ZTool tray item and disable plugin sub-items through persisted status bar settings. Existing tray/main/preferences/screenshot/caffeine behavior remains intact.
+Rollback strategy: if multi-item status bar behavior is unstable, keep the primary Zero tray item and disable plugin sub-items through persisted status bar settings. Existing tray/main/preferences/screenshot/caffeine behavior remains intact.
 
 ## Open Questions
 

@@ -8,7 +8,9 @@ use tauri::Manager;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, ShortcutState};
 use tauri_plugin_positioner::{on_tray_event, Position, WindowExt};
 
+pub mod brand;
 pub mod commands;
+pub mod migration;
 pub mod plugins;
 pub mod services;
 
@@ -44,7 +46,7 @@ fn quick_launcher_is_enabled(app: &tauri::AppHandle) -> bool {
             Ok(registry
                 .records()
                 .iter()
-                .any(|record| record.name == "ztool.quick-launcher" && record.enabled))
+                .any(|record| record.name == brand::ZERO_LAUNCH_PLUGIN_ID && record.enabled))
         })
         .unwrap_or(false)
 }
@@ -102,6 +104,11 @@ pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let migration_report = migration::migrate_default_home();
+    for diagnostic in migration_report.diagnostics {
+        eprintln!("Zero data migration: {diagnostic}");
+    }
+
     tauri::Builder::default()
         .manage(services::caffeine::CaffeineState::new())
         .manage(services::bing_wallpaper::BingWallpaperState::default())
@@ -144,9 +151,9 @@ pub fn run() {
             let last_tray_toggle_at = Arc::new(Mutex::new(None::<std::time::Instant>));
             let last_tray_toggle_at_tray = last_tray_toggle_at.clone();
 
-            let _tray = TrayIconBuilder::with_id("ztool.primary")
+            let _tray = TrayIconBuilder::with_id(brand::PRIMARY_STATUS_ITEM_ID)
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("ZTool")
+                .tooltip(brand::PRODUCT_NAME)
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(move |tray, event| {
                     let app_handle = tray.app_handle();

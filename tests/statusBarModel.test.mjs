@@ -7,14 +7,14 @@ import {
   normalizeStatusBarSettings,
   resolveStatusBarPreferenceItems,
   resolveStatusBarItems,
-} from "/private/tmp/ztool-status-bar-test/services/statusBarModel.js";
+} from "/private/tmp/zero-status-bar-test/services/statusBarModel.js";
 
 function pluginRecord(name, enabled = true, contributes = undefined, health = undefined) {
   return {
     name,
     version: "0.1.0",
     author: "watson",
-    source: name.startsWith("ztool.") ? "bundled" : "market",
+    source: name.startsWith("zero.") ? "bundled" : "market",
     enabled,
     health: health ?? (enabled ? "ready" : "disabled"),
     manifest: {
@@ -23,9 +23,9 @@ function pluginRecord(name, enabled = true, contributes = undefined, health = un
       author: "watson",
       main: `plugins/${name}`,
       permissions: ["ui.message"],
-      displayName: name === "ztool.screenshot"
+      displayName: name === "zero.snap"
         ? "Screenshot"
-        : name === "ztool.caffeine"
+        : name === "zero.awake"
           ? "Caffeine"
           : "Market Tool",
       description: "Plugin description",
@@ -36,8 +36,8 @@ function pluginRecord(name, enabled = true, contributes = undefined, health = un
 }
 
 const screenshotStatusItem = {
-  id: "ztool.screenshot.status",
-  title: "Screenshot",
+  id: "zero.snap.status",
+  title: "Zero Snap",
   icon: "screenshot",
   action: { type: "start-screenshot" },
   order: 20,
@@ -45,8 +45,8 @@ const screenshotStatusItem = {
 };
 
 const caffeineStatusItem = {
-  id: "ztool.caffeine.status",
-  title: "Caffeine",
+  id: "zero.awake.status",
+  title: "Zero Awake",
   icon: "caffeine-empty",
   activeIcon: "caffeine-full",
   action: { type: "toggle-caffeine" },
@@ -66,15 +66,15 @@ const marketStatusItem = {
 test("normalizes missing status bar settings to native startup defaults", () => {
   assert.deepEqual(
     normalizeStatusBarSettings(undefined, [
-      pluginRecord("ztool.screenshot"),
-      pluginRecord("ztool.caffeine"),
+      pluginRecord("zero.snap"),
+      pluginRecord("zero.awake"),
     ]),
     {
       enabled: true,
       showPluginItemsOnLaunch: true,
       visiblePluginItems: {
-        "ztool.screenshot": true,
-        "ztool.caffeine": true,
+        "zero.snap": true,
+        "zero.awake": true,
       },
     },
   );
@@ -82,10 +82,35 @@ test("normalizes missing status bar settings to native startup defaults", () => 
   assert.equal(DEFAULT_STATUS_BAR_SETTINGS.enabled, true);
 });
 
+test("normalizes legacy first-party visibility without changing third-party ids", () => {
+  const records = [
+    pluginRecord("zero.snap"),
+    pluginRecord("zero.awake"),
+    pluginRecord("ztool.third-party"),
+  ];
+  const settings = normalizeStatusBarSettings(
+    {
+      visiblePluginItems: {
+        "zero.snap": false,
+        "ztool.screenshot": true,
+        "ztool.caffeine": false,
+        "ztool.third-party": false,
+      },
+    },
+    records,
+  );
+
+  assert.deepEqual(settings.visiblePluginItems, {
+    "zero.snap": false,
+    "zero.awake": false,
+    "ztool.third-party": false,
+  });
+});
+
 test("resolves primary item plus enabled visible plugin items in deterministic order", () => {
   const records = [
-    pluginRecord("ztool.screenshot", true, { statusBarItems: [screenshotStatusItem] }),
-    pluginRecord("ztool.caffeine", true, { statusBarItems: [caffeineStatusItem] }),
+    pluginRecord("zero.snap", true, { statusBarItems: [screenshotStatusItem] }),
+    pluginRecord("zero.awake", true, { statusBarItems: [caffeineStatusItem] }),
     pluginRecord("market-tool", true, { statusBarItems: [marketStatusItem] }),
   ];
   const settings = normalizeStatusBarSettings(
@@ -112,22 +137,22 @@ test("resolves primary item plus enabled visible plugin items in deterministic o
     })),
     [
       {
-        id: "ztool.primary",
+        id: "zero.primary",
         pluginName: null,
-        icon: "ztool",
+        icon: "zero",
         actionType: "toggle-tray",
         nativeVisible: true,
       },
       {
-        id: "ztool.caffeine.status",
-        pluginName: "ztool.caffeine",
+        id: "zero.awake.status",
+        pluginName: "zero.awake",
         icon: "caffeine-full",
         actionType: "toggle-caffeine",
         nativeVisible: true,
       },
       {
-        id: "ztool.screenshot.status",
-        pluginName: "ztool.screenshot",
+        id: "zero.snap.status",
+        pluginName: "zero.snap",
         icon: "screenshot",
         actionType: "start-screenshot",
         nativeVisible: true,
@@ -138,14 +163,14 @@ test("resolves primary item plus enabled visible plugin items in deterministic o
 
 test("omits disabled plugins and keeps primary item recoverable", () => {
   const records = [
-    pluginRecord("ztool.screenshot", false, { statusBarItems: [screenshotStatusItem] }),
-    pluginRecord("ztool.caffeine", true, { statusBarItems: [caffeineStatusItem] }),
+    pluginRecord("zero.snap", false, { statusBarItems: [screenshotStatusItem] }),
+    pluginRecord("zero.awake", true, { statusBarItems: [caffeineStatusItem] }),
   ];
   const settings = normalizeStatusBarSettings(
     {
       enabled: false,
       visiblePluginItems: {
-        "ztool.caffeine": false,
+        "zero.awake": false,
       },
     },
     records,
@@ -158,19 +183,19 @@ test("omits disabled plugins and keeps primary item recoverable", () => {
       caffeineEnabled: false,
       platformSupportsNativeMultiItem: true,
     }).map((item) => item.id),
-    ["ztool.primary"],
+    ["zero.primary"],
   );
 });
 
 test("preview and fallback action row share the same filtered plugin items", () => {
   const records = [
-    pluginRecord("ztool.screenshot", true, { statusBarItems: [screenshotStatusItem] }),
-    pluginRecord("ztool.caffeine", true, { statusBarItems: [caffeineStatusItem] }),
+    pluginRecord("zero.snap", true, { statusBarItems: [screenshotStatusItem] }),
+    pluginRecord("zero.awake", true, { statusBarItems: [caffeineStatusItem] }),
   ];
   const settings = normalizeStatusBarSettings(
     {
       visiblePluginItems: {
-        "ztool.screenshot": false,
+        "zero.snap": false,
       },
     },
     records,
@@ -183,24 +208,24 @@ test("preview and fallback action row share the same filtered plugin items", () 
   });
 
   assert.deepEqual(createStatusBarPreview(items).map((item) => item.id), [
-    "ztool.primary",
-    "ztool.caffeine.status",
+    "zero.primary",
+    "zero.awake.status",
   ]);
   assert.deepEqual(getStatusBarFallbackItems(items).map((item) => item.id), [
-    "ztool.caffeine.status",
+    "zero.awake.status",
   ]);
-  assert.equal(items.find((item) => item.id === "ztool.caffeine.status").nativeVisible, false);
+  assert.equal(items.find((item) => item.id === "zero.awake.status").nativeVisible, false);
 });
 
 test("preference rows include hidden enabled plugin items so users can restore them", () => {
   const records = [
-    pluginRecord("ztool.screenshot", true, { statusBarItems: [screenshotStatusItem] }),
-    pluginRecord("ztool.caffeine", true, { statusBarItems: [caffeineStatusItem] }),
+    pluginRecord("zero.snap", true, { statusBarItems: [screenshotStatusItem] }),
+    pluginRecord("zero.awake", true, { statusBarItems: [caffeineStatusItem] }),
   ];
   const settings = normalizeStatusBarSettings(
     {
       visiblePluginItems: {
-        "ztool.caffeine": false,
+        "zero.awake": false,
       },
     },
     records,
@@ -216,15 +241,15 @@ test("preference rows include hidden enabled plugin items so users can restore t
     })),
     [
       {
-        id: "ztool.caffeine.status",
-        pluginName: "ztool.caffeine",
+        id: "zero.awake.status",
+        pluginName: "zero.awake",
         icon: "caffeine-empty",
         visible: false,
         disabled: false,
       },
       {
-        id: "ztool.screenshot.status",
-        pluginName: "ztool.screenshot",
+        id: "zero.snap.status",
+        pluginName: "zero.snap",
         icon: "screenshot",
         visible: true,
         disabled: false,
@@ -236,19 +261,19 @@ test("preference rows include hidden enabled plugin items so users can restore t
 test("fallback action row omits plugin items already visible as native status items", () => {
   const nativeItems = [
     {
-      id: "ztool.primary",
+      id: "zero.primary",
       pluginName: null,
-      title: "ZTool",
-      icon: "ztool",
-      baseIcon: "ztool",
+      title: "Zero",
+      icon: "zero",
+      baseIcon: "zero",
       action: { type: "toggle-tray" },
       order: 0,
       nativeVisible: true,
     },
     {
-      id: "ztool.screenshot.status",
-      pluginName: "ztool.screenshot",
-      title: "Screenshot",
+      id: "zero.snap.status",
+      pluginName: "zero.snap",
+      title: "Zero Snap",
       icon: "screenshot",
       baseIcon: "screenshot",
       action: { type: "start-screenshot" },

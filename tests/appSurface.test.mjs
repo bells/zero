@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { resolveAppSurface } from "/private/tmp/ztool-app-shell-test/appShell/appSurface.js";
+import { resolveAppSurface } from "/private/tmp/zero-app-shell-test/appShell/appSurface.js";
 
 test("routes known Tauri window labels to app surfaces", () => {
   assert.equal(resolveAppSurface("tray"), "tray");

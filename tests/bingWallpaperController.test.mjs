@@ -6,7 +6,7 @@ import {
   errorMessage,
   loadBingWallpaperCacheFirst,
   nextBingWallpaperReloadVersion,
-} from "/private/tmp/ztool-bing-wallpaper-test/bingWallpaperController.js";
+} from "/private/tmp/zero-bing-wallpaper-test/bingWallpaperController.js";
 
 function snapshot(stale = false, error) {
   return {

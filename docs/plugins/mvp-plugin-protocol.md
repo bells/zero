@@ -1,10 +1,10 @@
-# ZTool MVP Plugin Protocol
+# Zero MVP Plugin Protocol
 
-This draft defines the first Git-based plugin protocol for ZTool. The MVP keeps distribution simple: each plugin lives in its own GitHub repository, publishes a compiled .zplugin package through GitHub Releases, and can be listed in a static market.json index hosted by the ZTool project.
+This draft defines the first Git-based plugin protocol for Zero. The MVP keeps distribution simple: each plugin lives in its own GitHub repository, publishes a compiled .zplugin package through GitHub Releases, and can be listed in a static market.json index hosted by the Zero project.
 
 ## Versions
 
-- ZTool host version for the first protocol draft: 0.1.0
+- Zero host version for the first protocol draft: 0.1.0
 - Extension API version: 1
 - Market schema version: 1
 
@@ -22,7 +22,7 @@ clipboard-helper.zplugin
 The installed MVP path is:
 
 ~~~text
-~/.ztool/plugins/<plugin-name>/<plugin-version>/
+~/.zero/plugins/<plugin-name>/<plugin-version>/
 ~~~
 
 The installer must reject package entries that use absolute paths, parent-directory traversal, unsafe symlinks, or files that would overwrite another plugin.
@@ -54,7 +54,8 @@ Optional forward-compatible fields:
 - id
 - displayName
 - description
-- engines.ztool
+- `engines.zero` (canonical)
+- `engines.ztool` (legacy Extension API v1 alias)
 - engines.api
 - platforms
 - runtime
@@ -96,13 +97,13 @@ Extension API version 1 reserves three host-mediated resource methods. A request
 
 Responses use the standard bridge envelope `{ requestId, ok, result?, error? }`. Native failures include stable `code`, human-readable `message`, operation context, and retryability where the Rust service contract applies. These methods never grant a plugin arbitrary Tauri commands, absolute-path filesystem access, shell execution, or direct WebView networking.
 
-Launcher payloads use an exact-field contract. Paths, Bundle IDs, executable identities, command lines, shortcut targets, and URIs are invalid even when a plugin has launcher permissions. The Bridge checks ExtensionSurface identity, enabled state, declared permissions, and every approved permission required by the method before it touches the shared Rust launcher service. Cached application metadata and bounded success-only usage history stay under `~/.ztool/data/quick-launcher/`; raw queries are never saved or uploaded.
+Launcher payloads use an exact-field contract. Paths, Bundle IDs, executable identities, command lines, shortcut targets, and URIs are invalid even when a plugin has launcher permissions. The Bridge checks ExtensionSurface identity, enabled state, declared permissions, and every approved permission required by the method before it touches the shared Rust launcher service. Cached application metadata and bounded success-only usage history stay under `~/.zero/data/quick-launcher/`; raw queries are never saved or uploaded.
 
 The bundled Bing wallpaper tool is the reference implementation. Its React surface calls typed Tauri commands that reuse the same Rust network, storage, and wallpaper services. Isolated third-party WebViews retain `connect-src 'none'` and request native resources through the postMessage Extension Bridge.
 
 ## market.json
 
-The MVP market is a static JSON file hosted by the ZTool project.
+The MVP market is a static JSON file hosted by the Zero project.
 
 ~~~json
 {

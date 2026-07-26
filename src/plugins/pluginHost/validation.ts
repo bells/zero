@@ -8,7 +8,7 @@ import type {
 } from "./contracts";
 
 const SUPPORTED_EXTENSION_API_VERSION = "1";
-const SUPPORTED_ZTOOL_HOST_VERSION = "0.1.0";
+const SUPPORTED_ZERO_HOST_VERSION = "0.1.0";
 
 export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "clipboard.read",
@@ -64,9 +64,16 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
       issues.push(issue("manifest.api.incompatible", "engines.api", "Plugin targets an unsupported Extension API version."));
     }
 
-    const ztool = value.engines.ztool;
-    if (typeof ztool === "string" && !isCompatibleZtoolHostRange(ztool)) {
-      issues.push(issue("manifest.ztool.incompatible", "engines.ztool", "Plugin targets an unsupported ZTool host version."));
+    const zero = value.engines.zero;
+    const legacyZtool = value.engines.ztool;
+    const hostRange = typeof zero === "string" ? zero : legacyZtool;
+    const hostPath = typeof zero === "string" ? "engines.zero" : "engines.ztool";
+    const issueCode =
+      typeof zero === "string"
+        ? "manifest.zero.incompatible"
+        : "manifest.ztool.incompatible";
+    if (typeof hostRange === "string" && !isCompatibleZeroHostRange(hostRange)) {
+      issues.push(issue(issueCode, hostPath, "Plugin targets an unsupported Zero host version."));
     }
   }
 
@@ -77,7 +84,7 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
   return {
     valid: true,
     issues: [],
-    manifest: value as unknown as PluginManifest,
+    manifest: normalizeManifestEngines(value) as unknown as PluginManifest,
   };
 }
 
@@ -255,13 +262,38 @@ function urlPathname(value: string) {
   }
 }
 
-function isCompatibleZtoolHostRange(value: string) {
+function isCompatibleZeroHostRange(value: string) {
   return (
     value === "*" ||
-    value === SUPPORTED_ZTOOL_HOST_VERSION ||
-    value === `^${SUPPORTED_ZTOOL_HOST_VERSION}` ||
-    value === `>=${SUPPORTED_ZTOOL_HOST_VERSION}`
+    value === SUPPORTED_ZERO_HOST_VERSION ||
+    value === `^${SUPPORTED_ZERO_HOST_VERSION}` ||
+    value === `>=${SUPPORTED_ZERO_HOST_VERSION}`
   );
+}
+
+function normalizeManifestEngines(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!isRecord(value.engines)) {
+    return value;
+  }
+
+  const zero =
+    typeof value.engines.zero === "string"
+      ? value.engines.zero
+      : value.engines.ztool;
+  const engines: Record<string, unknown> = { ...value.engines };
+  delete engines.ztool;
+  if (typeof zero === "string") {
+    engines.zero = zero;
+  } else {
+    delete engines.zero;
+  }
+
+  return {
+    ...value,
+    engines,
+  };
 }
 
 function issue(code: string, path: string, message: string): PluginValidationIssue {

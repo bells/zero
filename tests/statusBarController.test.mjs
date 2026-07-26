@@ -4,7 +4,7 @@ import {
   applyStatusBarSettingsUpdate,
   createStatusBarUiState,
   statusBarPluginVisibilityInput,
-} from "/private/tmp/ztool-status-bar-controller-test/services/statusBarController.js";
+} from "/private/tmp/zero-status-bar-controller-test/services/statusBarController.js";
 
 function pluginRecord(name, enabled = true, contributes = undefined, health = undefined) {
   return {
@@ -20,7 +20,7 @@ function pluginRecord(name, enabled = true, contributes = undefined, health = un
       author: "watson",
       main: `plugins/${name}`,
       permissions: ["ui.message"],
-      displayName: name === "ztool.screenshot" ? "Screenshot" : "Caffeine",
+      displayName: name === "zero.snap" ? "Screenshot" : "Caffeine",
       description: "Plugin description",
       contributes,
     },
@@ -29,8 +29,8 @@ function pluginRecord(name, enabled = true, contributes = undefined, health = un
 }
 
 const screenshotStatusItem = {
-  id: "ztool.screenshot.status",
-  title: "Screenshot",
+  id: "zero.snap.status",
+  title: "Zero Snap",
   icon: "screenshot",
   action: { type: "start-screenshot" },
   order: 20,
@@ -38,8 +38,8 @@ const screenshotStatusItem = {
 };
 
 const caffeineStatusItem = {
-  id: "ztool.caffeine.status",
-  title: "Caffeine",
+  id: "zero.awake.status",
+  title: "Zero Awake",
   icon: "caffeine-empty",
   activeIcon: "caffeine-full",
   action: { type: "toggle-caffeine" },
@@ -52,8 +52,8 @@ test("applies status bar setting updates without dropping existing item visibili
     enabled: true,
     showPluginItemsOnLaunch: true,
     visiblePluginItems: {
-      "ztool.screenshot": true,
-      "ztool.caffeine": true,
+      "zero.snap": true,
+      "zero.awake": true,
     },
   };
 
@@ -61,53 +61,53 @@ test("applies status bar setting updates without dropping existing item visibili
     applyStatusBarSettingsUpdate(settings, {
       enabled: false,
       visiblePluginItems: {
-        "ztool.caffeine": false,
+        "zero.awake": false,
       },
     }),
     {
       enabled: false,
       showPluginItemsOnLaunch: true,
       visiblePluginItems: {
-        "ztool.screenshot": true,
-        "ztool.caffeine": false,
+        "zero.snap": true,
+        "zero.awake": false,
       },
     },
   );
-  assert.deepEqual(statusBarPluginVisibilityInput("ztool.screenshot", false), {
+  assert.deepEqual(statusBarPluginVisibilityInput("zero.snap", false), {
     visiblePluginItems: {
-      "ztool.screenshot": false,
+      "zero.snap": false,
     },
   });
 });
 
 test("creates preference, preview, fallback, and error state for the status bar UI", () => {
   const records = [
-    pluginRecord("ztool.screenshot", true, { statusBarItems: [screenshotStatusItem] }),
-    pluginRecord("ztool.caffeine", true, { statusBarItems: [caffeineStatusItem] }),
+    pluginRecord("zero.snap", true, { statusBarItems: [screenshotStatusItem] }),
+    pluginRecord("zero.awake", true, { statusBarItems: [caffeineStatusItem] }),
   ];
   const settings = {
     enabled: true,
     showPluginItemsOnLaunch: true,
     visiblePluginItems: {
-      "ztool.screenshot": false,
-      "ztool.caffeine": true,
+      "zero.snap": false,
+      "zero.awake": true,
     },
   };
   const items = [
     {
-      id: "ztool.primary",
+      id: "zero.primary",
       pluginName: null,
-      title: "ZTool",
-      icon: "ztool",
-      baseIcon: "ztool",
+      title: "Zero",
+      icon: "zero",
+      baseIcon: "zero",
       action: { type: "toggle-tray" },
       order: 0,
       nativeVisible: true,
     },
     {
-      id: "ztool.caffeine.status",
-      pluginName: "ztool.caffeine",
-      title: "Caffeine",
+      id: "zero.awake.status",
+      pluginName: "zero.awake",
+      title: "Zero Awake",
       icon: "caffeine-empty",
       baseIcon: "caffeine-empty",
       activeIcon: "caffeine-full",
@@ -127,24 +127,24 @@ test("creates preference, preview, fallback, and error state for the status bar 
   });
 
   assert.deepEqual(uiState.previewItems.map((item) => item.id), [
-    "ztool.primary",
-    "ztool.caffeine.status",
+    "zero.primary",
+    "zero.awake.status",
   ]);
   assert.deepEqual(uiState.preferenceItems.map((item) => ({
     id: item.id,
     visible: item.visible,
   })), [
     {
-      id: "ztool.caffeine.status",
+      id: "zero.awake.status",
       visible: true,
     },
     {
-      id: "ztool.screenshot.status",
+      id: "zero.snap.status",
       visible: false,
     },
   ]);
   assert.deepEqual(uiState.fallbackItems.map((item) => item.id), [
-    "ztool.caffeine.status",
+    "zero.awake.status",
   ]);
   assert.equal(uiState.messageKey, "statusBar.message.error");
   assert.equal(uiState.messageDetail, "Cannot save status bar settings");

@@ -8,9 +8,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use zip::ZipArchive;
 
-use super::contracts::{
-    PluginManifest, PluginPackageValidationReport, PluginValidationIssue,
-};
+use super::contracts::{PluginManifest, PluginPackageValidationReport, PluginValidationIssue};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -127,13 +125,13 @@ pub fn validate_zplugin_package(
     };
 
     let archive_entries = inspect_archive_entries(&mut archive, &mut issues)?;
-    let manifest = read_manifest_from_archive(&mut archive, &mut issues)?;
+    let mut manifest = read_manifest_from_archive(&mut archive, &mut issues)?;
 
-    if let Some(manifest) = &manifest {
+    if let Some(manifest) = &mut manifest {
         issues.extend(validate_manifest(manifest));
 
-        if is_safe_package_relative_path(&manifest.main) &&
-            !archive_entries.contains(&normalize_manifest_path(&manifest.main))
+        if is_safe_package_relative_path(&manifest.main)
+            && !archive_entries.contains(&normalize_manifest_path(&manifest.main))
         {
             issues.push(validation_issue(
                 "package.main.missing",
@@ -141,6 +139,8 @@ pub fn validate_zplugin_package(
                 "Plugin package is missing the manifest-declared main entrypoint.",
             ));
         }
+
+        normalize_manifest_engines(manifest);
     }
 
     Ok(package_report(
@@ -228,10 +228,10 @@ fn is_safe_archive_entry(entry_name: &str) -> bool {
         return false;
     }
 
-    if entry_name.starts_with('/') ||
-        entry_name.starts_with('\\') ||
-        entry_name.contains('\\') ||
-        entry_name.contains(':')
+    if entry_name.starts_with('/')
+        || entry_name.starts_with('\\')
+        || entry_name.contains('\\')
+        || entry_name.contains(':')
     {
         return false;
     }
@@ -395,15 +395,21 @@ fn validate_manifest(manifest: &PluginManifest) -> Vec<PluginValidationIssue> {
             ));
         }
 
-        if engines
-            .ztool
-            .as_deref()
-            .is_some_and(|ztool| !is_compatible_ztool_host_range(ztool))
-        {
-            issues.push(validation_issue(
-                "manifest.ztool.incompatible",
+        let (host_range, host_path, issue_code) = if let Some(zero) = engines.zero.as_deref() {
+            (Some(zero), "engines.zero", "manifest.zero.incompatible")
+        } else {
+            (
+                engines.ztool.as_deref(),
                 "engines.ztool",
-                "Plugin targets an unsupported ZTool host version.",
+                "manifest.ztool.incompatible",
+            )
+        };
+
+        if host_range.is_some_and(|range| !is_compatible_zero_host_range(range)) {
+            issues.push(validation_issue(
+                issue_code,
+                host_path,
+                "Plugin targets an unsupported Zero host version.",
             ));
         }
     }
@@ -429,10 +435,10 @@ fn is_safe_package_relative_path(value: &str) -> bool {
         return false;
     }
 
-    if value.starts_with('/') ||
-        value.starts_with('\\') ||
-        value.contains(':') ||
-        value.contains('\\')
+    if value.starts_with('/')
+        || value.starts_with('\\')
+        || value.contains(':')
+        || value.contains('\\')
     {
         return false;
     }
@@ -444,15 +450,18 @@ fn is_safe_package_relative_path(value: &str) -> bool {
 
 fn is_valid_plugin_name(value: &str) -> bool {
     let length_ok = (2..=64).contains(&value.len());
-    length_ok &&
-        value
+    length_ok
+        && value
             .chars()
             .next()
-            .is_some_and(|character| character.is_ascii_lowercase() || character.is_ascii_digit()) &&
-        value
-            .chars()
-            .all(|character| character.is_ascii_lowercase() || character.is_ascii_digit() ||
-                character == '.' || character == '_' || character == '-')
+            .is_some_and(|character| character.is_ascii_lowercase() || character.is_ascii_digit())
+        && value.chars().all(|character| {
+            character.is_ascii_lowercase()
+                || character.is_ascii_digit()
+                || character == '.'
+                || character == '_'
+                || character == '-'
+        })
 }
 
 fn is_semver(value: &str) -> bool {
@@ -465,17 +474,27 @@ fn is_semver(value: &str) -> bool {
         .unwrap_or(value);
     let parts = core.split('.').collect::<Vec<_>>();
 
-    parts.len() == 3 &&
-        parts
-            .iter()
-            .all(|part| !part.is_empty() && part.chars().all(|character| character.is_ascii_digit()))
+    parts.len() == 3
+        && parts.iter().all(|part| {
+            !part.is_empty() && part.chars().all(|character| character.is_ascii_digit())
+        })
 }
 
-fn is_compatible_ztool_host_range(value: &str) -> bool {
-    value == "*" ||
-        value == env!("CARGO_PKG_VERSION") ||
-        value == format!("^{}", env!("CARGO_PKG_VERSION")) ||
-        value == format!(">={}", env!("CARGO_PKG_VERSION"))
+fn normalize_manifest_engines(manifest: &mut PluginManifest) {
+    if let Some(engines) = &mut manifest.engines {
+        if engines.zero.is_none() {
+            engines.zero = engines.ztool.take();
+        } else {
+            engines.ztool = None;
+        }
+    }
+}
+
+fn is_compatible_zero_host_range(value: &str) -> bool {
+    value == "*"
+        || value == env!("CARGO_PKG_VERSION")
+        || value == format!("^{}", env!("CARGO_PKG_VERSION"))
+        || value == format!(">={}", env!("CARGO_PKG_VERSION"))
 }
 
 fn is_zip_symlink(mode: Option<u32>) -> bool {

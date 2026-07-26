@@ -1,18 +1,18 @@
 ## ADDED Requirements
 
 ### Requirement: Bing wallpaper is registered as the third bundled tool
-The system SHALL register the Bing wallpaper tool as an enabled bundled plugin with stable identity `ztool.bing-wallpaper`, short ID `bing-wallpaper`, author `bells`, and the permissions required for host-mediated network, plugin storage, and system wallpaper access.
+The system SHALL register the Bing wallpaper tool as an enabled bundled plugin with stable identity `zero.paper`, short ID `bing-wallpaper`, author `bells`, and the permissions required for host-mediated network, plugin storage, and system wallpaper access.
 
 #### Scenario: Fresh installation seeds the plugin
-- **WHEN** ZTool initializes a plugin registry without an existing Bing wallpaper record
-- **THEN** the registry includes an enabled `ztool.bing-wallpaper` record and the shell can show it with the other bundled tools
+- **WHEN** Zero initializes a plugin registry without an existing Bing wallpaper record
+- **THEN** the registry includes an enabled `zero.paper` record and the shell can show it with the other bundled tools
 
 #### Scenario: User hides or disables the plugin
 - **WHEN** the user changes the Bing wallpaper plugin visibility or enabled state
 - **THEN** the shell persists that preference through the existing plugin host without affecting screenshot, caffeine, preferences, or about surfaces
 
 ### Requirement: Cached wallpaper content is shown before remote refresh
-The system SHALL load valid metadata and images from `~/.ztool/data/wallpaper/` before attempting a remote refresh, and SHALL refresh Bing data asynchronously after activation without clearing usable cached content.
+The system SHALL load valid metadata and images from `~/.zero/data/wallpaper/` before attempting a remote refresh, and SHALL refresh Bing data asynchronously after activation without clearing usable cached content.
 
 #### Scenario: Plugin activates with valid cache
 - **WHEN** the plugin activates and the cache contains valid wallpaper entries

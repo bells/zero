@@ -1,38 +1,38 @@
 ## ADDED Requirements
 
-### Requirement: Quick Launcher is registered as the fourth bundled tool
-The system SHALL register Quick Launcher as an enabled bundled webview plugin with stable name `ztool.quick-launcher`, short ID `quick-launcher`, author `bells`, version `1.0.0`, and macOS/Windows platform declarations.
+### Requirement: Zero Launch is registered as the fourth bundled tool
+The system SHALL register Zero Launch as an enabled bundled webview plugin with stable name `zero.launch`, short ID `quick-launcher`, author `bells`, version `1.0.0`, and macOS/Windows platform declarations.
 
 #### Scenario: Fresh registry is initialized
-- **WHEN** ZTool initializes a plugin registry that has no Quick Launcher record
-- **THEN** the registry adds `ztool.quick-launcher` after the existing screenshot, caffeine, and Bing wallpaper bundled tools without altering their records
+- **WHEN** Zero initializes a plugin registry that has no Zero Launch record
+- **THEN** the registry adds `zero.launch` after the existing screenshot, caffeine, and Bing wallpaper bundled tools without altering their records
 
 #### Scenario: Existing registry is migrated
-- **WHEN** ZTool loads a valid older registry containing the first three bundled tools and user lifecycle choices
-- **THEN** the system adds the missing Quick Launcher record while preserving every existing enabled, disabled, health, and permission state
+- **WHEN** Zero loads a valid older registry containing the first three bundled tools and user lifecycle choices
+- **THEN** the system adds the missing Zero Launch record while preserving every existing enabled, disabled, health, and permission state
 
 #### Scenario: Bundled defaults are restored
-- **WHEN** the user restores bundled plugins after removing or disabling Quick Launcher
-- **THEN** the registry restores and enables `ztool.quick-launcher` through the same lifecycle behavior as the other bundled tools
+- **WHEN** the user restores bundled plugins after removing or disabling Zero Launch
+- **THEN** the registry restores and enables `zero.launch` through the same lifecycle behavior as the other bundled tools
 
 ### Requirement: Users can search from the plugin panel or a floating launcher
-The system SHALL expose the same Quick Launcher search experience in its main plugin panel and in a single reusable floating `launcher` window invoked by `CommandOrControl+Shift+Space`.
+The system SHALL expose the same Zero Launch search experience in its main plugin panel and in a single reusable floating `launcher` window invoked by `CommandOrControl+Shift+Space`.
 
 #### Scenario: User opens the bundled plugin
-- **WHEN** the user selects Quick Launcher from ZTool plugin navigation
+- **WHEN** the user selects Zero Launch from Zero plugin navigation
 - **THEN** the plugin panel focuses a search input and can query the current application and system-setting index
 
 #### Scenario: User invokes the global shortcut
-- **WHEN** Quick Launcher is enabled and the user presses `CommandOrControl+Shift+Space`
-- **THEN** ZTool shows or reuses one centered floating Launcher window, clears stale transient state, and focuses its search input
+- **WHEN** Zero Launch is enabled and the user presses `CommandOrControl+Shift+Space`
+- **THEN** Zero shows or reuses one centered floating Launcher window, clears stale transient state, and focuses its search input
 
 #### Scenario: Shortcut registration conflicts
-- **WHEN** the operating system refuses to register the Quick Launcher shortcut
-- **THEN** ZTool remains operational, keeps the plugin panel available, and exposes a diagnostic explaining that shortcut activation is unavailable
+- **WHEN** the operating system refuses to register the Zero Launch shortcut
+- **THEN** Zero remains operational, keeps the plugin panel available, and exposes a diagnostic explaining that shortcut activation is unavailable
 
 #### Scenario: Plugin is disabled
-- **WHEN** the user disables Quick Launcher while its shortcut or floating window is active
-- **THEN** ZTool unregisters the shortcut, hides the Launcher window, and prevents further launcher activation until the plugin is enabled again
+- **WHEN** the user disables Zero Launch while its shortcut or floating window is active
+- **THEN** Zero unregisters the shortcut, hides the Launcher window, and prevents further launcher activation until the plugin is enabled again
 
 ### Requirement: Search results combine applications and system settings
 The system SHALL present matching application and system-setting items in one ranked list with an official or fallback icon, primary title, descriptive subtitle, item type, and available action state.
@@ -66,11 +66,11 @@ The system SHALL support `ArrowUp`, `ArrowDown`, `Enter`, and `Escape` without r
 
 #### Scenario: User dismisses the floating window
 - **WHEN** the floating Launcher window has focus and the user presses `Escape`
-- **THEN** ZTool hides the window without quitting the application or changing the index
+- **THEN** Zero hides the window without quitting the application or changing the index
 
 #### Scenario: Floating window loses focus
 - **WHEN** focus moves from the floating Launcher to another application and no activation is pending
-- **THEN** ZTool hides the Launcher window and clears transient selection safely
+- **THEN** Zero hides the Launcher window and clears transient selection safely
 
 #### Scenario: Keyboard focus is visible
 - **WHEN** a keyboard user tabs to the input, result list, refresh action, or retry action
@@ -134,14 +134,14 @@ The system SHALL persist successful activation count and last-used time locally 
 - **THEN** the view shows a bounded set of recent/frequent applications and common settings with deterministic ordering
 
 ### Requirement: Platform support and asynchronous states are explicit
-The system SHALL expose initializing, cache-ready, refreshing, ready, degraded, unsupported, empty, activating, and error states without blocking navigation to other ZTool plugins.
+The system SHALL expose initializing, cache-ready, refreshing, ready, degraded, unsupported, empty, activating, and error states without blocking navigation to other Zero plugins.
 
 #### Scenario: Cached results are refreshing
 - **WHEN** cached index entries are visible while a background scan runs
 - **THEN** the user can continue searching and activating still-valid items while the view indicates refresh activity
 
 #### Scenario: Current desktop is unsupported
-- **WHEN** Quick Launcher runs on Linux or a mobile target in the first release
+- **WHEN** Zero Launch runs on Linux or a mobile target in the first release
 - **THEN** the system reports the platform as unsupported and MUST NOT represent an empty application list as successful support
 
 #### Scenario: Stale search response completes

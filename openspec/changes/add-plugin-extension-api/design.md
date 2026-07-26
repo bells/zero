@@ -1,13 +1,13 @@
 ## Context
 
-ZTool is a tray-first Tauri 2 desktop utility collection. The current code already has plugin-shaped folders for screenshot, caffeine, and preferences, but the actual plugin model is still static:
+Zero is a tray-first Tauri 2 desktop utility collection. The current code already has plugin-shaped folders for screenshot, caffeine, and preferences, but the actual plugin model is still static:
 
 - `src/plugins/types.ts` defines `PluginId = "caffeine" | "screenshot"`.
 - `src/App.tsx` owns the plugin array, rendering switch, selection state, preferences/about navigation, and visible-plugin count.
 - `src/plugins/preferences/preferencesModel.ts` stores tool visibility in `localStorage` with a compile-time `Record<PluginId, boolean>`.
 - Rust commands and services are split by feature, but plugin discovery, market refresh, package download, and lifecycle are not host concepts yet.
 
-The first product milestone should not build a server-backed marketplace. The MVP is “Git as the market”: each plugin is an independent repository, authors publish compiled `.zplugin` archives through GitHub Releases, and ZTool reads a preset GitHub-hosted `market.json` file containing release download metadata.
+The first product milestone should not build a server-backed marketplace. The MVP is “Git as the market”: each plugin is an independent repository, authors publish compiled `.zplugin` archives through GitHub Releases, and Zero reads a preset GitHub-hosted `market.json` file containing release download metadata.
 
 Because this is a local desktop app, the design must preserve Tauri's security boundary: React renders UI, Rust owns native capabilities, downloads, filesystem writes, archive extraction, process execution, and package validation; third-party plugin code cannot receive raw native access by default.
 
@@ -17,7 +17,7 @@ Because this is a local desktop app, the design must preserve Tauri's security b
 
 - Define the MVP `.zplugin` package format and `manifest.json` contract.
 - Support a static GitHub-hosted `market.json` index as the first plugin discovery/distribution mechanism.
-- Let users install plugins from the market by downloading release assets and extracting them under `~/.ztool/plugins/`.
+- Let users install plugins from the market by downloading release assets and extracting them under `~/.zero/plugins/`.
 - Make plugin discovery, install, uninstall, enable, disable, validation, and failure reporting runtime host capabilities.
 - Migrate screenshot and caffeine into the same host-facing contract as bundled plugins while preserving existing behavior.
 - Keep IPC contracts explicit and symmetric between Rust and TypeScript.
@@ -36,7 +36,7 @@ Because this is a local desktop app, the design must preserve Tauri's security b
 
 ### Decision 1: Use GitHub Releases plus a hosted market.json for the MVP market
 
-The first market source is a static JSON document hosted in the ZTool GitHub organization/repository. The app has a preset market URL and can refresh it on demand.
+The first market source is a static JSON document hosted in the Zero GitHub organization/repository. The app has a preset market URL and can refresh it on demand.
 
 ```json
 {
@@ -58,7 +58,7 @@ The first market source is a static JSON document hosted in the ZTool GitHub org
 }
 ```
 
-Rationale: GitHub Releases gives authors distribution, version history, checksums/release notes, and hosting without ZTool building marketplace infrastructure. A hosted `market.json` is also easy to review in pull requests.
+Rationale: GitHub Releases gives authors distribution, version history, checksums/release notes, and hosting without Zero building marketplace infrastructure. A hosted `market.json` is also easy to review in pull requests.
 
 Alternatives considered:
 
@@ -86,7 +86,7 @@ Rationale: plugin authors get a simple first manifest, while the host still has 
 Alternatives considered:
 
 - Start with a large VS Code-like manifest. This is expressive but too heavy for the first public plugin authoring path.
-- Use only `package.json`. This reuses npm conventions but does not clearly model native desktop permissions or ZTool host compatibility.
+- Use only `package.json`. This reuses npm conventions but does not clearly model native desktop permissions or Zero host compatibility.
 
 ### Decision 3: Rust owns market refresh, downloads, archive extraction, and registry writes
 
@@ -151,12 +151,12 @@ Alternatives considered:
 - Let the frontend download and unzip packages. Browser APIs inside Tauri are the wrong trust boundary for filesystem writes and archive extraction.
 - Let plugin packages install themselves. That would give untrusted code too much control before validation.
 
-### Decision 4: Install packages under ~/.ztool/plugins/ with a defensive path resolver
+### Decision 4: Install packages under ~/.zero/plugins/ with a defensive path resolver
 
-The MVP install root is `~/.ztool/plugins/`. Installed packages are extracted into a plugin/version-scoped directory, for example:
+The MVP install root is `~/.zero/plugins/`. Installed packages are extracted into a plugin/version-scoped directory, for example:
 
 ```text
-~/.ztool/plugins/
+~/.zero/plugins/
   clipboard-helper/
     0.1.0/
       manifest.json
@@ -170,7 +170,7 @@ Rationale: the explicit path matches the lightweight power-user mental model and
 
 Alternatives considered:
 
-- Use only the platform app-data directory. This is more native, but `~/.ztool/plugins/` is simpler for early plugin authors and debugging.
+- Use only the platform app-data directory. This is more native, but `~/.zero/plugins/` is simpler for early plugin authors and debugging.
 - Extract directly into a single current directory per plugin. Version-scoped directories make rollback and update design easier later.
 
 ### Decision 5: Keep plugin execution host-mediated, especially for binary/script main paths
@@ -184,7 +184,7 @@ The manifest's `main` field can point to a binary program or script path, but th
 - execution should have timeout, cancellation, stdout/stderr capture, and structured error reporting;
 - plugin UI/web assets continue to use an isolated extension surface and message bridge.
 
-Rationale: the user-requested manifest supports binary/script tools, but local desktop plugins are a trust boundary. ZTool should allow the shape without making the dangerous path the default.
+Rationale: the user-requested manifest supports binary/script tools, but local desktop plugins are a trust boundary. Zero should allow the shape without making the dangerous path the default.
 
 Alternatives considered:
 
@@ -196,7 +196,7 @@ Alternatives considered:
 The registry distinguishes plugin source, but not shell behavior:
 
 - `bundled`: shipped with the app bundle, e.g. screenshot and caffeine.
-- `market`: downloaded from `market.json`/GitHub Releases and extracted under `~/.ztool/plugins/`.
+- `market`: downloaded from `market.json`/GitHub Releases and extracted under `~/.zero/plugins/`.
 - `local`: installed from a local `.zplugin` file.
 - `development`: loaded from a local folder during plugin authoring.
 
@@ -210,8 +210,8 @@ The main shell should render plugin cards, status, primary content, commands, an
 
 ```ts
 const builtinRenderers: Record<string, BuiltinPluginRenderer> = {
-  "ztool.screenshot": ScreenshotPanel,
-  "ztool.caffeine": CaffeinePanel,
+  "zero.snap": ScreenshotPanel,
+  "zero.awake": CaffeinePanel,
 };
 ```
 
@@ -235,7 +235,7 @@ Rationale: the shell becomes a host for plugin contributions instead of a switch
 1. Add shared TypeScript and Rust data contracts for `manifest.json`, `market.json`, market entries, permissions, plugin records, lifecycle status, validation reports, and download/install errors.
 2. Add manifest and market index validators with fixtures for valid packages, invalid manifests, incompatible host/API versions, unsafe `main` paths, unsupported permissions, bad URLs, and checksum mismatch.
 3. Add Rust market services that fetch the preset GitHub-hosted `market.json`, cache the last valid snapshot, and expose market entries to the frontend.
-4. Add Rust plugin registry services that seed bundled screenshot/caffeine records, persist user lifecycle state, resolve `~/.ztool/plugins/`, and expose `list_plugins`.
+4. Add Rust plugin registry services that seed bundled screenshot/caffeine records, persist user lifecycle state, resolve `~/.zero/plugins/`, and expose `list_plugins`.
 5. Add local `.zplugin` validation/extraction and market-driven download/install commands, including permission review and structured validation errors.
 6. Refactor `src/App.tsx`, `src/plugins/types.ts`, preferences model, about panel, and shell tests to consume registry-backed plugin records instead of compile-time `PluginId` lists.
 7. Add bundled adapters for screenshot and caffeine so existing UI and native commands continue to behave the same through the host contract.
@@ -247,9 +247,9 @@ Rollback strategy: keep screenshot/caffeine bundled adapters as the compatibilit
 
 ## Open Questions
 
-- Should the package extension be exactly `.zplugin`, or should the host also accept `.ztool-plugin` as an alias during migration?
+- Should the package extension be exactly `.zplugin`, or should the host also accept `.zero-plugin` as an alias?
 - Should `sha256` be required for every `market.json` entry in MVP, or optional but strongly recommended?
 - What is the first preset `market.json` URL and review flow for adding plugin repositories to it?
 - Which `main` runtimes should MVP support first: isolated web UI only, JavaScript script, native binary, or a subset?
-- How much of the Codex plugin model should ZTool support directly: skills, MCP configuration, app connectors, or only a generic metadata field in v1?
+- How much of the Codex plugin model should Zero support directly: skills, MCP configuration, app connectors, or only a generic metadata field in v1?
 - Should plugin settings live in the Rust registry store, frontend localStorage, or a dedicated plugin storage service from day one?

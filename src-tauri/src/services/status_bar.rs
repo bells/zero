@@ -9,14 +9,15 @@ use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager};
 use tauri_plugin_positioner::on_tray_event;
 
+use crate::brand::{
+    canonical_first_party_plugin_id, PRIMARY_STATUS_ITEM_ID, PRODUCT_NAME, ZERO_AWAKE_PLUGIN_ID,
+};
 use crate::plugins::contracts::{
     PluginContributionStatusBarItem, PluginHealth, PluginRecord, PluginSource, StatusBarAction,
     StatusBarActionType, StatusBarIconId,
 };
 use crate::plugins::registry::PluginRegistryState;
 use crate::services::caffeine::CaffeineState;
-
-const PRIMARY_STATUS_ITEM_ID: &str = "ztool.primary";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -170,8 +171,7 @@ impl StatusBarState {
     }
 
     fn should_accept_primary_toggle(&self, now: std::time::Instant) -> bool {
-        const PRIMARY_TOGGLE_DEBOUNCE: std::time::Duration =
-            std::time::Duration::from_millis(280);
+        const PRIMARY_TOGGLE_DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(280);
 
         let Ok(mut last_toggle_at) = self.last_primary_toggle_at.lock() else {
             return true;
@@ -204,6 +204,8 @@ impl StatusBarSettings {
     }
 
     pub fn normalized_for_records(mut self, records: &[PluginRecord]) -> Self {
+        self.visible_plugin_items =
+            canonicalize_visible_plugin_items(std::mem::take(&mut self.visible_plugin_items));
         for record in records {
             self.visible_plugin_items
                 .entry(record.name.clone())
@@ -228,6 +230,25 @@ impl StatusBarSettings {
 
         self
     }
+}
+
+fn canonicalize_visible_plugin_items(values: HashMap<String, bool>) -> HashMap<String, bool> {
+    let mut canonical = HashMap::new();
+
+    for (plugin_name, visible) in values
+        .iter()
+        .filter(|(plugin_name, _)| canonical_first_party_plugin_id(plugin_name) == *plugin_name)
+    {
+        canonical.insert(plugin_name.clone(), *visible);
+    }
+
+    for (plugin_name, visible) in values {
+        canonical
+            .entry(canonical_first_party_plugin_id(&plugin_name).to_string())
+            .or_insert(visible);
+    }
+
+    canonical
 }
 
 pub fn load_status_bar_settings(
@@ -436,9 +457,9 @@ fn primary_item() -> StatusBarItemSnapshot {
     StatusBarItemSnapshot {
         id: PRIMARY_STATUS_ITEM_ID.into(),
         plugin_name: None,
-        title: "ZTool".into(),
-        icon: StatusBarIconId::Ztool,
-        base_icon: StatusBarIconId::Ztool,
+        title: PRODUCT_NAME.into(),
+        icon: StatusBarIconId::Zero,
+        base_icon: StatusBarIconId::Zero,
         active_icon: None,
         action: StatusBarAction {
             action_type: StatusBarActionType::ToggleTray,
@@ -527,9 +548,9 @@ fn native_tray_id(item_id: &str) -> String {
 
 fn sync_primary_status_item(app: &tauri::AppHandle) -> Result<(), String> {
     TrayIconBuilder::with_id(PRIMARY_STATUS_ITEM_ID)
-        .icon(status_bar_icon_image(&StatusBarIconId::Ztool))
+        .icon(status_bar_icon_image(&StatusBarIconId::Zero))
         .icon_as_template(true)
-        .tooltip("ZTool")
+        .tooltip(PRODUCT_NAME)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(move |tray, event| {
             let app_handle = tray.app_handle();
@@ -570,7 +591,7 @@ fn toggle_caffeine_from_status_bar(app: tauri::AppHandle) -> Result<(), String> 
 fn status_bar_icon_image(icon: &StatusBarIconId) -> Image<'static> {
     let mut canvas = IconCanvas::new(18, 18);
     match icon {
-        StatusBarIconId::Ztool => {
+        StatusBarIconId::Zero => {
             canvas.fill_rect(4, 4, 10, 2);
             canvas.fill_rect(12, 6, 2, 2);
             canvas.fill_rect(10, 8, 2, 2);
@@ -663,7 +684,7 @@ fn status_bar_item_snapshot(
     caffeine_enabled: bool,
     native_visible: bool,
 ) -> StatusBarItemSnapshot {
-    let icon = if record.name == "ztool.caffeine" && caffeine_enabled {
+    let icon = if record.name == ZERO_AWAKE_PLUGIN_ID && caffeine_enabled {
         item.active_icon.clone().unwrap_or(item.icon.clone())
     } else {
         item.icon.clone()

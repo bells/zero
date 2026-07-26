@@ -8,7 +8,7 @@
 ## 2. Rust Native Status Bar Service
 
 - [x] 2.1 Create `src-tauri/src/services/status_bar.rs` with native-readable persisted settings, defaults, validation, app-config path resolution, load/save behavior, and corrupt-file recovery.
-- [x] 2.2 Add status bar icon assets or generated images for the primary ZTool logo, screenshot item, caffeine empty cup, caffeine full cup, and generic extension fallback.
+- [x] 2.2 Add status bar icon assets or generated images for the primary Zero logo, screenshot item, caffeine empty cup, caffeine full cup, and generic extension fallback.
 - [x] 2.3 Implement native status item normalization from plugin registry records plus status bar settings, preserving the primary logo and hiding disabled or preference-hidden plugin items.
 - [x] 2.4 Implement macOS multi-item native tray/status-bar refresh and a safe non-macOS fallback model that keeps plugin actions available in the tray quick panel.
 - [x] 2.5 Route native status item clicks for primary logo toggle, caffeine toggle, screenshot start, and generic open-plugin behavior without exposing raw native events to plugin code.
@@ -30,7 +30,7 @@
 - [x] 4.1 Extend plugin contribution contracts and bundled plugin manifests with status bar item metadata for screenshot and caffeine.
 - [x] 4.2 Implement the caffeine status bar adapter so inactive state uses an empty cup, active state uses a full cup, click enables with the configured/default duration, click while active disables, and failed enable does not show active state.
 - [x] 4.3 Implement the screenshot status bar adapter so clicking the icon starts the screenshot flow with the same default behavior as the global shortcut and preserves existing platform errors.
-- [x] 4.4 Implement generic plugin status item behavior that opens a ZTool surface with the plugin selected when no approved native action exists.
+- [x] 4.4 Implement generic plugin status item behavior that opens a Zero surface with the plugin selected when no approved native action exists.
 - [x] 4.5 Ensure plugin disable/uninstall/restore-defaults updates native status items and preferences preview consistently.
 
 ## 5. Verification and Documentation

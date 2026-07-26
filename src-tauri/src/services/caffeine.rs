@@ -313,10 +313,7 @@ mod tests {
             .enable_at(started_at, Some(5))
             .expect("supported duration should be valid");
 
-        assert!(session.expire_if_current(
-            generation,
-            started_at + Duration::from_secs(5 * 60)
-        ));
+        assert!(session.expire_if_current(generation, started_at + Duration::from_secs(5 * 60)));
 
         let snapshot = session.snapshot();
         assert!(!snapshot.enabled);
@@ -338,10 +335,9 @@ mod tests {
             .enable_at(second_start, None)
             .expect("switching to no limit should be valid");
 
-        assert!(!session.expire_if_current(
-            old_generation,
-            first_start + Duration::from_secs(5 * 60)
-        ));
+        assert!(
+            !session.expire_if_current(old_generation, first_start + Duration::from_secs(5 * 60))
+        );
 
         let snapshot = session.snapshot();
         assert!(snapshot.enabled);

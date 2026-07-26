@@ -3,16 +3,16 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zip::write::SimpleFileOptions;
-use zip::{CompressionMethod, ZipWriter};
-use ztool_lib::plugins::contracts::{
+use zero_lib::plugins::contracts::{
     InstallPluginPackageInput, PluginMarketEntry, PluginPermission, PluginRuntime, PluginSource,
 };
-use ztool_lib::plugins::registry::PluginRegistry;
+use zero_lib::plugins::registry::PluginRegistry;
+use zip::write::SimpleFileOptions;
+use zip::{CompressionMethod, ZipWriter};
 
 fn unique_registry_root() -> PathBuf {
     std::env::temp_dir().join(format!(
-        "ztool-plugin-registry-test-{}",
+        "zero-plugin-registry-test-{}",
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("time")
@@ -82,12 +82,7 @@ fn first_load_seeds_bundled_plugins() {
 
     assert_eq!(
         names,
-        vec![
-            "ztool.screenshot",
-            "ztool.caffeine",
-            "ztool.bing-wallpaper",
-            "ztool.quick-launcher",
-        ]
+        vec!["zero.snap", "zero.awake", "zero.paper", "zero.launch",]
     );
     assert!(registry.records().iter().all(|record| record.enabled));
 }
@@ -100,23 +95,23 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
     let screenshot = registry
         .records()
         .iter()
-        .find(|record| record.name == "ztool.screenshot")
+        .find(|record| record.name == "zero.snap")
         .expect("screenshot record");
     let caffeine = registry
         .records()
         .iter()
-        .find(|record| record.name == "ztool.caffeine")
+        .find(|record| record.name == "zero.awake")
         .expect("caffeine record");
     let bing = registry
         .records()
         .iter()
-        .find(|record| record.name == "ztool.bing-wallpaper")
+        .find(|record| record.name == "zero.paper")
         .expect("Bing wallpaper record");
     let launcher = registry
         .records()
         .iter()
-        .find(|record| record.name == "ztool.quick-launcher")
-        .expect("Quick Launcher record");
+        .find(|record| record.name == "zero.launch")
+        .expect("Zero Launch record");
 
     assert_eq!(screenshot.manifest.runtime, Some(PluginRuntime::Webview));
     assert_eq!(screenshot.manifest.main, "plugins/screenshot");
@@ -125,7 +120,7 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
         .contributes
         .as_ref()
         .and_then(|contributes| contributes.views.as_ref())
-        .is_some_and(|views| views.iter().any(|view| view.id == "ztool.screenshot.main")));
+        .is_some_and(|views| views.iter().any(|view| view.id == "zero.snap.main")));
     assert!(caffeine
         .manifest
         .contributes
@@ -133,11 +128,11 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
         .and_then(|contributes| contributes.commands.as_ref())
         .is_some_and(|commands| commands
             .iter()
-            .any(|command| command.id == "ztool.caffeine.toggle")));
+            .any(|command| command.id == "zero.awake.toggle")));
     assert_eq!(bing.author, "bells");
     assert_eq!(bing.version, "1.0.0");
     assert_eq!(bing.manifest.version, "1.0.0");
-    assert_eq!(bing.manifest.id.as_deref(), Some("bing-wallpaper"));
+    assert_eq!(bing.manifest.id.as_deref(), Some("zero.paper"));
     assert_eq!(
         bing.manifest.permissions,
         vec![
@@ -153,10 +148,10 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
         .and_then(|contributes| contributes.commands.as_ref())
         .is_some_and(|commands| commands
             .iter()
-            .any(|command| command.id == "ztool.bing-wallpaper.apply")));
+            .any(|command| command.id == "zero.paper.apply")));
     assert_eq!(launcher.author, "bells");
     assert_eq!(launcher.version, "1.0.0");
-    assert_eq!(launcher.manifest.id.as_deref(), Some("quick-launcher"));
+    assert_eq!(launcher.manifest.id.as_deref(), Some("zero.launch"));
     assert_eq!(
         launcher.manifest.permissions,
         vec![
@@ -174,7 +169,7 @@ fn registry_state_persists_across_reloads() {
     let mut registry = PluginRegistry::load_or_seed(root.clone()).expect("registry should load");
 
     registry
-        .set_enabled("ztool.caffeine", false)
+        .set_enabled("zero.awake", false)
         .expect("plugin should update");
     registry.save().expect("registry should save");
 
@@ -182,7 +177,7 @@ fn registry_state_persists_across_reloads() {
     let caffeine = reloaded
         .records()
         .iter()
-        .find(|record| record.name == "ztool.caffeine")
+        .find(|record| record.name == "zero.awake")
         .expect("caffeine record");
 
     assert_eq!(caffeine.enabled, false);
@@ -193,7 +188,7 @@ fn older_registry_migration_adds_only_quick_launcher_and_preserves_lifecycle_sta
     let root = unique_registry_root();
     let mut registry = PluginRegistry::load_or_seed(root.clone()).expect("registry should load");
     registry
-        .set_enabled("ztool.caffeine", false)
+        .set_enabled("zero.awake", false)
         .expect("plugin should update");
     registry.save().expect("registry should save");
 
@@ -206,7 +201,7 @@ fn older_registry_migration_adds_only_quick_launcher_and_preserves_lifecycle_sta
             .as_array()
             .unwrap()
             .iter()
-            .filter(|record| record["name"] != "ztool.quick-launcher")
+            .filter(|record| record["name"] != "zero.launch")
             .cloned()
             .collect(),
     );
@@ -216,11 +211,63 @@ fn older_registry_migration_adds_only_quick_launcher_and_preserves_lifecycle_sta
     assert!(migrated
         .records()
         .iter()
-        .any(|record| record.name == "ztool.quick-launcher" && record.enabled));
+        .any(|record| record.name == "zero.launch" && record.enabled));
     assert!(migrated
         .records()
         .iter()
-        .any(|record| record.name == "ztool.caffeine" && !record.enabled));
+        .any(|record| record.name == "zero.awake" && !record.enabled));
+}
+
+#[test]
+fn legacy_first_party_records_are_canonicalized_and_canonical_record_wins() {
+    let root = unique_registry_root();
+    let mut registry = PluginRegistry::load_or_seed(root.clone()).expect("registry should load");
+    registry
+        .set_enabled("zero.awake", false)
+        .expect("canonical record should update");
+    registry.save().expect("registry should save");
+
+    let path = root.join("registry.json");
+    let mut disk: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    let canonical = disk["records"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|record| record["name"] == "zero.awake")
+        .unwrap()
+        .clone();
+    let mut legacy = canonical;
+    legacy["name"] = serde_json::json!("ztool.caffeine");
+    legacy["enabled"] = serde_json::json!(true);
+    legacy["manifest"]["name"] = serde_json::json!("ztool.caffeine");
+    legacy["manifest"]["id"] = serde_json::json!("ztool.caffeine");
+    legacy["manifest"]["contributes"]["commands"][0]["id"] =
+        serde_json::json!("ztool.caffeine.toggle");
+    disk["records"].as_array_mut().unwrap().push(legacy);
+    fs::write(&path, serde_json::to_vec_pretty(&disk).unwrap()).unwrap();
+
+    let migrated = PluginRegistry::load_or_seed(root).expect("registry should migrate");
+    let awake = migrated
+        .records()
+        .iter()
+        .filter(|record| record.name == "zero.awake")
+        .collect::<Vec<_>>();
+
+    assert_eq!(awake.len(), 1);
+    assert!(!awake[0].enabled);
+    assert_eq!(
+        awake[0]
+            .manifest
+            .contributes
+            .as_ref()
+            .unwrap()
+            .commands
+            .as_ref()
+            .unwrap()[0]
+            .id,
+        "zero.awake.toggle"
+    );
 }
 
 #[test]
@@ -381,7 +428,7 @@ fn uninstall_removes_market_or_local_assets_but_keeps_host_registry_usable() {
     assert!(registry
         .records()
         .iter()
-        .any(|record| record.name == "ztool.screenshot"));
+        .any(|record| record.name == "zero.snap"));
 }
 
 #[test]
@@ -390,23 +437,21 @@ fn bundled_restore_readds_removed_default_plugins() {
     let mut registry = PluginRegistry::load_or_seed(root.clone()).expect("registry should load");
 
     registry
-        .uninstall_plugin("ztool.screenshot")
+        .uninstall_plugin("zero.snap")
         .expect("bundled uninstall should remove active record");
     assert!(!registry
         .records()
         .iter()
-        .any(|record| record.name == "ztool.screenshot"));
+        .any(|record| record.name == "zero.snap"));
 
     let restored = registry
         .restore_bundled_defaults()
         .expect("restore should succeed");
 
-    assert!(restored
-        .iter()
-        .any(|record| record.name == "ztool.screenshot"));
+    assert!(restored.iter().any(|record| record.name == "zero.snap"));
     let reloaded = PluginRegistry::load_or_seed(root).expect("registry should reload");
     assert!(reloaded
         .records()
         .iter()
-        .any(|record| record.name == "ztool.screenshot" && record.enabled));
+        .any(|record| record.name == "zero.snap" && record.enabled));
 }

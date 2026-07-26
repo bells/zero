@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   STATUS_BAR_COMMANDS,
   createStatusBarService,
-} from "/private/tmp/ztool-status-bar-service-test/services/statusBarService.js";
+} from "/private/tmp/zero-status-bar-service-test/services/statusBarService.js";
 
 test("defines explicit Rust command names for status bar actions", () => {
   assert.deepEqual(STATUS_BAR_COMMANDS, {
@@ -34,7 +34,7 @@ test("invokes status bar commands through the injected bridge", async () => {
   await service.getSettings();
   await service.updateSettings({ enabled: false });
   await service.getItems();
-  await service.runItemAction({ itemId: "ztool.caffeine.status" });
+  await service.runItemAction({ itemId: "zero.awake.status" });
 
   assert.deepEqual(calls, [
     {
@@ -51,7 +51,7 @@ test("invokes status bar commands through the injected bridge", async () => {
     },
     {
       command: "run_status_bar_item_action",
-      payload: { input: { itemId: "ztool.caffeine.status" } },
+      payload: { input: { itemId: "zero.awake.status" } },
     },
   ]);
 });

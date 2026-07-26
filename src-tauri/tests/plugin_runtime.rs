@@ -1,9 +1,7 @@
-use ztool_lib::plugins::contracts::{
+use zero_lib::plugins::contracts::{
     PluginHealth, PluginManifest, PluginPermission, PluginRecord, PluginRuntime, PluginSource,
 };
-use ztool_lib::plugins::runtime::{
-    execute_plugin_entrypoint, PluginEntrypointExecutionRequest,
-};
+use zero_lib::plugins::runtime::{execute_plugin_entrypoint, PluginEntrypointExecutionRequest};
 
 fn plugin_record(
     runtime: PluginRuntime,
@@ -79,8 +77,8 @@ fn denies_unsafe_entrypoint_paths_before_launch() {
         timeout_ms: 100,
     };
 
-    let error = execute_plugin_entrypoint(request)
-        .expect_err("unsafe main path should fail before launch");
+    let error =
+        execute_plugin_entrypoint(request).expect_err("unsafe main path should fail before launch");
 
     assert!(error.contains("safe package-relative path"));
 }

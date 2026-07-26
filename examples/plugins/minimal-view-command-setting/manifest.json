@@ -7,7 +7,7 @@
   "displayName": "Minimal Plugin",
   "description": "A minimal plugin with one view, one command, and one setting.",
   "engines": {
-    "ztool": "0.1.0",
+    "zero": "0.1.0",
     "api": "1"
   },
   "platforms": ["macos", "windows", "linux"],

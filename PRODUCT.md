@@ -6,11 +6,11 @@ product
 
 ## Users
 
-ZTool is for desktop users who want small native utilities close at hand without opening a full workspace app. They usually enter through the status bar or tray, act quickly, then return to another task.
+Zero is for desktop users who want small native utilities close at hand without opening a full workspace app. They usually enter through the status bar or tray, act quickly, then return to another task.
 
 ## Product Purpose
 
-ZTool is a Tauri desktop toolbox. It keeps compact tray access for fast actions while growing toward a standalone main interface that can organize richer plugin types over time. Success means users can discover, launch, configure, and understand tools without the app feeling like a crowded control panel.
+Zero is a Tauri desktop toolbox. It keeps compact tray access for fast actions while growing toward a standalone main interface that can organize richer plugin types over time. Success means users can discover, launch, configure, and understand tools without the app feeling like a crowded control panel.
 
 ## Brand Personality
 
@@ -20,7 +20,7 @@ Calm, capable, compact. The product should feel like a well-kept desktop control
 
 - Generic SaaS dashboards with large marketing sections inside the app shell.
 - A tray-only utility that hides every important workflow behind tiny controls.
-- Decorative system-monitor clones that copy Lemon's metrics without serving ZTool's plugin model.
+- Decorative system-monitor clones that copy Lemon's metrics without serving Zero's plugin model.
 - Overly playful widgets, loud color fields, or unfamiliar controls that slow down a desktop utility workflow.
 
 ## Design Principles

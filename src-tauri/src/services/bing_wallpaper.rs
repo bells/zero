@@ -563,10 +563,7 @@ pub fn merge_wallpaper_items(
 }
 
 pub fn default_cache_root() -> PathBuf {
-    std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".ztool")
+    crate::brand::canonical_data_root(&crate::brand::default_home())
         .join("data")
         .join("wallpaper")
 }

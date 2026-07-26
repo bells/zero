@@ -137,10 +137,10 @@ fn is_safe_package_relative_path(value: &str) -> bool {
         return false;
     }
 
-    if value.starts_with('/') ||
-        value.starts_with('\\') ||
-        value.contains(':') ||
-        value.contains('\\')
+    if value.starts_with('/')
+        || value.starts_with('\\')
+        || value.contains(':')
+        || value.contains('\\')
     {
         return false;
     }

@@ -1,13 +1,13 @@
 ## Why
 
-ZTool already treats screenshot, caffeine, preferences, and about as plugin-shaped tools, but the plugin list is still compile-time and app-owned. To grow into a VS Code/Codex-style toolbox without building a complex marketplace backend too early, ZTool should start with a Git-based plugin market: plugin authors publish `.zplugin` packages in GitHub Releases, and ZTool reads a hosted `market.json` index to install them.
+Zero already treats screenshot, caffeine, preferences, and about as plugin-shaped tools, but the plugin list is still compile-time and app-owned. To grow into a VS Code/Codex-style toolbox without building a complex marketplace backend too early, Zero should start with a Git-based plugin market: plugin authors publish `.zplugin` packages in GitHub Releases, and Zero reads a hosted `market.json` index to install them.
 
 ## What Changes
 
 - Define an MVP plugin package format: a `.zplugin` archive containing a `manifest.json`, compiled plugin assets, and any declared binary/script entrypoint.
 - Define the MVP manifest contract around the required fields `name`, `version`, `author`, `main`, and `permissions`, with optional display, compatibility, platform, and contribution metadata for future Extension API growth.
-- Add a static Git-based market index: ZTool reads a preset `market.json` hosted on the project's GitHub, where each entry points to a plugin repository and GitHub Release asset download URL.
-- Add download-and-install lifecycle operations that fetch a `.zplugin` asset, validate checksum/manifest/permissions, and extract it under `~/.ztool/plugins/` before registering it.
+- Add a static Git-based market index: Zero reads a preset `market.json` hosted on the project's GitHub, where each entry points to a plugin repository and GitHub Release asset download URL.
+- Add download-and-install lifecycle operations that fetch a `.zplugin` asset, validate checksum/manifest/permissions, and extract it under `~/.zero/plugins/` before registering it.
 - Add lifecycle operations for local package install, market install, uninstall, enable, disable, restore bundled defaults, and failed-plugin recovery without breaking the host shell.
 - Define an initial Extension API inspired by VS Code/Codex concepts, but keep the MVP runtime permissioned and host-mediated so plugin code cannot directly access unrestricted Tauri APIs.
 - Preserve existing screenshot and caffeine behavior by migrating them through the same host-facing plugin contract as bundled plugins before enabling third-party plugins.
@@ -15,9 +15,9 @@ ZTool already treats screenshot, caffeine, preferences, and about as plugin-shap
 ## Capabilities
 
 ### New Capabilities
-- `plugin-extension-api`: Defines the manifest, entrypoint, contribution points, host API contract, permission declarations, compatibility rules, and developer packaging expectations for ZTool extensions.
+- `plugin-extension-api`: Defines the manifest, entrypoint, contribution points, host API contract, permission declarations, compatibility rules, and developer packaging expectations for Zero extensions.
 - `plugin-market-index`: Defines the Git-based market model, hosted `market.json` schema, GitHub Release asset metadata, refresh/cache behavior, and market-driven install flow.
-- `plugin-lifecycle`: Defines discovery, package validation, install, uninstall, enable, disable, persistence, extraction into `~/.ztool/plugins/`, failure isolation, and shell/preference behavior for bundled and user-installed plugins.
+- `plugin-lifecycle`: Defines discovery, package validation, install, uninstall, enable, disable, persistence, extraction into `~/.zero/plugins/`, failure isolation, and shell/preference behavior for bundled and user-installed plugins.
 
 ### Modified Capabilities
 - None.

@@ -1,18 +1,20 @@
-# ZTool Project Context
+# Zero Project Context
 
 > 本文件用于给 OpenSpec 和协作代理提供项目级上下文。创建 proposal、design、spec 或 tasks 前，先阅读这里，再结合 live repo 校准判断；不要把它当作一次性模板。
 
 ## Project Overview
 
-ZTool 是一个托盘优先（tray-first）的跨平台桌面工具箱，目标是把常用小工具做成紧凑、稳定、可渐进扩展的插件集合。它不是 SaaS 网页应用，也不是大而全的控制台；主窗口应该像一个轻量的桌面控制中心：工具列表、当前工具面板、系统操作和偏好入口。
+Zero 是一个托盘优先（tray-first）的跨平台桌面工具箱，目标是把常用小工具做成紧凑、稳定、可渐进扩展的插件集合。它不是 SaaS 网页应用，也不是大而全的控制台；主窗口应该像一个轻量的桌面控制中心：工具列表、当前工具面板、系统操作和偏好入口。
 
 当前产品形态：
 
 - 主窗口：隐藏在托盘后的紧凑无边框窗口，默认宽约 400px、高约 500px。
 - 插件化工具：每个用户可见工具都应该像独立插件一样演进。
 - 当前插件/模块：
-  - 截图工具：全局快捷键、选择/编辑窗口、复制、保存、钉图。
-  - 咖啡因模式：保持屏幕和系统唤醒。
+  - Zero Launch：快速搜索、启动或切换应用与系统设置。
+  - Zero Snap：全局快捷键、选择/编辑窗口、复制、保存、钉图。
+  - Zero Awake：保持屏幕和系统唤醒。
+  - Zero Paper：浏览、缓存、保存并应用 Bing 每日壁纸。
   - 偏好/关于：登录自启动、语言、工具显示开关、关于信息。
 
 ## Tech Stack
@@ -37,8 +39,8 @@ ZTool 是一个托盘优先（tray-first）的跨平台桌面工具箱，目标�
       App.css                          Compact tray UI and capture/pin window styles
       plugins/
         types.ts                       PluginId and PluginMeta contract
-        screenshot/                    Screenshot panel, capture editor, pin window helpers
-        caffeine/                      Caffeine UI and frontend state bridge
+        screenshot/                    Zero Snap panel, capture editor, pin window helpers
+        caffeine/                      Zero Awake UI and frontend state bridge
         preferences/                   Preferences, about, i18n, preference model
 
     src-tauri/
@@ -119,7 +121,7 @@ The tray icon toggles the main window and uses tauri-plugin-positioner to move i
 
 Preserve platform-specific behavior unless a proposal explicitly changes it.
 
-### Screenshot
+### Zero Snap
 
 - Global shortcut: CommandOrControl+Shift+A.
 - macOS:
@@ -130,7 +132,7 @@ Preserve platform-specific behavior unless a proposal explicitly changes it.
   - Uses the system launcher path: explorer.exe ms-screenclip: with SnippingTool.exe fallback.
   - Do not force macOS-only custom editor assumptions into the Windows path without an explicit design.
 - Linux/other:
-  - Screenshot launcher support may be unsupported and should report a clear error.
+  - Zero Snap launcher support may be unsupported and should report a clear error.
 
 Key screenshot risks:
 
@@ -140,7 +142,7 @@ Key screenshot risks:
 - macOS Screen Recording permission failure from screencapture
 - capability drift for capture and pin-* windows
 
-### Caffeine
+### Zero Awake
 
 - macOS uses a managed caffeinate -d -i child process.
 - Windows uses SetThreadExecutionState with display and system required flags.
@@ -149,7 +151,7 @@ Key screenshot risks:
 
 ### Preferences
 
-- Preferences are stored in localStorage under ztool.preferences.v1.
+- Preferences are stored in localStorage under zero.preferences.v1.
 - Language options are system, zh-CN, and en-US.
 - At least one tool must remain visible.
 - Login autostart uses the official Tauri autostart plugin; read/write errors should be surfaced in the preferences panel.
@@ -186,18 +188,18 @@ For non-trivial behavior changes:
 
 Use focused checks while iterating:
 
-    pnpm exec tsc src/plugins/preferences/preferencesModel.ts src/plugins/types.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-preferences-test --noEmit false --skipLibCheck
+    pnpm exec tsc src/plugins/preferences/preferencesModel.ts src/plugins/types.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/zero-preferences-test --noEmit false --skipLibCheck
     node --test tests/preferencesModel.test.mjs
 
-    pnpm exec tsc src/plugins/preferences/i18n.ts src/plugins/preferences/preferencesModel.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-i18n-test --noEmit false --skipLibCheck
+    pnpm exec tsc src/plugins/preferences/i18n.ts src/plugins/preferences/preferencesModel.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/zero-i18n-test --noEmit false --skipLibCheck
     node --test tests/i18n.test.mjs
 
-    pnpm exec tsc src/plugins/screenshot/screenshotMeta.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-screenshot-test --noEmit false --skipLibCheck
+    pnpm exec tsc src/plugins/screenshot/screenshotMeta.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/zero-screenshot-test --noEmit false --skipLibCheck
     node --test tests/screenshotMeta.test.mjs
 
 For screenshot capture helpers:
 
-    pnpm exec tsc src/plugins/screenshot/capture/captureReducer.ts src/plugins/screenshot/capture/captureHotkeys.ts src/plugins/screenshot/capture/captureSerialize.ts src/plugins/screenshot/capture/captureCanvas.ts --module ES2020 --moduleResolution bundler --target ES2022 --outDir /private/tmp/ztool-capture-test --noEmit false --skipLibCheck
+    pnpm exec tsc src/plugins/screenshot/capture/captureReducer.ts src/plugins/screenshot/capture/captureHotkeys.ts src/plugins/screenshot/capture/captureSerialize.ts src/plugins/screenshot/capture/captureCanvas.ts --module ES2020 --moduleResolution bundler --target ES2022 --outDir /private/tmp/zero-capture-test --noEmit false --skipLibCheck
     node --test tests/captureReducer.test.mjs tests/captureHotkeys.test.mjs tests/captureSerialize.test.mjs tests/captureCanvas.test.mjs
 
 Before considering implementation complete, run the relevant subset plus:
@@ -215,4 +217,4 @@ Then manually inspect the real desktop app flow.
 
 ## Current Product Direction
 
-ZTool should grow as a desktop toolbox with small, reliable native utilities. A future public website, if built, should live separately from the app UI and present ZTool as a desktop toolbox rather than a generic SaaS. Prior planning favored a lightweight static site, e.g. Astro for the site framework and Vercel for preview/deployment infrastructure.
+Zero should grow as a desktop toolbox with small, reliable native utilities. A future public website, if built, should live separately from the app UI and present Zero as a desktop toolbox rather than a generic SaaS. Prior planning favored a lightweight static site, e.g. Astro for the site framework and Vercel for preview/deployment infrastructure.

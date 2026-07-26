@@ -6,7 +6,7 @@ import {
   marketRefreshStarted,
   marketRefreshSucceeded,
   toPluginInstallCards,
-} from "/private/tmp/ztool-plugin-host-state-test/pluginMarketModel.js";
+} from "/private/tmp/zero-plugin-host-state-test/plugins/pluginHost/pluginMarketModel.js";
 
 const marketEntry = {
   name: "clipboard-helper",
@@ -47,7 +47,7 @@ test("maps market entries to install cards with install and checksum state", () 
 test("refresh success clears errors and preserves stale flag from snapshot", () => {
   const loading = marketRefreshStarted(INITIAL_PLUGIN_MARKET_STATE);
   const next = marketRefreshSucceeded({
-    sourceUrl: "https://github.com/watson/ztool/market.json",
+    sourceUrl: "https://github.com/bells/zero/market.json",
     schemaVersion: 1,
     updatedAt: "2026-06-21T00:00:00Z",
     entries: [marketEntry],
@@ -63,7 +63,7 @@ test("refresh success clears errors and preserves stale flag from snapshot", () 
 
 test("refresh failure keeps cached cards and marks market stale", () => {
   const current = marketRefreshSucceeded({
-    sourceUrl: "https://github.com/watson/ztool/market.json",
+    sourceUrl: "https://github.com/bells/zero/market.json",
     schemaVersion: 1,
     entries: [marketEntry],
     stale: false,

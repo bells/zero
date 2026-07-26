@@ -3,6 +3,7 @@ import type {
   PluginRecord,
   PluginSource,
 } from "./contracts";
+import { canonicalFirstPartyPluginId } from "../../brand/identity.js";
 
 export interface PluginNavigationItem {
   id: string;
@@ -58,8 +59,13 @@ export function selectActivePlugin(
   records: PluginRecord[],
   selectedPluginName?: string | null,
 ): PluginRecord | undefined {
+  const canonicalSelectedName = selectedPluginName
+    ? canonicalFirstPartyPluginId(selectedPluginName)
+    : selectedPluginName;
   const selected = records.find(
-    (record) => record.name === selectedPluginName && isPluginNavigable(record),
+    (record) =>
+      canonicalFirstPartyPluginId(record.name) === canonicalSelectedName &&
+      isPluginNavigable(record),
   );
 
   return selected ?? records.find(isPluginNavigable);

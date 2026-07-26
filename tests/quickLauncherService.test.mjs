@@ -6,7 +6,7 @@ import {
   buildSearchInput,
   createQuickLauncherService,
   QUICK_LAUNCHER_COMMANDS,
-} from "/private/tmp/ztool-quick-launcher-test/quickLauncherServiceCore.js";
+} from "/private/tmp/zero-quick-launcher-test/quickLauncherServiceCore.js";
 
 test("quick launcher payload builders expose only documented fields", () => {
   assert.deepEqual(buildSearchInput("wx", 24), { query: "wx", limit: 24 });

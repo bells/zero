@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   SCREENSHOT_SHORTCUT,
   SCREENSHOT_USAGE_ITEMS,
-} from "/private/tmp/ztool-screenshot-test/screenshotMeta.js";
+} from "/private/tmp/zero-screenshot-test/screenshotMeta.js";
 
 test("uses a global shortcut suitable for macOS and Windows", () => {
   assert.equal(SCREENSHOT_SHORTCUT.accelerator, "CommandOrControl+Shift+A");

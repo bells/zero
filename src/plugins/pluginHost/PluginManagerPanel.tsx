@@ -205,7 +205,7 @@ export function PluginManagerPanel({ pluginHost }: PluginManagerPanelProps) {
         <label className="setting-row">
           <span>
             <strong>Package path</strong>
-            <small>Validate before install; package assets stay under ~/.ztool/plugins.</small>
+            <small>Validate before install; package assets stay under ~/.zero/plugins.</small>
           </span>
           <input
             type="text"

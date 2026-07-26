@@ -11,14 +11,14 @@ use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
 use image::{Rgb, RgbImage};
 use serde_json::json;
-use ztool_lib::plugins::contracts::{
+use zero_lib::plugins::contracts::{
     NativeResourceError, NetworkFetchRequest, NetworkFetchResponse,
 };
-use ztool_lib::services::bing_wallpaper::{
+use zero_lib::services::bing_wallpaper::{
     merge_wallpaper_items, parse_bing_archive, BingFetchFuture, BingWallpaperFetcher,
     BingWallpaperItem, BingWallpaperSnapshot, BingWallpaperState, BING_ARCHIVE_URL,
 };
-use ztool_lib::services::wallpaper::WallpaperSetter;
+use zero_lib::services::wallpaper::WallpaperSetter;
 
 struct TestDir(PathBuf);
 
@@ -29,7 +29,7 @@ impl TestDir {
             .expect("clock")
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "ztool-bing-wallpaper-{label}-{}-{nonce}",
+            "zero-bing-wallpaper-{label}-{}-{nonce}",
             std::process::id()
         ));
         fs::create_dir_all(&path).expect("test directory");
@@ -492,7 +492,7 @@ fn wallpaper_contract_serializes_stable_camel_case_and_rejects_bad_shapes() {
         refreshed_at: None,
         market: "zh-CN".into(),
         stale: false,
-        platform: ztool_lib::services::wallpaper::platform_capability(),
+        platform: zero_lib::services::wallpaper::platform_capability(),
         error: None,
     };
     let serialized = serde_json::to_value(snapshot).expect("serialize snapshot");

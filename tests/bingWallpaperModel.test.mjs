@@ -7,7 +7,7 @@ import {
   selectNewerBingWallpaper,
   selectOlderBingWallpaper,
   sortBingWallpapers,
-} from "/private/tmp/ztool-bing-wallpaper-test/bingWallpaperModel.js";
+} from "/private/tmp/zero-bing-wallpaper-test/bingWallpaperModel.js";
 
 function wallpaper(id, startDate, overrides = {}) {
   return {

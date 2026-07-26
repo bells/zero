@@ -3,16 +3,16 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use ztool_lib::plugins::package::{
-    archive_entry_destination, download_package_with_fetcher, sha256_hex,
-    validate_zplugin_package, PluginPackageDownloadRequest,
+use zero_lib::plugins::package::{
+    archive_entry_destination, download_package_with_fetcher, sha256_hex, validate_zplugin_package,
+    PluginPackageDownloadRequest,
 };
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
 fn unique_staging_dir() -> PathBuf {
     std::env::temp_dir().join(format!(
-        "ztool-plugin-package-test-{}",
+        "zero-plugin-package-test-{}",
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("time")
@@ -20,11 +20,7 @@ fn unique_staging_dir() -> PathBuf {
     ))
 }
 
-fn write_zplugin_package(
-    file_name: &str,
-    manifest_json: &str,
-    files: &[(&str, &str)],
-) -> PathBuf {
+fn write_zplugin_package(file_name: &str, manifest_json: &str, files: &[(&str, &str)]) -> PathBuf {
     let root = unique_staging_dir();
     fs::create_dir_all(&root).expect("package root");
     let package_path = root.join(file_name);
@@ -120,8 +116,7 @@ fn download_failure_does_not_create_staging_dir() {
 fn rejects_non_zplugin_download_url() {
     let staging_dir = unique_staging_dir();
     let request = PluginPackageDownloadRequest {
-        download_url: "https://github.com/watson/plugin/releases/download/v0.1.0/plugin.zip"
-            .into(),
+        download_url: "https://github.com/watson/plugin/releases/download/v0.1.0/plugin.zip".into(),
         sha256: None,
     };
 
@@ -137,8 +132,8 @@ fn rejects_non_zplugin_download_url() {
 #[test]
 fn archive_entry_destination_stays_inside_install_root() {
     let root = unique_staging_dir();
-    let destination = archive_entry_destination(&root, "dist/index.html")
-        .expect("entry path should be accepted");
+    let destination =
+        archive_entry_destination(&root, "dist/index.html").expect("entry path should be accepted");
 
     assert_eq!(destination, root.join("dist").join("index.html"));
 }
@@ -147,9 +142,15 @@ fn archive_entry_destination_stays_inside_install_root() {
 fn archive_entry_destination_rejects_unsafe_paths() {
     let root = unique_staging_dir();
 
-    for entry in ["../evil", "/tmp/evil", "dist/../../evil", "", "C:\\\\Temp\\\\evil"] {
-        let error = archive_entry_destination(&root, entry)
-            .expect_err("unsafe archive entry should fail");
+    for entry in [
+        "../evil",
+        "/tmp/evil",
+        "dist/../../evil",
+        "",
+        "C:\\\\Temp\\\\evil",
+    ] {
+        let error =
+            archive_entry_destination(&root, entry).expect_err("unsafe archive entry should fail");
 
         assert!(error.message.contains("unsafe archive entry"));
     }
@@ -171,6 +172,52 @@ fn package_validation_accepts_valid_zplugin_zip() {
 }
 
 #[test]
+fn package_validation_canonicalizes_legacy_zero_host_key() {
+    let package = write_zplugin_package(
+        "package-tool.zplugin",
+        r#"{
+            "name": "package-tool",
+            "version": "0.1.0",
+            "author": "watson",
+            "main": "dist/index.html",
+            "permissions": ["ui.message"],
+            "engines": {"ztool": "0.1.0", "api": "1"}
+        }"#,
+        &[("dist/index.html", "<main>ok</main>")],
+    );
+
+    let report = validate_zplugin_package(&package).expect("package should validate");
+    assert!(report.valid);
+    let engines = report.manifest.expect("manifest").engines.expect("engines");
+
+    assert_eq!(engines.zero.as_deref(), Some("0.1.0"));
+    assert_eq!(engines.ztool, None);
+}
+
+#[test]
+fn package_validation_uses_canonical_host_key_when_both_are_present() {
+    let package = write_zplugin_package(
+        "package-tool.zplugin",
+        r#"{
+            "name": "package-tool",
+            "version": "0.1.0",
+            "author": "watson",
+            "main": "dist/index.html",
+            "permissions": ["ui.message"],
+            "engines": {"zero": "0.1.0", "ztool": "999.0.0", "api": "1"}
+        }"#,
+        &[("dist/index.html", "<main>ok</main>")],
+    );
+
+    let report = validate_zplugin_package(&package).expect("package should validate");
+    assert!(report.valid);
+    let engines = report.manifest.expect("manifest").engines.expect("engines");
+
+    assert_eq!(engines.zero.as_deref(), Some("0.1.0"));
+    assert_eq!(engines.ztool, None);
+}
+
+#[test]
 fn package_validation_rejects_missing_manifest_main_asset() {
     let package = write_zplugin_package(
         "package-tool.zplugin",
@@ -181,12 +228,10 @@ fn package_validation_rejects_missing_manifest_main_asset() {
     let report = validate_zplugin_package(&package).expect("validation report should return");
 
     assert_eq!(report.valid, false);
-    assert!(
-        report
-            .issues
-            .iter()
-            .any(|issue| issue.code == "package.main.missing")
-    );
+    assert!(report
+        .issues
+        .iter()
+        .any(|issue| issue.code == "package.main.missing"));
 }
 
 #[test]
@@ -194,16 +239,17 @@ fn package_validation_rejects_unsafe_archive_entries() {
     let package = write_zplugin_package(
         "package-tool.zplugin",
         &manifest_with_main("dist/index.html"),
-        &[("../evil.txt", "evil"), ("dist/index.html", "<main>ok</main>")],
+        &[
+            ("../evil.txt", "evil"),
+            ("dist/index.html", "<main>ok</main>"),
+        ],
     );
 
     let report = validate_zplugin_package(&package).expect("validation report should return");
 
     assert_eq!(report.valid, false);
-    assert!(
-        report
-            .issues
-            .iter()
-            .any(|issue| issue.code == "package.archive.unsafePath")
-    );
+    assert!(report
+        .issues
+        .iter()
+        .any(|issue| issue.code == "package.archive.unsafePath"));
 }

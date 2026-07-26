@@ -4,7 +4,7 @@ import {
   buildExtensionSurfacePolicy,
   createExtensionBridge,
   markPluginFailure,
-} from "/private/tmp/ztool-extension-runtime-test/pluginHost/extensionBridge.js";
+} from "/private/tmp/zero-extension-runtime-test/pluginHost/extensionBridge.js";
 
 function pluginRecord(permissions = ["ui.message"], enabled = true) {
   return {

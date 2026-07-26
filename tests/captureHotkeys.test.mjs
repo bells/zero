@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveCaptureHotkey } from "/private/tmp/ztool-capture-test/captureHotkeys.js";
+import { resolveCaptureHotkey } from "/private/tmp/zero-capture-test/captureHotkeys.js";
 
 test("maps capture editor keyboard shortcuts", () => {
   assert.equal(resolveCaptureHotkey({ key: "Escape" }), "cancel");

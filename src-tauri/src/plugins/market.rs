@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use super::contracts::{PluginMarketEntry, PluginMarketIndex};
 
 pub const DEFAULT_PLUGIN_MARKET_URL: &str =
-    "https://raw.githubusercontent.com/watson/ztool/main/market.json";
+    "https://raw.githubusercontent.com/bells/zero/main/market.json";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -180,7 +180,11 @@ fn validate_market_entry(entry: &PluginMarketEntry) -> Result<(), PluginMarketEr
     }
 
     if let Some(sha256) = &entry.sha256 {
-        if sha256.len() != 64 || !sha256.chars().all(|character| character.is_ascii_hexdigit()) {
+        if sha256.len() != 64
+            || !sha256
+                .chars()
+                .all(|character| character.is_ascii_hexdigit())
+        {
             return Err(market_error(format!(
                 "plugin {} sha256 must be a 64-character hex string",
                 entry.name

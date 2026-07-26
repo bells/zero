@@ -1,4 +1,4 @@
-use ztool_lib::plugins::market::{PluginMarketCache, DEFAULT_PLUGIN_MARKET_URL};
+use zero_lib::plugins::market::{PluginMarketCache, DEFAULT_PLUGIN_MARKET_URL};
 
 fn valid_market_json() -> &'static str {
     r#"{

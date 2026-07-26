@@ -1,18 +1,18 @@
 ## Context
 
-ZTool 已有截图和咖啡因两个内置工具，并正在通过统一插件注册表、manifest、权限枚举和 Extension API Bridge 承载内置及第三方插件。当前内置插件使用 `ztool.<name>` 作为注册表名称，通过 React 内置渲染器加载；第三方 WebView 被隔离且 `connect-src 'none'`，不能直接使用 Tauri IPC 或自由访问网络。现有权限包含 `network`、`storage.plugin` 和 `ui.message`，但 Bridge 尚未提供二进制文件缓存和设置系统壁纸的完整能力。
+Zero 已有 Zero Snap 和 Zero Awake 两个内置工具，并正在通过统一插件注册表、manifest、权限枚举和 Extension API Bridge 承载内置及第三方插件。当前内置插件使用 `zero.snap`、`zero.awake` 等规范 ID 作为注册表名称，通过 React 内置渲染器加载；第三方 WebView 被隔离且 `connect-src 'none'`，不能直接使用 Tauri IPC 或自由访问网络。现有权限包含 `network`、`storage.plugin` 和 `ui.message`，但 Bridge 尚未提供二进制文件缓存和设置系统壁纸的完整能力。
 
-Bing 每日壁纸需要同时跨越四个边界：Bing HTTPS API、`~/.ztool/data/wallpaper/` 持久化、React 卡片状态和桌面系统壁纸 API。按项目 Clean Architecture 约束，React 只负责展示和交互，Rust 负责 HTTP、路径安全、文件生命周期和平台调用。Bing 返回的 `title` 与 `copyright` 不保证能拆成独立地点字段，且一次请求可能少于 10 条；实现必须保留原始署名并对缺失字段和部分结果做降级。
+Bing 每日壁纸需要同时跨越四个边界：Bing HTTPS API、`~/.zero/data/wallpaper/` 持久化、React 卡片状态和桌面系统壁纸 API。按项目 Clean Architecture 约束，React 只负责展示和交互，Rust 负责 HTTP、路径安全、文件生命周期和平台调用。Bing 返回的 `title` 与 `copyright` 不保证能拆成独立地点字段，且一次请求可能少于 10 条；实现必须保留原始署名并对缺失字段和部分结果做降级。
 
 本次依赖调研显示，用户建议的 `wallpaper` crate 最新发布版为 `3.2.0`（2021-07-09，Unlicense，约 7.6 万下载），GitHub `reujab/wallpaper.rs` 约 119 stars，最近主分支提交为 2022-11-28。它仍是最成熟的通用 Rust 壁纸库，但不满足“近期活跃维护”的理想条件；`more-wallpapers` 和现有 Tauri wallpaper 项目在采用量或能力范围上也没有形成更稳妥替代。因此系统壁纸实现必须被适配层隔离，并以当前工具链、macOS 和 Windows 实机验证作为最终引入门槛。
 
-2026-07-15 兼容性 spike 记录：`wallpaper = "3.2"`（锁定 3.2.0、关闭默认 `from_url` feature）已通过当前稳定 Rust 的 macOS `cargo check`/`cargo test`，并单独通过 `x86_64-pc-windows-msvc` target 的 `cargo check --no-default-features`。全项目从 macOS 交叉检查 Windows 时会在 `reqwest` 的 `aws-lc-sys` 处因本机没有 Windows SDK headers 停止，因此完整 Windows 项目验证保留在 `windows-latest` CI；该失败发生在 ZTool 和 `wallpaper` 源码编译之前。依赖许可证为 Unlicense，维护时间风险由 `WallpaperSetter` 适配层隔离。
+2026-07-15 兼容性 spike 记录：`wallpaper = "3.2"`（锁定 3.2.0、关闭默认 `from_url` feature）已通过当前稳定 Rust 的 macOS `cargo check`/`cargo test`，并单独通过 `x86_64-pc-windows-msvc` target 的 `cargo check --no-default-features`。全项目从 macOS 交叉检查 Windows 时会在 `reqwest` 的 `aws-lc-sys` 处因本机没有 Windows SDK headers 停止，因此完整 Windows 项目验证保留在 `windows-latest` CI；该失败发生在 Zero 和 `wallpaper` 源码编译之前。依赖许可证为 Unlicense，维护时间风险由 `WallpaperSetter` 适配层隔离。
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- 交付第三个内置工具 `ztool.bing-wallpaper`，默认展示最新壁纸并可浏览最近 10 个日期条目。
+- 交付第三个内置工具 `zero.paper`，默认展示最新壁纸并可浏览最近 10 个日期条目。
 - 先显示本地缓存，再静默刷新远端；断网、部分下载失败或 Bing 返回少于 10 条时仍保持可用。
 - 让 Rust 统一负责 Bing 请求、图片下载、缓存索引、滚动清理、下载目录复制和系统壁纸设置。
 - 为 React 定义无 `any` 的显式状态模型、Hook、Service 与 Rust/TypeScript 对称 IPC 契约。
@@ -35,7 +35,7 @@ Bing 每日壁纸需要同时跨越四个边界：Bing HTTPS API、`~/.ztool/dat
 
 ```json
 {
-  "name": "ztool.bing-wallpaper",
+  "name": "zero.paper",
   "id": "bing-wallpaper",
   "displayName": "Bing 壁纸",
   "version": "1.0.0",
@@ -130,7 +130,7 @@ Rust 结构体使用 `#[serde(rename_all = "camelCase")]`，TS 使用相同字�
 缓存固定在用户要求的目录：
 
 ```text
-~/.ztool/data/wallpaper/
+~/.zero/data/wallpaper/
   index.json
   20260714-<bing-hash>.jpg
   .staging/<wallpaper-id>.part
@@ -172,9 +172,9 @@ Header 左侧显示“壁纸”，右侧依次提供下载、应用、较早和�
 权限枚举新增 `system.wallpaper`，并在 Rust contracts、TS contracts、manifest 校验、市场权限显示和 Bridge 中同步。SDK 外观可提供：
 
 ```ts
-ztool.network.fetch(request)
-ztool.storage.writeFile(relativePath, bytes)
-ztool.system.setWallpaper(relativePath)
+zero.network.fetch(request)
+zero.storage.writeFile(relativePath, bytes)
+zero.system.setWallpaper(relativePath)
 ```
 
 底层消息方法分别是 `network.fetch`、`storage.writeFile`、`system.setWallpaper`：
@@ -214,11 +214,11 @@ Linux 只在后端能可靠识别并支持当前桌面环境时调用，缺少�
 2. 完成 `WallpaperSetter` spike；仅在当前 Rust、macOS 和 Windows 验证通过后把选定依赖锁入 `Cargo.lock`。
 3. 实现缓存路径、索引、Bing 解析、受限下载和清理服务，再用临时目录及注入 fetcher/setter 的方式测试，不触碰真实用户壁纸。
 4. 添加薄 Tauri commands 与 typed TS service，注册 state/commands，并完成 IPC 合约测试。
-5. 添加纯导航 model、Hook 和卡片组件，注册 `ztool.bing-wallpaper` manifest、渲染器、偏好和 i18n。
+5. 添加纯导航 model、Hook 和卡片组件，注册 `zero.paper` manifest、渲染器、偏好和 i18n。
 6. 扩展 Extension API Bridge 的受控资源方法、权限拒绝和路径/网络安全测试。
 7. 运行前端、Node、Rust 和 OpenSpec 校验；在真实 Tauri 应用中手动验证在线/离线、10 天导航、下载、设置壁纸及重启缓存恢复。
 
-回滚时可从 bundled manifest/renderer 中移除或默认禁用 `ztool.bing-wallpaper`，保留缓存数据不主动破坏用户文件；新增权限和宿主 API 可继续保留但默认拒绝未批准插件。若壁纸后端有平台问题，只替换或禁用 `WallpaperSetter`，不回滚浏览和下载能力。
+回滚时可从 bundled manifest/renderer 中移除或默认禁用 `zero.paper`，保留缓存数据不主动破坏用户文件；新增权限和宿主 API 可继续保留但默认拒绝未批准插件。若壁纸后端有平台问题，只替换或禁用 `WallpaperSetter`，不回滚浏览和下载能力。
 
 ## Open Questions
 

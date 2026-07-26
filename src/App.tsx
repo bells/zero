@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
+import { PRODUCT_NAME } from "./brand/identity";
 import { StatusBarGlyph } from "./components/StatusBarGlyph";
 import { BingWallpaperPanel } from "./plugins/bingWallpaper/BingWallpaperPanel";
 import { CaffeinePanel } from "./plugins/caffeine/CaffeinePanel";
@@ -233,7 +234,7 @@ function EmptyPluginState({ t }: { t: (key: TranslationKey) => string }) {
       <div className="panel-heading">
         <div>
           <span className="eyebrow">{t("shell.pluginWorkspace")}</span>
-          <h2>ZTool</h2>
+          <h2>{PRODUCT_NAME}</h2>
         </div>
         <span className="status-pill">{t("app.tagline")}</span>
       </div>
@@ -349,7 +350,7 @@ export function TrayPanelApp() {
     <main className="app-shell tray-shell">
       <header className="app-header" data-tauri-drag-region>
         <div>
-          <h1>ZTool</h1>
+          <h1>{PRODUCT_NAME}</h1>
           <p>{t("app.tagline")}</p>
         </div>
         <span className="shell-badge">
@@ -390,7 +391,7 @@ export function TrayPanelApp() {
           className="tray-primary-action"
           onClick={() => runAction(appWindows.openMainWindow)}
         >
-          {t("shell.openZtool")}
+          {t("shell.openZero")}
         </button>
         <button
           type="button"
@@ -409,7 +410,7 @@ export function TrayPanelApp() {
               role="menuitem"
               onClick={() => runAction(appWindows.openAboutWindow)}
             >
-              {t("shell.aboutZtool")}
+              {t("shell.aboutZero")}
             </button>
             <button
               type="button"
@@ -479,7 +480,7 @@ export function MainWindowApp() {
           <div className="main-workspace-heading">
             <div>
               <span className="eyebrow">{t("shell.pluginWorkspace")}</span>
-              <h2>{activePlugin?.title ?? "ZTool"}</h2>
+              <h2>{activePlugin?.title ?? PRODUCT_NAME}</h2>
             </div>
             <span className="status-pill active">{activePlugin?.subtitle ?? t("app.tagline")}</span>
           </div>

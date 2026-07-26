@@ -2,8 +2,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use ztool_lib::plugins::contracts::NetworkFetchRequest;
-use ztool_lib::services::native_resources::{fetch_https, resolve_plugin_file, write_plugin_file};
+use zero_lib::plugins::contracts::NetworkFetchRequest;
+use zero_lib::services::native_resources::{fetch_https, resolve_plugin_file, write_plugin_file};
 
 struct TestDir(PathBuf);
 
@@ -14,7 +14,7 @@ impl TestDir {
             .expect("clock")
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "ztool-native-resource-{label}-{}-{nonce}",
+            "zero-native-resource-{label}-{}-{nonce}",
             std::process::id()
         ));
         fs::create_dir_all(&path).expect("test directory");

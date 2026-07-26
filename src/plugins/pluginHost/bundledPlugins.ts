@@ -1,49 +1,53 @@
 import type { PluginManifest } from "./contracts";
+import {
+  FIRST_PARTY_PLUGIN_IDS,
+  canonicalFirstPartyPluginId,
+} from "../../brand/identity.js";
 
 export type BuiltinPluginKind = "screenshot" | "caffeine" | "bing-wallpaper" | "quick-launcher";
 
 export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
   {
-    name: "ztool.screenshot",
+    name: FIRST_PARTY_PLUGIN_IDS.snap,
     version: "0.1.0",
     author: "watson",
     main: "plugins/screenshot",
     permissions: ["ui.message"],
-    id: "ztool.screenshot",
-    displayName: "Screenshot",
+    id: FIRST_PARTY_PLUGIN_IDS.snap,
+    displayName: "Zero Snap",
     description: "Shortcut, copy, save",
     platforms: ["macos", "windows", "linux"],
     runtime: "webview",
     contributes: {
       views: [
         {
-          id: "ztool.screenshot.main",
-          title: "Screenshot",
+          id: "zero.snap.main",
+          title: "Zero Snap",
           surface: "main",
         },
       ],
       commands: [
         {
-          id: "ztool.screenshot.capture",
-          title: "Capture Screenshot",
+          id: "zero.snap.capture",
+          title: "Capture Zero Snap",
         },
         {
-          id: "ztool.screenshot.copy",
+          id: "zero.snap.copy",
           title: "Capture and Copy",
         },
         {
-          id: "ztool.screenshot.save",
+          id: "zero.snap.save",
           title: "Capture and Save",
         },
       ],
       statusBarItems: [
         {
-          id: "ztool.screenshot.status",
-          title: "Screenshot",
+          id: "zero.snap.status",
+          title: "Zero Snap",
           icon: "screenshot",
           action: {
             type: "start-screenshot",
-            commandId: "ztool.screenshot.capture",
+            commandId: "zero.snap.capture",
           },
           order: 20,
           visibleByDefault: true,
@@ -52,28 +56,28 @@ export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
     },
   },
   {
-    name: "ztool.caffeine",
+    name: FIRST_PARTY_PLUGIN_IDS.awake,
     version: "0.1.0",
     author: "watson",
     main: "plugins/caffeine",
     permissions: ["ui.message"],
-    id: "ztool.caffeine",
-    displayName: "Caffeine",
+    id: FIRST_PARTY_PLUGIN_IDS.awake,
+    displayName: "Zero Awake",
     description: "Keep display and system awake",
     platforms: ["macos", "windows", "linux"],
     runtime: "webview",
     contributes: {
       views: [
         {
-          id: "ztool.caffeine.main",
-          title: "Caffeine",
+          id: "zero.awake.main",
+          title: "Zero Awake",
           surface: "main",
         },
       ],
       commands: [
         {
-          id: "ztool.caffeine.toggle",
-          title: "Toggle Caffeine",
+          id: "zero.awake.toggle",
+          title: "Toggle Zero Awake",
         },
       ],
       settings: [
@@ -86,13 +90,13 @@ export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
       ],
       statusBarItems: [
         {
-          id: "ztool.caffeine.status",
-          title: "Caffeine",
+          id: "zero.awake.status",
+          title: "Zero Awake",
           icon: "caffeine-empty",
           activeIcon: "caffeine-full",
           action: {
             type: "toggle-caffeine",
-            commandId: "ztool.caffeine.toggle",
+            commandId: "zero.awake.toggle",
           },
           order: 10,
           visibleByDefault: true,
@@ -101,42 +105,42 @@ export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
     },
   },
   {
-    name: "ztool.bing-wallpaper",
+    name: FIRST_PARTY_PLUGIN_IDS.paper,
     version: "1.0.0",
     author: "bells",
     main: "plugins/bingWallpaper",
     permissions: ["network", "storage.plugin", "system.wallpaper"],
-    id: "bing-wallpaper",
-    displayName: "Bing Wallpaper",
+    id: FIRST_PARTY_PLUGIN_IDS.paper,
+    displayName: "Zero Paper",
     description: "Browse, download, and apply Bing daily wallpapers",
     platforms: ["macos", "windows", "linux"],
     runtime: "webview",
     contributes: {
       views: [
         {
-          id: "ztool.bing-wallpaper.main",
-          title: "Bing Wallpaper",
+          id: "zero.paper.main",
+          title: "Zero Paper",
           surface: "main",
         },
       ],
       commands: [
         {
-          id: "ztool.bing-wallpaper.refresh",
+          id: "zero.paper.refresh",
           title: "Refresh Bing wallpapers",
         },
         {
-          id: "ztool.bing-wallpaper.apply",
+          id: "zero.paper.apply",
           title: "Apply Bing wallpaper",
         },
         {
-          id: "ztool.bing-wallpaper.download",
+          id: "zero.paper.download",
           title: "Download Bing wallpaper",
         },
       ],
     },
   },
   {
-    name: "ztool.quick-launcher",
+    name: FIRST_PARTY_PLUGIN_IDS.launch,
     version: "1.0.0",
     author: "bells",
     main: "plugins/quickLauncher",
@@ -146,26 +150,26 @@ export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
       "system.window.focus",
       "system.settings.open",
     ],
-    id: "quick-launcher",
-    displayName: "Quick Launcher",
+    id: FIRST_PARTY_PLUGIN_IDS.launch,
+    displayName: "Zero Launch",
     description: "Search, launch, and switch local apps and system settings",
     platforms: ["macos", "windows"],
     runtime: "webview",
     contributes: {
       views: [
         {
-          id: "ztool.quick-launcher.main",
-          title: "Quick Launcher",
+          id: "zero.launch.main",
+          title: "Zero Launch",
           surface: "main",
         },
       ],
       commands: [
         {
-          id: "ztool.quick-launcher.show",
-          title: "Show Quick Launcher",
+          id: "zero.launch.show",
+          title: "Show Zero Launch",
         },
         {
-          id: "ztool.quick-launcher.refresh",
+          id: "zero.launch.refresh",
           title: "Refresh application index",
         },
       ],
@@ -174,19 +178,21 @@ export const BUNDLED_PLUGIN_MANIFESTS: PluginManifest[] = [
 ];
 
 export function bundledPluginKind(pluginId: string): BuiltinPluginKind | null {
-  if (pluginId === "ztool.screenshot" || pluginId === "screenshot") {
+  const canonicalId = canonicalFirstPartyPluginId(pluginId);
+
+  if (canonicalId === FIRST_PARTY_PLUGIN_IDS.snap || pluginId === "screenshot") {
     return "screenshot";
   }
 
-  if (pluginId === "ztool.caffeine" || pluginId === "caffeine") {
+  if (canonicalId === FIRST_PARTY_PLUGIN_IDS.awake || pluginId === "caffeine") {
     return "caffeine";
   }
 
-  if (pluginId === "ztool.bing-wallpaper" || pluginId === "bing-wallpaper") {
+  if (canonicalId === FIRST_PARTY_PLUGIN_IDS.paper || pluginId === "bing-wallpaper") {
     return "bing-wallpaper";
   }
 
-  if (pluginId === "ztool.quick-launcher" || pluginId === "quick-launcher") {
+  if (canonicalId === FIRST_PARTY_PLUGIN_IDS.launch || pluginId === "quick-launcher") {
     return "quick-launcher";
   }
 

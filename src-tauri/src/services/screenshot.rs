@@ -16,7 +16,7 @@ const CAPTURE_WINDOW_LABEL: &str = "capture";
 const TRAY_WINDOW_LABEL: &str = "tray";
 const MAIN_WINDOW_LABEL: &str = "main";
 const PIN_WINDOW_LABEL: &str = "pin";
-const DEFAULT_SAVE_FILE_NAME: &str = "ztool-capture.png";
+const DEFAULT_SAVE_FILE_NAME: &str = "zero-snap.png";
 const PIN_TITLEBAR_HEIGHT: f64 = 30.0;
 static LAST_SESSION_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -341,10 +341,7 @@ pub fn init_pin_window(
     Ok(PinPayload { image_base64 })
 }
 
-fn validate_session(
-    app: &tauri::AppHandle,
-    session_id: &str,
-) -> Result<ScreenshotSession, String> {
+fn validate_session(app: &tauri::AppHandle, session_id: &str) -> Result<ScreenshotSession, String> {
     let store = app.state::<ScreenshotSessionStore>();
     let active = store
         .active()
@@ -428,7 +425,8 @@ fn png_dimensions(bytes: &[u8]) -> Result<(u32, u32), String> {
 
 #[cfg(target_os = "macos")]
 fn capture_fullscreen_png() -> Result<(Vec<u8>, u32, u32), String> {
-    let temp_path = std::env::temp_dir().join(format!("ztool-capture-{}.png", create_session_id()));
+    let temp_path =
+        std::env::temp_dir().join(format!("zero-snap-capture-{}.png", create_session_id()));
 
     std::process::Command::new("screencapture")
         .args(["-x", "-t", "png"])
@@ -461,7 +459,7 @@ fn open_capture_window(app: &tauri::AppHandle) -> Result<(), String> {
 
     let capture_window =
         tauri::WebviewWindowBuilder::new(app, CAPTURE_WINDOW_LABEL, WebviewUrl::App("".into()))
-            .title("ZTool Capture")
+            .title("Zero Snap")
             .fullscreen(true)
             .decorations(false)
             .resizable(false)
@@ -494,7 +492,7 @@ fn platform_name() -> &'static str {
 #[cfg(target_os = "macos")]
 fn copy_png_to_clipboard(bytes: &[u8]) -> Result<(), String> {
     let temp_path =
-        std::env::temp_dir().join(format!("ztool-clipboard-{}.png", create_session_id()));
+        std::env::temp_dir().join(format!("zero-snap-clipboard-{}.png", create_session_id()));
     std::fs::write(&temp_path, bytes).map_err(|e| format!("写入临时图片失败: {e}"))?;
 
     let script = format!(

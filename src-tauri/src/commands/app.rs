@@ -22,7 +22,7 @@ impl AppShellWindow {
         match self {
             Self::Main => AppShellWindowOptions {
                 label: "main",
-                title: "ZTool",
+                title: "Zero",
                 width: 920.0,
                 height: 660.0,
                 min_width: 760.0,
@@ -31,7 +31,7 @@ impl AppShellWindow {
             },
             Self::Preferences => AppShellWindowOptions {
                 label: "preferences",
-                title: "ZTool Preferences",
+                title: "Zero Preferences",
                 width: 520.0,
                 height: 620.0,
                 min_width: 460.0,
@@ -40,7 +40,7 @@ impl AppShellWindow {
             },
             Self::About => AppShellWindowOptions {
                 label: "about",
-                title: "About ZTool",
+                title: "About Zero",
                 width: 460.0,
                 height: 420.0,
                 min_width: 420.0,
@@ -71,17 +71,12 @@ pub fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
 
-fn show_app_shell_window(
-    app: &tauri::AppHandle,
-    target: AppShellWindow,
-) -> Result<(), String> {
+fn show_app_shell_window(app: &tauri::AppHandle, target: AppShellWindow) -> Result<(), String> {
     let options = target.options();
     promote_app_for_app_window(app);
 
     if let Some(existing) = app.get_webview_window(options.label) {
-        existing
-            .show()
-            .map_err(|e| format!("显示窗口失败: {e}"))?;
+        existing.show().map_err(|e| format!("显示窗口失败: {e}"))?;
         existing
             .set_focus()
             .map_err(|e| format!("聚焦窗口失败: {e}"))?;
@@ -101,9 +96,7 @@ fn show_app_shell_window(
         .build()
         .map_err(|e| format!("创建窗口失败: {e}"))?;
 
-    window
-        .show()
-        .map_err(|e| format!("显示窗口失败: {e}"))?;
+    window.show().map_err(|e| format!("显示窗口失败: {e}"))?;
     window
         .set_focus()
         .map_err(|e| format!("聚焦窗口失败: {e}"))?;

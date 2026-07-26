@@ -62,7 +62,7 @@ pub fn install_plugin_package(
 ) -> Result<PluginRecord, String> {
     let record = state.with_registry(|registry| registry.install_local_package(input))?;
     let _ = crate::services::status_bar::refresh_status_bar(&app);
-    if record.name == "ztool.quick-launcher" {
+    if record.name == crate::brand::ZERO_LAUNCH_PLUGIN_ID {
         let _ = crate::sync_quick_launcher_shortcut(&app, record.enabled);
     }
     Ok(record)
@@ -75,7 +75,7 @@ pub async fn install_market_plugin(
     state: State<'_, PluginRegistryState>,
 ) -> Result<PluginRecord, String> {
     let staging_dir = std::env::temp_dir().join(format!(
-        "ztool-market-plugin-{}-{}",
+        "zero-market-plugin-{}-{}",
         input.entry.name,
         std::process::id()
     ));
@@ -128,7 +128,7 @@ pub fn set_plugin_enabled(
         Ok(record)
     })?;
     let _ = crate::services::status_bar::refresh_status_bar(&app);
-    if record.name == "ztool.quick-launcher" {
+    if record.name == crate::brand::ZERO_LAUNCH_PLUGIN_ID {
         let _ = crate::sync_quick_launcher_shortcut(&app, record.enabled);
     }
     Ok(record)

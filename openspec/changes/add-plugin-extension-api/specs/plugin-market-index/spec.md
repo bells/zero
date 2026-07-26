@@ -35,7 +35,7 @@ The system SHALL allow users to install a market-listed plugin by downloading it
 
 #### Scenario: Install market plugin succeeds
 - **WHEN** the user selects install for a valid market entry and accepts its requested permissions
-- **THEN** the system downloads the `.zplugin` asset, validates its checksum when provided, validates its `manifest.json`, extracts it under `~/.ztool/plugins/`, persists its registry record, and shows it in plugin navigation
+- **THEN** the system downloads the `.zplugin` asset, validates its checksum when provided, validates its `manifest.json`, extracts it under `~/.zero/plugins/`, persists its registry record, and shows it in plugin navigation
 
 #### Scenario: Download fails
 - **WHEN** the release asset download fails

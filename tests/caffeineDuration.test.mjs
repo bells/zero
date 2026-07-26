@@ -5,7 +5,7 @@ import {
   formatCompactDuration,
   formatDurationClock,
   getRemainingMs,
-} from "/private/tmp/ztool-caffeine-test/caffeineDuration.js";
+} from "/private/tmp/zero-caffeine-test/caffeineDuration.js";
 
 test("defines no-limit and supported finite caffeine duration options", () => {
   assert.deepEqual(

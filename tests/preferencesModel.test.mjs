@@ -6,7 +6,7 @@ import {
   normalizePreferences,
   setToolVisibility,
   setLanguagePreference,
-} from "/private/tmp/ztool-preferences-test/preferences/preferencesModel.js";
+} from "/private/tmp/zero-preferences-test/plugins/preferences/preferencesModel.js";
 
 test("normalizes missing visibility to all tools visible", () => {
   const preferences = normalizePreferences({}, ["screenshot", "caffeine"]);
@@ -73,17 +73,18 @@ test("supports registry plugin ids and migrates legacy bundled visibility keys",
   const preferences = normalizePreferences(
     {
       visibleTools: {
-        screenshot: false,
-        caffeine: true,
+        "ztool.screenshot": false,
+        "ztool.caffeine": true,
+        "ztool.third-party": false,
       },
     },
-    ["ztool.screenshot", "ztool.caffeine", "ztool.bing-wallpaper", "market-tool"],
+    ["zero.snap", "zero.awake", "zero.paper", "ztool.third-party"],
   );
 
   assert.deepEqual(preferences.visibleTools, {
-    "ztool.screenshot": false,
-    "ztool.caffeine": true,
-    "ztool.bing-wallpaper": true,
-    "market-tool": true,
+    "zero.snap": false,
+    "zero.awake": true,
+    "zero.paper": true,
+    "ztool.third-party": false,
   });
 });

@@ -18,7 +18,7 @@
 ## 3. Bing metadata and cache service
 
 - [x] 3.1 Implement pure Bing archive parsing and normalization for `startdate`, `title`, `copyright`, `copyrightlink`, `url`/`urlbase`, and `hsh`, including conservative title fallback without altering original attribution.
-- [x] 3.2 Implement the `~/.ztool/data/wallpaper/` resolver and versioned `index.json` loader that accepts only valid relative cache files and skips corrupt entries without failing the whole plugin.
+- [x] 3.2 Implement the `~/.zero/data/wallpaper/` resolver and versioned `index.json` loader that accepts only valid relative cache files and skips corrupt entries without failing the whole plugin.
 - [x] 3.3 Implement deterministic merge, stable-ID deduplication, newest-first sorting, selection-independent metadata, 10-entry retention, and cleanup that deletes only obsolete index-owned files.
 - [x] 3.4 Implement the Bing metadata request for `mkt=zh-CN`, validate trusted HTTPS hosts/paths, and preserve usable cached data with a stale snapshot when refresh fails.
 - [x] 3.5 Implement bounded image downloads with selected-item priority, at most two concurrent transfers, `.part` staging, content/decoder validation, atomic activation, and isolated per-item failure reporting.
@@ -51,7 +51,7 @@
 
 ## 7. Plugin registration and card UI
 
-- [x] 7.1 Add the `ztool.bing-wallpaper` bundled manifest with short ID `bing-wallpaper`, author `bells`, `webview` runtime, view/command contributions, desktop platforms, and `network`, `storage.plugin`, `system.wallpaper` permissions.
+- [x] 7.1 Add the `zero.paper` bundled manifest with short ID `bing-wallpaper`, author `bells`, `webview` runtime, view/command contributions, desktop platforms, and `network`, `storage.plugin`, `system.wallpaper` permissions.
 - [x] 7.2 Seed and restore the Bing record through the Rust registry, add it to the bundled renderer mapping, and preserve generic plugin navigation plus preference visibility/enable behavior.
 - [x] 7.3 Implement `BingWallpaperPanel` with header title; separate download, apply, older, and newer actions; 16:9 rounded preview; primary title/location text; and secondary copyright text.
 - [x] 7.4 Make thumbnail activation equivalent to apply, add accessible labels/titles, visible focus, disabled/busy states, success/error feedback, and keyboard parity for every action.
@@ -66,5 +66,5 @@
 - [x] 8.3 Run `node --test tests/*.mjs`, `pnpm build`, `cargo fmt --check`, `cargo check`, `cargo test`, and `git diff --check`, fixing all regressions without staging unrelated status-bar work.
 - [x] 8.4 Run or add Windows CI coverage for the selected wallpaper backend, permission contracts, cache service, and compile-time platform branches; document Linux desktop environments that were actually verified.
 - [x] 8.5 Run `pnpm tauri dev` and manually verify first load, cache-first reopen, online refresh, offline stale mode, fewer-than-10 behavior, older/newer boundaries, attribution, download collision handling, real wallpaper apply/failure feedback, keyboard focus, and tray/main-window layouts; restore the tester's original wallpaper afterward.
-- [x] 8.6 Inspect `~/.ztool/data/wallpaper/` after refresh/restart to verify atomic index persistence, no `.part` leaks, 10-entry retention, and preservation of unknown files.
+- [x] 8.6 Inspect `~/.zero/data/wallpaper/` after refresh/restart to verify atomic index persistence, no `.part` leaks, 10-entry retention, and preservation of unknown files.
 - [x] 8.7 Run `openspec validate "add-bing-wallpaper-plugin"` and confirm `openspec status --change "add-bing-wallpaper-plugin"` reports all implementation prerequisites complete.

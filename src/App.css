@@ -200,7 +200,7 @@ input:focus-visible {
   box-sizing: border-box;
 }
 
-.status-bar-glyph.icon-ztool::before {
+.status-bar-glyph.icon-zero::before {
   content: "Z";
   inset: 0;
   display: grid;

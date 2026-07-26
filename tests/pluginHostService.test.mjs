@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createPluginHostService,
   PLUGIN_HOST_COMMANDS,
-} from "/private/tmp/ztool-plugin-host-service-test/pluginHostServiceCore.js";
+} from "/private/tmp/zero-plugin-host-service-test/pluginHostServiceCore.js";
 
 test("defines explicit Rust command names for plugin host lifecycle", () => {
   assert.deepEqual(PLUGIN_HOST_COMMANDS, {
@@ -26,7 +26,7 @@ test("invokes plugin host commands through the injected bridge", async () => {
 
     if (command === "refresh_plugin_market") {
       return {
-        sourceUrl: "https://github.com/watson/ztool/market.json",
+        sourceUrl: "https://github.com/bells/zero/market.json",
         schemaVersion: 1,
         entries: [],
         stale: false,

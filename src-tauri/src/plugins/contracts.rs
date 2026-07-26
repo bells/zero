@@ -55,7 +55,11 @@ pub enum PluginHealth {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginEngines {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zero: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ztool: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub api: Option<String>,
 }
 
@@ -110,7 +114,7 @@ pub struct PluginContributionSetting {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum StatusBarIconId {
-    Ztool,
+    Zero,
     CaffeineEmpty,
     CaffeineFull,
     Screenshot,

@@ -4,7 +4,7 @@ import {
   BUNDLED_PLUGIN_MANIFESTS,
   bundledPluginKind,
   pluginAccentClass,
-} from "/private/tmp/ztool-bundled-plugins-test/bundledPlugins.js";
+} from "/private/tmp/zero-bundled-plugins-test/plugins/pluginHost/bundledPlugins.js";
 
 test("defines stable bundled plugin manifests with safe main paths", () => {
   assert.deepEqual(
@@ -15,22 +15,22 @@ test("defines stable bundled plugin manifests with safe main paths", () => {
     })),
     [
       {
-        name: "ztool.screenshot",
+        name: "zero.snap",
         main: "plugins/screenshot",
         runtime: "webview",
       },
       {
-        name: "ztool.caffeine",
+        name: "zero.awake",
         main: "plugins/caffeine",
         runtime: "webview",
       },
       {
-        name: "ztool.bing-wallpaper",
+        name: "zero.paper",
         main: "plugins/bingWallpaper",
         runtime: "webview",
       },
       {
-        name: "ztool.quick-launcher",
+        name: "zero.launch",
         main: "plugins/quickLauncher",
         runtime: "webview",
       },
@@ -51,9 +51,9 @@ test("bundled manifests declare views commands permissions and platforms", () =>
   assert.deepEqual(screenshot.platforms, ["macos", "windows", "linux"]);
   assert.deepEqual(caffeine.permissions, ["ui.message"]);
   assert.deepEqual(bing.permissions, ["network", "storage.plugin", "system.wallpaper"]);
-  assert.equal(bing.id, "bing-wallpaper");
+  assert.equal(bing.id, "zero.paper");
   assert.equal(bing.author, "bells");
-  assert.equal(launcher.id, "quick-launcher");
+  assert.equal(launcher.id, "zero.launch");
   assert.equal(launcher.author, "bells");
   assert.deepEqual(launcher.platforms, ["macos", "windows"]);
   assert.deepEqual(launcher.permissions, [
@@ -62,9 +62,9 @@ test("bundled manifests declare views commands permissions and platforms", () =>
     "system.window.focus",
     "system.settings.open",
   ]);
-  assert.equal(screenshot.contributes.views[0].id, "ztool.screenshot.main");
-  assert.equal(caffeine.contributes.commands[0].id, "ztool.caffeine.toggle");
-  assert.equal(bing.contributes.commands[1].id, "ztool.bing-wallpaper.apply");
+  assert.equal(screenshot.contributes.views[0].id, "zero.snap.main");
+  assert.equal(caffeine.contributes.commands[0].id, "zero.awake.toggle");
+  assert.equal(bing.contributes.commands[1].id, "zero.paper.apply");
 });
 
 test("bundled manifests declare host-mediated status bar items", () => {
@@ -73,12 +73,12 @@ test("bundled manifests declare host-mediated status bar items", () => {
 
   assert.deepEqual(screenshot.contributes.statusBarItems, [
     {
-      id: "ztool.screenshot.status",
-      title: "Screenshot",
+      id: "zero.snap.status",
+      title: "Zero Snap",
       icon: "screenshot",
       action: {
         type: "start-screenshot",
-        commandId: "ztool.screenshot.capture",
+        commandId: "zero.snap.capture",
       },
       order: 20,
       visibleByDefault: true,
@@ -86,13 +86,13 @@ test("bundled manifests declare host-mediated status bar items", () => {
   ]);
   assert.deepEqual(caffeine.contributes.statusBarItems, [
     {
-      id: "ztool.caffeine.status",
-      title: "Caffeine",
+      id: "zero.awake.status",
+      title: "Zero Awake",
       icon: "caffeine-empty",
       activeIcon: "caffeine-full",
       action: {
         type: "toggle-caffeine",
-        commandId: "ztool.caffeine.toggle",
+        commandId: "zero.awake.toggle",
       },
       order: 10,
       visibleByDefault: true,
@@ -101,15 +101,19 @@ test("bundled manifests declare host-mediated status bar items", () => {
 });
 
 test("resolves bundled plugin kind and accent class from registry names", () => {
+  assert.equal(bundledPluginKind("zero.snap"), "screenshot");
+  assert.equal(bundledPluginKind("zero.awake"), "caffeine");
+  assert.equal(bundledPluginKind("zero.paper"), "bing-wallpaper");
+  assert.equal(bundledPluginKind("bing-wallpaper"), "bing-wallpaper");
+  assert.equal(bundledPluginKind("zero.launch"), "quick-launcher");
+  assert.equal(bundledPluginKind("ztool.quick-launcher"), "quick-launcher");
   assert.equal(bundledPluginKind("ztool.screenshot"), "screenshot");
   assert.equal(bundledPluginKind("ztool.caffeine"), "caffeine");
   assert.equal(bundledPluginKind("ztool.bing-wallpaper"), "bing-wallpaper");
-  assert.equal(bundledPluginKind("bing-wallpaper"), "bing-wallpaper");
-  assert.equal(bundledPluginKind("ztool.quick-launcher"), "quick-launcher");
   assert.equal(bundledPluginKind("quick-launcher"), "quick-launcher");
   assert.equal(bundledPluginKind("market-tool"), null);
-  assert.equal(pluginAccentClass("ztool.screenshot"), "accent-screenshot");
-  assert.equal(pluginAccentClass("ztool.bing-wallpaper"), "accent-bing-wallpaper");
-  assert.equal(pluginAccentClass("ztool.quick-launcher"), "accent-quick-launcher");
+  assert.equal(pluginAccentClass("zero.snap"), "accent-screenshot");
+  assert.equal(pluginAccentClass("zero.paper"), "accent-bing-wallpaper");
+  assert.equal(pluginAccentClass("zero.launch"), "accent-quick-launcher");
   assert.equal(pluginAccentClass("market-tool"), "accent-extension");
 });

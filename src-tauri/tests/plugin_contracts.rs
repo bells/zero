@@ -1,5 +1,5 @@
 use serde_json::json;
-use ztool_lib::plugins::contracts::{
+use zero_lib::plugins::contracts::{
     NativeResourceError, NetworkFetchRequest, NetworkFetchResponse, PluginManifest,
     PluginMarketIndex, PluginPermission, StorageWriteFileRequest, StorageWriteFileResult,
     SystemSetWallpaperRequest,
@@ -14,7 +14,7 @@ fn deserializes_plugin_manifest_contract() {
         "main": "dist/index.html",
         "permissions": ["clipboard.read", "network"],
         "engines": {
-            "ztool": "0.1.0",
+            "zero": "0.1.0",
             "api": "1"
         }
     }))
@@ -25,7 +25,9 @@ fn deserializes_plugin_manifest_contract() {
         manifest.permissions,
         vec![PluginPermission::ClipboardRead, PluginPermission::Network,]
     );
-    assert_eq!(manifest.engines.expect("engines").api.as_deref(), Some("1"));
+    let engines = manifest.engines.expect("engines");
+    assert_eq!(engines.zero.as_deref(), Some("0.1.0"));
+    assert_eq!(engines.api.as_deref(), Some("1"));
 }
 
 #[test]

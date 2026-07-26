@@ -1,4 +1,9 @@
 import type { PluginId } from "../types";
+import {
+  FIRST_PARTY_PLUGIN_IDS,
+  canonicalFirstPartyPluginId,
+  legacyFirstPartyPluginIds,
+} from "../../brand/identity.js";
 
 export type LanguagePreference = "system" | "zh-CN" | "en-US";
 
@@ -12,8 +17,8 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   launchAtLogin: false,
   language: "system",
   visibleTools: {
-    screenshot: true,
-    caffeine: true,
+    [FIRST_PARTY_PLUGIN_IDS.snap]: true,
+    [FIRST_PARTY_PLUGIN_IDS.awake]: true,
   },
 };
 
@@ -131,13 +136,24 @@ function readPluginVisibility(
 }
 
 function legacyPluginIds(pluginId: PluginId) {
-  if (pluginId === "ztool.screenshot") {
-    return ["screenshot"];
+  const canonicalId = canonicalFirstPartyPluginId(pluginId);
+  const legacyIds = [...legacyFirstPartyPluginIds(canonicalId)];
+
+  if (canonicalId === FIRST_PARTY_PLUGIN_IDS.snap) {
+    legacyIds.push("screenshot");
   }
 
-  if (pluginId === "ztool.caffeine") {
-    return ["caffeine"];
+  if (canonicalId === FIRST_PARTY_PLUGIN_IDS.awake) {
+    legacyIds.push("caffeine");
   }
 
-  return [];
+  if (canonicalId === FIRST_PARTY_PLUGIN_IDS.paper) {
+    legacyIds.push("bing-wallpaper");
+  }
+
+  if (canonicalId === FIRST_PARTY_PLUGIN_IDS.launch) {
+    legacyIds.push("quick-launcher");
+  }
+
+  return legacyIds;
 }

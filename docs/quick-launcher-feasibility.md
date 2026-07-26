@@ -1,4 +1,4 @@
-# Quick Launcher feasibility record
+# Zero Launch feasibility record
 
 This record fixes the dependency and platform choices made before the fourth bundled plugin is released. The production UI remains a bundled React `webview`; there is no `plugin.wasm` runtime.
 

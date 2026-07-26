@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   BING_WALLPAPER_COMMANDS,
   createBingWallpaperService,
-} from "/private/tmp/ztool-bing-wallpaper-test/bingWallpaperServiceCore.js";
+} from "/private/tmp/zero-bing-wallpaper-test/bingWallpaperServiceCore.js";
 
 test("uses stable command names and camelCase wallpaperId payloads", async () => {
   const calls = [];

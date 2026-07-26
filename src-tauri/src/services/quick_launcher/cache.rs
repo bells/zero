@@ -27,10 +27,7 @@ struct UsageCacheFile {
 }
 
 pub fn default_root() -> PathBuf {
-    std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".ztool")
+    crate::brand::canonical_data_root(&crate::brand::default_home())
         .join("data")
         .join("quick-launcher")
 }
@@ -223,7 +220,7 @@ mod tests {
 
     fn temporary_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!(
-            "ztool-quick-launcher-{name}-{}-{}",
+            "zero-quick-launcher-{name}-{}-{}",
             std::process::id(),
             std::thread::current().name().unwrap_or("test")
         ))

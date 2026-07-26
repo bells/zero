@@ -1,17 +1,17 @@
 ## Why
 
-ZTool 已有截图、咖啡因和 Bing 壁纸三个内置工具，但用户仍需要离开键盘、进入系统启动器或逐层打开设置，才能启动/切换应用和进入常用系统设置。新增第四个内置 Quick Launcher，可把应用发现、模糊检索、运行状态感知和系统设置直达收敛为一个本地优先、毫秒级响应的入口。
+Zero 已有截图、咖啡因和 Bing 壁纸三个内置工具，但用户仍需要离开键盘、进入系统启动器或逐层打开设置，才能启动/切换应用和进入常用系统设置。新增第四个内置 Zero Launch，可把应用发现、模糊检索、运行状态感知和系统设置直达收敛为一个本地优先、毫秒级响应的入口。
 
 ## What Changes
 
-- 新增内置工具插件 `quick-launcher`，注册表名称遵循现有约定使用 `ztool.quick-launcher`，作者为 `bells`；接入现有插件注册表、主窗口导航、偏好可见性、渲染器映射和中英文文案。
+- 新增内置工具插件 `quick-launcher`，注册表名称遵循现有约定使用 `zero.launch`，作者为 `bells`；接入现有插件注册表、主窗口导航、偏好可见性、渲染器映射和中英文文案。
 - 新增可由全局快捷键唤起的轻量 Launcher 窗口，同时在插件面板提供同一搜索体验；支持 `↑`/`↓`、`Enter` 和 `Esc` 的完整键盘操作。
 - 在 Rust 端索引 macOS 应用包和 Windows 开始菜单应用入口，归一化名称、路径、Bundle ID/可执行身份、图标引用和运行状态；Linux 首版明确返回不支持，不伪装为空结果。
 - 新增应用与系统设置的统一模糊检索：支持英文名称、中文、拼音全拼、拼音首字母、词首缩写和受控 Alias，并将匹配质量、运行状态和本地使用频率组合排序。
 - 新增安全的启动/切换和设置直达能力：已运行应用优先切到前台，未运行应用启动；设置项通过宿主维护的白名单 ID 映射到 macOS `x-apple.systempreferences:` 或 Windows `ms-settings:` URI。
 - 在 Rust 中维护内存索引，并将版本化应用索引和使用统计原子持久化到插件数据目录；启动时先加载缓存、后台刷新，并监听已知应用目录变化进行去抖增量更新。
 - 扩展 Rust/TypeScript 对称的插件权限和宿主 Bridge，提供受控的 `launcher.scanApps`、`launcher.search`、`launcher.launchOrFocus`、`launcher.openSystemSetting` 能力；调用方只能使用宿主签发的条目 ID，不能传入任意路径、Bundle ID 或 URI。
-- 不在本次变更中引入 `plugin.wasm` 运行时、联网搜索、文件/网页搜索、命令执行器、用户账号或云同步；Quick Launcher 复用当前内置 `webview` 插件与 React renderer 架构。
+- 不在本次变更中引入 `plugin.wasm` 运行时、联网搜索、文件/网页搜索、命令执行器、用户账号或云同步；Zero Launch 复用当前内置 `webview` 插件与 React renderer 架构。
 
 ## Capabilities
 

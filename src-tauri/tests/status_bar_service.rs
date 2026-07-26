@@ -1,25 +1,25 @@
 use std::collections::HashMap;
 use std::fs;
 
-use ztool_lib::plugins::contracts::{
+use zero_lib::plugins::contracts::{
     PluginContributionStatusBarItem, PluginContributions, PluginHealth, PluginManifest,
     PluginPermission, PluginRecord, PluginSource, StatusBarAction, StatusBarActionType,
     StatusBarIconId,
 };
-use ztool_lib::services::status_bar::{
+use zero_lib::services::status_bar::{
     load_status_bar_settings, native_status_item_creation_order, normalize_status_bar_items,
     save_status_bar_settings, status_bar_action_effects, StatusBarActionEffect, StatusBarSettings,
     StatusBarSupport,
 };
 
 fn plugin_record(name: &str, enabled: bool, order: Option<u32>) -> PluginRecord {
-    let is_caffeine = name == "ztool.caffeine";
+    let is_caffeine = name == "zero.awake";
     let status_item = PluginContributionStatusBarItem {
         id: format!("{name}.status"),
         title: if is_caffeine {
-            "Caffeine".into()
+            "Zero Awake".into()
         } else {
-            "Screenshot".into()
+            "Zero Snap".into()
         },
         icon: if is_caffeine {
             StatusBarIconId::CaffeineEmpty
@@ -82,8 +82,8 @@ fn plugin_record(name: &str, enabled: bool, order: Option<u32>) -> PluginRecord 
 #[test]
 fn status_bar_settings_default_enabled_plugins_visible() {
     let records = [
-        plugin_record("ztool.screenshot", true, Some(20)),
-        plugin_record("ztool.caffeine", true, Some(10)),
+        plugin_record("zero.snap", true, Some(20)),
+        plugin_record("zero.awake", true, Some(10)),
     ];
 
     let settings = StatusBarSettings::default_for_records(&records);
@@ -93,52 +93,86 @@ fn status_bar_settings_default_enabled_plugins_visible() {
     assert_eq!(
         settings.visible_plugin_items,
         HashMap::from([
-            ("ztool.screenshot".to_string(), true),
-            ("ztool.caffeine".to_string(), true),
+            ("zero.snap".to_string(), true),
+            ("zero.awake".to_string(), true),
         ]),
     );
 }
 
 #[test]
 fn status_bar_settings_recovers_from_invalid_json() {
-    let root = std::env::temp_dir().join(format!(
-        "ztool-status-bar-test-{}",
-        std::process::id()
-    ));
+    let root = std::env::temp_dir().join(format!("zero-status-bar-test-{}", std::process::id()));
     let path = root.join("status-bar.json");
     fs::create_dir_all(&root).unwrap();
     fs::write(&path, "{not-json").unwrap();
 
-    let records = [plugin_record("ztool.screenshot", true, Some(20))];
+    let records = [plugin_record("zero.snap", true, Some(20))];
     let settings = load_status_bar_settings(&path, &records).unwrap();
 
     assert!(settings.enabled);
-    assert_eq!(settings.visible_plugin_items["ztool.screenshot"], true);
+    assert_eq!(settings.visible_plugin_items["zero.snap"], true);
 
     save_status_bar_settings(&path, &settings).unwrap();
-    assert!(fs::read_to_string(&path).unwrap().contains("ztool.screenshot"));
+    assert!(fs::read_to_string(&path).unwrap().contains("zero.snap"));
 
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn status_bar_settings_migrate_legacy_keys_with_canonical_precedence() {
+    let root = std::env::temp_dir().join(format!(
+        "zero-status-bar-legacy-test-{}",
+        std::process::id()
+    ));
+    let path = root.join("status-bar.json");
+    fs::create_dir_all(&root).unwrap();
+    fs::write(
+        &path,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "enabled": true,
+            "showPluginItemsOnLaunch": true,
+            "visiblePluginItems": {
+                "zero.snap": false,
+                "ztool.screenshot": true,
+                "ztool.caffeine": false,
+                "ztool.third-party": true
+            }
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let records = [
+        plugin_record("zero.snap", true, Some(20)),
+        plugin_record("zero.awake", true, Some(10)),
+        plugin_record("ztool.third-party", true, Some(30)),
+    ];
+    let settings = load_status_bar_settings(&path, &records).unwrap();
+
+    assert_eq!(settings.visible_plugin_items["zero.snap"], false);
+    assert_eq!(settings.visible_plugin_items["zero.awake"], false);
+    assert_eq!(settings.visible_plugin_items["ztool.third-party"], true);
+    assert!(!settings
+        .visible_plugin_items
+        .contains_key("ztool.screenshot"));
+    assert!(!settings.visible_plugin_items.contains_key("ztool.caffeine"));
     let _ = fs::remove_dir_all(root);
 }
 
 #[test]
 fn status_bar_items_filter_sort_and_reflect_caffeine_state() {
     let records = [
-        plugin_record("ztool.screenshot", true, Some(20)),
-        plugin_record("ztool.caffeine", true, Some(10)),
+        plugin_record("zero.snap", true, Some(20)),
+        plugin_record("zero.awake", true, Some(10)),
         plugin_record("ztool.disabled", false, Some(5)),
     ];
     let mut settings = StatusBarSettings::default_for_records(&records);
     settings
         .visible_plugin_items
-        .insert("ztool.screenshot".into(), true);
+        .insert("zero.snap".into(), true);
 
-    let items = normalize_status_bar_items(
-        &records,
-        &settings,
-        true,
-        StatusBarSupport::NativeMultiItem,
-    );
+    let items =
+        normalize_status_bar_items(&records, &settings, true, StatusBarSupport::NativeMultiItem);
 
     assert_eq!(
         items
@@ -146,15 +180,15 @@ fn status_bar_items_filter_sort_and_reflect_caffeine_state() {
             .map(|item| (item.id.as_str(), item.plugin_name.as_deref(), &item.icon))
             .collect::<Vec<_>>(),
         vec![
-            ("ztool.primary", None, &StatusBarIconId::Ztool),
+            ("zero.primary", None, &StatusBarIconId::Zero),
             (
-                "ztool.caffeine.status",
-                Some("ztool.caffeine"),
+                "zero.awake.status",
+                Some("zero.awake"),
                 &StatusBarIconId::CaffeineFull,
             ),
             (
-                "ztool.screenshot.status",
-                Some("ztool.screenshot"),
+                "zero.snap.status",
+                Some("zero.snap"),
                 &StatusBarIconId::Screenshot,
             ),
         ],
@@ -165,8 +199,8 @@ fn status_bar_items_filter_sort_and_reflect_caffeine_state() {
 #[test]
 fn status_bar_native_creation_order_rebuilds_primary_last_for_visual_order() {
     let records = [
-        plugin_record("ztool.screenshot", true, Some(20)),
-        plugin_record("ztool.caffeine", true, Some(10)),
+        plugin_record("zero.snap", true, Some(20)),
+        plugin_record("zero.awake", true, Some(10)),
     ];
     let settings = StatusBarSettings::default_for_records(&records);
     let items = normalize_status_bar_items(
@@ -179,16 +213,16 @@ fn status_bar_native_creation_order_rebuilds_primary_last_for_visual_order() {
     assert_eq!(
         native_status_item_creation_order(&items),
         vec![
-            "ztool.screenshot.status".to_string(),
-            "ztool.caffeine.status".to_string(),
-            "ztool.primary".to_string(),
+            "zero.snap.status".to_string(),
+            "zero.awake.status".to_string(),
+            "zero.primary".to_string(),
         ],
     );
 }
 
 #[test]
 fn status_bar_items_keep_plugin_actions_available_in_fallback() {
-    let records = [plugin_record("ztool.caffeine", true, Some(10))];
+    let records = [plugin_record("zero.awake", true, Some(10))];
     let settings = StatusBarSettings::default_for_records(&records);
 
     let items = normalize_status_bar_items(
@@ -198,9 +232,12 @@ fn status_bar_items_keep_plugin_actions_available_in_fallback() {
         StatusBarSupport::FallbackActionRow,
     );
 
-    assert_eq!(items[0].id, "ztool.primary");
+    assert_eq!(items[0].id, "zero.primary");
     assert!(items[0].native_visible);
-    assert_eq!(items[1].action.action_type, StatusBarActionType::ToggleCaffeine);
+    assert_eq!(
+        items[1].action.action_type,
+        StatusBarActionType::ToggleCaffeine
+    );
     assert!(!items[1].native_visible);
 }
 

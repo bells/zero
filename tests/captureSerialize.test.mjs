@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   buildCommitScreenshotPayload,
   buildPinScreenshotPayload,
-} from "/private/tmp/ztool-capture-test/captureSerialize.js";
+} from "/private/tmp/zero-capture-test/captureSerialize.js";
 
 test("builds commit payload using Rust command field names", () => {
   assert.deepEqual(

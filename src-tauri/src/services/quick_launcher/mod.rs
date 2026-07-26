@@ -443,7 +443,7 @@ mod tests {
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     #[test]
     fn unsupported_platform_is_explicit() {
-        let state = QuickLauncherState::new(std::env::temp_dir().join("ztool-unsupported"));
+        let state = QuickLauncherState::new(std::env::temp_dir().join("zero-unsupported"));
         assert_eq!(
             state.snapshot().unwrap().platform_support,
             QuickLauncherPlatformSupport::Unsupported

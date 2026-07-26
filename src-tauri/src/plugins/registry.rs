@@ -5,6 +5,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::brand::{
+    canonical_data_root, canonical_first_party_contribution_id, canonical_first_party_plugin_id,
+    default_home, ZERO_AWAKE_PLUGIN_ID, ZERO_LAUNCH_PLUGIN_ID, ZERO_PAPER_PLUGIN_ID,
+    ZERO_SNAP_PLUGIN_ID,
+};
+
 use super::contracts::{
     InstallPluginPackageInput, PluginContributionCommand, PluginContributionSetting,
     PluginContributionStatusBarItem, PluginContributionView, PluginContributions, PluginHealth,
@@ -22,7 +28,7 @@ struct PluginRegistryDiskState {
     records: Vec<PluginRecord>,
 }
 
-const PLUGIN_REGISTRY_SCHEMA_VERSION: u16 = 3;
+const PLUGIN_REGISTRY_SCHEMA_VERSION: u16 = 4;
 
 pub struct PluginRegistry {
     root: PathBuf,
@@ -81,10 +87,9 @@ impl PluginRegistry {
                     .map_err(|error| format!("failed to parse plugin registry: {error}"))
             }) {
             Ok(mut state) => {
-                if state.schema_version < PLUGIN_REGISTRY_SCHEMA_VERSION {
-                    migrate_bundled_records(&mut state.records);
-                    state.schema_version = PLUGIN_REGISTRY_SCHEMA_VERSION;
-                }
+                canonicalize_records(&mut state.records);
+                migrate_bundled_records(&mut state.records);
+                state.schema_version = PLUGIN_REGISTRY_SCHEMA_VERSION;
                 let registry = Self {
                     root,
                     records: state.records,
@@ -102,11 +107,7 @@ impl PluginRegistry {
     }
 
     pub fn default_root() -> PathBuf {
-        std::env::var_os("HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".ztool")
-            .join("plugins")
+        canonical_data_root(&default_home()).join("plugins")
     }
 
     pub fn records(&self) -> &[PluginRecord] {
@@ -356,46 +357,46 @@ fn bundled_plugin_records() -> Vec<PluginRecord> {
 
 fn bundled_screenshot_record() -> PluginRecord {
     bundled_record(PluginManifest {
-        name: "ztool.screenshot".into(),
+        name: ZERO_SNAP_PLUGIN_ID.into(),
         version: env!("CARGO_PKG_VERSION").into(),
         author: "watson".into(),
         main: "plugins/screenshot".into(),
         permissions: vec![PluginPermission::UiMessage],
-        id: Some("ztool.screenshot".into()),
-        display_name: Some("Screenshot".into()),
+        id: Some(ZERO_SNAP_PLUGIN_ID.into()),
+        display_name: Some("Zero Snap".into()),
         description: Some("Shortcut, copy, save".into()),
         engines: None,
         platforms: Some(desktop_platforms()),
         runtime: Some(PluginRuntime::Webview),
         contributes: Some(PluginContributions {
             views: Some(vec![PluginContributionView {
-                id: "ztool.screenshot.main".into(),
-                title: "Screenshot".into(),
+                id: "zero.snap.main".into(),
+                title: "Zero Snap".into(),
                 surface: Some(PluginViewSurface::Main),
             }]),
             commands: Some(vec![
                 PluginContributionCommand {
-                    id: "ztool.screenshot.capture".into(),
-                    title: "Capture Screenshot".into(),
+                    id: "zero.snap.capture".into(),
+                    title: "Capture Zero Snap".into(),
                 },
                 PluginContributionCommand {
-                    id: "ztool.screenshot.copy".into(),
+                    id: "zero.snap.copy".into(),
                     title: "Capture and Copy".into(),
                 },
                 PluginContributionCommand {
-                    id: "ztool.screenshot.save".into(),
+                    id: "zero.snap.save".into(),
                     title: "Capture and Save".into(),
                 },
             ]),
             settings: None,
             status_bar_items: Some(vec![PluginContributionStatusBarItem {
-                id: "ztool.screenshot.status".into(),
-                title: "Screenshot".into(),
+                id: "zero.snap.status".into(),
+                title: "Zero Snap".into(),
                 icon: StatusBarIconId::Screenshot,
                 active_icon: None,
                 action: StatusBarAction {
                     action_type: StatusBarActionType::StartScreenshot,
-                    command_id: Some("ztool.screenshot.capture".into()),
+                    command_id: Some("zero.snap.capture".into()),
                 },
                 order: Some(20),
                 visible_by_default: Some(true),
@@ -406,26 +407,26 @@ fn bundled_screenshot_record() -> PluginRecord {
 
 fn bundled_caffeine_record() -> PluginRecord {
     bundled_record(PluginManifest {
-        name: "ztool.caffeine".into(),
+        name: ZERO_AWAKE_PLUGIN_ID.into(),
         version: env!("CARGO_PKG_VERSION").into(),
         author: "watson".into(),
         main: "plugins/caffeine".into(),
         permissions: vec![PluginPermission::UiMessage],
-        id: Some("ztool.caffeine".into()),
-        display_name: Some("Caffeine".into()),
+        id: Some(ZERO_AWAKE_PLUGIN_ID.into()),
+        display_name: Some("Zero Awake".into()),
         description: Some("Keep display and system awake".into()),
         engines: None,
         platforms: Some(desktop_platforms()),
         runtime: Some(PluginRuntime::Webview),
         contributes: Some(PluginContributions {
             views: Some(vec![PluginContributionView {
-                id: "ztool.caffeine.main".into(),
-                title: "Caffeine".into(),
+                id: "zero.awake.main".into(),
+                title: "Zero Awake".into(),
                 surface: Some(PluginViewSurface::Main),
             }]),
             commands: Some(vec![PluginContributionCommand {
-                id: "ztool.caffeine.toggle".into(),
-                title: "Toggle Caffeine".into(),
+                id: "zero.awake.toggle".into(),
+                title: "Toggle Zero Awake".into(),
             }]),
             settings: Some(vec![PluginContributionSetting {
                 key: "durationMinutes".into(),
@@ -434,13 +435,13 @@ fn bundled_caffeine_record() -> PluginRecord {
                 label: Some("Duration minutes".into()),
             }]),
             status_bar_items: Some(vec![PluginContributionStatusBarItem {
-                id: "ztool.caffeine.status".into(),
-                title: "Caffeine".into(),
+                id: "zero.awake.status".into(),
+                title: "Zero Awake".into(),
                 icon: StatusBarIconId::CaffeineEmpty,
                 active_icon: Some(StatusBarIconId::CaffeineFull),
                 action: StatusBarAction {
                     action_type: StatusBarActionType::ToggleCaffeine,
-                    command_id: Some("ztool.caffeine.toggle".into()),
+                    command_id: Some("zero.awake.toggle".into()),
                 },
                 order: Some(10),
                 visible_by_default: Some(true),
@@ -451,7 +452,7 @@ fn bundled_caffeine_record() -> PluginRecord {
 
 fn bundled_bing_wallpaper_record() -> PluginRecord {
     bundled_record(PluginManifest {
-        name: "ztool.bing-wallpaper".into(),
+        name: ZERO_PAPER_PLUGIN_ID.into(),
         version: "1.0.0".into(),
         author: "bells".into(),
         main: "plugins/bingWallpaper".into(),
@@ -460,29 +461,29 @@ fn bundled_bing_wallpaper_record() -> PluginRecord {
             PluginPermission::StoragePlugin,
             PluginPermission::SystemWallpaper,
         ],
-        id: Some("bing-wallpaper".into()),
-        display_name: Some("Bing Wallpaper".into()),
+        id: Some(ZERO_PAPER_PLUGIN_ID.into()),
+        display_name: Some("Zero Paper".into()),
         description: Some("Browse, download, and apply Bing daily wallpapers".into()),
         engines: None,
         platforms: Some(desktop_platforms()),
         runtime: Some(PluginRuntime::Webview),
         contributes: Some(PluginContributions {
             views: Some(vec![PluginContributionView {
-                id: "ztool.bing-wallpaper.main".into(),
-                title: "Bing Wallpaper".into(),
+                id: "zero.paper.main".into(),
+                title: "Zero Paper".into(),
                 surface: Some(PluginViewSurface::Main),
             }]),
             commands: Some(vec![
                 PluginContributionCommand {
-                    id: "ztool.bing-wallpaper.refresh".into(),
+                    id: "zero.paper.refresh".into(),
                     title: "Refresh Bing wallpapers".into(),
                 },
                 PluginContributionCommand {
-                    id: "ztool.bing-wallpaper.apply".into(),
+                    id: "zero.paper.apply".into(),
                     title: "Apply Bing wallpaper".into(),
                 },
                 PluginContributionCommand {
-                    id: "ztool.bing-wallpaper.download".into(),
+                    id: "zero.paper.download".into(),
                     title: "Download Bing wallpaper".into(),
                 },
             ]),
@@ -494,7 +495,7 @@ fn bundled_bing_wallpaper_record() -> PluginRecord {
 
 fn bundled_quick_launcher_record() -> PluginRecord {
     bundled_record(PluginManifest {
-        name: "ztool.quick-launcher".into(),
+        name: ZERO_LAUNCH_PLUGIN_ID.into(),
         version: "1.0.0".into(),
         author: "bells".into(),
         main: "plugins/quickLauncher".into(),
@@ -504,25 +505,25 @@ fn bundled_quick_launcher_record() -> PluginRecord {
             PluginPermission::SystemWindowFocus,
             PluginPermission::SystemSettingsOpen,
         ],
-        id: Some("quick-launcher".into()),
-        display_name: Some("Quick Launcher".into()),
+        id: Some(ZERO_LAUNCH_PLUGIN_ID.into()),
+        display_name: Some("Zero Launch".into()),
         description: Some("Search, launch, and switch local apps and system settings".into()),
         engines: None,
         platforms: Some(vec![PluginPlatform::Macos, PluginPlatform::Windows]),
         runtime: Some(PluginRuntime::Webview),
         contributes: Some(PluginContributions {
             views: Some(vec![PluginContributionView {
-                id: "ztool.quick-launcher.main".into(),
-                title: "Quick Launcher".into(),
+                id: "zero.launch.main".into(),
+                title: "Zero Launch".into(),
                 surface: Some(PluginViewSurface::Main),
             }]),
             commands: Some(vec![
                 PluginContributionCommand {
-                    id: "ztool.quick-launcher.show".into(),
-                    title: "Show Quick Launcher".into(),
+                    id: "zero.launch.show".into(),
+                    title: "Show Zero Launch".into(),
                 },
                 PluginContributionCommand {
-                    id: "ztool.quick-launcher.refresh".into(),
+                    id: "zero.launch.refresh".into(),
                     title: "Refresh application index".into(),
                 },
             ]),
@@ -553,8 +554,75 @@ fn bundled_record(manifest: PluginManifest) -> PluginRecord {
 
 fn migrate_bundled_records(records: &mut Vec<PluginRecord>) {
     for bundled in bundled_plugin_records() {
-        if !records.iter().any(|record| record.name == bundled.name) {
+        if let Some(record) = records
+            .iter_mut()
+            .find(|record| record.name == bundled.name && record.source == PluginSource::Bundled)
+        {
+            let enabled = record.enabled;
+            let health = record.health.clone();
+            *record = bundled;
+            record.enabled = enabled;
+            record.health = if enabled {
+                health
+            } else {
+                PluginHealth::Disabled
+            };
+        } else if !records.iter().any(|record| record.name == bundled.name) {
             records.push(bundled);
+        }
+    }
+}
+
+fn canonicalize_records(records: &mut Vec<PluginRecord>) {
+    let mut canonical = Vec::<(PluginRecord, bool)>::new();
+
+    for mut record in std::mem::take(records) {
+        let original_name = record.name.clone();
+        canonicalize_record(&mut record);
+        let was_already_canonical = original_name == record.name;
+
+        if let Some((existing, existing_was_canonical)) = canonical
+            .iter_mut()
+            .find(|(existing, _)| existing.name == record.name)
+        {
+            if was_already_canonical || !*existing_was_canonical {
+                *existing = record;
+                *existing_was_canonical = was_already_canonical;
+            }
+        } else {
+            canonical.push((record, was_already_canonical));
+        }
+    }
+
+    *records = canonical.into_iter().map(|(record, _)| record).collect();
+}
+
+fn canonicalize_record(record: &mut PluginRecord) {
+    record.name = canonical_first_party_plugin_id(&record.name).to_string();
+    record.manifest.name = canonical_first_party_plugin_id(&record.manifest.name).to_string();
+    if let Some(id) = &mut record.manifest.id {
+        *id = canonical_first_party_plugin_id(id).to_string();
+    }
+
+    let Some(contributes) = &mut record.manifest.contributes else {
+        return;
+    };
+    if let Some(views) = &mut contributes.views {
+        for view in views {
+            view.id = canonical_first_party_contribution_id(&view.id);
+        }
+    }
+    if let Some(commands) = &mut contributes.commands {
+        for command in commands {
+            command.id = canonical_first_party_contribution_id(&command.id);
+        }
+    }
+    if let Some(items) = &mut contributes.status_bar_items {
+        for item in items {
+            item.id = canonical_first_party_contribution_id(&item.id);
+            if let Some(command_id) = &mut item.action.command_id {
+                *command_id = canonical_first_party_contribution_id(command_id);
+            }
         }
     }
 }

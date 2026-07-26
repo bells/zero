@@ -6,7 +6,7 @@ import {
   hitTestAnnotation,
   isAnnotationLargeEnough,
   normalizeRect,
-} from "/private/tmp/ztool-capture-test/captureCanvas.js";
+} from "/private/tmp/zero-capture-test/captureCanvas.js";
 
 test("normalizes and clamps rectangles", () => {
   assert.deepEqual(normalizeRect({ x: 80, y: 70 }, { x: 10, y: 15 }), {

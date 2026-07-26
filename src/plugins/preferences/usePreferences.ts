@@ -4,27 +4,28 @@ import { PluginId } from "../types";
 import type { TranslationKey } from "./i18n";
 import {
   AppPreferences,
-  DEFAULT_PREFERENCES,
   LanguagePreference,
   getVisiblePluginIds,
   normalizePreferences,
   setLanguagePreference,
   setToolVisibility,
 } from "./preferencesModel";
-
-const STORAGE_KEY = "ztool.preferences.v1";
+import {
+  readStoredPreferences,
+  writeCanonicalPreferences,
+} from "./preferencesStorage";
 
 export function usePreferences(pluginIds: PluginId[]) {
   const pluginIdsKey = pluginIds.join("\u0000");
   const [preferences, setPreferences] = useState<AppPreferences>(() =>
-    normalizePreferences(readStoredPreferences(), pluginIds),
+    normalizePreferences(readStoredPreferences(window.localStorage), pluginIds),
   );
   const [isAutostartBusy, setIsAutostartBusy] = useState(false);
   const [messageKey, setMessageKey] = useState<TranslationKey>("prefs.message.ready");
   const [messageDetail, setMessageDetail] = useState<string | null>(null);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
+    writeCanonicalPreferences(window.localStorage, preferences);
   }, [preferences]);
 
   useEffect(() => {
@@ -97,13 +98,4 @@ export function usePreferences(pluginIds: PluginId[]) {
     setToolVisible,
     setLanguage,
   };
-}
-
-function readStoredPreferences() {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : DEFAULT_PREFERENCES;
-  } catch {
-    return DEFAULT_PREFERENCES;
-  }
 }

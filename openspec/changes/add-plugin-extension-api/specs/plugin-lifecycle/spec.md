@@ -4,15 +4,15 @@
 The system SHALL maintain a plugin registry that discovers bundled plugins, market-installed packages, local packages, development plugins, and persisted lifecycle state before rendering plugin navigation.
 
 #### Scenario: First launch seeds bundled plugins
-- **WHEN** ZTool starts with no existing plugin registry
+- **WHEN** Zero starts with no existing plugin registry
 - **THEN** the system registers bundled screenshot and caffeine plugins as installed and enabled by default
 
 #### Scenario: Market-installed plugin is discovered on startup
-- **WHEN** ZTool starts after a user has installed a plugin from the Git-based market
-- **THEN** the system loads that plugin's registry record from `~/.ztool/plugins/` and includes it in plugin lifecycle state
+- **WHEN** Zero starts after a user has installed a plugin from the Git-based market
+- **THEN** the system loads that plugin's registry record from `~/.zero/plugins/` and includes it in plugin lifecycle state
 
 #### Scenario: Local package plugin is discovered on startup
-- **WHEN** ZTool starts after a user has installed a local `.zplugin` package
+- **WHEN** Zero starts after a user has installed a local `.zplugin` package
 - **THEN** the system loads that plugin's registry record and includes it in plugin lifecycle state
 
 #### Scenario: Invalid installed plugin is skipped
@@ -28,7 +28,7 @@ The system SHALL allow users to install a local or market-downloaded `.zplugin` 
 
 #### Scenario: Install valid package
 - **WHEN** the user selects a valid `.zplugin` package and accepts its permission request
-- **THEN** the system extracts the package under `~/.ztool/plugins/`, persists its registry record, enables it according to the install choice, and shows it in plugin navigation
+- **THEN** the system extracts the package under `~/.zero/plugins/`, persists its registry record, enables it according to the install choice, and shows it in plugin navigation
 
 #### Scenario: Install package with duplicate identity
 - **WHEN** the user installs a package whose plugin name/id already exists in the registry
@@ -51,11 +51,11 @@ The system SHALL allow users to uninstall active plugin records while preserving
 
 #### Scenario: Uninstall market-installed plugin
 - **WHEN** the user uninstalls a plugin installed from the Git-based market
-- **THEN** the system disables the plugin, removes its active registry record, removes its extracted package assets from `~/.ztool/plugins/`, and removes it from shell navigation
+- **THEN** the system disables the plugin, removes its active registry record, removes its extracted package assets from `~/.zero/plugins/`, and removes it from shell navigation
 
 #### Scenario: Uninstall local package plugin
 - **WHEN** the user uninstalls a plugin installed from a local `.zplugin` package
-- **THEN** the system disables the plugin, removes its active registry record, removes its extracted package assets from `~/.ztool/plugins/`, and removes it from shell navigation
+- **THEN** the system disables the plugin, removes its active registry record, removes its extracted package assets from `~/.zero/plugins/`, and removes it from shell navigation
 
 #### Scenario: Uninstall bundled plugin
 - **WHEN** the user uninstalls a bundled plugin such as screenshot or caffeine

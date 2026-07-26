@@ -1,4 +1,4 @@
-# Minimal ZTool Plugin
+# Minimal Zero Plugin
 
 This example contributes:
 

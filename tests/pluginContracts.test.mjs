@@ -4,7 +4,7 @@ import {
   SUPPORTED_PLUGIN_PERMISSIONS,
   validatePluginManifest,
   validatePluginMarketIndex,
-} from "/private/tmp/ztool-plugin-host-test/validation.js";
+} from "/private/tmp/zero-plugin-host-test/validation.js";
 
 const validManifest = {
   name: "clipboard-helper",
@@ -133,12 +133,49 @@ test("rejects incompatible manifest host and API versions", () => {
     ...validManifest,
     engines: {
       api: "2",
-      ztool: "999.0.0",
+      zero: "999.0.0",
     },
   });
 
   assertIssue(report, "manifest.api.incompatible", "engines.api");
-  assertIssue(report, "manifest.ztool.incompatible", "engines.ztool");
+  assertIssue(report, "manifest.zero.incompatible", "engines.zero");
+});
+
+test("accepts and canonicalizes the legacy host key", () => {
+  const report = validatePluginManifest({
+    ...validManifest,
+    engines: {
+      api: "1",
+      ztool: "0.1.0",
+    },
+  });
+
+  assert.equal(report.valid, true);
+  assert.deepEqual(report.manifest.engines, {
+    api: "1",
+    zero: "0.1.0",
+  });
+});
+
+test("canonical host key is authoritative when both host keys exist", () => {
+  const accepted = validatePluginManifest({
+    ...validManifest,
+    engines: {
+      zero: "0.1.0",
+      ztool: "999.0.0",
+    },
+  });
+  const rejected = validatePluginManifest({
+    ...validManifest,
+    engines: {
+      zero: "999.0.0",
+      ztool: "0.1.0",
+    },
+  });
+
+  assert.equal(accepted.valid, true);
+  assert.deepEqual(accepted.manifest.engines, { zero: "0.1.0" });
+  assertIssue(rejected, "manifest.zero.incompatible", "engines.zero");
 });
 
 test("accepts a valid Git-based market index", () => {

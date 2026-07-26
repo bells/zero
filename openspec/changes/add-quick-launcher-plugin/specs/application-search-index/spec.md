@@ -110,8 +110,8 @@ The system SHALL perform query normalization, fuzzy matching, ranking, and resul
 The system SHALL atomically persist a versioned platform-specific application index and SHALL load a valid cache into memory before starting an asynchronous disk refresh.
 
 #### Scenario: Valid cache exists at startup
-- **WHEN** ZTool starts with a compatible `apps_cache.json`
-- **THEN** Quick Launcher can search cached entries immediately while a background refresh validates current application roots
+- **WHEN** Zero starts with a compatible `apps_cache.json`
+- **THEN** Zero Launch can search cached entries immediately while a background refresh validates current application roots
 
 #### Scenario: Cache is missing
 - **WHEN** no cache exists
@@ -119,7 +119,7 @@ The system SHALL atomically persist a versioned platform-specific application in
 
 #### Scenario: Cache is corrupt or incompatible
 - **WHEN** cache JSON is malformed, has an unsupported schema, or belongs to another platform
-- **THEN** the system ignores or quarantines it, reports a non-fatal diagnostic, and rebuilds without crashing ZTool
+- **THEN** the system ignores or quarantines it, reports a non-fatal diagnostic, and rebuilds without crashing Zero
 
 #### Scenario: Refresh finishes
 - **WHEN** a background scan succeeds
@@ -148,7 +148,7 @@ The system SHALL monitor supported application roots where possible, coalesce re
 The system SHALL treat application running/focus state as short-lived runtime data and MUST NOT persist it as authoritative state in `apps_cache.json`.
 
 #### Scenario: Cached app exited since shutdown
-- **WHEN** an application was running before ZTool stopped but is not running after restart
+- **WHEN** an application was running before Zero stopped but is not running after restart
 - **THEN** search results report the current non-running state rather than a cached running flag
 
 #### Scenario: Runtime probe is temporarily unavailable

@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   APP_WINDOW_COMMANDS,
   createAppWindowService,
-} from "/private/tmp/ztool-app-window-test/services/appWindowService.js";
+} from "/private/tmp/zero-app-window-test/services/appWindowService.js";
 
 test("defines explicit Rust command names for app window actions", () => {
   assert.deepEqual(APP_WINDOW_COMMANDS, {

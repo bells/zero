@@ -1,14 +1,14 @@
-# ZTool
+# Zero
 
-ZTool is a tray-first desktop utility collection built with Tauri 2, React, and TypeScript. Each tool is designed as a plugin so the app can grow into a larger toolbox without turning the main window into a crowded control panel.
+Zero is a tray-first desktop utility collection built with Tauri 2, React, and TypeScript. Each tool is designed as a plugin so the app can grow into a larger toolbox without turning the main window into a crowded control panel.
 
 ## Current Features
 
-- Screenshot tool with selection preview, dimensions, toolbar actions, copy, and save entry points.
+- Zero Snap with selection preview, dimensions, toolbar actions, copy, and save entry points.
 - Global screenshot shortcut: `CommandOrControl+Shift+A`.
-- Caffeine mode to keep the screen and system awake.
-- Bing daily wallpaper browser with cache-first history, save-to-Downloads, and one-click desktop apply.
-- Quick Launcher for fuzzy application/system-setting search, app launch/focus, and a reusable `CommandOrControl+Shift+Space` window on macOS and Windows.
+- Zero Awake to keep the screen and system awake.
+- Zero Paper with Bing daily wallpaper history, cache-first loading, save-to-Downloads, and one-click desktop apply.
+- Zero Launch for fuzzy application/system-setting search, app launch/focus, and a reusable `CommandOrControl+Shift+Space` window on macOS and Windows.
 - Preferences panel with real login autostart support.
 - Tool visibility preferences so users can choose which plugins appear in the main tool list.
 - Language preference with system default, Chinese, and English.
@@ -82,10 +82,10 @@ src/
   App.css                         Application styling
   plugins/
     pluginHost/                   Runtime plugin registry, market, extension bridge, and host UI
-    caffeine/                     Caffeine tool UI and state bridge
+    caffeine/                     Zero Awake tool UI and state bridge
     bingWallpaper/                Bing wallpaper contracts, model, hook, service, and card
     quickLauncher/                Launcher contracts, model, hook, shared view, panel, and window
-    screenshot/                   Screenshot tool UI and state bridge
+    screenshot/                   Zero Snap tool UI and state bridge
     preferences/                  Preferences, about, and preference model
 src-tauri/
   src/
@@ -97,14 +97,14 @@ tests/
   pluginHost*.test.mjs            Plugin host service/state tests
   extensionRuntime.test.mjs       Extension bridge and isolation tests
   i18n.test.mjs                   Language resolution and translation tests
-  screenshotMeta.test.mjs         Screenshot metadata tests
+  screenshotMeta.test.mjs         Zero Snap metadata tests
 ```
 
-## Bing Wallpaper
+## Zero Paper
 
-`ztool.bing-wallpaper` is the third bundled tool. It reads up to 10 records from Bing's `zh-CN` daily image feed, shows a validated cached snapshot immediately, and refreshes metadata and missing images in Rust. The card supports older/newer navigation, a separate Downloads action, and applying the selected image as the desktop wallpaper. Clicking the preview is equivalent to Apply.
+`zero.paper` is the third bundled tool. It reads up to 10 records from Bing's `zh-CN` daily image feed, shows a validated cached snapshot immediately, and refreshes metadata and missing images in Rust. The card supports older/newer navigation, a separate Downloads action, and applying the selected image as the desktop wallpaper. Clicking the preview is equivalent to Apply.
 
-The cache lives at `~/.ztool/data/wallpaper/`. `index.json` and image files are written through plugin-scoped, staged replacement; the service retains at most 10 indexed entries and removes only obsolete files that an earlier index owned. Unknown files are not deleted. A failed refresh leaves usable cached records visible with stale/error state.
+The cache lives at `~/.zero/data/wallpaper/`. `index.json` and image files are written through plugin-scoped, staged replacement; the service retains at most 10 indexed entries and removes only obsolete files that an earlier index owned. Unknown files are not deleted. A failed refresh leaves usable cached records visible with stale/error state.
 
 The bundled manifest requests `network`, `storage.plugin`, and `system.wallpaper`. The WebView does not fetch Bing or receive unrestricted filesystem access: Rust restricts requests to bounded HTTPS Bing endpoints, validates image content, resolves paths inside the wallpaper root, and passes only one selected preview back as a bounded data URL.
 
@@ -112,25 +112,31 @@ Desktop wallpaper apply uses the replaceable `WallpaperSetter` adapter around `w
 
 This bundled plugin uses the existing `webview` runtime and React renderer. It intentionally does not introduce a `plugin.wasm` or WASI runtime.
 
-## Quick Launcher
+## Zero Launch
 
-`ztool.quick-launcher` is the fourth bundled tool. The main plugin panel and the floating `launcher` window share one React view and one Rust-owned index. Press `CommandOrControl+Shift+Space`, type an English/Chinese name, full pinyin, initials, acronym, or bundled alias such as `wx`/`ps`, then use `ArrowUp`/`ArrowDown` and `Enter`. `Escape` or loss of focus hides only the floating window.
+`zero.launch` is the fourth bundled tool. The main plugin panel and the floating `launcher` window share one React view and one Rust-owned index. Press `CommandOrControl+Shift+Space`, type an English/Chinese name, full pinyin, initials, acronym, or bundled alias such as `wx`/`ps`, then use `ArrowUp`/`ArrowDown` and `Enter`. `Escape` or loss of focus hides only the floating window.
 
 Rust scans macOS application bundles in `/Applications`, `~/Applications`, `/System/Applications`, and `/System/Applications/Utilities`; Windows scans machine/user Start Menu Programs `.lnk` and `.exe` entries. Running applications are focused when the OS provides a reliable identity; otherwise the validated indexed entry is launched. Common system settings are host-maintained catalog records mapped privately to `x-apple.systempreferences:` or `ms-settings:` destinations. Linux and mobile return explicit unsupported state in this release.
 
-The versioned local data is stored under `~/.ztool/data/quick-launcher/`: `apps_cache.json` contains rebuildable application metadata, `usage.json` contains bounded success-only counts and last-used timestamps, and icons are lazy/rebuildable. Raw queries are never persisted or uploaded. Startup uses the cache immediately, refreshes in the background, and coalesces application-directory changes.
+The versioned local data is stored under `~/.zero/data/quick-launcher/`: `apps_cache.json` contains rebuildable application metadata, `usage.json` contains bounded success-only counts and last-used timestamps, and icons are lazy/rebuildable. Raw queries are never persisted or uploaded. Startup uses the cache immediately, refreshes in the background, and coalesces application-directory changes.
 
-The manifest requests `system.apps.read`, `system.apps.execute`, `system.window.focus`, and `system.settings.open`. Bundled Tauri commands and approved Extension Bridge methods resolve only host-issued `itemId` values; callers cannot submit arbitrary paths, Bundle IDs, command lines, shortcut targets, or URIs. Like the other bundled tools, Quick Launcher uses the existing React `webview` renderer and intentionally does not add `plugin.wasm`/WASI.
+The manifest requests `system.apps.read`, `system.apps.execute`, `system.window.focus`, and `system.settings.open`. Bundled Tauri commands and approved Extension Bridge methods resolve only host-issued `itemId` values; callers cannot submit arbitrary paths, Bundle IDs, command lines, shortcut targets, or URIs. Like the other bundled tools, Zero Launch uses the existing React `webview` renderer and intentionally does not add `plugin.wasm`/WASI.
 
 ## Plugin MVP
 
 The first plugin market is repository-based, not server-backed:
 
 - plugin authors publish a `.zplugin` ZIP archive in their own GitHub Releases;
-- ZTool reads a hosted static `market.json`;
-- install extracts packages under `~/.ztool/plugins/<plugin>/<version>/`;
+- Zero reads a hosted static `market.json`;
+- install extracts packages under `~/.zero/plugins/<plugin>/<version>/`;
 - `manifest.json` requires `name`, `version`, `author`, `main`, and `permissions`;
 - permissions are reviewed before install and enforced by a host-mediated Extension API bridge.
+
+## Upgrade compatibility
+
+Zero keeps `com.watson.ztool` as its immutable Tauri bundle identifier so an existing installation upgrades in place and retains operating-system permissions, autostart registration, and WebView storage. This identifier is a compatibility value, not the current product name.
+
+On startup, Zero copies missing data from `~/.ztool` into `~/.zero`, normalizes the four known first-party plugin IDs, and leaves the legacy directory untouched for rollback. Canonical `~/.zero` data wins when both locations contain the same unit. Frontend preferences follow the same rule: `zero.preferences.v1` wins, otherwise `ztool.preferences.v1` is read and copied forward without deleting the legacy key. Extension API v1 continues to accept `engines.ztool`, while current manifests use `engines.zero`.
 
 Developer docs:
 
@@ -150,17 +156,22 @@ node scripts/validate-plugin-package.mjs examples/plugins/minimal-view-command-s
 Recommended checks before pushing:
 
 ```bash
-pnpm exec tsc src/plugins/preferences/preferencesModel.ts src/plugins/types.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-preferences-test --noEmit false --skipLibCheck
-node --test tests/preferencesModel.test.mjs
-pnpm exec tsc src/plugins/preferences/i18n.ts src/plugins/preferences/preferencesModel.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-i18n-test --noEmit false --skipLibCheck
+pnpm exec tsc src/brand/identity.ts --module ES2020 --moduleResolution bundler --target ES2022 --rootDir src --outDir /private/tmp/zero-brand-test --noEmit false --skipLibCheck
+node --test tests/brandIdentity.test.mjs
+pnpm exec tsc src/plugins/preferences/preferencesModel.ts src/plugins/preferences/preferencesStorage.ts src/plugins/types.ts src/brand/identity.ts --module ES2020 --moduleResolution bundler --target ES2020 --rootDir src --outDir /private/tmp/zero-preferences-test --noEmit false --skipLibCheck
+node --test tests/preferencesModel.test.mjs tests/preferencesStorage.test.mjs
+pnpm exec tsc src/plugins/preferences/i18n.ts src/plugins/preferences/preferencesModel.ts src/plugins/types.ts src/brand/identity.ts --module ES2020 --moduleResolution bundler --target ES2020 --rootDir src --outDir /private/tmp/zero-i18n-test --noEmit false --skipLibCheck
 node --test tests/i18n.test.mjs
-pnpm exec tsc src/plugins/screenshot/screenshotMeta.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/ztool-screenshot-test --noEmit false --skipLibCheck
+pnpm exec tsc src/plugins/screenshot/screenshotMeta.ts --module ES2020 --moduleResolution bundler --target ES2020 --outDir /private/tmp/zero-screenshot-test --noEmit false --skipLibCheck
 node --test tests/screenshotMeta.test.mjs
-./node_modules/.bin/tsc src/plugins/pluginHost/contracts.ts src/plugins/pluginHost/pluginHostServiceCore.ts src/plugins/pluginHost/pluginHostModel.ts src/plugins/pluginHost/pluginMarketModel.ts src/plugins/pluginHost/extensionBridge.ts --module ES2020 --moduleResolution bundler --target ES2022 --outDir /private/tmp/ztool-plugin-host-test --noEmit false --skipLibCheck
+pnpm exec tsc src/plugins/pluginHost/contracts.ts src/plugins/pluginHost/validation.ts --module ES2020 --moduleResolution bundler --target ES2022 --rootDir src/plugins/pluginHost --outDir /private/tmp/zero-plugin-host-test --noEmit false --skipLibCheck
+pnpm exec tsc src/plugins/pluginHost/contracts.ts src/plugins/pluginHost/pluginHostServiceCore.ts --module ES2020 --moduleResolution bundler --target ES2022 --rootDir src/plugins/pluginHost --outDir /private/tmp/zero-plugin-host-service-test --noEmit false --skipLibCheck
+pnpm exec tsc src/plugins/pluginHost/contracts.ts src/plugins/pluginHost/pluginHostModel.ts src/plugins/pluginHost/pluginMarketModel.ts src/brand/identity.ts --module ES2020 --moduleResolution bundler --target ES2022 --rootDir src --outDir /private/tmp/zero-plugin-host-state-test --noEmit false --skipLibCheck
+pnpm exec tsc src/plugins/pluginHost/contracts.ts src/plugins/pluginHost/extensionBridge.ts src/plugins/quickLauncher/contracts.ts --module ES2020 --moduleResolution bundler --target ES2022 --rootDir src/plugins --outDir /private/tmp/zero-extension-runtime-test --noEmit false --skipLibCheck
 node --test tests/pluginHostService.test.mjs tests/pluginHostModel.test.mjs tests/pluginMarketModel.test.mjs tests/extensionRuntime.test.mjs
-pnpm exec tsc src/plugins/bingWallpaper/contracts.ts src/plugins/bingWallpaper/bingWallpaperModel.ts src/plugins/bingWallpaper/bingWallpaperController.ts src/plugins/bingWallpaper/bingWallpaperServiceCore.ts --module ES2020 --moduleResolution bundler --target ES2022 --outDir /private/tmp/ztool-bing-wallpaper-test --noEmit false --skipLibCheck
+pnpm exec tsc src/plugins/bingWallpaper/contracts.ts src/plugins/bingWallpaper/bingWallpaperModel.ts src/plugins/bingWallpaper/bingWallpaperController.ts src/plugins/bingWallpaper/bingWallpaperServiceCore.ts --module ES2020 --moduleResolution bundler --target ES2022 --outDir /private/tmp/zero-bing-wallpaper-test --noEmit false --skipLibCheck
 node --test tests/bingWallpaperModel.test.mjs tests/bingWallpaperController.test.mjs tests/bingWallpaperService.test.mjs
-pnpm exec tsc src/plugins/quickLauncher/contracts.ts src/plugins/quickLauncher/quickLauncherModel.ts src/plugins/quickLauncher/quickLauncherServiceCore.ts --module ES2020 --moduleResolution bundler --target ES2022 --rootDir src/plugins/quickLauncher --outDir /private/tmp/ztool-quick-launcher-test --noEmit false --skipLibCheck
+pnpm exec tsc src/plugins/quickLauncher/contracts.ts src/plugins/quickLauncher/quickLauncherModel.ts src/plugins/quickLauncher/quickLauncherServiceCore.ts --module ES2020 --moduleResolution bundler --target ES2022 --rootDir src/plugins/quickLauncher --outDir /private/tmp/zero-quick-launcher-test --noEmit false --skipLibCheck
 node --test tests/quickLauncherModel.test.mjs tests/quickLauncherService.test.mjs
 pnpm build
 cd src-tauri && cargo check && cargo test
@@ -171,4 +182,4 @@ cargo test --release --test quick_launcher_benchmark -- --ignored --nocapture
 
 - `node_modules`, frontend build output, and Rust/Tauri build output are intentionally ignored.
 - The login autostart preference uses the official Tauri autostart plugin.
-- Screenshot annotation tools are intentionally phased: the UI direction is in place, while deeper annotation behavior can be implemented plugin by plugin.
+- Zero Snap annotation tools are intentionally phased: the UI direction is in place, while deeper annotation behavior can be implemented plugin by plugin.

@@ -1,5 +1,5 @@
 export const SUPPORTED_EXTENSION_API_VERSION = "1";
-export const SUPPORTED_ZTOOL_HOST_VERSION = "0.1.0";
+export const SUPPORTED_ZERO_HOST_VERSION = "0.1.0";
 
 export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "clipboard.read",
@@ -29,6 +29,7 @@ export type PluginHealth =
   | "incompatible";
 
 export interface PluginEngines {
+  zero?: string;
   ztool?: string;
   api?: string;
 }
@@ -52,7 +53,7 @@ export interface PluginContributionSetting {
 }
 
 export type StatusBarIconId =
-  | "ztool"
+  | "zero"
   | "caffeine-empty"
   | "caffeine-full"
   | "screenshot"

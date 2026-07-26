@@ -1,8 +1,8 @@
 ## Context
 
-ZTool 当前通过插件注册表统一管理三个 bundled webview 工具：`ztool.screenshot`、`ztool.caffeine` 和 `ztool.bing-wallpaper`。前端由 `bundledPlugins.ts` 提供清单、`App.tsx` 映射 React renderer；Rust 端由 `plugins/registry.rs` 负责 bundled record 的播种与迁移。原生能力通过薄 Tauri command、`services/` 中的业务服务和 Rust/TypeScript 对称契约暴露，第三方 ExtensionSurface 则只能使用经过身份、启用状态和已批准权限检查的消息 Bridge。
+Zero 当前通过插件注册表统一管理三个 bundled webview 工具：`zero.snap`、`zero.awake` 和 `zero.paper`。前端由 `bundledPlugins.ts` 提供清单、`App.tsx` 映射 React renderer；Rust 端由 `plugins/registry.rs` 负责 bundled record 的播种与迁移。原生能力通过薄 Tauri command、`services/` 中的业务服务和 Rust/TypeScript 对称契约暴露，第三方 ExtensionSurface 则只能使用经过身份、启用状态和已批准权限检查的消息 Bridge。
 
-Quick Launcher 横跨应用目录扫描、系统运行状态、原生聚焦/启动、URI 打开、模糊匹配、拼音转换、持久化缓存、文件系统监听、全局快捷键、独立窗口和 React 列表交互。磁盘与系统 API 必须由 Rust 持有；React 只消费已经归一化的搜索结果并管理输入、选中项和可访问交互。任意路径或 URI 都不能成为 WebView 可控的执行参数。
+Zero Launch 横跨应用目录扫描、系统运行状态、原生聚焦/启动、URI 打开、模糊匹配、拼音转换、持久化缓存、文件系统监听、全局快捷键、独立窗口和 React 列表交互。磁盘与系统 API 必须由 Rust 持有；React 只消费已经归一化的搜索结果并管理输入、选中项和可访问交互。任意路径或 URI 都不能成为 WebView 可控的执行参数。
 
 首版正式支持 macOS 和 Windows。Linux 桌面应用发现、窗口激活和设置 URI 缺少统一契约，因此返回明确的 unsupported capability，不以空结果冒充支持。移动端不注册该插件。
 
@@ -10,7 +10,7 @@ Quick Launcher 横跨应用目录扫描、系统运行状态、原生聚焦/启�
 
 **Goals:**
 
-- 把 Quick Launcher 作为第四个 bundled plugin 接入现有注册表、偏好、导航、i18n 和故障隔离模型。
+- 把 Zero Launch 作为第四个 bundled plugin 接入现有注册表、偏好、导航、i18n 和故障隔离模型。
 - 提供主插件面板与全局快捷键唤起的浮动 Launcher，两者复用相同的 View、Hook、typed service 和 Rust 索引。
 - 在 macOS/Windows 发现应用和常用系统设置，以英文、中文、全拼、拼音首字母、词首缩写及受控 Alias 完成内存模糊匹配。
 - 对可可靠识别的运行中应用执行聚焦，否则启动应用；将成功行为记录为本地频率和最近使用权重。
@@ -25,7 +25,7 @@ Quick Launcher 横跨应用目录扫描、系统运行状态、原生聚焦/启�
 - 不承诺激活无稳定进程/窗口身份的所有 Windows 应用；系统限制聚焦时必须报告真实结果并可安全退化为启动入口。
 - 不提供用户自定义 Alias、云同步、遥测上传或跨设备使用历史。
 - 不在首版支持 Linux、iOS 或 Android 的应用索引和系统设置跳转。
-- 不改造整个 ZTool 主窗口为全局命令面板；Launcher 是独立插件和独立窗口。
+- 不改造整个 Zero 主窗口为全局命令面板；Launcher 是独立插件和独立窗口。
 
 ## Decisions
 
@@ -35,7 +35,7 @@ Quick Launcher 横跨应用目录扫描、系统运行状态、原生聚焦/启�
 
 ```json
 {
-  "name": "ztool.quick-launcher",
+  "name": "zero.launch",
   "id": "quick-launcher",
   "version": "1.0.0",
   "author": "bells",
@@ -156,7 +156,7 @@ release-mode 基准使用至少 10,000 个含中英文和 alias 的固定条目�
 
 ### Decision 8: 缓存优先、原子持久化与去抖 Watcher
 
-数据位于 `~/.ztool/data/quick-launcher/`：
+数据位于 `~/.zero/data/quick-launcher/`：
 
 ```text
 apps_cache.json       schemaVersion、platform、entries、source mtimes、updatedAt
@@ -209,11 +209,11 @@ React Hook 保留查询 generation 和 activation in-flight guard：旧查询完
 3. 实现平台无关 catalog、search fields、排序、usage 和 versioned cache，以 fixture/临时目录验证拼音、alias、频率上限、损坏恢复与原子写入。
 4. 实现 macOS/Windows scanner、running probe、activator 和 icon provider；先用 fake adapter 通过服务测试，再分别做真实平台 smoke test。
 5. 添加 `QuickLauncherState`、single-flight refresh、Watcher 和薄 Tauri commands，注册后台缓存加载/刷新并确保主线程不被扫描阻塞。
-6. 注册 `ztool.quick-launcher` bundled record、renderer、偏好/i18n 和 registry migration；验证已有三个插件状态不变。
+6. 注册 `zero.launch` bundled record、renderer、偏好/i18n 和 registry migration；验证已有三个插件状态不变。
 7. 实现共享 React View/Hook、主插件面板和 `launcher` window 路由，接入全局快捷键、Esc/失焦隐藏、键盘导航和 stale request guard。
 8. 完成自动化 gate、release benchmark 和真实 macOS/Windows 手测，包括冷启动、缓存损坏、安装/卸载应用、快捷键冲突、运行中切换和系统设置跳转。
 
-回滚时注销 Launcher 快捷键、从 bundled renderer/manifest seeding 中移除或禁用 `ztool.quick-launcher`，并保留其他插件 registry 记录。新增权限枚举和 Bridge 方法可以继续保留但默认拒绝未批准插件；`~/.ztool/data/quick-launcher/` 是可重建缓存，可由用户安全删除，不影响应用或系统设置。
+回滚时注销 Launcher 快捷键、从 bundled renderer/manifest seeding 中移除或禁用 `zero.launch`，并保留其他插件 registry 记录。新增权限枚举和 Bridge 方法可以继续保留但默认拒绝未批准插件；`~/.zero/data/quick-launcher/` 是可重建缓存，可由用户安全删除，不影响应用或系统设置。
 
 ## Open Questions
 

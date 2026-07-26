@@ -2,13 +2,13 @@ use std::time::{Duration, Instant};
 
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
-use ztool_lib::services::quick_launcher::contracts::{
+use zero_lib::services::quick_launcher::contracts::{
     QuickLauncherItemKind, QuickLauncherRunningState, QuickLauncherSearchInput,
 };
-use ztool_lib::services::quick_launcher::model::{
+use zero_lib::services::quick_launcher::model::{
     stable_item_id, IndexedItem, LaunchTarget, UsageMap,
 };
-use ztool_lib::services::quick_launcher::search::{
+use zero_lib::services::quick_launcher::search::{
     build_search_fields, bundled_aliases, default_matcher, search_items,
 };
 

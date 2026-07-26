@@ -17,10 +17,10 @@
 
 ## 3. Rust Plugin Registry and Lifecycle Commands
 
-- [x] 3.1 Create a Rust plugin registry service that resolves `~/.ztool/plugins/`, loads/saves registry state, tracks plugin source, and defensively recovers from corrupt registry data.
+- [x] 3.1 Create a Rust plugin registry service that resolves `~/.zero/plugins/`, loads/saves registry state, tracks plugin source, and defensively recovers from corrupt registry data.
 - [x] 3.2 Seed bundled screenshot and caffeine plugin records on first launch while preserving preferences/about as protected host surfaces.
 - [x] 3.3 Add Tauri commands for listing plugins, validating a local package, installing a market plugin, installing a local package, uninstalling a plugin, enabling/disabling a plugin, and restoring bundled defaults.
-- [x] 3.4 Implement package extraction under `~/.ztool/plugins/<plugin>/<version>/` with path traversal checks, checksum tracking, duplicate-id protection, and rollback on partial install.
+- [x] 3.4 Implement package extraction under `~/.zero/plugins/<plugin>/<version>/` with path traversal checks, checksum tracking, duplicate-id protection, and rollback on partial install.
 - [x] 3.5 Add Rust tests for registry seeding, restart persistence, corrupt registry recovery, install validation failure, duplicate install rejection, market install success, local install success, uninstall behavior, and bundled restore behavior.
 
 ## 4. Frontend Market and Plugin Host State

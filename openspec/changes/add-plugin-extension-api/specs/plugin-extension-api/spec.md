@@ -16,7 +16,7 @@ The system SHALL define a plugin `manifest.json` contract that requires `name`, 
 - **THEN** the system rejects the manifest and MUST NOT activate or execute that entrypoint
 
 #### Scenario: Manifest targets an incompatible host API
-- **WHEN** a plugin manifest declares a ZTool or Extension API range that does not include the running host
+- **WHEN** a plugin manifest declares a Zero or Extension API range that does not include the running host
 - **THEN** the system marks the plugin as incompatible and MUST NOT activate its entrypoints
 
 #### Scenario: Manifest declares unsupported permission

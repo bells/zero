@@ -16,7 +16,7 @@ pub fn scan() -> ScanResult {
         diagnostics: vec![QuickLauncherDiagnostic {
             code: "launcher.platform_unsupported".into(),
             message:
-                "Quick Launcher application discovery supports macOS and Windows in this release."
+                "Zero Launch application discovery supports macOS and Windows in this release."
                     .into(),
         }],
     }
@@ -45,7 +45,7 @@ fn unsupported(operation: &str) -> crate::services::quick_launcher::contracts::Q
     launcher_error(
         operation,
         "launcher.platform_unsupported",
-        "Quick Launcher supports macOS and Windows in this release.",
+        "Zero Launch supports macOS and Windows in this release.",
         false,
     )
 }

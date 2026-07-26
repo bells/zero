@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createTranslator,
   resolveLanguage,
-} from "/private/tmp/ztool-i18n-test/preferences/i18n.js";
+} from "/private/tmp/zero-i18n-test/plugins/preferences/i18n.js";
 
 test("resolves system language to Chinese for zh locales", () => {
   assert.equal(resolveLanguage("system", "zh-CN"), "zh-CN");
@@ -29,10 +29,10 @@ test("Bing wallpaper metadata actions and states are translated", () => {
   const zh = createTranslator("zh-CN");
   const en = createTranslator("en-US");
 
-  assert.equal(zh("plugin.bingWallpaper.title"), "Bing 壁纸");
-  assert.equal(en("plugin.bingWallpaper.title"), "Bing Wallpaper");
-  assert.equal(zh("plugin.quickLauncher.title"), "快速启动");
-  assert.equal(en("plugin.quickLauncher.title"), "Quick Launcher");
+  assert.equal(zh("plugin.bingWallpaper.title"), "Zero Paper");
+  assert.equal(en("plugin.bingWallpaper.title"), "Zero Paper");
+  assert.equal(zh("plugin.quickLauncher.title"), "Zero Launch");
+  assert.equal(en("plugin.quickLauncher.title"), "Zero Launch");
   assert.equal(zh("launcher.errorStale"), "该项目已变化，请刷新后重试");
   for (const key of [
     "wallpaper.download",

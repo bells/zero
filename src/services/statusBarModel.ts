@@ -5,6 +5,11 @@ import type {
   StatusBarAction,
   StatusBarIconId,
 } from "../plugins/pluginHost/contracts";
+import {
+  FIRST_PARTY_PLUGIN_IDS,
+  PRODUCT_NAME,
+  canonicalFirstPartyPluginId,
+} from "../brand/identity.js";
 
 export interface StatusBarSettingsSnapshot {
   enabled: boolean;
@@ -65,11 +70,11 @@ export const DEFAULT_STATUS_BAR_SETTINGS: StatusBarSettingsSnapshot = {
 };
 
 const PRIMARY_STATUS_BAR_ITEM: StatusBarItemSnapshot = {
-  id: "ztool.primary",
+  id: "zero.primary",
   pluginName: null,
-  title: "ZTool",
-  icon: "ztool",
-  baseIcon: "ztool",
+  title: PRODUCT_NAME,
+  icon: "zero",
+  baseIcon: "zero",
   action: { type: "toggle-tray" },
   order: 0,
   nativeVisible: true,
@@ -247,7 +252,7 @@ function resolveStatusBarIcon(
   caffeineEnabled: boolean,
 ): StatusBarIconId {
   if (
-    record.name === "ztool.caffeine" &&
+    canonicalFirstPartyPluginId(record.name) === FIRST_PARTY_PLUGIN_IDS.awake &&
     caffeineEnabled &&
     item.activeIcon
   ) {
@@ -306,6 +311,15 @@ function readPluginItemVisibility(
   const manifestId = record.manifest.id;
   if (manifestId && typeof visiblePluginItems[manifestId] === "boolean") {
     return visiblePluginItems[manifestId];
+  }
+
+  for (const [storedPluginId, visible] of Object.entries(visiblePluginItems)) {
+    if (
+      canonicalFirstPartyPluginId(storedPluginId) ===
+      canonicalFirstPartyPluginId(record.name)
+    ) {
+      return visible;
+    }
   }
 
   return undefined;

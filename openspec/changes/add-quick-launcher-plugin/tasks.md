@@ -30,7 +30,7 @@
 
 ## 4. Versioned cache, usage history, and refresh coordination
 
-- [ ] 4.1 Implement `~/.ztool/data/quick-launcher/` resolution and versioned `apps_cache.json` loading that validates schema, platform, entry identities, normalized roots, and source modification metadata.
+- [ ] 4.1 Implement `~/.zero/data/quick-launcher/` resolution and versioned `apps_cache.json` loading that validates schema, platform, entry identities, normalized roots, and source modification metadata.
 - [x] 4.2 Implement same-directory temporary writes, flush, atomic replacement, stale `.part` cleanup, and complete-revision swaps so readers never observe a partial index.
 - [ ] 4.3 Implement versioned `usage.json` with bounded counts, last-used time, record cap/retention cleanup, success-only updates, atomic writes, and no raw query persistence.
 - [x] 4.4 Implement cache-first initialization that publishes a usable memory snapshot before scheduling a background scan, and rebuilds non-fatally from missing, corrupt, incompatible, or cross-platform cache files.
@@ -62,8 +62,8 @@
 
 ## 7. Bundled plugin registration and registry migration
 
-- [x] 7.1 Add the `ztool.quick-launcher` TypeScript bundled manifest with short ID `quick-launcher`, author `bells`, version `1.0.0`, `webview` runtime, macOS/Windows platforms, view/command contributions, and four launcher permissions.
-- [x] 7.2 Add the matching Rust bundled manifest and approved permissions, bump the registry schema, and migrate only missing Quick Launcher records without changing existing plugin lifecycle state.
+- [x] 7.1 Add the `zero.launch` TypeScript bundled manifest with short ID `quick-launcher`, author `bells`, version `1.0.0`, `webview` runtime, macOS/Windows platforms, view/command contributions, and four launcher permissions.
+- [x] 7.2 Add the matching Rust bundled manifest and approved permissions, bump the registry schema, and migrate only missing Zero Launch records without changing existing plugin lifecycle state.
 - [x] 7.3 Extend restore-defaults, bundled kind/renderer resolution, accent/icon fallback, plugin navigation, preference normalization, permission display, and about counts for the fourth bundled tool.
 - [x] 7.4 Add zh-CN/en-US metadata, search, running, launch/focus, settings, refresh, cache, unsupported, empty, shortcut-conflict, stale-item, and structured error translations.
 - [x] 7.5 Extend bundled manifest, registry seed/migration/restore, preferences, i18n, plugin selection, and three-existing-plugin regression tests.
@@ -89,7 +89,7 @@
 
 ## 10. Documentation and verification
 
-- [x] 10.1 Update README and plugin developer/protocol documentation with Quick Launcher behavior, default shortcut, supported platforms, local cache/usage paths, four permissions, Bridge methods, privacy, and the decision not to use `plugin.wasm`.
+- [x] 10.1 Update README and plugin developer/protocol documentation with Zero Launch behavior, default shortcut, supported platforms, local cache/usage paths, four permissions, Bridge methods, privacy, and the decision not to use `plugin.wasm`.
 - [x] 10.2 Run focused TypeScript compilation and Node tests for launcher contracts, model, service, Hook/controller, app-surface routing, bundled manifest, preferences, permissions, and Bridge changes.
 - [ ] 10.3 Run `node --test tests/*.mjs`, `pnpm build`, `cargo fmt --check`, `cargo check`, `cargo test`, and `git diff --check`, fixing regressions across the existing three plugins.
 - [x] 10.4 Add or run Windows CI for the selected shortcut parser, Shell/window API feature set, URI catalog, scanner/cache/service tests, and `x86_64-pc-windows-msvc` compilation.

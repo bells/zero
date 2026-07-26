@@ -7,7 +7,7 @@ import {
   moveLauncherSelection,
   reconcileLauncherSelection,
   shouldDismissLauncher,
-} from "/private/tmp/ztool-quick-launcher-test/quickLauncherModel.js";
+} from "/private/tmp/zero-quick-launcher-test/quickLauncherModel.js";
 
 const items = [
   { id: "a", kind: "application", title: "Alpha" },

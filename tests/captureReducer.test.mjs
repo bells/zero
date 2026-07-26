@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   captureReducer,
   initialHistoryState,
-} from "/private/tmp/ztool-capture-test/captureReducer.js";
+} from "/private/tmp/zero-capture-test/captureReducer.js";
 
 const rect = {
   id: "rect-1",

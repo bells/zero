@@ -1,14 +1,14 @@
 ## ADDED Requirements
 
 ### Requirement: Primary status bar logo controls the tray quick panel
-The system SHALL keep the primary ZTool status bar logo as the app-shell entry point that toggles the tray quick panel.
+The system SHALL keep the primary Zero status bar logo as the app-shell entry point that toggles the tray quick panel.
 
 #### Scenario: Primary logo opens tray quick panel
-- **WHEN** the user clicks the primary ZTool status bar logo while the tray quick panel is hidden
+- **WHEN** the user clicks the primary Zero status bar logo while the tray quick panel is hidden
 - **THEN** the system positions, shows, and focuses the tray quick panel
 
 #### Scenario: Primary logo hides tray quick panel
-- **WHEN** the user clicks the primary ZTool status bar logo while the tray quick panel is visible
+- **WHEN** the user clicks the primary Zero status bar logo while the tray quick panel is visible
 - **THEN** the system hides the tray quick panel
 
 #### Scenario: Plugin item does not accidentally toggle tray
@@ -17,7 +17,7 @@ The system SHALL keep the primary ZTool status bar logo as the app-shell entry p
 
 #### Scenario: Primary logo remains recoverable
 - **WHEN** plugin status bar items are disabled or hidden
-- **THEN** the primary ZTool status bar logo remains available so the user can open the tray quick panel and preferences
+- **THEN** the primary Zero status bar logo remains available so the user can open the tray quick panel and preferences
 
 ### Requirement: App-shell surfaces expose status bar preferences
 The system SHALL make status bar display controls reachable from the existing preferences surface without replacing the tray, main, preferences, or about surfaces.
@@ -32,4 +32,4 @@ The system SHALL make status bar display controls reachable from the existing pr
 
 #### Scenario: Existing bottom tray actions remain usable
 - **WHEN** plugin status bar items are visible
-- **THEN** the tray quick panel still provides preferences, open ZTool, more/about, and exit actions
+- **THEN** the tray quick panel still provides preferences, open Zero, more/about, and exit actions

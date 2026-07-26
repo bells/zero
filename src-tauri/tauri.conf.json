@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ztool",
+  "productName": "Zero",
   "version": "0.1.0",
   "identifier": "com.watson.ztool",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "tray",
-        "title": "ztool",
+        "title": "Zero",
         "width": 400,
         "height": 500,
         "resizable": false,
