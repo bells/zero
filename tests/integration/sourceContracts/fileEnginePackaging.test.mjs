@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import test, { before } from "node:test";
 import {
   FILE_ENGINE_POLICY,
   auditTextForEngineDownloads,
@@ -10,6 +11,11 @@ import {
 import { prepareFileEngine } from "../../../scripts/prepare-file-engine.mjs";
 
 const ROOT = process.cwd();
+let preparedManifest;
+
+before(() => {
+  preparedManifest = prepareFileEngine();
+});
 
 test("shipping policy records one unapproved signed Zero File engine candidate", () => {
   assert.deepEqual(verifyFileEnginePackaging(ROOT), []);
@@ -175,7 +181,7 @@ test("File conversion has no network or cloud fallback path", () => {
 });
 
 test("approved browser assets are reproducible and stay within package budgets", () => {
-  const manifest = prepareFileEngine();
+  const manifest = preparedManifest;
   assert.equal(manifest.components.pdfjsDist, "6.2.108");
   assert.equal(manifest.components.docx, "9.7.1");
   assert.equal(manifest.components.docxPreview, "0.4.0");
@@ -186,6 +192,56 @@ test("approved browser assets are reproducible and stay within package budgets",
   assert.ok(manifest.assets.some((asset) => asset.path.startsWith("standard_fonts/")));
   assert.ok(manifest.assets.some((asset) => asset.path.startsWith("wasm/")));
   assert.ok(manifest.assets.every((asset) => /^[a-f0-9]{64}$/.test(asset.sha256)));
+});
+
+test("clean preparation produces identical assets from LF and CRLF source checkouts", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "zero-engine-preparation-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const binary = Buffer.from([0xff, 0x00, 0x0d, 0x0a, 0x80]);
+  const thirdPartyText = "third-party\r\n";
+  const sourceAssets = [
+    ["src/plugins/file/engine/pdf.worker.bootstrap.mjs", "pdf.worker.min.mjs", "await import('./pdf.worker-core.min.mjs');\n"],
+    ["src/plugins/file/engine/THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md", "# Notices\nLicense text\n"],
+  ];
+  for (const [relative, bytes] of [
+    ["node_modules/pdfjs-dist/build/pdf.worker.min.mjs", thirdPartyText],
+    ["node_modules/pdfjs-dist/cmaps/sample.bcmap", binary],
+    ["node_modules/pdfjs-dist/standard_fonts/sample.pfb", binary],
+    ["node_modules/pdfjs-dist/wasm/sample.wasm", binary],
+    ["node_modules/pdfjs-dist/LICENSE", thirdPartyText],
+    ["node_modules/docx/LICENSE", thirdPartyText],
+    ["node_modules/docx-preview/LICENSE", thirdPartyText],
+    ...sourceAssets.map(([source, , text]) => [source, text]),
+  ]) {
+    const target = path.join(root, relative);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, bytes);
+  }
+
+  const outputRoot = path.join(root, "public/file-engine");
+  const manifestPath = path.join(outputRoot, "manifest.json");
+  assert.equal(fs.existsSync(outputRoot), false);
+  const lfManifest = prepareFileEngine(root);
+  const lfBytes = fs.readFileSync(manifestPath);
+
+  for (const [source, , text] of sourceAssets) {
+    fs.writeFileSync(path.join(root, source), text.replace(/\n/g, "\r\n"));
+  }
+  fs.rmSync(outputRoot, { recursive: true });
+  assert.deepEqual(prepareFileEngine(root), lfManifest);
+  assert.deepEqual(fs.readFileSync(manifestPath), lfBytes);
+  for (const [, destination, text] of sourceAssets) {
+    assert.equal(fs.readFileSync(path.join(outputRoot, destination), "utf8"), text);
+  }
+  assert.deepEqual(fs.readFileSync(path.join(outputRoot, "wasm/sample.wasm")), binary);
+  assert.equal(fs.readFileSync(path.join(outputRoot, "pdf.worker-core.min.mjs"), "utf8"), thirdPartyText);
+
+  fs.appendFileSync(path.join(root, sourceAssets[0][0]), "// changed content\r\n");
+  const changedManifest = prepareFileEngine(root);
+  assert.notEqual(
+    changedManifest.assets.find((asset) => asset.path === "pdf.worker.min.mjs").sha256,
+    lfManifest.assets.find((asset) => asset.path === "pdf.worker.min.mjs").sha256,
+  );
 });
 
 test("conversion corpus pins truthful built-in quality profiles", () => {

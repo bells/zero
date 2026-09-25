@@ -5,34 +5,34 @@ import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OUTPUT_ROOT = path.join(ROOT, "public", "file-engine");
 const INSTALLED_BUDGET = 45 * 1024 * 1024;
 const COMPRESSED_BUDGET = 20 * 1024 * 1024;
 
 const ASSETS = [
   ["node_modules/pdfjs-dist/build/pdf.worker.min.mjs", "pdf.worker-core.min.mjs"],
-  ["src/plugins/file/engine/pdf.worker.bootstrap.mjs", "pdf.worker.min.mjs"],
+  ["src/plugins/file/engine/pdf.worker.bootstrap.mjs", "pdf.worker.min.mjs", true],
   ["node_modules/pdfjs-dist/cmaps", "cmaps"],
   ["node_modules/pdfjs-dist/standard_fonts", "standard_fonts"],
   ["node_modules/pdfjs-dist/wasm", "wasm"],
   ["node_modules/pdfjs-dist/LICENSE", "licenses/pdfjs-dist-LICENSE"],
   ["node_modules/docx/LICENSE", "licenses/docx-LICENSE"],
   ["node_modules/docx-preview/LICENSE", "licenses/docx-preview-LICENSE"],
-  ["src/plugins/file/engine/THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md"],
+  ["src/plugins/file/engine/THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md", true],
 ];
 
-export function prepareFileEngine() {
-  fs.rmSync(OUTPUT_ROOT, { recursive: true, force: true });
-  fs.mkdirSync(OUTPUT_ROOT, { recursive: true });
+export function prepareFileEngine(root = ROOT) {
+  const outputRoot = path.join(root, "public", "file-engine");
+  fs.rmSync(outputRoot, { recursive: true, force: true });
+  fs.mkdirSync(outputRoot, { recursive: true });
 
-  for (const [source, destination] of ASSETS) {
-    copyRequired(path.join(ROOT, source), path.join(OUTPUT_ROOT, destination));
+  for (const [source, destination, normalizeText] of ASSETS) {
+    copyRequired(path.join(root, source), path.join(outputRoot, destination), normalizeText);
   }
 
-  const files = listFiles(OUTPUT_ROOT).map((absolutePath) => {
+  const files = listFiles(outputRoot).map((absolutePath) => {
     const bytes = fs.readFileSync(absolutePath);
     return {
-      path: path.relative(OUTPUT_ROOT, absolutePath).split(path.sep).join("/"),
+      path: path.relative(outputRoot, absolutePath).split(path.sep).join("/"),
       bytes: bytes.length,
       gzipBytes: zlib.gzipSync(bytes, { level: 9 }).length,
       sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
@@ -61,13 +61,13 @@ export function prepareFileEngine() {
   }
 
   fs.writeFileSync(
-    path.join(OUTPUT_ROOT, "manifest.json"),
+    path.join(outputRoot, "manifest.json"),
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
   return manifest;
 }
 
-function copyRequired(source, destination) {
+function copyRequired(source, destination, normalizeText = false) {
   if (!fs.existsSync(source)) {
     throw new Error(`Required File engine asset is missing: ${path.relative(ROOT, source)}`);
   }
@@ -83,6 +83,12 @@ function copyRequired(source, destination) {
     return;
   }
   fs.mkdirSync(path.dirname(destination), { recursive: true });
+  if (normalizeText) {
+    // Git may check out our text assets as CRLF on Windows. Hash the same LF
+    // bytes on every platform without rewriting third-party or binary assets.
+    fs.writeFileSync(destination, fs.readFileSync(source, "utf8").replace(/\r\n/g, "\n"));
+    return;
+  }
   fs.copyFileSync(source, destination);
 }
 
