@@ -317,7 +317,7 @@ fn temporary_path(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use serde_json::Value;
@@ -379,10 +379,10 @@ mod tests {
             "zero.snap.capture"
         );
         assert_eq!(value["records"][1]["name"], "ztool.third-party");
-        assert!(value["records"][0]["installedPath"]
-            .as_str()
-            .unwrap()
-            .contains("/.zero/plugins/"));
+        assert_eq!(
+            Path::new(value["records"][0]["installedPath"].as_str().unwrap()),
+            home.join(".zero/plugins/demo/1.0.0")
+        );
 
         let second = migrate_legacy_data(&home);
         assert!(second.completed_fast_path);

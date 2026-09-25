@@ -217,12 +217,14 @@ mod tests {
     use crate::services::quick_launcher::model::{
         stable_item_id, IndexedItem, LaunchTarget, SearchFields, UsageEntry,
     };
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     fn temporary_root(name: &str) -> PathBuf {
+        static NEXT_TEST_DIR: AtomicUsize = AtomicUsize::new(0);
         std::env::temp_dir().join(format!(
             "zero-quick-launcher-{name}-{}-{}",
             std::process::id(),
-            std::thread::current().name().unwrap_or("test")
+            NEXT_TEST_DIR.fetch_add(1, Ordering::Relaxed)
         ))
     }
 
