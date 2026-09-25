@@ -86,7 +86,7 @@ Tauri 窗口 label
 
 ## 工程与发布
 
-当前环境为 Node 24.20.0、pnpm 10.33.0、Rust/Cargo 1.95.0、OpenSpec 1.12.0。锁定的 Vite 7.3.2 需要 Node `^20.19.0 || >=22.12.0`，PDF.js 6.2.108 需要 `>=22.13.0 || >=24`；README 原来的 Node 18+ 已不适用。CI 配置使用 Node 22。
+当前环境为 Node 24.20.0、pnpm 10.33.0、Rust/Cargo 1.95.0、OpenSpec 1.12.0。锁定的 Vite 7.3.2 需要 Node `^20.19.0 || >=22.12.0`，PDF.js 6.2.108 需要 `>=22.13.0 || >=24`；README 原来的 Node 18+ 已不适用。CI 配置使用 Node 24。
 
 CI 覆盖 macOS/Windows 编译和 Rust 测试，完整前端测试只在 macOS 运行；Windows 有 File engine 构建与 packaging source-contract 检查。当前没有 Linux/mobile CI，CI 也没有覆盖所有本地门禁（如 Clippy、完整 OpenSpec 校验与 bundle budget）。
 

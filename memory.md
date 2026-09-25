@@ -44,7 +44,7 @@ Last verified: 2026-09-25, source baseline `3120f5d`. This is a compact working 
 
 ## Toolchain and verification
 
-- Current package/Tauri/Cargo version: 0.1.0. pnpm is pinned to 10.33.0. Node 22.13+ on 22.x or 24+ satisfies current Vite/PDF.js; CI uses Node 22. This review used Node 24.20.0 and Rust 1.95.0.
+- Current package/Tauri/Cargo version: 0.1.0. pnpm is pinned to 10.33.0. Node 22.13+ on 22.x or 24+ satisfies current Vite/PDF.js; CI uses Node 24. This review used Node 24.20.0 and Rust 1.95.0.
 - `pnpm test` prepares `/private/tmp/zero-tests` then recursively runs tests. Do not concurrently run fixture-preparing scripts. Focused levels: `test:unit` / `test:integration`.
 - Current review: 251 frontend tests and production build pass; Rust fmt/check pass; 269 Rust tests pass with 1 ignored on an approved unsandboxed serial rerun. Initial sandbox run failed native pasteboard and one timed subprocess test; retain that distinction.
 - OpenSpec 1.12.0 strict validation passes 19/19 after preserving three scenario identifiers in the rename delta. `refine-zero-icon-family` still has a missing-main-spec archive dependency warning.

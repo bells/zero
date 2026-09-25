@@ -21,23 +21,34 @@ use super::word_windows::MicrosoftWordWindowsProvider;
 pub const PDF_TO_DOCX_PROVIDER_APPROVED: bool = true;
 pub const BUNDLED_FILE_CONVERSION_ENGINE_APPROVED: bool = true;
 
-pub fn default_provider_registry(
-    app: Option<tauri::AppHandle>,
+// Keep state-only tests independent of AppHandle so their Windows EXE avoids GUI imports.
+pub fn default_provider_registry() -> FileConversionProviderRegistry {
+    platform_provider_registry(Vec::new())
+}
+
+pub fn provider_registry_with_engine(
+    app: tauri::AppHandle,
     bridge: Arc<FileEngineBridge>,
 ) -> FileConversionProviderRegistry {
-    let libreoffice_discovery = Arc::new(LibreOfficeDiscovery::default());
-    let mut providers: Vec<Arc<dyn FileConversionProviderAdapter>> = Vec::new();
+    let mut built_in: Vec<Arc<dyn FileConversionProviderAdapter>> = Vec::new();
     #[cfg(any(target_os = "macos", target_os = "windows"))]
-    if let Some(app) = app {
-        providers.push(Arc::new(ZeroFileBuiltInProvider::pdf_to_docx(
+    {
+        built_in.push(Arc::new(ZeroFileBuiltInProvider::pdf_to_docx(
             app.clone(),
             Arc::clone(&bridge),
         )));
         #[cfg(target_os = "macos")]
-        providers.push(Arc::new(ZeroFileBuiltInProvider::docx_to_pdf_macos(
+        built_in.push(Arc::new(ZeroFileBuiltInProvider::docx_to_pdf_macos(
             app, bridge,
         )));
     }
+    platform_provider_registry(built_in)
+}
+
+fn platform_provider_registry(
+    mut providers: Vec<Arc<dyn FileConversionProviderAdapter>>,
+) -> FileConversionProviderRegistry {
+    let libreoffice_discovery = Arc::new(LibreOfficeDiscovery::default());
     providers.push(Arc::new(LibreOfficeProvider::new(libreoffice_discovery)));
     #[cfg(target_os = "macos")]
     providers.push(Arc::new(MicrosoftWordMacosProvider::default()));

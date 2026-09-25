@@ -27,7 +27,7 @@ Zero is a tray-first desktop utility collection built with Tauri 2, React, and T
 
 ## Prerequisites
 
-- Node.js 22.13+ on the 22.x line, or Node.js 24+ (Vite 7 and PDF.js 6 requirements; CI uses Node 22)
+- Node.js 22.13+ on the 22.x line, or Node.js 24+ (Vite 7 and PDF.js 6 requirements; CI uses Node 24)
 - pnpm 10.33.0 (pinned in `package.json`)
 - Rust via `rustup`
 - Platform build tools:

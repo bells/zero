@@ -12,7 +12,9 @@ use super::artifacts::{
     cleanup_stale_job_directories, commit_provider_output, create_job_temp_directory,
     remove_job_temp_directory,
 };
-use super::capabilities::{capability_snapshot, default_provider_registry};
+use super::capabilities::{
+    capability_snapshot, default_provider_registry, provider_registry_with_engine,
+};
 use super::contracts::{
     FileConversionBatchResult, FileConversionCandidate, FileConversionCandidateValidation,
     FileConversionCapabilitySnapshot, FileConversionEnqueueRequest, FileConversionError,
@@ -91,7 +93,7 @@ impl Default for FileConversionState {
 
 impl FileConversionState {
     pub fn initialize(&self, temp_root: PathBuf) -> Result<(), FileConversionError> {
-        self.initialize_registry(None, Arc::new(FileEngineBridge::default()), temp_root)
+        self.initialize_registry(default_provider_registry, temp_root)
     }
 
     pub fn initialize_with_engine(
@@ -100,13 +102,12 @@ impl FileConversionState {
         bridge: Arc<FileEngineBridge>,
         temp_root: PathBuf,
     ) -> Result<(), FileConversionError> {
-        self.initialize_registry(Some(app), bridge, temp_root)
+        self.initialize_registry(|| provider_registry_with_engine(app, bridge), temp_root)
     }
 
     fn initialize_registry(
         &self,
-        app: Option<tauri::AppHandle>,
-        bridge: Arc<FileEngineBridge>,
+        make_registry: impl FnOnce() -> FileConversionProviderRegistry,
         temp_root: PathBuf,
     ) -> Result<(), FileConversionError> {
         let mut providers = self
@@ -117,7 +118,7 @@ impl FileConversionState {
             return Ok(());
         }
         cleanup_stale_job_directories(&temp_root)?;
-        let registry = Arc::new(default_provider_registry(app, bridge));
+        let registry = Arc::new(make_registry());
         self.lock_runtime()?.temp_root = Some(temp_root);
         *providers = Some(registry);
         self.provider_initializations

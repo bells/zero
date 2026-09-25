@@ -6,7 +6,7 @@ Updated: 2026-09-25. Read [AGENTS.md](../AGENTS.md) and [the current project ove
 
 Zero is a tray-first desktop toolbox with a compact `tray` window, a standalone `main` window, separate `preferences` and `about` windows, and plugin-owned tool surfaces. It is not a web dashboard. The five bundled tools are Zero Snap, Zero Awake, Zero Paper, Zero Launch, and Zero File.
 
-Stack: Tauri 2, Rust 2021, React 19, TypeScript 5.8, Vite 7, pnpm 10.33.0. CI uses Node 22; dependencies require Node 22.13+ on 22.x or 24+. The current package/Tauri/Cargo version is 0.1.0; verify it again for release work. Mobile is a future consideration, not a delivered platform.
+Stack: Tauri 2, Rust 2021, React 19, TypeScript 5.8, Vite 7, pnpm 10.33.0. CI uses Node 24; dependencies require Node 22.13+ on 22.x or 24+. The current package/Tauri/Cargo version is 0.1.0; verify it again for release work. Mobile is a future consideration, not a delivered platform.
 
 ## Source ownership
 
