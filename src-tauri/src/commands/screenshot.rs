@@ -209,18 +209,6 @@ fn require_snap_menu_window(window_label: &str) -> Result<(), ScreenshotError> {
         })
 }
 
-#[cfg(test)]
-mod snap_menu_tests {
-    use super::*;
-
-    #[test]
-    fn snap_menu_handoff_rejects_other_windows() {
-        assert!(require_snap_menu_window("snap-menu").is_ok());
-        let error = require_snap_menu_window("main").expect_err("main must not invoke handoff");
-        assert_eq!(error.code, "screenshot.snap_menu_scope");
-    }
-}
-
 fn optional_screenshot_header<'a>(
     request: &'a tauri::ipc::Request<'_>,
     name: &str,
@@ -237,5 +225,17 @@ fn worker_error(code: &str, message: &str) -> ScreenshotError {
         code: code.into(),
         message: message.into(),
         retryable: true,
+    }
+}
+
+#[cfg(test)]
+mod snap_menu_tests {
+    use super::*;
+
+    #[test]
+    fn snap_menu_handoff_rejects_other_windows() {
+        assert!(require_snap_menu_window("snap-menu").is_ok());
+        let error = require_snap_menu_window("main").expect_err("main must not invoke handoff");
+        assert_eq!(error.code, "screenshot.snap_menu_scope");
     }
 }

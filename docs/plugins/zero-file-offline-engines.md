@@ -1,6 +1,21 @@
 # Zero File offline engines
 
-Installing the signed first-party `zero.file` plugin installs its conversion assets at the same time. Conversion is local and does not require Python, LibreOffice, Microsoft Word, Chromium, an account, a cloud service, or a runtime download.
+The signed first-party `zero.file` package is designed to install its conversion assets at the same time. Its built-in conversion implementations are local and do not require Python, LibreOffice, Microsoft Word, Chromium, an account, a cloud service, or a runtime download. Release approval remains pending as described below.
+
+## Current checkout and source development
+
+Verified on 2026-09-25 at source revision `3120f5d`: `src-tauri/file-engine-policy.json` has an empty `approvedEnginePackages` list, and candidate `1.0.0` has `approved: false` and no package digest. Bundled tool registration and successful asset preparation do not establish that an approved engine is installed.
+
+For local source development on a supported platform:
+
+```bash
+pnpm install --frozen-lockfile
+ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev
+```
+
+`predev` prepares the worker, fonts, CMaps, WASM, notices, and asset manifest. `development_assets_enabled()` in `engine_bridge.rs` requires both a debug build and the environment variable exactly equal to `1`. When acquiring an installed engine fails, this permits the app-owned source engine fallback. Release builds still require the approved installed package.
+
+For the “内置 PDF 引擎未能加载；请修复或重新安装 Zero File 插件。” message, trace capability/provider diagnostics, installed package identity/version, policy and signature/digest checks, then hidden-WebView creation and readiness. Do not infer the failure stage from this generic message alone. Source startup without the development flag is a diagnostic lead, not proof of the cause of a previous user session. This review did not reproduce that session.
 
 ## Supported directions
 

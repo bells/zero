@@ -1,20 +1,9 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
-
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+context: |
+  Zero is a Tauri 2 / Rust 2021 / React 19 / TypeScript desktop toolbox.
+  Read AGENTS.md, openspec/project.md, and docs/project-overview.md before creating artifacts.
+  Bundled plugins: zero.snap, zero.awake, zero.paper, zero.launch, zero.file.
+  Keep host core independent of concrete plugins and keep Rust/TypeScript IPC contracts symmetric.
+  Inspect overlapping active changes; distinguish source implementation, automated checks, and device/release evidence.
+  Preserve com.watson.ztool for upgrade compatibility and never approve File engine packages without release evidence.

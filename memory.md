@@ -1,108 +1,61 @@
 # Zero Memory
 
-Last updated: 2026-06-27
+Last verified: 2026-09-25, source baseline `3120f5d`. This is a compact working map, not a release certificate. Recheck drift-prone values against source. Full findings and platform evidence are in [docs/project-overview.md](docs/project-overview.md); working rules are in [AGENTS.md](AGENTS.md).
 
-This file is a compact project memory for future maintainers and Codex runs. Treat it as a starting map, then verify against the live tree before making changes.
+## Stable architecture
 
-## Project Snapshot
+- Tray-first desktop toolbox, with separate tray/main/preferences/about and tool-specific windows. React 19 + TypeScript + Vite; Tauri 2 + Rust 2021. Mobile is not currently delivered.
+- Five bundled plugins: `zero.snap`, `zero.awake`, `zero.paper`, `zero.launch`, `zero.file` under `src/plugins/{screenshot,caffeine,bingWallpaper,quickLauncher,file}`.
+- Frontend composition: `src/appShell/bundledPluginModules.ts`; Rust managed state: `src-tauri/src/bundled_plugins.rs`; command/protocol registration: `src-tauri/src/lib.rs`.
+- `src/core/` cannot import concrete plugins; plugins cannot import peers. Host coordinators handle shared window/status-bar/shortcut behavior. Tests enforce these boundaries.
+- Installed `.zplugin` packages use manifests, permission approval, isolated surfaces, Extension API, and guarded native host access. They cannot dynamically load Rust code.
 
-- `zero` is a tray-first desktop utility collection, not a SaaS-style web app.
-- Current stack: Tauri 2, Rust 2021, React 19, TypeScript, Vite, pnpm.
-- Package manager is `pnpm@10.33.0`; main npm scripts are `pnpm dev`, `pnpm build`, and `pnpm tauri ...`.
-- Current product surface is a compact undecorated tray window plus extra Tauri windows for screenshot workflows.
-- Bundled plugins are registered as `zero.snap`, `zero.awake`, `zero.paper`, and `zero.launch`; preferences/about remain protected host surfaces.
-- The plugin MVP is Git-based: plugin authors publish `.zplugin` ZIP packages through GitHub Releases, and Zero reads a hosted static `market.json` instead of using a server-backed marketplace.
+## Windows and lifecycle
 
-## Current Architecture
+- `tray` is the hidden 400 × 500 startup window; `main` is a separate 920 × 660 tool home.
+- `preferences` and `about` are dedicated windows; `launcher`, `paper`, and `snap-menu` are tool surfaces.
+- `capture` and `pin-*` are screenshot surfaces. `zero-file-engine` is hidden with its own narrow capability file.
+- `src/main.tsx` lazy-loads surfaces; unknown labels fall back to tray. File engine label handling is special.
+- Preserve window label/capability/caller-check symmetry, surface-activity handling, focus behavior, resource cleanup, and transient-window coordination.
 
-- `src/main.tsx` routes the React root by Tauri window label:
-  - `main` renders `MainApp`.
-  - `capture` renders the screenshot editor `CaptureApp`.
-  - `pin-*` renders `PinApp`.
-- `src/core/pluginHost/` owns host contracts, market/registry services, extension isolation, Bridge permission checks, and generic extension UI.
-- `src/core/preferences/` owns local preferences, About, storage, and host localization; `src/core/pluginHost/pluginTypes.ts` owns dynamic plugin presentation types.
-- Each bundled plugin under `src/plugins/{caffeine,bingWallpaper,quickLauncher,screenshot}` owns one typed descriptor, local translations, surfaces, and domain code. `src/appShell/bundledPluginModules.ts` is the only frontend composition registry.
-- Bundled native commands/state are explicitly composed at build time in `src-tauri/src/bundled_plugins.rs`; third-party `.zplugin` packages remain runtime-only and cannot load native Rust.
-- Local preferences:
-  - storage key: `ztool.preferences.v1`
-  - launch-at-login uses `@tauri-apps/plugin-autostart`
-  - language options are `system`, `zh-CN`, and `en-US`
-  - at least one tool must stay visible.
-- `src-tauri/src/lib.rs` registers tray behavior, the global screenshot shortcut, managed native state, plugins, and command handlers.
-- `src-tauri/src/plugins/` owns Rust plugin contracts, Git market fetch/cache, `.zplugin` download/checksum/extraction, registry persistence under `~/.ztool/plugins/`, and guarded binary/script entrypoint execution.
-- `src-tauri/capabilities/default.json` must include every window family used by commands. It currently allows `main`, `capture`, and `pin-*`.
+## Data and compatibility
 
-## Screenshot Memory
+- Current root is `~/.zero`, preferences key `zero.preferences.v1`. `~/.ztool` and `ztool.preferences.v1` remain migration inputs, not the primary store.
+- Preserve bundle identifier `com.watson.ztool`; it maintains installation, permission, autostart, and WebView compatibility.
+- Four legacy first-party IDs map to canonical names; the fifth plugin File has no legacy counterpart.
+- Paper data: `~/.zero/data/wallpaper/`; Launch data: `~/.zero/data/quick-launcher/`; plugin packages: `~/.zero/plugins/`; File staging: Tauri app cache `file-conversion`.
+- Raw launcher queries are not persisted. Launch actions resolve indexed IDs rather than arbitrary paths/commands. Preserve cache ownership, path containment, and permission restrictions.
 
-- The previous screenshot phase-2 work delivered a macOS-first custom editor while keeping Windows on the system screenshot launcher path. Preserve that platform split unless the user explicitly asks for a Windows custom editor.
-- Global screenshot shortcut is `CommandOrControl+Shift+A`.
-- macOS flow:
-  - `start_screenshot` hides the main window, captures the screen through `screencapture`, stores one active session, and opens the full-screen `capture` window.
-  - `init_screenshot_session` returns `session_id`, `image_base64`, `initial_action`, `width`, and `height`.
-  - `commit_screenshot` validates the active session, decodes the final PNG, copies or saves it, closes `capture`, restores `main`, and clears the active session.
-  - `cancel_screenshot_session` closes `capture`, restores `main`, and clears the active session.
-  - `pin_screenshot` crops from the final rendered PNG and opens an always-on-top `pin-*` window.
-- Non-macOS screenshot flow currently starts the system tool. Windows uses `explorer.exe ms-screenclip:` with `SnippingTool.exe` fallback; Linux reports unsupported for this path.
-- The main `ScreenshotPanel` still shows disabled/pending tool buttons. Do not infer actual editor capability from that panel alone: `CaptureApp` has select, rectangle, arrow, pen, text, mosaic, pin, undo/redo/delete, copy, save, and cancel paths.
-- Screenshot command payloads intentionally use Rust-facing snake_case fields through `captureSerialize.ts`: `session_id`, `png_base64`, and `save_path`.
-- Pin windows need unique labels like `pin-<id>`, capability globbing with `pin-*`, and native size based on decoded PNG dimensions plus titlebar height.
-- Main risks in screenshot work:
-  - coordinate conversion between rendered image bounds and original screenshot pixels
-  - macOS Screen Recording permission failures from `screencapture`
-  - stale or mismatched `session_id`
-  - forgetting to restore the main window after commit, cancel, or capture failure
-  - breaking Windows by forcing macOS-only assumptions into shared code.
+## Plugin boundaries to remember
 
-## Caffeine Memory
+- Snap: macOS custom editor; Windows system launcher only; Linux unsupported. Smart window targeting, free selection, width/height/radius, annotations and copy/save/pin are in source, with manual multi-display/first-frame tasks still open.
+- Screenshot media uses raw IPC and opaque tokens; export is prepare lease then raw upload with lease/session/action headers. Old `commit_screenshot` / `png_base64` documentation is obsolete. Check Rust `serde` and TS types individually: newer structs use camelCase, older responses can use snake_case.
+- Awake: macOS managed `caffeinate -d -i`, Windows `SetThreadExecutionState`. Do not infer Linux support from its manifest.
+- Paper: up to 10 cached Bing entries, Rust-owned bounded fetch/cache, platform wallpaper adapter. Linux apply depends on available desktop backend.
+- Launch: macOS application bundles and Windows Start Menu entries; Chinese/pinyin search and indexed launch/focus/settings. Linux/mobile unsupported.
+- File: built-in PDF→DOCX implementation on macOS/Windows; built-in DOCX→PDF on macOS 11+. External LibreOffice/Word providers are optional compatibility paths, not prerequisites for built-in conversion. Windows has no built-in DOCX→PDF exporter.
 
-- `src-tauri/src/services/caffeine.rs` owns native awake behavior.
-- macOS starts and later kills a `caffeinate -d -i` child process.
-- Windows uses `SetThreadExecutionState` with display and system required flags.
-- Other platforms currently return unsupported.
-- Keep the Rust state snapshot and frontend state in sync when changing this plugin.
+## File startup and release status
 
-## Verification Commands
+- `src-tauri/file-engine-policy.json` currently has no approved engine package; candidate 1.0.0 remains unapproved with no archive digest. Provider-enable constants do not mean package approval.
+- Source development: `ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev`. Requires a debug build; release builds cannot use the fallback. `predev/prebuild` prepare engine assets but do not install a trusted package.
+- For repair/reinstall messages, inspect capability/provider diagnostics, installed identity/version, policy/signature/assets, and hidden-WebView readiness. The development flag is a lead; the prior user startup error has not been reproduced or assigned a confirmed root cause by this review.
+- Signed package, corpus, packaged offline smoke, memory/readiness/cancellation, rollback, and Windows runtime gates remain distinct. Never approve policy to silence an error.
 
-Use a focused test level while iterating:
+## Toolchain and verification
 
-```bash
-pnpm test:unit
-pnpm test:integration
-```
+- Current package/Tauri/Cargo version: 0.1.0. pnpm is pinned to 10.33.0. Node 22.13+ on 22.x or 24+ satisfies current Vite/PDF.js; CI uses Node 22. This review used Node 24.20.0 and Rust 1.95.0.
+- `pnpm test` prepares `/private/tmp/zero-tests` then recursively runs tests. Do not concurrently run fixture-preparing scripts. Focused levels: `test:unit` / `test:integration`.
+- Current review: 251 frontend tests and production build pass; Rust fmt/check pass; 269 Rust tests pass with 1 ignored on an approved unsandboxed serial rerun. Initial sandbox run failed native pasteboard and one timed subprocess test; retain that distinction.
+- OpenSpec 1.12.0 strict validation passes 19/19 after preserving three scenario identifiers in the rename delta. `refine-zero-icon-family` still has a missing-main-spec archive dependency warning.
+- Bundle budget passes: 269,252 bytes initial JS, 82,646 gzip; largest lazy chunk 795,338 bytes. This is build evidence, not native latency or RSS evidence.
+- File engine build/policy verification and icon/example checks pass; package remains unapproved. Clippy found test-module ordering in screenshot commands; this review moves the test module only; strict Clippy and the affected caller-scope test pass afterward.
+- Build-graph script defaults to overwriting tracked historical evidence. Use `node scripts/performance/build-graph.mjs --check --output /tmp/zero-build-graph.json` for an independent check.
 
-Other useful checks:
+## Remaining work and collaboration
 
-```bash
-node scripts/validate-plugin-package.mjs examples/plugins/minimal-view-command-setting
-pnpm test
-pnpm build
-cd src-tauri
-cargo fmt --check
-cargo check
-cargo test
-git diff --check
-```
-
-For plugin lifecycle work, also run the focused Rust suites:
-
-```bash
-cargo test --manifest-path src-tauri/Cargo.toml --test plugin_package --test plugin_registry --test plugin_runtime
-```
-
-For screenshot behavior, do at least one manual `pnpm tauri dev` pass on macOS when changing capture windows, copy/save, pin windows, or tray/shortcut behavior.
-
-## Product Site Memory
-
-- If building a public website, present ZTool as a desktop toolbox and tray utility, not as a generic SaaS.
-- A separate static `site/` app is a better first shape than mixing product-site content into the Tauri app `index.html`.
-- Prior planning favored Astro + Vercel: Astro for the lightweight static site framework, Vercel for previews, CDN, domains, SSL, and Git-based deploys.
-- A good first site structure: hero + CTA, short feature blocks, real screenshots/demo, download section, docs/FAQ, then i18n and changelog later.
-- Reference balance: Maccy suggests a minimal single-message homepage; CC Switch suggests denser multilingual/docs-oriented product structure.
-
-## Working Preferences
-
-- For bug reports, trace the actual codepath and interaction path before fixing. Avoid stopping at a plausible theory.
-- For screenshot work, prioritize making every tool path usable before visual polish.
-- Preserve macOS and Windows differences when the user explicitly asks for platform-specific behavior.
-- Before saying work is complete, run repo-native verification or state clearly what could not be run.
-- If asked to commit, stage only relevant files and commit intentionally.
+- 17 active OpenSpec changes, 69 unchecked tasks as of this review; many are manual/device gates. Main specs cover only shell and caffeine duration. Do not auto-archive or equate strict validation with completion.
+- Release workflow still uses ZTool release text/manual tag naming. No Linux/mobile CI; full frontend suite runs only on macOS. Recheck workflows before expanding claims.
+- UI/native workflows, Windows hardware, signed installers, complete File corpus, and matched performance protocols remain separate evidence. Tests and builds do not prove them.
+- Diagnose exact observed behavior, implement bounded changes, preserve unrelated/generated/private data, and label evidence precisely. Commit/push/publish/archive only when requested.
+- A future product website should be separate from the desktop UI; historical Astro/Vercel discussion is a preference, not an implemented site.

@@ -1,216 +1,68 @@
 # Zero Project Context
 
-> 本文件用于给 OpenSpec 和协作代理提供项目级上下文。创建 proposal、design、spec 或 tasks 前，先阅读这里，再结合 live repo 校准判断；不要把它当作一次性模板。
+Updated: 2026-09-25. Read [AGENTS.md](../AGENTS.md) and [the current project overview](../docs/project-overview.md) before proposing changes. This file describes the live source architecture; existing change artifacts can contain earlier names or superseded designs.
 
-## Project Overview
+## Product and stack
 
-Zero 是一个托盘优先（tray-first）的跨平台桌面工具箱，目标是把常用小工具做成紧凑、稳定、可渐进扩展的插件集合。它不是 SaaS 网页应用，也不是大而全的控制台；主窗口应该像一个轻量的桌面控制中心：工具列表、当前工具面板、系统操作和偏好入口。
+Zero is a tray-first desktop toolbox with a compact `tray` window, a standalone `main` window, separate `preferences` and `about` windows, and plugin-owned tool surfaces. It is not a web dashboard. The five bundled tools are Zero Snap, Zero Awake, Zero Paper, Zero Launch, and Zero File.
 
-当前产品形态：
+Stack: Tauri 2, Rust 2021, React 19, TypeScript 5.8, Vite 7, pnpm 10.33.0. CI uses Node 22; dependencies require Node 22.13+ on 22.x or 24+. The current package/Tauri/Cargo version is 0.1.0; verify it again for release work. Mobile is a future consideration, not a delivered platform.
 
-- 主窗口：隐藏在托盘后的紧凑无边框窗口，默认宽约 400px、高约 500px。
-- 插件化工具：每个用户可见工具都应该像独立插件一样演进。
-- 当前插件/模块：
-  - Zero Launch：快速搜索、启动或切换应用与系统设置。
-  - Zero Snap：全局快捷键、选择/编辑窗口、复制、保存、钉图。
-  - Zero Awake：保持屏幕和系统唤醒。
-  - Zero Paper：浏览、缓存、保存并应用 Bing 每日壁纸。
-  - 偏好/关于：登录自启动、语言、工具显示开关、关于信息。
+## Source ownership
 
-## Tech Stack
+| Concern | Source |
+| --- | --- |
+| Lazy window routing | `src/main.tsx`, `src/appShell/appSurface.ts` |
+| Tray/main/preferences/about shells | `src/App.tsx` |
+| Frontend plugin composition | `src/appShell/bundledPluginModules.ts` |
+| Host contracts, registry/market UI, Extension Bridge | `src/core/pluginHost/` |
+| Preferences, localization, storage | `src/core/preferences/` |
+| Surface activity | `src/core/windowing/`, `src-tauri/src/services/surface_activity.rs` |
+| Plugin-owned frontend | `src/plugins/{screenshot,caffeine,bingWallpaper,quickLauncher,file}/` |
+| Native composition and IPC registration | `src-tauri/src/bundled_plugins.rs`, `src-tauri/src/lib.rs` |
+| Thin commands and native services | `src-tauri/src/commands/`, `src-tauri/src/services/` |
+| Package security and runtime | `src-tauri/src/plugins/` |
 
-- Desktop shell: Tauri 2
-- Native backend: Rust 2021
-- Frontend: React 19 + TypeScript
-- Build tool: Vite
-- Package manager: pnpm 10.33.0
-- Tauri plugins:
-  - @tauri-apps/plugin-autostart / tauri-plugin-autostart
-  - @tauri-apps/plugin-global-shortcut / tauri-plugin-global-shortcut
-  - @tauri-apps/plugin-opener / tauri-plugin-opener
-  - tauri-plugin-positioner
-- Native Rust helpers include base64, rfd, image, macOS cocoa/objc/window-vibrancy, and Windows power APIs through the windows crate.
+Core cannot import concrete plugins; plugins cannot import peers. Host coordinators own cross-plugin behavior. Bundled plugins are build-time modules; installed third-party packages cannot dynamically load Rust code.
 
-## Source Layout
+## Window model
 
-    src/
-      main.tsx                         Routes React entry by Tauri window label
-      App.tsx                          Main tray shell and top-level plugin selection
-      App.css                          Compact tray UI and capture/pin window styles
-      appShell/
-        bundledPluginModules.ts       Only bundled-plugin composition registry
-      core/
-        pluginHost/                   Registry, market, Extension API Bridge, host contracts/UI
-        preferences/                  Global preferences, About, storage, host localization
-      plugins/
-        caffeine/                      Self-contained Zero Awake module and descriptor
-        bingWallpaper/                 Self-contained Zero Paper module and descriptor
-        quickLauncher/                 Self-contained Zero Launch module and descriptor
-        screenshot/                    Self-contained Zero Snap module and descriptor
+- `tray`: initially hidden 400 × 500 quick panel defined in `tauri.conf.json`.
+- `main`: 920 × 660 standalone tool home created by `commands/app.rs`.
+- `preferences`: 840 × 640 settings center; `about`: 460 × 420 identity surface.
+- `capture`, `pin-*`: macOS screenshot editing and pinned results.
+- `launcher`, `paper`, `snap-menu`: dedicated tool surfaces.
+- `zero-file-engine`: hidden isolated document engine, with separate `file-engine.json` capabilities.
+- Unknown frontend labels fall back to the tray surface. `src/main.tsx` handles the File engine label specially.
 
-    src-tauri/
-      src/
-        lib.rs                         Tauri builder, tray, shortcut, command registration
-        bundled_plugins.rs             Trusted native plugin composition
-        commands/                      Thin #[tauri::command] handlers grouped by plugin
-        services/                      Plugin logic plus host-wide coordinators
-        plugins/                       Third-party package registry/runtime host
-      capabilities/default.json        Tauri permissions and allowed window labels
-      tauri.conf.json                  Window, bundle, build, identifier config
+Keep capabilities and command caller checks aligned with new window labels. Preserve focus/blur, transient-window coordination, and cleanup semantics.
 
-    tests/
-      unit/                            Pure core/plugin/service/app-shell/brand tests
-      integration/                     Extension host, source-boundary, and shell contracts
+## Native and IPC boundaries
 
-## Architecture Principles
+Rust owns system/process/file work, permissions, resource bounds, authoritative state, and native windows. React owns rendering and interactions. File conversion code executes in an isolated WebView using Rust-mediated staging, leases, cancellation, and output validation.
 
-Follow a Clean Architecture style with a pragmatic Tauri boundary:
+Use explicit symmetric Rust/TypeScript contracts, `serde` serialization, typed `Result` errors, and `unknown` narrowing instead of TypeScript `any`. Preserve each existing wire format: new screenshot session/media/lease structs use `camelCase`; some older capability/start responses use snake_case.
 
-- Rust owns native capabilities: tray behavior, global shortcuts, screenshot capture, clipboard/file save, power-management APIs, Tauri window creation, process/system calls, and platform-specific error handling.
-- React owns UI rendering, local interaction state, keyboard/pointer handling inside WebViews, local preferences UI, and small pure UI-domain helpers.
-- Tauri commands should be thin. Put command handlers in src-tauri/src/commands/, delegate real work to src-tauri/src/services/, and register commands in src-tauri/src/lib.rs.
-- Frontend plugin code should stay close to the plugin that owns it. Prefer focused plugin-scoped changes over broad app-wide rewrites.
-- Shared contracts across the Rust <-> TypeScript IPC boundary must be explicit, stable, and symmetric.
-- Do not introduce TypeScript any. Use explicit interfaces, discriminated unions, or unknown with narrowing.
-- Keep logic testable: extract pure helpers from React components when behavior can be tested without Tauri.
+Screenshot media is raw IPC, not Base64 JSON: `init_screenshot_session` returns a media descriptor; `read_screenshot_media` reads authorized bytes; `prepare_screenshot_commit` returns a one-use lease; `upload_screenshot_commit` consumes PNG bytes with lease/session/action headers. Source-of-truth contracts live in `services/screenshot.rs`, `commands/screenshot.rs`, `captureTypes.ts`, and `captureSerialize.ts`.
 
-## Plugin Model
+## Platform and release boundaries
 
-Each user-facing tool is treated as a plugin.
+- Snap: macOS custom capture/editor, smart window candidates, free selection, dimensions/radius, annotations and copy/save/pin. Windows remains system-launcher-only; Linux capture is unsupported. Mixed-DPI and window lifecycle still require device evidence.
+- Awake: macOS managed `caffeinate -d -i`; Windows `SetThreadExecutionState`; other platforms unsupported.
+- Paper: bounded Bing metadata/image fetch and cache; platform wallpaper adapter. Linux depends on the desktop backend and has no current CI/device claim.
+- Launch: macOS application bundles and Windows Start Menu entries; indexed IDs mediate launch/focus/settings actions. Linux/mobile unsupported; raw search queries are not persisted.
+- File: built-in PDF→DOCX on macOS/Windows; built-in DOCX→PDF on macOS 11+. Optional LibreOffice/Word compatibility providers are separate from the built-in paths. The signed engine candidate is unapproved; source development requires `ZERO_FILE_ENGINE_DEV_ASSETS=1` in a debug build. See the [engine guide](../docs/plugins/zero-file-offline-engines.md).
 
-Bundled plugins are trusted build-time modules. Each plugin owns a typed `plugin.tsx` descriptor, manifest and presentation metadata, local translations, UI surfaces, and domain code. Add or remove one by changing its directory plus the frontend registration in `src/appShell/bundledPluginModules.ts` and native registration in `src-tauri/src/bundled_plugins.rs`. Core must not import concrete plugins, and concrete plugins must not import peers; cross-plugin behavior belongs in a host coordinator.
+Preserve `com.watson.ztool` for upgrade compatibility. Canonical storage is `~/.zero` and `zero.preferences.v1`; legacy `.ztool` and `ztool.preferences.v1` remain migration inputs. Preferences retain at least one visible tool, system/Chinese/English language choices, and native autostart behavior.
 
-Installed third-party `.zplugin` packages are runtime-pluggable through validated manifests, approved permissions, isolated WebView surfaces, and the versioned Extension API Bridge. They cannot dynamically load plugin-provided Rust code.
+## Change workflow
 
-The main shell should preserve three stable areas:
+For non-trivial behavior changes, produce a proposal with the user problem, scope, non-goals, affected surfaces, platform implications, and verification plan. Describe both Rust and TS sides of IPC changes and split tasks into verifiable plugin-scoped steps. Specifications should express observable behavior.
 
-1. Tool list
-2. Current tool display
-3. System actions and preferences/about/quit controls
+Check overlapping active changes before proposing new work. Main specs currently cover only the shell and caffeine duration; many implemented capabilities still live in unarchived change deltas. A checked task is not proof of packaged/runtime readiness. Do not archive or sync specs as an incidental part of a review.
 
-## IPC and Data Contracts
+For MODIFIED requirements, retain existing scenario identifiers and full scenarios. Branding can change scenario bodies without silently dropping baseline scenarios. Changes depending on a new spec must be synced/archived in dependency order when requested.
 
-IPC payloads are part of the public contract between Rust and React.
+## Verification
 
-- Rust structs crossing IPC should derive Serialize and/or Deserialize as appropriate.
-- Frontend should define matching TypeScript interfaces for IPC responses and request payloads.
-- Rust-facing command inputs currently use snake_case field names where the Rust struct expects them. Convert at the boundary with helper functions instead of scattering field-name conversions through UI code.
-- Example current pattern:
-  - Rust input: CommitScreenshotInput { session_id, action, png_base64, save_path }
-  - TS helper: buildCommitScreenshotPayload(...) returns { input: { session_id, action, png_base64, save_path } }
-- Tauri commands should return Result<T, String> when failure is possible.
-- Frontend invoke calls should catch and surface errors in plugin state instead of throwing through the UI tree.
-
-## Window and Runtime Model
-
-Current Tauri windows:
-
-- main: tray control center; routes to MainApp.
-- capture: full-screen screenshot editor; routes to CaptureApp.
-- pin-*: always-on-top pinned image windows; route to PinApp.
-
-src/main.tsx routes by getCurrentWindow().label:
-
-- main and unknown labels -> MainApp
-- capture -> CaptureApp
-- labels starting with pin -> PinApp
-
-src-tauri/capabilities/default.json must stay in sync with command-created windows and currently allows main, capture, and pin-*.
-
-The tray icon toggles the main window and uses tauri-plugin-positioner to move it near the tray. A debounce guards repeated tray click events.
-
-## Platform Behavior
-
-Preserve platform-specific behavior unless a proposal explicitly changes it.
-
-### Zero Snap
-
-- Global shortcut: CommandOrControl+Shift+A.
-- macOS:
-  - start_screenshot hides main, captures a full-screen PNG through screencapture, stores an active session, and opens the full-screen capture window.
-  - CaptureApp handles annotation/edit interactions in React and commits a rendered PNG back to Rust.
-  - Copy uses AppleScript/clipboard flow; save uses filesystem or file dialog; pin creates pin-* windows.
-- Windows:
-  - Uses the system launcher path: explorer.exe ms-screenclip: with SnippingTool.exe fallback.
-  - Do not force macOS-only custom editor assumptions into the Windows path without an explicit design.
-- Linux/other:
-  - Zero Snap launcher support may be unsupported and should report a clear error.
-
-Key screenshot risks:
-
-- rendered-image-to-original-pixel coordinate conversion
-- stale or mismatched session_id
-- failure to restore main after commit/cancel/failure
-- macOS Screen Recording permission failure from screencapture
-- capability drift for capture and pin-* windows
-
-### Zero Awake
-
-- macOS uses a managed caffeinate -d -i child process.
-- Windows uses SetThreadExecutionState with display and system required flags.
-- Other platforms currently return unsupported.
-- Keep Rust CaffeineSnapshot and frontend state in sync when changing this feature.
-
-### Preferences
-
-- Preferences are stored in localStorage under zero.preferences.v1.
-- Language options are system, zh-CN, and en-US.
-- At least one tool must remain visible.
-- Login autostart uses the official Tauri autostart plugin; read/write errors should be surfaced in the preferences panel.
-
-## UI and Interaction Guidelines
-
-- The UI should stay dense, readable, and stable at tray-window size.
-- Avoid large marketing-page layouts inside the app shell.
-- Keep touch/click targets practical, but prioritize desktop tray ergonomics.
-- Prefer familiar compact controls for toggles, tool actions, and system actions.
-- For new windows, define the routing, size, focus behavior, taskbar behavior, and capability permissions together.
-- For screenshot editor changes, verify real Tauri window behavior; browser-only checks are not enough.
-
-## Code Style and Quality Rules
-
-- TypeScript strict mode is enabled; keep noUnusedLocals, noUnusedParameters, and noFallthroughCasesInSwitch clean.
-- Rust uses 2021 edition. Keep native service functions small and explicit about failure paths.
-- Prefer single-responsibility React components and hooks.
-- Avoid deep async nesting in React; wrap async state transitions in focused hooks/services.
-- Comments should explain why, not restate what the code already says.
-- Do not commit generated output such as dist/, node_modules/, .pnpm-store/, or src-tauri/target/.
-
-## OpenSpec Workflow Expectations
-
-For non-trivial behavior changes:
-
-- Start with a proposal that states the user problem, scope, non-goals, affected surfaces, platform implications, and verification plan.
-- Include Rust command/service changes and TS invoke/contract changes in the same design when IPC is involved.
-- Break tasks into small, verifiable steps; prefer plugin-scoped milestones.
-- Main specs should describe externally observable behavior, not implementation details.
-- If a change touches screenshot, tray, windows, global shortcuts, autostart, or platform APIs, call out manual verification needs.
-
-## Verification Commands
-
-Use focused checks while iterating:
-
-    pnpm test:unit
-    pnpm test:integration
-
-Both focused commands recreate the compiled TypeScript fixture tree at `/private/tmp/zero-tests` and recursively discover the selected level's nested `*.test.mjs` files.
-
-Before considering implementation complete, run the relevant subset plus:
-
-    pnpm test
-    pnpm build
-    cd src-tauri
-    cargo fmt --check
-    cargo check
-    cargo test
-    git diff --check
-
-For UI, tray, shortcut, screenshot-window, copy/save, pin-window, or native behavior changes, also run:
-
-    pnpm tauri dev
-
-Then manually inspect the real desktop app flow.
-
-## Current Product Direction
-
-Zero should grow as a desktop toolbox with small, reliable native utilities. A future public website, if built, should live separately from the app UI and present Zero as a desktop toolbox rather than a generic SaaS. Prior planning favored a lightweight static site, e.g. Astro for the site framework and Vercel for preview/deployment infrastructure.
+Follow `AGENTS.md` for normal commands. `pnpm test` compiles fixtures before recursive discovery; do not replace it with raw Node test execution. Run strict OpenSpec validation for artifact changes. UI, shortcuts, screenshot geometry, focus, autostart, native printing, packaged engine install, and resource/performance budgets need separate real-device evidence. Report unavailable platform checks explicitly.

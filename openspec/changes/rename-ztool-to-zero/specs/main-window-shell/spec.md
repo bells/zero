@@ -7,7 +7,7 @@ The system SHALL present a compact tray quick panel with a bottom action area co
 - **WHEN** the user activates the left preferences action in the tray quick panel bottom area
 - **THEN** the system opens or focuses the dedicated preferences surface
 
-#### Scenario: Open standalone Zero from tray
+#### Scenario: Open standalone ZTool from tray
 - **WHEN** the user activates the center open Zero action in the tray quick panel bottom area
 - **THEN** the system opens or focuses the standalone main Zero window
 
@@ -63,11 +63,11 @@ The system SHALL define explicit Tauri window labels and capabilities for tray, 
 ### Requirement: Existing plugin behavior is preserved
 The system SHALL preserve existing Zero Snap, Zero Awake, preferences, about, and quit behavior while renaming the app shell to Zero.
 
-#### Scenario: Zero Snap shortcut still opens capture flow
+#### Scenario: Screenshot shortcut still opens capture flow
 - **WHEN** the user presses CommandOrControl+Shift+A
 - **THEN** the system starts the existing screenshot capture flow for the current platform
 
-#### Scenario: Zero Awake controls remain usable
+#### Scenario: Caffeine controls remain usable
 - **WHEN** the user opens Zero Awake from the tray quick panel or standalone main window
 - **THEN** the user can enable, disable, and view keep-awake status according to the existing caffeine behavior
 

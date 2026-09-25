@@ -4,17 +4,17 @@ Zero is a tray-first desktop utility collection built with Tauri 2, React, and T
 
 ## Current Features
 
-- Zero Snap with selection preview, dimensions, toolbar actions, copy, and save entry points.
+- Zero Snap with macOS window targeting, adjustable selection dimensions and corner radius, annotations, copy, save, and pin; Windows uses its system screenshot tool.
 - Global screenshot shortcut: `CommandOrControl+Shift+A`.
 - Zero Awake to keep the screen and system awake.
 - Zero Paper with Bing daily wallpaper history, cache-first loading, save-to-Downloads, and one-click desktop apply.
 - Zero Launch for fuzzy application/system-setting search, app launch/focus, and a reusable `CommandOrControl+Shift+Space` window on macOS and Windows.
-- Preferences panel with real login autostart support.
+- Separate tray, main, preferences, and about windows, with login autostart and configurable global shortcuts.
 - Tool visibility preferences so users can choose which plugins appear in the main tool list.
 - Language preference with system default, Chinese, and English.
 - About and Exit actions in a compact bottom system section.
 - MVP plugin host: GitHub Releases `.zplugin` packages, hosted `market.json`, local package validation/install, permission review, enable/disable/uninstall, and bundled restore.
-- Zero File with signed plugin-owned offline PDF-to-DOCX assets and macOS 11+ DOCX-to-PDF rendering; Python and office suites are not required for the built-in paths.
+- Zero File with offline PDF-to-DOCX and macOS 11+ DOCX-to-PDF implementations. The signed engine package is still a release candidate; see the [development and release boundary](docs/plugins/zero-file-offline-engines.md#current-checkout-and-source-development).
 
 ## Tech Stack
 
@@ -27,8 +27,8 @@ Zero is a tray-first desktop utility collection built with Tauri 2, React, and T
 
 ## Prerequisites
 
-- Node.js 18+
-- pnpm
+- Node.js 22.13+ on the 22.x line, or Node.js 24+ (Vite 7 and PDF.js 6 requirements; CI uses Node 22)
+- pnpm 10.33.0 (pinned in `package.json`)
 - Rust via `rustup`
 - Platform build tools:
   - macOS: Xcode Command Line Tools
@@ -55,6 +55,14 @@ Run the desktop app:
 pnpm tauri dev
 ```
 
+To exercise the Zero File source engine in a debug build:
+
+```bash
+ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev
+```
+
+The flag enables a debug-only source fallback. It does not approve or install a signed engine package, and it has no effect in release builds.
+
 Build the frontend:
 
 ```bash
@@ -79,17 +87,20 @@ pnpm tauri build
 
 ```text
 src/
-  App.tsx                         Main tray shell
+  main.tsx                        Lazy routing by Tauri window label
+  App.tsx                         Tray, main, preferences, and about shells
   appShell/
     bundledPluginModules.ts       Only bundled-plugin composition registry
   core/
     pluginHost/                   Registry, market, Extension API bridge, and host UI
     preferences/                  Global preferences, About, storage, and host i18n
+    windowing/                    Surface activity and lifecycle hooks
   plugins/
     caffeine/                     Self-contained Zero Awake module
     bingWallpaper/                Self-contained Zero Paper module
     quickLauncher/                Self-contained Zero Launch module
     screenshot/                   Self-contained Zero Snap module
+    file/                         Zero File UI, contracts, and offline engine
 src-tauri/
   src/
     bundled_plugins.rs            Trusted native plugin composition
@@ -146,6 +157,10 @@ On startup, Zero copies missing data from `~/.ztool` into `~/.zero`, normalizes 
 
 Developer docs:
 
+- [Project overview, platform boundaries, and verification snapshot](docs/project-overview.md)
+- [Maintainer and agent instructions](AGENTS.md)
+- [Compact project memory](memory.md)
+- [OpenSpec project context](openspec/project.md)
 - [MVP protocol](docs/plugins/mvp-plugin-protocol.md)
 - [Developer guide](docs/plugins/developer-guide.md)
 - [GitHub Releases publishing guide](docs/plugins/publishing-github-releases.md)
@@ -176,8 +191,8 @@ pnpm test
 pnpm build
 cd src-tauri
 cargo fmt --check
-cargo check
-cargo test
+cargo check --locked
+cargo test --locked
 cargo test --release --test quick_launcher_benchmark -- --ignored --nocapture
 ```
 
@@ -185,4 +200,4 @@ cargo test --release --test quick_launcher_benchmark -- --ignored --nocapture
 
 - `node_modules`, frontend build output, and Rust/Tauri build output are intentionally ignored.
 - The login autostart preference uses the official Tauri autostart plugin.
-- Zero Snap annotation tools are intentionally phased: the UI direction is in place, while deeper annotation behavior can be implemented plugin by plugin.
+- Zero Snap's macOS editor implements selection, annotations, geometry controls, copy/save, and pin. Real multi-display, clipboard, window lifecycle, and packaged-app evidence must be tracked separately from automated checks.
