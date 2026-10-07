@@ -1,0 +1,1256 @@
+[
+  {
+    "name": "valid-minimal",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "unknown-root",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      },
+      "extra": true
+    },
+    "valid": false
+  },
+  {
+    "name": "reserved-id",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "zero.notes",
+      "id": "zero.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "id-mismatch",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.other",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unknown-runtime",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "binary",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "invalid-version",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "01.0.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unbounded-range",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "partial-range",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unsafe-path",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "../index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "uri-entry",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "https://example.com/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unknown-permission",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "clipboard.read"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "missing-network-scope",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "network"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unknown-contribution-field",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main",
+            "foo": 1
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "dangling-command-view",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.other"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "status-visible-default",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": true
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unknown-activation",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onStartup"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "null-optional-network",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      },
+      "network": null
+    },
+    "valid": false
+  },
+  {
+    "name": "null-optional-commands",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": null,
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "blank-display",
+    "manifest": {
+      "schemaVersion": 2,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "   ",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "decimal schema number",
+    "manifest": {
+      "schemaVersion": 2.0,
+      "name": "bells.notes",
+      "id": "bells.notes",
+      "displayName": "Quick Notes",
+      "description": "A small plugin-scoped notes example",
+      "author": "bells",
+      "version": "0.1.0",
+      "engines": {
+        "zero": ">=0.2.0 <0.3.0",
+        "api": "^1.0.0"
+      },
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "runtime": "webview",
+      "main": "dist/index.html",
+      "permissions": [
+        "storage.plugin",
+        "ui.message"
+      ],
+      "activationEvents": [
+        "onView:bells.notes.main",
+        "onCommand:bells.notes.open"
+      ],
+      "contributes": {
+        "views": [
+          {
+            "id": "bells.notes.main",
+            "title": "Quick Notes",
+            "surface": "main"
+          }
+        ],
+        "commands": [
+          {
+            "id": "bells.notes.open",
+            "title": "Open Quick Notes",
+            "viewId": "bells.notes.main"
+          }
+        ],
+        "keybindings": [
+          {
+            "command": "bells.notes.open",
+            "default": "CommandOrControl+Shift+J",
+            "description": "Open Quick Notes"
+          }
+        ],
+        "statusBarItems": [
+          {
+            "id": "bells.notes.status",
+            "title": "Quick Notes",
+            "command": "bells.notes.open",
+            "icon": "extension",
+            "visibleByDefault": false
+          }
+        ]
+      }
+    },
+    "valid": true
+  }
+]

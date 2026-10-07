@@ -14,5 +14,5 @@ export interface PluginMeta {
   subtitle: string;
   health: PluginHealth;
   enabled?: boolean;
-  assetUrl?: string;
+  viewId?: string;
 }

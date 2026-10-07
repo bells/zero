@@ -23,6 +23,10 @@ Zero 已形成「托盘快速入口 + 独立主窗口 + 独立设置/关于 + �
 
 `docs/superpowers/` 和变更内的历史 evidence 保留原始时间上下文；不要把过去的测试数量、性能数据或产品命名直接当作当前事实。
 
+2026-09-28 插件协议实施中：参见 [Protocol v1 当前状态](plugins/protocol-v1.md) 与 [原生隔离证据](../openspec/changes/standardize-zero-plugin-protocol/evidence/webview-isolation.md)。已接入 SemVer/Schema、流式包限额、共享内置 metadata、独立 WebView/session/窄 Bridge、SDK 与 notes 开发闭环；registry revision 及部分内置 lifecycle 已实现。公开运行时仍关闭，network provider、命令激活、完整更新事务和设备门禁仍未完成。下方 2026-09-25 的检查数字保留为历史记录。
+
+2026-10-07 续做：恢复内置工具接入共享操作锁，并补齐恢复持久化失败回滚、重启/迁移 revision 连续性及取消后存储提交保护测试。前端 313 项、Rust 沙箱外串行 296 项（1 ignored）、构建和 bundle gate 通过；macOS 临时 registry notes 原生闭环通过。后续生成本地 debug `.app`，以仅用于测试的配置增加可见主窗口，已完成真实主窗口/偏好/关于、五工具面板、Launch 原生查询和公开 runtime 拒绝的交互 smoke。此前裸开发进程的自动化识别问题已绕过；完整审批/双窗口同步/恢复、Windows 和发行包门禁仍待完成。详见 [conformance 记录](../openspec/changes/standardize-zero-plugin-protocol/evidence/conformance-2026-10-07.md) 与 [macOS UI 记录](../openspec/changes/standardize-zero-plugin-protocol/evidence/macos-ui-2026-10-07.md)。
+
 ## 架构与责任
 
 ```text

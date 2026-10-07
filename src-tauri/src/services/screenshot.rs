@@ -426,6 +426,27 @@ pub fn start_screenshot_session(
     app: tauri::AppHandle,
     action: String,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
+    let mut result = None;
+    app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+        .run(crate::brand::ZERO_SNAP_PLUGIN_ID, || {
+            result = Some(start_screenshot_session_inner(app.clone(), action));
+            Ok(())
+        })
+        .map_err(|message| screenshot_error("screenshot.lifecycle", message, true))?;
+    result.expect("operation ran under gate")
+}
+
+fn start_screenshot_session_inner(
+    app: tauri::AppHandle,
+    action: String,
+) -> Result<ScreenshotStartResult, ScreenshotError> {
+    if !crate::plugin_is_enabled(&app, crate::brand::ZERO_SNAP_PLUGIN_ID) {
+        return Err(screenshot_error(
+            "screenshot.disabled",
+            "Zero Snap 已停用",
+            false,
+        ));
+    }
     let normalized_action = normalize_start_action(action);
     let restore_window_label = hide_visible_shell_windows(&app);
 
@@ -713,6 +734,18 @@ pub fn upload_screenshot_commit(
             "不支持的截图动作",
             false,
         )),
+    }
+}
+
+pub fn deactivate_screenshot(app: &tauri::AppHandle) {
+    let store = app.state::<ScreenshotSessionStore>();
+    let active = store.active();
+    store.clear_active();
+    if let Some(window) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
+        let _ = crate::services::surface_activity::destroy_surface(&window);
+    }
+    if let Some(active) = active {
+        restore_shell_window(app, active.restore_window_label.as_deref());
     }
 }
 

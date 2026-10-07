@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -9,21 +10,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::brand::{
     canonical_data_root, canonical_first_party_contribution_id, canonical_first_party_plugin_id,
-    default_home, ZERO_AWAKE_PLUGIN_ID, ZERO_FILE_PLUGIN_ID, ZERO_LAUNCH_PLUGIN_ID,
-    ZERO_PAPER_PLUGIN_ID, ZERO_SNAP_PLUGIN_ID,
+    default_home, ZERO_FILE_PLUGIN_ID,
 };
 
 use super::contracts::{
-    InstallPluginPackageInput, PluginContributionCommand, PluginContributionSetting,
-    PluginContributionStatusBarItem, PluginContributionView, PluginContributions, PluginHealth,
-    PluginLifecycleResult, PluginManifest, PluginMarketEntry, PluginPermission, PluginPlatform,
-    PluginRecord, PluginRuntime, PluginSettingDefault, PluginSettingType, PluginSource,
-    PluginViewSurface, StatusBarAction, StatusBarActionType, StatusBarIconId,
+    InstallPluginPackageInput, PluginHealth, PluginLifecycleResult, PluginManifest,
+    PluginMarketEntry, PluginPermission, PluginRecord, PluginSource,
 };
 use super::package::{
-    extract_zplugin_package, format_validation_issues,
-    validate_approved_first_party_engine_package, validate_installed_first_party_engine,
-    validate_zplugin_package,
+    format_validation_issues, prepare_plugin_package, validate_approved_first_party_engine_package,
+    validate_installed_first_party_engine, validate_zplugin_package, PreparedPluginPackage,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -32,11 +28,14 @@ struct PluginRegistryDiskState {
     #[serde(default)]
     schema_version: u16,
     records: Vec<PluginRecord>,
+    #[serde(default)]
+    revision: u64,
 }
 
-const PLUGIN_REGISTRY_SCHEMA_VERSION: u16 = 5;
+const PLUGIN_REGISTRY_SCHEMA_VERSION: u16 = 6;
 
 pub struct PluginRegistry {
+    revision: AtomicU64,
     root: PathBuf,
     records: Vec<PluginRecord>,
     diagnostics: Vec<String>,
@@ -67,6 +66,12 @@ impl Default for PluginRegistryState {
 }
 
 impl PluginRegistryState {
+    pub fn from_registry(registry: PluginRegistry) -> Self {
+        Self {
+            registry: Mutex::new(registry),
+        }
+    }
+
     pub fn startup_write_performed(&self) -> bool {
         self.registry
             .lock()
@@ -96,6 +101,7 @@ impl PluginRegistry {
         let registry_path = registry_path(&root);
         if !registry_path.exists() {
             let mut registry = Self {
+                revision: AtomicU64::new(0),
                 root,
                 records: bundled_plugin_records(),
                 diagnostics: Vec::new(),
@@ -117,9 +123,15 @@ impl PluginRegistry {
                 let original = state.clone();
                 canonicalize_records(&mut state.records);
                 migrate_bundled_records(&mut state.records);
+                for record in &mut state.records {
+                    if !super::compatibility::check_record(record).compatible {
+                        record.health = PluginHealth::Incompatible;
+                    }
+                }
                 state.schema_version = PLUGIN_REGISTRY_SCHEMA_VERSION;
                 let changed = state != original;
                 let mut registry = Self {
+                    revision: AtomicU64::new(state.revision),
                     root,
                     records: state.records,
                     diagnostics: Vec::new(),
@@ -134,6 +146,7 @@ impl PluginRegistry {
             }
             Err(error) => {
                 let mut registry = Self {
+                    revision: AtomicU64::new(0),
                     root,
                     records: bundled_plugin_records(),
                     diagnostics: vec![format!("registry recovery: {error}")],
@@ -151,6 +164,22 @@ impl PluginRegistry {
         canonical_data_root(&default_home()).join("plugins")
     }
 
+    pub fn intake_root(&self) -> PathBuf {
+        self.root.join(".intake")
+    }
+
+    pub fn plugin_data_root(&self, plugin: &str) -> PathBuf {
+        self.root
+            .parent()
+            .unwrap_or(&self.root)
+            .join("data/plugins")
+            .join(plugin)
+    }
+
+    pub fn revision(&self) -> u64 {
+        self.revision.load(Ordering::Acquire)
+    }
+
     pub fn records(&self) -> &[PluginRecord] {
         &self.records
     }
@@ -164,7 +193,13 @@ impl PluginRegistry {
     }
 
     pub fn save(&self) -> Result<(), String> {
+        let revision = self
+            .revision()
+            .checked_add(1)
+            .filter(|r| *r <= 9_007_199_254_740_991)
+            .ok_or("registry revision exhausted")?;
         let state = PluginRegistryDiskState {
+            revision,
             schema_version: PLUGIN_REGISTRY_SCHEMA_VERSION,
             records: self.records.clone(),
         };
@@ -199,7 +234,26 @@ impl PluginRegistry {
         if save_result.is_err() {
             let _ = fs::remove_file(&temporary);
         }
+        if save_result.is_ok() {
+            self.revision.store(revision, Ordering::Release);
+        }
         save_result
+    }
+
+    pub fn set_enabled_and_save(
+        &mut self,
+        name: &str,
+        enabled: bool,
+    ) -> Result<PluginRecord, String> {
+        let previous = self.records.clone();
+        let result = self.set_enabled(name, enabled).and_then(|record| {
+            self.save()?;
+            Ok(record)
+        });
+        if result.is_err() {
+            self.records = previous;
+        }
+        result
     }
 
     pub fn set_enabled(&mut self, name: &str, enabled: bool) -> Result<PluginRecord, String> {
@@ -209,6 +263,18 @@ impl PluginRegistry {
             .find(|record| record.name == name)
             .ok_or_else(|| format!("plugin {name} was not found"))?;
 
+        if enabled {
+            let report = super::compatibility::check_record(record);
+            if !report.compatible {
+                record.health = PluginHealth::Incompatible;
+                return Err(report
+                    .issues
+                    .iter()
+                    .map(|issue| issue.message.as_str())
+                    .collect::<Vec<_>>()
+                    .join("; "));
+            }
+        }
         record.enabled = enabled;
         record.health = if enabled {
             PluginHealth::Ready
@@ -278,6 +344,7 @@ impl PluginRegistry {
     }
 
     pub fn restore_bundled_defaults(&mut self) -> Result<Vec<PluginRecord>, String> {
+        let previous = self.records.clone();
         for bundled in bundled_plugin_records() {
             match self
                 .records
@@ -293,7 +360,10 @@ impl PluginRegistry {
             }
         }
 
-        self.save()?;
+        if let Err(error) = self.save() {
+            self.records = previous;
+            return Err(error);
+        }
 
         Ok(self.records.clone())
     }
@@ -304,12 +374,32 @@ impl PluginRegistry {
         source: PluginSource,
         market_entry: Option<&PluginMarketEntry>,
     ) -> Result<PluginRecord, String> {
-        let package_path = PathBuf::from(&input.package_path);
-        let report = validate_zplugin_package(&package_path).map_err(|error| error.message)?;
+        let prepared = prepare_plugin_package(Path::new(&input.package_path), &self.intake_root())
+            .map_err(|e| e.message)?;
+        self.install_prepared(input, source, market_entry, prepared)
+    }
+
+    pub fn preflight_prepared(
+        &self,
+        input: &InstallPluginPackageInput,
+        market_entry: Option<&PluginMarketEntry>,
+        prepared: &PreparedPluginPackage,
+    ) -> Result<(), String> {
+        let report = &prepared.report;
         if !report.valid {
             return Err(format_validation_issues(&report.issues));
         }
-
+        let expected = input
+            .expected_sha256
+            .as_deref()
+            .or_else(|| market_entry.and_then(|e| e.sha256.as_deref()));
+        if expected.is_some_and(|hash| !hash.eq_ignore_ascii_case(&report.sha256))
+            || (report.protocol_manifest.is_some() && expected.is_none())
+        {
+            return Err(
+                "Package digest differs from the reviewed package or approval has no digest".into(),
+            );
+        }
         let manifest = report
             .manifest
             .clone()
@@ -319,11 +409,10 @@ impl PluginRegistry {
             validate_market_entry_matches_manifest(entry, &manifest)?;
         }
 
-        let existing_index = self
+        let existing = self
             .records
             .iter()
-            .position(|record| record.name == manifest.name);
-        let existing = existing_index.map(|index| self.records[index].clone());
+            .find(|record| record.name == manifest.name);
         if existing
             .as_ref()
             .is_some_and(|record| record.version == manifest.version)
@@ -347,6 +436,44 @@ impl PluginRegistry {
             ));
         }
 
+        let compatibility = if let Some(manifest) = &report.protocol_manifest {
+            super::compatibility::check_manifest(
+                &serde_json::to_value(manifest).map_err(|e| e.to_string())?,
+            )
+        } else {
+            super::compatibility::check_legacy(
+                &manifest,
+                env!("CARGO_PKG_VERSION"),
+                super::compatibility::current_platform(),
+                false,
+            )
+        };
+        if !compatibility.compatible {
+            return Err(compatibility
+                .issues
+                .iter()
+                .map(|i| i.message.as_str())
+                .collect::<Vec<_>>()
+                .join("; "));
+        }
+        Ok(())
+    }
+
+    pub fn install_prepared(
+        &mut self,
+        input: InstallPluginPackageInput,
+        source: PluginSource,
+        market_entry: Option<&PluginMarketEntry>,
+        prepared: PreparedPluginPackage,
+    ) -> Result<PluginRecord, String> {
+        self.preflight_prepared(&input, market_entry, &prepared)?;
+        let report = &prepared.report;
+        let manifest = report.manifest.clone().ok_or("Missing prepared manifest")?;
+        let existing_index = self
+            .records
+            .iter()
+            .position(|record| record.name == manifest.name);
+        let existing = existing_index.map(|index| self.records[index].clone());
         let enabled = existing
             .as_ref()
             .map(|record| record.enabled)
@@ -362,19 +489,12 @@ impl PluginRegistry {
             ));
         }
 
-        let staging_root = self.staging_root(&manifest.name, &manifest.version);
-        if staging_root.exists() {
-            fs::remove_dir_all(&staging_root).map_err(|error| {
-                format!("failed to clear stale plugin staging directory: {error}")
-            })?;
-        }
-
+        let staging_root = prepared.extracted_root.clone();
         let install_result = (|| -> Result<(), String> {
             if reuse_existing_version {
                 validate_installed_first_party_engine(&final_root, &manifest)?;
                 return Ok(());
             }
-            extract_zplugin_package(&package_path, &staging_root).map_err(|error| error.message)?;
 
             if let Some(parent) = final_root.parent() {
                 fs::create_dir_all(parent)
@@ -402,6 +522,7 @@ impl PluginRegistry {
                 manifest.clone()
             };
         let record = PluginRecord {
+            protocol_manifest: report.protocol_manifest.clone(),
             name: activated_manifest.name.clone(),
             version: activated_manifest.version.clone(),
             author: activated_manifest.author.clone(),
@@ -415,7 +536,7 @@ impl PluginRegistry {
             manifest: activated_manifest.clone(),
             installed_path: Some(final_root.to_string_lossy().into_owned()),
             approved_permissions: activated_manifest.permissions.clone(),
-            package_sha256: Some(report.sha256),
+            package_sha256: Some(report.sha256.clone()),
         };
 
         let prior_records = self.records.clone();
@@ -621,17 +742,6 @@ impl PluginRegistry {
         }
         Ok(())
     }
-
-    fn staging_root(&self, name: &str, version: &str) -> PathBuf {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or_default();
-
-        self.root
-            .join(".installing")
-            .join(format!("{name}-{version}-{nonce}"))
-    }
 }
 
 fn merge_zero_file_engine_manifest(
@@ -655,12 +765,12 @@ fn registry_path(root: &Path) -> PathBuf {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn atomic_replace_file(source: &Path, target: &Path) -> std::io::Result<()> {
+pub(crate) fn atomic_replace_file(source: &Path, target: &Path) -> std::io::Result<()> {
     fs::rename(source, target)
 }
 
 #[cfg(target_os = "windows")]
-fn atomic_replace_file(source: &Path, target: &Path) -> std::io::Result<()> {
+pub(crate) fn atomic_replace_file(source: &Path, target: &Path) -> std::io::Result<()> {
     use std::os::windows::ffi::OsStrExt;
 
     use windows::core::PCWSTR;
@@ -710,244 +820,17 @@ fn plugin_version_root(root: &Path, name: &str, version: &str) -> PathBuf {
 }
 
 fn bundled_plugin_records() -> Vec<PluginRecord> {
-    vec![
-        bundled_screenshot_record(),
-        bundled_caffeine_record(),
-        bundled_bing_wallpaper_record(),
-        bundled_quick_launcher_record(),
-        bundled_file_record(),
-    ]
-}
-
-fn bundled_screenshot_record() -> PluginRecord {
-    bundled_record(PluginManifest {
-        name: ZERO_SNAP_PLUGIN_ID.into(),
-        version: env!("CARGO_PKG_VERSION").into(),
-        author: "watson".into(),
-        main: "plugins/screenshot".into(),
-        permissions: vec![PluginPermission::UiMessage],
-        id: Some(ZERO_SNAP_PLUGIN_ID.into()),
-        display_name: Some("Zero Snap".into()),
-        description: Some("Shortcut, copy, save".into()),
-        engines: None,
-        platforms: Some(desktop_platforms()),
-        runtime: Some(PluginRuntime::Webview),
-        contributes: Some(PluginContributions {
-            views: Some(vec![PluginContributionView {
-                id: "zero.snap.main".into(),
-                title: "Zero Snap".into(),
-                surface: Some(PluginViewSurface::Main),
-            }]),
-            commands: Some(vec![
-                PluginContributionCommand {
-                    id: "zero.snap.capture".into(),
-                    title: "Capture Zero Snap".into(),
-                },
-                PluginContributionCommand {
-                    id: "zero.snap.copy".into(),
-                    title: "Capture and Copy".into(),
-                },
-                PluginContributionCommand {
-                    id: "zero.snap.save".into(),
-                    title: "Capture and Save".into(),
-                },
-            ]),
-            settings: None,
-            status_bar_items: Some(vec![PluginContributionStatusBarItem {
-                id: "zero.snap.status".into(),
-                title: "Zero Snap".into(),
-                icon: StatusBarIconId::Screenshot,
-                active_icon: None,
-                action: StatusBarAction {
-                    action_type: StatusBarActionType::StartScreenshot,
-                    command_id: Some("zero.snap.capture".into()),
-                },
-                order: Some(20),
-                visible_by_default: Some(true),
-            }]),
-        }),
-        first_party_engine: None,
-    })
-}
-
-fn bundled_caffeine_record() -> PluginRecord {
-    bundled_record(PluginManifest {
-        name: ZERO_AWAKE_PLUGIN_ID.into(),
-        version: env!("CARGO_PKG_VERSION").into(),
-        author: "watson".into(),
-        main: "plugins/caffeine".into(),
-        permissions: vec![PluginPermission::UiMessage],
-        id: Some(ZERO_AWAKE_PLUGIN_ID.into()),
-        display_name: Some("Zero Awake".into()),
-        description: Some("Keep display and system awake".into()),
-        engines: None,
-        platforms: Some(desktop_platforms()),
-        runtime: Some(PluginRuntime::Webview),
-        contributes: Some(PluginContributions {
-            views: Some(vec![PluginContributionView {
-                id: "zero.awake.main".into(),
-                title: "Zero Awake".into(),
-                surface: Some(PluginViewSurface::Main),
-            }]),
-            commands: Some(vec![PluginContributionCommand {
-                id: "zero.awake.toggle".into(),
-                title: "Toggle Zero Awake".into(),
-            }]),
-            settings: Some(vec![PluginContributionSetting {
-                key: "durationMinutes".into(),
-                setting_type: PluginSettingType::Number,
-                default: PluginSettingDefault::Number(0.0),
-                label: Some("Duration minutes".into()),
-            }]),
-            status_bar_items: Some(vec![PluginContributionStatusBarItem {
-                id: "zero.awake.status".into(),
-                title: "Zero Awake".into(),
-                icon: StatusBarIconId::CaffeineEmpty,
-                active_icon: Some(StatusBarIconId::CaffeineFull),
-                action: StatusBarAction {
-                    action_type: StatusBarActionType::ToggleCaffeine,
-                    command_id: Some("zero.awake.toggle".into()),
-                },
-                order: Some(10),
-                visible_by_default: Some(true),
-            }]),
-        }),
-        first_party_engine: None,
-    })
-}
-
-fn bundled_bing_wallpaper_record() -> PluginRecord {
-    bundled_record(PluginManifest {
-        name: ZERO_PAPER_PLUGIN_ID.into(),
-        version: "1.0.0".into(),
-        author: "bells".into(),
-        main: "plugins/bingWallpaper".into(),
-        permissions: vec![
-            PluginPermission::Network,
-            PluginPermission::StoragePlugin,
-            PluginPermission::SystemWallpaper,
-        ],
-        id: Some(ZERO_PAPER_PLUGIN_ID.into()),
-        display_name: Some("Zero Paper".into()),
-        description: Some("Browse, download, and apply Bing daily wallpapers".into()),
-        engines: None,
-        platforms: Some(desktop_platforms()),
-        runtime: Some(PluginRuntime::Webview),
-        contributes: Some(PluginContributions {
-            views: Some(vec![PluginContributionView {
-                id: "zero.paper.main".into(),
-                title: "Zero Paper".into(),
-                surface: Some(PluginViewSurface::Main),
-            }]),
-            commands: Some(vec![
-                PluginContributionCommand {
-                    id: "zero.paper.refresh".into(),
-                    title: "Refresh Bing wallpapers".into(),
-                },
-                PluginContributionCommand {
-                    id: "zero.paper.apply".into(),
-                    title: "Apply Bing wallpaper".into(),
-                },
-                PluginContributionCommand {
-                    id: "zero.paper.download".into(),
-                    title: "Download Bing wallpaper".into(),
-                },
-            ]),
-            settings: None,
-            status_bar_items: Some(vec![PluginContributionStatusBarItem {
-                id: "zero.paper.status".into(),
-                title: "Zero Paper".into(),
-                icon: StatusBarIconId::Paper,
-                active_icon: None,
-                action: StatusBarAction {
-                    action_type: StatusBarActionType::OpenPlugin,
-                    command_id: None,
-                },
-                order: Some(30),
-                visible_by_default: Some(true),
-            }]),
-        }),
-        first_party_engine: None,
-    })
-}
-
-fn bundled_quick_launcher_record() -> PluginRecord {
-    bundled_record(PluginManifest {
-        name: ZERO_LAUNCH_PLUGIN_ID.into(),
-        version: "1.0.0".into(),
-        author: "bells".into(),
-        main: "plugins/quickLauncher".into(),
-        permissions: vec![
-            PluginPermission::SystemAppsRead,
-            PluginPermission::SystemAppsExecute,
-            PluginPermission::SystemWindowFocus,
-            PluginPermission::SystemSettingsOpen,
-        ],
-        id: Some(ZERO_LAUNCH_PLUGIN_ID.into()),
-        display_name: Some("Zero Launch".into()),
-        description: Some("Search, launch, and switch local apps and system settings".into()),
-        engines: None,
-        platforms: Some(vec![PluginPlatform::Macos, PluginPlatform::Windows]),
-        runtime: Some(PluginRuntime::Webview),
-        contributes: Some(PluginContributions {
-            views: Some(vec![PluginContributionView {
-                id: "zero.launch.main".into(),
-                title: "Zero Launch".into(),
-                surface: Some(PluginViewSurface::Main),
-            }]),
-            commands: Some(vec![
-                PluginContributionCommand {
-                    id: "zero.launch.show".into(),
-                    title: "Show Zero Launch".into(),
-                },
-                PluginContributionCommand {
-                    id: "zero.launch.refresh".into(),
-                    title: "Refresh application index".into(),
-                },
-            ]),
-            settings: None,
-            status_bar_items: Some(vec![PluginContributionStatusBarItem {
-                id: "zero.launch.status".into(),
-                title: "Zero Launch".into(),
-                icon: StatusBarIconId::Launch,
-                active_icon: None,
-                action: StatusBarAction {
-                    action_type: StatusBarActionType::OpenPlugin,
-                    command_id: None,
-                },
-                order: Some(40),
-                visible_by_default: Some(true),
-            }]),
-        }),
-        first_party_engine: None,
-    })
+    crate::bundled_metadata::manifests()
+        .into_iter()
+        .map(bundled_record)
+        .collect()
 }
 
 fn bundled_file_record() -> PluginRecord {
-    bundled_record(PluginManifest {
-        name: ZERO_FILE_PLUGIN_ID.into(),
-        version: "1.0.0".into(),
-        author: "bells".into(),
-        main: "plugins/file".into(),
-        permissions: Vec::new(),
-        id: Some(ZERO_FILE_PLUGIN_ID.into()),
-        display_name: Some("Zero File".into()),
-        description: Some("Convert PDF and Word files with detected local providers".into()),
-        engines: None,
-        platforms: Some(vec![PluginPlatform::Macos, PluginPlatform::Windows]),
-        runtime: Some(PluginRuntime::Webview),
-        contributes: Some(PluginContributions {
-            views: Some(vec![PluginContributionView {
-                id: "zero.file.main".into(),
-                title: "Zero File".into(),
-                surface: Some(PluginViewSurface::Main),
-            }]),
-            commands: None,
-            settings: None,
-            status_bar_items: None,
-        }),
-        first_party_engine: None,
-    })
+    bundled_plugin_records()
+        .into_iter()
+        .find(|r| r.name == ZERO_FILE_PLUGIN_ID)
+        .unwrap()
 }
 
 fn bundled_record(manifest: PluginManifest) -> PluginRecord {
@@ -956,6 +839,7 @@ fn bundled_record(manifest: PluginManifest) -> PluginRecord {
     let version = manifest.version.clone();
 
     PluginRecord {
+        protocol_manifest: None,
         name: manifest.name.clone(),
         version,
         author,
@@ -1044,14 +928,6 @@ fn canonicalize_record(record: &mut PluginRecord) {
     }
 }
 
-fn desktop_platforms() -> Vec<PluginPlatform> {
-    vec![
-        PluginPlatform::Macos,
-        PluginPlatform::Windows,
-        PluginPlatform::Linux,
-    ]
-}
-
 fn permissions_are_approved(requested: &[PluginPermission], approved: &[PluginPermission]) -> bool {
     requested
         .iter()
@@ -1088,7 +964,7 @@ mod tests {
     use super::*;
     use crate::plugins::contracts::{
         PluginDocumentDirection, PluginEngineAsset, PluginEnginePlatformMinimum,
-        PluginFirstPartyEngine,
+        PluginFirstPartyEngine, PluginPlatform,
     };
     use crate::plugins::package::{
         first_party_engine_signature_payload, sha256_hex,

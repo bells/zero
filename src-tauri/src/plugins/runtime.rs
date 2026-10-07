@@ -31,6 +31,10 @@ pub fn execute_plugin_entrypoint(
         .ok_or_else(|| "plugin has no installed path".to_string())?;
     let entrypoint = resolve_entrypoint(Path::new(installed_path), &request.record.manifest.main)?;
 
+    if !super::compatibility::check_record(&request.record).compatible {
+        return Err("Plugin is incompatible with this host".into());
+    }
+
     if !entrypoint.exists() {
         return Err(format!(
             "plugin entrypoint does not exist: {}",

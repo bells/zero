@@ -1,3 +1,4 @@
+import type { CheckPluginCompatibilityInput, CompatibilityReport, OpenPluginViewInput } from "./protocol/contracts";
 import type {
   InstallMarketPluginInput,
   InstallPluginPackageInput,
@@ -12,9 +13,12 @@ import type {
 } from "./contracts";
 
 export const PLUGIN_HOST_COMMANDS = {
+  openView: "open_plugin_view",
+  checkCompatibility: "check_plugin_compatibility",
   refreshMarket: "refresh_plugin_market",
   listMarketPlugins: "list_market_plugins",
   listPlugins: "list_plugins",
+  registrySnapshot: "get_plugin_registry_snapshot",
   validatePackage: "validate_plugin_package",
   installMarketPlugin: "install_market_plugin",
   installPluginPackage: "install_plugin_package",
@@ -27,6 +31,8 @@ export type PluginHostCommand =
   (typeof PLUGIN_HOST_COMMANDS)[keyof typeof PLUGIN_HOST_COMMANDS];
 
 export type PluginHostInvokeArgs =
+  | { input: CheckPluginCompatibilityInput }
+  | { input: OpenPluginViewInput }
   | { input: ValidatePluginPackageInput }
   | { input: InstallPluginPackageInput }
   | { input: InstallMarketPluginInput }
@@ -40,12 +46,22 @@ export type PluginHostInvokeBridge = <T>(
 
 export function createPluginHostService(invokeCommand: PluginHostInvokeBridge) {
   return {
+    openView(input: OpenPluginViewInput): Promise<import("./protocol/contracts").PluginSessionInfo> {
+      return invokeCommand(PLUGIN_HOST_COMMANDS.openView, { input });
+    },
+    checkCompatibility(input: CheckPluginCompatibilityInput): Promise<CompatibilityReport> {
+      return invokeCommand<CompatibilityReport>(PLUGIN_HOST_COMMANDS.checkCompatibility, { input });
+    },
     refreshMarket(): Promise<PluginMarketSnapshot> {
       return invokeCommand<PluginMarketSnapshot>(PLUGIN_HOST_COMMANDS.refreshMarket);
     },
 
     listMarketPlugins(): Promise<PluginMarketEntry[]> {
       return invokeCommand<PluginMarketEntry[]>(PLUGIN_HOST_COMMANDS.listMarketPlugins);
+    },
+
+    registrySnapshot(): Promise<import("./protocol/contracts").PluginRegistrySnapshot> {
+      return invokeCommand(PLUGIN_HOST_COMMANDS.registrySnapshot);
     },
 
     listPlugins(): Promise<PluginRecord[]> {

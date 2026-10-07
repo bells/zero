@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "name": "example.notes",
+  "id": "example.notes",
+  "displayName": "Zero Notes example",
+  "description": "A minimal plugin using only the public storage API",
+  "author": "Zero contributors",
+  "version": "1.0.0",
+  "engines": { "zero": ">=0.2.0 <0.3.0", "api": "^1.0.0" },
+  "platforms": ["macos"],
+  "runtime": "webview",
+  "main": "index.html",
+  "permissions": ["storage.plugin"],
+  "contributes": { "views": [{ "id": "example.notes.main", "title": "Notes", "surface": "main" }] },
+  "activationEvents": ["onView:example.notes.main"]
+}

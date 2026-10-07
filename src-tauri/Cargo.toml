@@ -34,12 +34,13 @@ reqwest = "0.13.3"
 sha2 = "0.10"
 zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2"] }
 futures-util = "0.3"
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1", features = ["sync", "fs", "io-util", "time"] }
 wallpaper = { version = "3.2", default-features = false }
 nucleo-matcher = "0.3"
 pinyin = "0.11"
 notify = "8"
 plist = "1"
+semver = "=1.0.28"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 [target.'cfg(target_os = "macos")'.dependencies]

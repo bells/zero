@@ -7122,6 +7122,7 @@ dependencies = [
  "plist",
  "reqwest",
  "rfd",
+ "semver",
  "serde",
  "serde_json",
  "sha2",

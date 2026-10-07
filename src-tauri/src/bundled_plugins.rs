@@ -3,6 +3,9 @@ use tauri::Manager;
 pub fn manage_states(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     let engine_bridge = crate::services::file::engine_bridge::FileEngineBridgeState::default();
     builder
+        .manage(crate::plugins::lifecycle::LifecycleCoordinator::new(vec![
+            sync_lifecycle,
+        ]))
         .manage(crate::services::caffeine::CaffeineState::default())
         .manage(crate::services::bing_wallpaper::BingWallpaperState::default())
         .manage(crate::services::quick_launcher::QuickLauncherState::default())
@@ -145,4 +148,48 @@ pub fn start_file_engine_smoke_if_requested(app: &tauri::AppHandle) {
             }
         }
     });
+}
+
+pub fn sync_lifecycle(
+    app: &tauri::AppHandle,
+    change: &crate::plugins::lifecycle::LifecycleChange<'_>,
+) -> Result<(), String> {
+    match change.plugin_id {
+        crate::brand::ZERO_LAUNCH_PLUGIN_ID => {
+            if change.enabled {
+                start_quick_launcher(app);
+            } else {
+                app.state::<crate::services::quick_launcher::QuickLauncherState>()
+                    .set_enabled(false);
+            }
+            crate::sync_quick_launcher_shortcut(app, change.enabled)?;
+        }
+        crate::brand::ZERO_SNAP_PLUGIN_ID => {
+            crate::sync_screenshot_shortcut(app, change.enabled)?;
+            if !change.enabled {
+                crate::services::screenshot::deactivate_screenshot(app);
+            }
+        }
+        crate::brand::ZERO_AWAKE_PLUGIN_ID if !change.enabled => {
+            app.state::<crate::services::caffeine::CaffeineState>()
+                .set_enabled(false, None)?;
+        }
+        crate::brand::ZERO_FILE_PLUGIN_ID => {
+            use crate::services::file::runtime::FileCapabilityInvalidationCause as Cause;
+            let cause = match change.reason {
+                "installed" if change.previous_version.is_some() => Cause::EngineUpgraded,
+                "installed" => Cause::EngineInstalled,
+                "removed" => Cause::EngineRemoved,
+                _ if change.enabled => Cause::EngineRepaired,
+                _ => Cause::EngineRemoved,
+            };
+            app.state::<crate::services::file::FileConversionState>()
+                .invalidate_capabilities(cause);
+            app.state::<crate::services::file::engine_bridge::FileEngineBridgeState>()
+                .bridge
+                .reset_and_destroy(app, "The Zero File engine lifecycle changed.");
+        }
+        _ => {}
+    }
+    Ok(())
 }

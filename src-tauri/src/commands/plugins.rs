@@ -1,4 +1,20 @@
-use tauri::{Manager, State};
+#[tauri::command]
+pub fn check_plugin_compatibility(
+    input: crate::plugins::protocol::CheckPluginCompatibilityInput,
+) -> Result<crate::plugins::protocol::CompatibilityReport, crate::plugins::protocol::PluginError> {
+    if input.manifest.to_string().len() > 64 * 1024 {
+        return Err(crate::plugins::protocol::PluginError {
+            code: "manifest.oversized".into(),
+            message: "Manifest exceeds 64 KiB".into(),
+            retryable: false,
+        });
+    }
+    Ok(crate::plugins::compatibility::check_manifest(
+        &input.manifest,
+    ))
+}
+
+use tauri::{Emitter, Manager, State};
 
 use crate::plugins::contracts::{
     InstallMarketPluginInput, InstallPluginPackageInput, PluginIdentityInput,
@@ -47,13 +63,41 @@ pub fn list_plugins(state: State<'_, PluginRegistryState>) -> Result<Vec<PluginR
 }
 
 #[tauri::command]
+pub fn get_plugin_registry_snapshot(
+    state: State<'_, PluginRegistryState>,
+) -> Result<crate::plugins::protocol::PluginRegistrySnapshot, String> {
+    state.with_registry(|r| {
+        Ok(crate::plugins::protocol::PluginRegistrySnapshot {
+            revision: r.revision(),
+            records: r.records().to_vec(),
+        })
+    })
+}
+
+fn publish_registry(app: &tauri::AppHandle, ids: Vec<String>, reason: &str) {
+    if let Ok(revision) = app
+        .state::<PluginRegistryState>()
+        .with_registry(|r| Ok(r.revision()))
+    {
+        let _ = app.emit(
+            "plugin-registry-changed",
+            crate::plugins::protocol::PluginRegistryChanged {
+                revision,
+                plugin_ids: ids,
+                reason: reason.into(),
+            },
+        );
+    }
+}
+
+#[tauri::command]
 pub async fn validate_plugin_package(
     input: ValidatePluginPackageInput,
     app: tauri::AppHandle,
 ) -> Result<PluginPackageValidationReport, String> {
-    run_plugin_worker(app, move |app| {
-        app.state::<PluginRegistryState>()
-            .with_registry(|registry| registry.validate_package(input.package_path))
+    run_plugin_worker(app, move |_| {
+        crate::plugins::package::validate_zplugin_package(std::path::Path::new(&input.package_path))
+            .map_err(|e| e.message)
     })
     .await
 }
@@ -64,25 +108,56 @@ pub async fn install_plugin_package(
     app: tauri::AppHandle,
 ) -> Result<PluginRecord, String> {
     run_plugin_worker(app, move |app| {
-        let (record, prior_version) =
-            app.state::<PluginRegistryState>()
-                .with_registry(|registry| {
-                    let prior_version = registry
-                        .records()
-                        .iter()
-                        .find(|record| record.name == crate::brand::ZERO_FILE_PLUGIN_ID)
-                        .map(|record| record.version.clone());
-                    registry
-                        .install_local_package(input)
-                        .map(|record| (record, prior_version))
-                })?;
-        let _ = crate::services::status_bar::refresh_status_bar(app);
-        sync_file_capability_lifecycle(app, &record, prior_version.as_deref());
-        if record.name == crate::brand::ZERO_LAUNCH_PLUGIN_ID {
-            sync_quick_launcher_lifecycle(app, record.enabled);
-            let _ = crate::sync_quick_launcher_shortcut(app, record.enabled);
-        }
-        Ok(record)
+        let intake = app
+            .state::<PluginRegistryState>()
+            .with_registry(|registry| Ok(registry.intake_root()))?;
+        let prepared = crate::plugins::package::prepare_plugin_package(
+            std::path::Path::new(&input.package_path),
+            &intake,
+        )
+        .map_err(|e| e.message)?;
+        let plugin_name = prepared
+            .report
+            .manifest
+            .as_ref()
+            .ok_or("Missing package manifest")?
+            .name
+            .clone();
+        let operation_name = plugin_name.clone();
+        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+            .run(&operation_name, || {
+                app.state::<PluginRegistryState>()
+                    .with_registry(|r| r.preflight_prepared(&input, None, &prepared))?;
+                crate::plugins::web_runtime::revoke(app, &operation_name);
+                let (record, prior_version) =
+                    app.state::<PluginRegistryState>()
+                        .with_registry(|registry| {
+                            let prior_version = registry
+                                .records()
+                                .iter()
+                                .find(|record| record.name == operation_name)
+                                .map(|record| record.version.clone());
+                            registry
+                                .install_prepared(
+                                    input,
+                                    crate::plugins::contracts::PluginSource::Local,
+                                    None,
+                                    prepared,
+                                )
+                                .map(|record| (record, prior_version))
+                        })?;
+                let _ = crate::services::status_bar::refresh_status_bar(app);
+                let lifecycle_result = crate::plugins::lifecycle::changed(
+                    app,
+                    &record.name,
+                    record.enabled,
+                    "installed",
+                    prior_version.as_deref(),
+                );
+                publish_registry(app, vec![record.name.clone()], "changed");
+                lifecycle_result?;
+                Ok(record)
+            })
     })
     .await
 }
@@ -92,11 +167,11 @@ pub async fn install_market_plugin(
     input: InstallMarketPluginInput,
     app: tauri::AppHandle,
 ) -> Result<PluginRecord, String> {
-    let staging_dir = std::env::temp_dir().join(format!(
-        "zero-market-plugin-{}-{}",
-        input.entry.name,
-        std::process::id()
-    ));
+    let mut nonce = [0_u8; 16];
+    getrandom::fill(&mut nonce)
+        .map_err(|_| "Could not allocate plugin staging identity".to_string())?;
+    let nonce: String = nonce.iter().map(|byte| format!("{byte:02x}")).collect();
+    let staging_dir = std::env::temp_dir().join(format!("zero-market-plugin-{nonce}"));
     let download = download_package_to_staging(
         &PluginPackageDownloadRequest {
             download_url: input.entry.download_url.clone(),
@@ -108,29 +183,60 @@ pub async fn install_market_plugin(
     .map_err(|error| error.message)?;
 
     let install_input = InstallPluginPackageInput {
+        expected_sha256: None,
         package_path: download.staged_path.to_string_lossy().into_owned(),
         approved_permissions: input.approved_permissions,
         enabled: input.enabled,
     };
 
     run_plugin_worker(app, move |app| {
-        let result = app
+        let intake = app
             .state::<PluginRegistryState>()
-            .with_registry(|registry| {
-                let prior_version = registry
-                    .records()
-                    .iter()
-                    .find(|record| record.name == crate::brand::ZERO_FILE_PLUGIN_ID)
-                    .map(|record| record.version.clone());
-                registry
-                    .install_market_package_from_path(&input.entry, install_input)
-                    .map(|record| (record, prior_version))
-            });
+            .with_registry(|registry| Ok(registry.intake_root()))?;
+        let prepared = crate::plugins::package::prepare_plugin_package(
+            std::path::Path::new(&install_input.package_path),
+            &intake,
+        );
         let _ = std::fs::remove_dir_all(&staging_dir);
-        let (record, prior_version) = result?;
-        let _ = crate::services::status_bar::refresh_status_bar(app);
-        sync_file_capability_lifecycle(app, &record, prior_version.as_deref());
-        Ok(record)
+        let prepared = prepared.map_err(|e| e.message)?;
+
+        let operation_name = input.entry.name.clone();
+        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+            .run(&operation_name, || {
+                app.state::<PluginRegistryState>().with_registry(|r| {
+                    r.preflight_prepared(&install_input, Some(&input.entry), &prepared)
+                })?;
+                crate::plugins::web_runtime::revoke(app, &operation_name);
+                let result = app
+                    .state::<PluginRegistryState>()
+                    .with_registry(|registry| {
+                        let prior_version = registry
+                            .records()
+                            .iter()
+                            .find(|record| record.name == operation_name)
+                            .map(|record| record.version.clone());
+                        registry
+                            .install_prepared(
+                                install_input,
+                                crate::plugins::contracts::PluginSource::Market,
+                                Some(&input.entry),
+                                prepared,
+                            )
+                            .map(|record| (record, prior_version))
+                    });
+                let (record, prior_version) = result?;
+                let _ = crate::services::status_bar::refresh_status_bar(app);
+                let lifecycle_result = crate::plugins::lifecycle::changed(
+                    app,
+                    &record.name,
+                    record.enabled,
+                    "installed",
+                    prior_version.as_deref(),
+                );
+                publish_registry(app, vec![record.name.clone()], "changed");
+                lifecycle_result?;
+                Ok(record)
+            })
     })
     .await
 }
@@ -141,26 +247,20 @@ pub async fn uninstall_plugin(
     app: tauri::AppHandle,
 ) -> Result<PluginLifecycleResult, String> {
     run_plugin_worker(app, move |app| {
-        let result = app
-            .state::<PluginRegistryState>()
-            .with_registry(|registry| registry.uninstall_plugin(&input.name))?;
-        let _ = crate::services::status_bar::refresh_status_bar(app);
-        if input.name == crate::brand::ZERO_FILE_PLUGIN_ID {
-            reset_file_engine_lifecycle(
-                app,
-                crate::services::file::runtime::FileCapabilityInvalidationCause::EngineRemoved,
-                "The Zero File engine was removed.",
-            );
-        }
-        if result
-            .plugin
-            .as_ref()
-            .is_some_and(|record| record.name == crate::brand::ZERO_LAUNCH_PLUGIN_ID)
-        {
-            sync_quick_launcher_lifecycle(app, false);
-            let _ = crate::sync_quick_launcher_shortcut(app, false);
-        }
-        Ok(result)
+        let operation_name = input.name.clone();
+        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+            .run(&operation_name, || {
+                crate::plugins::web_runtime::revoke(app, &input.name);
+                let result = app
+                    .state::<PluginRegistryState>()
+                    .with_registry(|registry| registry.uninstall_plugin(&input.name))?;
+                let _ = crate::services::status_bar::refresh_status_bar(app);
+                let lifecycle_result =
+                    crate::plugins::lifecycle::changed(app, &input.name, false, "removed", None);
+                publish_registry(app, vec![input.name.clone()], "removed");
+                lifecycle_result?;
+                Ok(result)
+            })
     })
     .await
 }
@@ -171,30 +271,29 @@ pub async fn set_plugin_enabled(
     app: tauri::AppHandle,
 ) -> Result<PluginRecord, String> {
     run_plugin_worker(app, move |app| {
-        let record = app
-            .state::<PluginRegistryState>()
-            .with_registry(|registry| {
-                let record = registry.set_enabled(&input.name, input.enabled)?;
-                registry.save()?;
+        let operation_name = input.name.clone();
+        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+            .run(&operation_name, || {
+                if !input.enabled {
+                    crate::plugins::web_runtime::revoke(app, &input.name);
+                }
+                let record = app
+                    .state::<PluginRegistryState>()
+                    .with_registry(|registry| {
+                        registry.set_enabled_and_save(&input.name, input.enabled)
+                    })?;
+                let _ = crate::services::status_bar::refresh_status_bar(app);
+                let lifecycle_result = crate::plugins::lifecycle::changed(
+                    app,
+                    &record.name,
+                    record.enabled,
+                    "enabled",
+                    None,
+                );
+                publish_registry(app, vec![record.name.clone()], "changed");
+                lifecycle_result?;
                 Ok(record)
-            })?;
-        let _ = crate::services::status_bar::refresh_status_bar(app);
-        if record.name == crate::brand::ZERO_FILE_PLUGIN_ID {
-            reset_file_engine_lifecycle(
-                app,
-                if record.enabled {
-                    crate::services::file::runtime::FileCapabilityInvalidationCause::EngineRepaired
-                } else {
-                    crate::services::file::runtime::FileCapabilityInvalidationCause::EngineRemoved
-                },
-                "The Zero File engine lifecycle changed.",
-            );
-        }
-        if record.name == crate::brand::ZERO_LAUNCH_PLUGIN_ID {
-            sync_quick_launcher_lifecycle(app, record.enabled);
-            let _ = crate::sync_quick_launcher_shortcut(app, record.enabled);
-        }
-        Ok(record)
+            })
     })
     .await
 }
@@ -202,23 +301,40 @@ pub async fn set_plugin_enabled(
 #[tauri::command]
 pub async fn restore_bundled_plugins(app: tauri::AppHandle) -> Result<Vec<PluginRecord>, String> {
     run_plugin_worker(app, move |app| {
-        let records = app
-            .state::<PluginRegistryState>()
-            .with_registry(|registry| registry.restore_bundled_defaults())?;
-        let _ = crate::services::status_bar::refresh_status_bar(app);
-        if records
-            .iter()
-            .any(|record| record.name == crate::brand::ZERO_FILE_PLUGIN_ID)
-        {
-            reset_file_engine_lifecycle(
-                app,
-                crate::services::file::runtime::FileCapabilityInvalidationCause::EngineRepaired,
-                "The bundled Zero File engine was restored.",
-            );
-        }
-        sync_quick_launcher_lifecycle(app, true);
-        let _ = crate::sync_quick_launcher_shortcut(app, true);
-        Ok(records)
+        let bundled = crate::bundled_metadata::manifests();
+        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+            .run_many(
+                bundled.iter().map(|manifest| manifest.name.as_str()),
+                || {
+                    let records = app
+                        .state::<PluginRegistryState>()
+                        .with_registry(|registry| registry.restore_bundled_defaults())?;
+                    let _ = crate::services::status_bar::refresh_status_bar(app);
+                    let mut errors = Vec::new();
+                    let mut restored_ids = Vec::new();
+                    for record in records.iter().filter(|record| {
+                        record.source == crate::plugins::contracts::PluginSource::Bundled
+                    }) {
+                        restored_ids.push(record.name.clone());
+                        if let Err(error) = crate::plugins::lifecycle::changed(
+                            app,
+                            &record.name,
+                            record.enabled,
+                            "restored",
+                            None,
+                        ) {
+                            errors.push(format!("{}: {error}", record.name));
+                        }
+                    }
+                    // The registry has committed even if a native adapter fails;
+                    // every window must still receive the authoritative revision.
+                    publish_registry(app, restored_ids, "restored");
+                    if !errors.is_empty() {
+                        return Err(errors.join("; "));
+                    }
+                    Ok(records)
+                },
+            )
     })
     .await
 }
@@ -230,45 +346,4 @@ async fn run_plugin_worker<T: Send + 'static>(
     tauri::async_runtime::spawn_blocking(move || operation(&app))
         .await
         .map_err(|_| "plugin lifecycle worker stopped unexpectedly".to_string())?
-}
-
-fn sync_quick_launcher_lifecycle(app: &tauri::AppHandle, enabled: bool) {
-    if enabled {
-        crate::bundled_plugins::start_quick_launcher(app);
-    } else {
-        app.state::<crate::services::quick_launcher::QuickLauncherState>()
-            .set_enabled(false);
-    }
-}
-
-fn sync_file_capability_lifecycle(
-    app: &tauri::AppHandle,
-    record: &PluginRecord,
-    prior_version: Option<&str>,
-) {
-    if record.name != crate::brand::ZERO_FILE_PLUGIN_ID {
-        return;
-    }
-    let cause = if prior_version.is_some() {
-        crate::services::file::runtime::FileCapabilityInvalidationCause::EngineUpgraded
-    } else {
-        crate::services::file::runtime::FileCapabilityInvalidationCause::EngineInstalled
-    };
-    reset_file_engine_lifecycle(
-        app,
-        cause,
-        "The installed Zero File engine version changed.",
-    );
-}
-
-fn reset_file_engine_lifecycle(
-    app: &tauri::AppHandle,
-    cause: crate::services::file::runtime::FileCapabilityInvalidationCause,
-    message: &str,
-) {
-    app.state::<crate::services::file::FileConversionState>()
-        .invalidate_capabilities(cause);
-    app.state::<crate::services::file::engine_bridge::FileEngineBridgeState>()
-        .bridge
-        .reset_and_destroy(app, message);
 }

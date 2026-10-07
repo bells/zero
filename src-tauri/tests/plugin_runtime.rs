@@ -25,6 +25,7 @@ fn plugin_record(
     };
 
     PluginRecord {
+        protocol_manifest: None,
         name: "runtime-tool".into(),
         version: "0.1.0".into(),
         author: "watson".into(),

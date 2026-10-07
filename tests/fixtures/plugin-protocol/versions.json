@@ -1,0 +1,116 @@
+[
+  {
+    "name": "exact",
+    "version": "1.0.0",
+    "range": "1.0.0",
+    "matches": true
+  },
+  {
+    "name": "exact-not-caret",
+    "version": "1.0.1",
+    "range": "1.0.0",
+    "matches": false
+  },
+  {
+    "name": "caret",
+    "version": "1.2.0",
+    "range": "^1.0.0",
+    "matches": true
+  },
+  {
+    "name": "major",
+    "version": "2.0.0",
+    "range": "^1.0.0",
+    "matches": false
+  },
+  {
+    "name": "zero-major",
+    "version": "0.3.0",
+    "range": "^0.2.0",
+    "matches": false
+  },
+  {
+    "name": "tilde",
+    "version": "1.1.0",
+    "range": "~1.0.0",
+    "matches": false
+  },
+  {
+    "name": "and",
+    "version": "0.2.3",
+    "range": ">=0.2.0 <0.3.0",
+    "matches": true
+  },
+  {
+    "name": "build",
+    "version": "1.0.0+abc",
+    "range": "1.0.0",
+    "matches": true
+  },
+  {
+    "name": "pre-default",
+    "version": "1.1.0-beta.1",
+    "range": "^1.0.0",
+    "matches": false
+  },
+  {
+    "name": "pre-explicit",
+    "version": "1.1.0-beta.2",
+    "range": ">=1.1.0-beta.1 <1.1.0",
+    "matches": true
+  },
+  {
+    "name": "leading-zero",
+    "version": "01.0.0",
+    "range": "^1.0.0",
+    "matches": false
+  },
+  {
+    "name": "empty-pre",
+    "version": "1.0.0-",
+    "range": "^1.0.0",
+    "matches": false
+  },
+  {
+    "name": "double-dot",
+    "version": "1.0.0-a..b",
+    "range": "^1.0.0",
+    "matches": false
+  },
+  {
+    "name": "partial",
+    "version": "1.0.0",
+    "range": "^1.0",
+    "matches": false
+  },
+  {
+    "name": "unbounded",
+    "version": "1.0.0",
+    "range": ">=1.0.0",
+    "matches": false
+  },
+  {
+    "name": "star",
+    "version": "1.0.0",
+    "range": "*",
+    "matches": false
+  },
+  {
+    "name": "or",
+    "version": "1.0.0",
+    "range": "1.0.0 || 2.0.0",
+    "matches": false
+  },
+  {
+    "name": "prefix",
+    "version": "v1.0.0",
+    "range": "^1.0.0",
+    "matches": false
+  },
+  {
+    "name": "space",
+    "version": "1.0.0 ",
+    "range": "^1.0.0",
+    "matches": false
+  }
+]

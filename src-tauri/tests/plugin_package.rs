@@ -384,3 +384,79 @@ fn first_party_engine_rejects_incompatible_duplicate_undeclared_and_oversized_me
         );
     }
 }
+
+#[test]
+fn archive_entry_count_is_bounded_before_extraction() {
+    let root = unique_staging_dir();
+    fs::create_dir(&root).unwrap();
+    let package = root.join("many.zplugin");
+    let mut zip = ZipWriter::new(fs::File::create(&package).unwrap());
+    for index in 0..4097 {
+        zip.start_file(format!("entry-{index}"), SimpleFileOptions::default())
+            .unwrap();
+    }
+    zip.finish().unwrap();
+    assert!(validate_zplugin_package(&package)
+        .unwrap_err()
+        .message
+        .contains("entry count"));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn declared_total_extracted_size_is_bounded_before_reading_entries() {
+    let package = write_zplugin_package(
+        "total.zplugin",
+        &manifest_with_main("dist/index.html"),
+        &[
+            ("dist/index.html", "a"),
+            ("b", "b"),
+            ("c", "c"),
+            ("d", "d"),
+            ("e", "e"),
+            ("f", "f"),
+        ],
+    );
+    let mut bytes = fs::read(&package).unwrap();
+    // Alter central-directory size claims: each remains below the individual
+    // limit, but their aggregate must be rejected without allocating that data.
+    let mut offset = 0;
+    while offset + 46 <= bytes.len() {
+        if &bytes[offset..offset + 4] == b"PK\x01\x02" {
+            bytes[offset + 24..offset + 28].copy_from_slice(&(48_u32 * 1024 * 1024).to_le_bytes());
+            let name =
+                u16::from_le_bytes(bytes[offset + 28..offset + 30].try_into().unwrap()) as usize;
+            let extra =
+                u16::from_le_bytes(bytes[offset + 30..offset + 32].try_into().unwrap()) as usize;
+            let comment =
+                u16::from_le_bytes(bytes[offset + 32..offset + 34].try_into().unwrap()) as usize;
+            offset += 46 + name + extra + comment;
+        } else {
+            offset += 1;
+        }
+    }
+    fs::write(&package, bytes).unwrap();
+    assert!(validate_zplugin_package(&package)
+        .unwrap_err()
+        .message
+        .contains("cumulative"));
+    fs::remove_dir_all(package.parent().unwrap()).unwrap();
+}
+
+#[test]
+fn versioned_manifest_is_not_silently_downgraded_to_legacy() {
+    let manifest = include_str!("../../tests/fixtures/plugin-protocol/example.manifest.json");
+    let package = write_zplugin_package(
+        "v2.zplugin",
+        manifest,
+        &[("dist/index.html", "<html></html>")],
+    );
+    let report = validate_zplugin_package(&package).unwrap();
+    assert!(!report.valid);
+    assert!(report
+        .issues
+        .iter()
+        .any(|issue| issue.code == "runtime.unsupported"));
+    assert!(report.manifest.is_none());
+    fs::remove_dir_all(package.parent().unwrap()).unwrap();
+}

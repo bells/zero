@@ -5,9 +5,13 @@ const OUTPUT_ROOT = "/private/tmp/zero-tests";
 const PACKAGE_MANAGER = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 const sources = [
+  "src/sdk/index.ts",
+  "src/sdk/react.tsx",
   "src/brand/identity.ts",
   "src/appShell/appSurface.ts",
   "src/core/pluginHost/contracts.ts",
+  "src/core/pluginHost/registryRefresh.ts",
+  "src/core/pluginHost/protocol/requests.ts",
   "src/core/pluginHost/extensionBridge.ts",
   "src/core/pluginHost/launcherContracts.ts",
   "src/core/pluginHost/pluginHostModel.ts",
@@ -87,3 +91,5 @@ execFileSync(
   ],
   { cwd: process.cwd(), stdio: "inherit" },
 );
+
+fs.symlinkSync(`${process.cwd()}/node_modules`, `${OUTPUT_ROOT}/node_modules`, process.platform === "win32" ? "junction" : "dir");

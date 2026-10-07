@@ -104,6 +104,7 @@ impl CaffeineSession {
 }
 
 pub struct CaffeineState {
+    expiry_task: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
     session: Mutex<CaffeineSession>,
     #[cfg(target_os = "macos")]
     process: Mutex<Option<Child>>,
@@ -119,8 +120,35 @@ impl CaffeineState {
     pub fn new() -> Self {
         Self {
             session: Mutex::new(CaffeineSession::default()),
+            expiry_task: Mutex::new(None),
             #[cfg(target_os = "macos")]
             process: Mutex::new(None),
+        }
+    }
+
+    pub fn install_expiry_task(&self, generation: u64, task: tauri::async_runtime::JoinHandle<()>) {
+        let Ok(session) = self.session.lock() else {
+            task.abort();
+            return;
+        };
+        if !session.enabled || session.generation != generation {
+            task.abort();
+            return;
+        }
+        if let Ok(mut owner) = self.expiry_task.lock() {
+            if let Some(previous) = owner.replace(task) {
+                previous.abort();
+            }
+        } else {
+            task.abort();
+        }
+    }
+
+    fn cancel_expiry_task(&self) {
+        if let Ok(mut task) = self.expiry_task.lock() {
+            if let Some(task) = task.take() {
+                task.abort();
+            }
         }
     }
 
@@ -142,6 +170,7 @@ impl CaffeineState {
             }
 
             apply_platform_awake(self, true)?;
+            self.cancel_expiry_task();
             session.enable_at(SystemTime::now(), duration_minutes)?;
 
             return Ok(CaffeineTransition {
@@ -151,6 +180,7 @@ impl CaffeineState {
         }
 
         apply_platform_awake(self, false)?;
+        self.cancel_expiry_task();
         session.disable();
 
         Ok(CaffeineTransition {
@@ -170,9 +200,10 @@ impl CaffeineState {
     }
 }
 
-#[cfg(target_os = "macos")]
 impl Drop for CaffeineState {
     fn drop(&mut self) {
+        self.cancel_expiry_task();
+        #[cfg(target_os = "macos")]
         if let Ok(mut process) = self.process.lock() {
             if let Some(mut child) = process.take() {
                 let _ = child.kill();

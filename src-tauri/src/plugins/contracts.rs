@@ -265,6 +265,8 @@ pub struct PluginManifestValidationReport {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginPackageValidationReport {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub protocol_manifest: Option<super::protocol::PluginManifestV2>,
     pub valid: bool,
     pub issues: Vec<PluginValidationIssue>,
     pub manifest: Option<PluginManifest>,
@@ -282,6 +284,8 @@ pub struct PluginMarketValidationReport {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginRecord {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub protocol_manifest: Option<super::protocol::PluginManifestV2>,
     pub name: String,
     pub version: String,
     pub author: String,
@@ -317,6 +321,7 @@ pub struct ValidatePluginPackageInput {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallPluginPackageInput {
+    pub expected_sha256: Option<String>,
     pub package_path: String,
     pub approved_permissions: Vec<PluginPermission>,
     pub enabled: Option<bool>,

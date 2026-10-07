@@ -1,6 +1,6 @@
 import { canonicalFirstPartyPluginId } from "../../brand/identity.js";
 import type { BundledPluginModule } from "./pluginModule";
-import { validatePluginManifest } from "./validation.js";
+import { validateManifestStructure } from "./validationStructure.js";
 
 export interface BundledPluginRegistry {
   modules: readonly BundledPluginModule[];
@@ -15,7 +15,12 @@ export function createBundledPluginRegistry(
   const contributionIds = new Map<string, string>();
 
   for (const module of modules) {
-    const report = validatePluginManifest(module.manifest);
+    // Bundled descriptors are build-time trusted. Full version conformance is
+    // checked before shipping; the startup catalog only needs structural checks.
+    const report = validateManifestStructure(module.manifest, {
+      validVersion: () => true,
+      compatibleHost: () => true,
+    });
     if (!report.valid) {
       throw new Error(
         `Invalid bundled plugin ${module.manifest.name}: ${report.issues

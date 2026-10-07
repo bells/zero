@@ -53,6 +53,7 @@ fn plugin_record(name: &str, enabled: bool, order: Option<u32>) -> PluginRecord 
     };
 
     PluginRecord {
+        protocol_manifest: None,
         name: name.into(),
         version: "0.1.0".into(),
         author: "watson".into(),

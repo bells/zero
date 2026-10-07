@@ -13,7 +13,7 @@ import type { PluginHostController } from "./usePluginHost";
 
 type PendingInstall =
   | { kind: "market"; entry: PluginMarketEntry; permissions: PluginPermission[] }
-  | { kind: "local"; packagePath: string; pluginName: string; permissions: PluginPermission[] };
+  | { kind: "local"; packagePath: string; pluginName: string; sha256: string; permissions: PluginPermission[] };
 
 interface ExtensionStatus {
   key: TranslationKey;
@@ -66,6 +66,7 @@ export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
           kind: "local",
           packagePath,
           pluginName: report.manifest.name,
+          sha256: report.sha256,
           permissions: report.manifest.permissions,
         });
         setStatus({ key: "extensions.status.packageValid", tone: "success" });
@@ -99,6 +100,7 @@ export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
       } else {
         await pluginHostService.installPluginPackage({
           packagePath: pendingInstall.packagePath,
+          expectedSha256: pendingInstall.sha256,
           approvedPermissions: pendingInstall.permissions,
           enabled: true,
         });

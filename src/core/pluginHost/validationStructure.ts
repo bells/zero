@@ -1,0 +1,376 @@
+import type {
+  PluginManifest,
+  PluginManifestValidationReport,
+  PluginMarketIndex,
+  PluginMarketValidationReport,
+  PluginPermission,
+  PluginValidationIssue,
+} from "./contracts";
+
+const SUPPORTED_EXTENSION_API_VERSION = "1";
+export interface ManifestVersionPolicy {
+  validVersion(value: string): boolean;
+  compatibleHost(value: string): boolean;
+}
+
+export const SUPPORTED_PLUGIN_PERMISSIONS = [
+  "clipboard.read",
+  "clipboard.write",
+  "network",
+  "storage.plugin",
+  "ui.message",
+  "process.execute",
+  "system.wallpaper",
+  "system.apps.read",
+  "system.apps.execute",
+  "system.window.focus",
+  "system.settings.open",
+  "document.convert",
+] as const;
+
+
+const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,63}$/;
+const SHA256_PATTERN = /^[a-fA-F0-9]{64}$/;
+
+export function validateManifestStructure(value: unknown, versions: ManifestVersionPolicy): PluginManifestValidationReport {
+  const issues: PluginValidationIssue[] = [];
+
+  if (!isRecord(value)) {
+    return {
+      valid: false,
+      issues: [
+        issue("manifest.shape", "", "Manifest must be an object."),
+      ],
+    };
+  }
+
+  if (value.schemaVersion !== undefined) {
+    return { valid: false, issues: [issue("runtime.unsupported", "schemaVersion", "Use native compatibility inspection for versioned manifests.")] };
+  }
+  const name = readRequiredString(value, "name", issues, "manifest.required");
+  const version = readRequiredString(value, "version", issues, "manifest.required");
+  readRequiredString(value, "author", issues, "manifest.required");
+  const main = readRequiredString(value, "main", issues, "manifest.required");
+  readPermissions(value.permissions, "permissions", issues, "manifest");
+  const permissions = Array.isArray(value.permissions) ? value.permissions : [];
+
+  if (name !== null && !NAME_PATTERN.test(name)) {
+    issues.push(issue("manifest.name.invalid", "name", "Plugin name must use lowercase letters, numbers, dots, underscores, or dashes."));
+  }
+
+  if (version !== null && !versions.validVersion(version)) {
+    issues.push(issue("manifest.version.invalid", "version", "Plugin version must be a semantic version."));
+  }
+
+  if (main !== null && !isSafePackageRelativePath(main)) {
+    issues.push(issue("manifest.main.unsafe", "main", "Plugin main must be a safe package-relative path."));
+  }
+
+  if (isRecord(value.engines)) {
+    const api = value.engines.api;
+    if (typeof api === "string" && api !== SUPPORTED_EXTENSION_API_VERSION) {
+      issues.push(issue("manifest.api.incompatible", "engines.api", "Plugin targets an unsupported Extension API version."));
+    }
+
+    const zero = value.engines.zero;
+    const legacyZtool = value.engines.ztool;
+    const hostRange = typeof zero === "string" ? zero : legacyZtool;
+    const hostPath = typeof zero === "string" ? "engines.zero" : "engines.ztool";
+    const issueCode =
+      typeof zero === "string"
+        ? "manifest.zero.incompatible"
+        : "manifest.ztool.incompatible";
+    if (typeof hostRange === "string" && !versions.compatibleHost(hostRange)) {
+      issues.push(issue(issueCode, hostPath, "Plugin targets an unsupported Zero host version."));
+    }
+  }
+
+  const requestsDocumentConversion = permissions.includes("document.convert");
+  if (requestsDocumentConversion) {
+    if (name !== "zero.file" || value.id !== "zero.file" || value.author !== "bells") {
+      issues.push(issue(
+        "manifest.documentConvert.firstPartyOnly",
+        "permissions",
+        "document.convert is reserved for the signed first-party Zero File package.",
+      ));
+    }
+    validateFirstPartyEngine(value.firstPartyEngine, version, issues, versions);
+  } else if (value.firstPartyEngine !== undefined) {
+    issues.push(issue(
+      "manifest.firstPartyEngine.permissionMissing",
+      "firstPartyEngine",
+      "First-party engine metadata requires document.convert.",
+    ));
+  }
+
+  if (issues.length > 0) {
+    return { valid: false, issues };
+  }
+
+  return {
+    valid: true,
+    issues: [],
+    manifest: normalizeManifestEngines(value) as unknown as PluginManifest,
+  };
+}
+
+function validateFirstPartyEngine(
+  value: unknown,
+  pluginVersion: string | null,
+  issues: PluginValidationIssue[],
+  versions: ManifestVersionPolicy,
+) {
+  if (!isRecord(value)) {
+    issues.push(issue("engine.manifest.required", "firstPartyEngine", "Signed engine metadata is required."));
+    return;
+  }
+  if (value.protocolVersion !== 1) {
+    issues.push(issue("engine.protocol.incompatible", "firstPartyEngine.protocolVersion", "Engine protocolVersion must be 1."));
+  }
+  if (typeof value.packageVersion !== "string" || value.packageVersion !== pluginVersion) {
+    issues.push(issue("engine.packageVersion.invalid", "firstPartyEngine.packageVersion", "Engine packageVersion must match the plugin version."));
+  }
+  if (typeof value.hostApiRange !== "string" || !versions.compatibleHost(value.hostApiRange)) {
+    issues.push(issue("engine.host.incompatible", "firstPartyEngine.hostApiRange", "Engine hostApiRange is incompatible."));
+  }
+  if (!Array.isArray(value.directions) || value.directions.length === 0 || value.directions.some(
+    (direction) => direction !== "pdfToDocx" && direction !== "docxToPdf",
+  )) {
+    issues.push(issue("engine.directions.invalid", "firstPartyEngine.directions", "Engine directions are invalid."));
+  }
+  if (!Array.isArray(value.assets) || value.assets.length === 0) {
+    issues.push(issue("engine.assets.required", "firstPartyEngine.assets", "Engine assets are required."));
+  } else {
+    const paths = new Set<string>();
+    value.assets.forEach((asset, index) => {
+      const prefix = `firstPartyEngine.assets[${index}]`;
+      if (!isRecord(asset) || typeof asset.path !== "string" || !asset.path.startsWith("engine/") ||
+        !isSafePackageRelativePath(asset.path) || paths.has(asset.path)) {
+        issues.push(issue("engine.asset.pathInvalid", `${prefix}.path`, "Engine asset path must be unique and remain under engine/."));
+      } else {
+        paths.add(asset.path);
+      }
+      if (!isRecord(asset) || typeof asset.sha256 !== "string" || !SHA256_PATTERN.test(asset.sha256)) {
+        issues.push(issue("engine.asset.digestInvalid", `${prefix}.sha256`, "Engine asset sha256 is invalid."));
+      }
+      if (!isRecord(asset) || typeof asset.bytes !== "number" || !Number.isSafeInteger(asset.bytes) || asset.bytes <= 0) {
+        issues.push(issue("engine.asset.sizeInvalid", `${prefix}.bytes`, "Engine asset bytes must be a positive safe integer."));
+      }
+      if (!isRecord(asset) || typeof asset.mediaType !== "string" || asset.mediaType.length === 0) {
+        issues.push(issue("engine.asset.mediaTypeInvalid", `${prefix}.mediaType`, "Engine asset mediaType is required."));
+      }
+    });
+  }
+  if (!Array.isArray(value.notices) || value.notices.length === 0 || value.notices.some(
+    (notice) => typeof notice !== "string" || !notice.startsWith("engine/licenses/") || !isSafePackageRelativePath(notice),
+  )) {
+    issues.push(issue("engine.notices.invalid", "firstPartyEngine.notices", "Engine notices must remain under engine/licenses/."));
+  }
+  if (typeof value.signature !== "string" || !/^[A-Za-z0-9+/]{86}==$/.test(value.signature)) {
+    issues.push(issue("engine.signature.invalid", "firstPartyEngine.signature", "A detached Ed25519 signature is required."));
+  }
+}
+
+export function validateMarketStructure(value: unknown, versions: ManifestVersionPolicy): PluginMarketValidationReport {
+  const issues: PluginValidationIssue[] = [];
+
+  if (!isRecord(value)) {
+    return {
+      valid: false,
+      issues: [
+        issue("market.shape", "", "Market index must be an object."),
+      ],
+    };
+  }
+
+  if (value.schemaVersion !== 1) {
+    issues.push(issue("market.schemaVersion", "schemaVersion", "Market schemaVersion must be 1."));
+  }
+
+  if (!Array.isArray(value.plugins)) {
+    issues.push(issue("market.plugins.required", "plugins", "Market plugins must be an array."));
+  } else {
+    value.plugins.forEach((entry, index) => validateMarketEntry(entry, index, issues, versions));
+  }
+
+  if (issues.length > 0) {
+    return { valid: false, issues };
+  }
+
+  return {
+    valid: true,
+    issues: [],
+    market: value as unknown as PluginMarketIndex,
+  };
+}
+
+function validateMarketEntry(
+  entry: unknown,
+  index: number,
+  issues: PluginValidationIssue[],
+  versions: ManifestVersionPolicy,
+) {
+  const prefix = `plugins[${index}]`;
+
+  if (!isRecord(entry)) {
+    issues.push(issue("market.entry.shape", prefix, "Market plugin entry must be an object."));
+    return;
+  }
+
+  const name = readRequiredString(entry, "name", issues, "market.required", prefix);
+  const version = readRequiredString(entry, "version", issues, "market.required", prefix);
+  readRequiredString(entry, "author", issues, "market.required", prefix);
+  const repository = readRequiredString(entry, "repository", issues, "market.required", prefix);
+  const releaseUrl = readRequiredString(entry, "releaseUrl", issues, "market.required", prefix);
+  const downloadUrl = readRequiredString(
+    entry,
+    "downloadUrl",
+    issues,
+    "market.downloadUrl.required",
+    prefix,
+  );
+  readPermissions(entry.permissions, `${prefix}.permissions`, issues, "market");
+
+  if (name !== null && !NAME_PATTERN.test(name)) {
+    issues.push(issue("market.name.invalid", `${prefix}.name`, "Market plugin name must use lowercase letters, numbers, dots, underscores, or dashes."));
+  }
+
+  if (version !== null && !versions.validVersion(version)) {
+    issues.push(issue("market.version.invalid", `${prefix}.version`, "Market plugin version must be a semantic version."));
+  }
+
+  if (repository !== null && !isHttpsGitHubUrl(repository)) {
+    issues.push(issue("market.repository.url", `${prefix}.repository`, "Repository must be an HTTPS GitHub URL."));
+  }
+
+  if (releaseUrl !== null && !isHttpsGitHubUrl(releaseUrl)) {
+    issues.push(issue("market.releaseUrl.url", `${prefix}.releaseUrl`, "Release URL must be an HTTPS GitHub URL."));
+  }
+
+  if (downloadUrl !== null) {
+    if (!isHttpsGitHubUrl(downloadUrl)) {
+      issues.push(issue("market.downloadUrl.url", `${prefix}.downloadUrl`, "Download URL must be an HTTPS GitHub URL."));
+    } else if (!urlPathname(downloadUrl).endsWith(".zplugin")) {
+      issues.push(issue("market.downloadUrl.extension", `${prefix}.downloadUrl`, "Download URL must point to a .zplugin asset."));
+    }
+  }
+
+  if (entry.sha256 !== undefined && (typeof entry.sha256 !== "string" || !SHA256_PATTERN.test(entry.sha256))) {
+    issues.push(issue("market.sha256.invalid", `${prefix}.sha256`, "sha256 must be a 64-character hex string."));
+  }
+}
+
+function readRequiredString(
+  record: Record<string, unknown>,
+  key: string,
+  issues: PluginValidationIssue[],
+  code: string,
+  prefix?: string,
+) {
+  const value = record[key];
+  const path = prefix ? `${prefix}.${key}` : key;
+
+  if (typeof value !== "string" || value.trim().length === 0) {
+    issues.push(issue(code, path, `${key} is required.`));
+    return null;
+  }
+
+  return value;
+}
+
+function readPermissions(
+  value: unknown,
+  path: string,
+  issues: PluginValidationIssue[],
+  codePrefix: "manifest" | "market",
+) {
+  if (!Array.isArray(value)) {
+    issues.push(issue(`${codePrefix}.permissions.required`, path, "permissions must be an array."));
+    return [];
+  }
+
+  const permissions: PluginPermission[] = [];
+
+  value.forEach((permission, index) => {
+    if (isPluginPermission(permission)) {
+      permissions.push(permission);
+    } else {
+      issues.push(issue(`${codePrefix}.permission.unsupported`, `${path}[${index}]`, "Permission is not supported."));
+    }
+  });
+
+  return permissions;
+}
+
+function isPluginPermission(value: unknown): value is PluginPermission {
+  return typeof value === "string" && SUPPORTED_PLUGIN_PERMISSIONS.includes(value as PluginPermission);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isSafePackageRelativePath(value: string) {
+  if (value.includes("\0") || value.trim() !== value || value.length === 0) {
+    return false;
+  }
+
+  if (
+    value.startsWith("/") ||
+    value.startsWith("\\") ||
+    /^[A-Za-z]:[\\/]/.test(value) ||
+    /^[A-Za-z][A-Za-z0-9+.-]*:/.test(value)
+  ) {
+    return false;
+  }
+
+  return value
+    .split(/[\\/]+/)
+    .every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+}
+
+function isHttpsGitHubUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "github.com";
+  } catch {
+    return false;
+  }
+}
+
+function urlPathname(value: string) {
+  try {
+    return new URL(value).pathname;
+  } catch {
+    return "";
+  }
+}
+
+function normalizeManifestEngines(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!isRecord(value.engines)) {
+    return value;
+  }
+
+  const zero =
+    typeof value.engines.zero === "string"
+      ? value.engines.zero
+      : value.engines.ztool;
+  const engines: Record<string, unknown> = { ...value.engines };
+  delete engines.ztool;
+  if (typeof zero === "string") {
+    engines.zero = zero;
+  } else {
+    delete engines.zero;
+  }
+
+  return {
+    ...value,
+    engines,
+  };
+}
+
+function issue(code: string, path: string, message: string): PluginValidationIssue {
+  return { code, path, message };
+}

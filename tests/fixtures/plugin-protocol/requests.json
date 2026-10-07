@@ -1,0 +1,267 @@
+[
+  {
+    "name": "storage-set",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "unknown-envelope",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      },
+      "pluginName": "victim"
+    },
+    "valid": false
+  },
+  {
+    "name": "unknown-payload",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        },
+        "path": "/private"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unknown-method",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "process.execute",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "missing-key",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "storage.set",
+      "payload": {
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "fractional-generation",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1.5,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unsafe-integer-generation",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 9007199254740992,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "wrong-api",
+    "request": {
+      "protocolVersion": "2.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "decimal generation",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1.0,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "unsafe generation",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 9007199254740992,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "non ASCII request identity",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "请求",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "request identity control character",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "a\\nb",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "storage.set",
+      "payload": {
+        "key": "note",
+        "value": {
+          "nested": [
+            null,
+            true,
+            3.5,
+            "text"
+          ]
+        }
+      }
+    },
+    "valid": false
+  }
+]

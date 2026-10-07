@@ -1,6 +1,8 @@
 // The existing objc 0.2 macros expand a historical `cargo-clippy` cfg in this crate.
 #![allow(unexpected_cfgs)]
 
+mod bundled_metadata;
+
 use tauri::Manager;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, ShortcutState};
 use tauri_plugin_positioner::{Position, WindowExt};
@@ -25,7 +27,7 @@ fn is_quick_launcher_shortcut(modifiers: Modifiers, key: Code) -> bool {
     modifiers == (command_or_control | Modifiers::SHIFT) && key == Code::Space
 }
 
-fn plugin_is_enabled(app: &tauri::AppHandle, plugin_name: &str) -> bool {
+pub(crate) fn plugin_is_enabled(app: &tauri::AppHandle, plugin_name: &str) -> bool {
     app.state::<plugins::registry::PluginRegistryState>()
         .with_registry(|registry| {
             Ok(registry
@@ -62,6 +64,21 @@ pub fn sync_quick_launcher_shortcut(app: &tauri::AppHandle, enabled: bool) -> Re
         }
         commands::quick_launcher::hide_quick_launcher_window(app.clone())
     }
+}
+
+pub fn sync_screenshot_shortcut(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    let shortcuts = app.global_shortcut();
+    if enabled && !shortcuts.is_registered(SCREENSHOT_SHORTCUT) {
+        shortcuts
+            .register(SCREENSHOT_SHORTCUT)
+            .map_err(|e| e.to_string())?;
+    }
+    if !enabled && shortcuts.is_registered(SCREENSHOT_SHORTCUT) {
+        shortcuts
+            .unregister(SCREENSHOT_SHORTCUT)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
@@ -126,7 +143,7 @@ pub fn run() {
         registry_outcome,
         registry_started,
     );
-    let builder = plugins::engine_assets::register(builder)
+    let builder = plugins::web_assets::register(plugins::engine_assets::register(builder))
         .manage(registry_state)
         .manage(performance_trace.clone());
 
@@ -137,8 +154,6 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_shortcuts([SCREENSHOT_SHORTCUT])
-                .expect("invalid screenshot shortcut")
                 .with_handler(|app, shortcut, event| {
                     if event.state != ShortcutState::Pressed {
                         return;
@@ -163,6 +178,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_positioner::init())
         .setup(|app| {
+            sync_screenshot_shortcut(
+                app.handle(),
+                plugin_is_enabled(app.handle(), brand::ZERO_SNAP_PLUGIN_ID),
+            )?;
             #[cfg(target_os = "macos")]
             {
                 app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -204,7 +223,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
+        .invoke_handler(plugins::invoke_gate::gate(tauri::generate_handler![
             commands::app::quit_app,
             commands::app::mark_frontend_ready,
             commands::app::mark_surface_ready,
@@ -219,6 +238,12 @@ pub fn run() {
             commands::plugins::refresh_plugin_market,
             commands::plugins::list_market_plugins,
             commands::plugins::list_plugins,
+            commands::plugins::get_plugin_registry_snapshot,
+            commands::plugins::check_plugin_compatibility,
+            plugins::web_runtime::open_plugin_view,
+            plugins::web_runtime::plugin_session_ready,
+            plugins::web_runtime::plugin_invoke,
+            plugins::web_runtime::plugin_cancel,
             commands::plugins::validate_plugin_package,
             commands::plugins::install_market_plugin,
             commands::plugins::install_plugin_package,
@@ -277,7 +302,7 @@ pub fn run() {
             commands::screenshot::upload_screenshot_commit,
             commands::screenshot::cancel_screenshot_session,
             commands::screenshot::init_pin_window,
-        ])
+        ]))
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
     performance_trace.finish("tauri_setup", "ok", tauri_setup_started);

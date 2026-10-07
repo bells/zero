@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import "./App.css";
 import {
   bundledPluginPresentation,
@@ -29,6 +28,17 @@ type ShellMessage = {
   tone: "error" | "info";
   text: string;
 };
+
+function usePluginMessages(setMessage: (message: ShellMessage) => void) {
+  useEffect(() => {
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+    void listen<{ pluginId: string; message: string }>("plugin-ui-message", ({ payload }) => {
+      if (!disposed) setMessage({ tone: "info", text: `${payload.pluginId}: ${payload.message}` });
+    }).then(unlisten => { if (disposed) unlisten(); else cleanup = unlisten; }).catch(() => undefined);
+    return () => { disposed = true; cleanup?.(); };
+  }, [setMessage]);
+}
 
 function useLocalizedPlugins() {
   const pluginHost = usePluginHost();
@@ -265,13 +275,14 @@ function EmptyPluginState({ t }: { t: (key: TranslationKey) => string }) {
 function GenericPluginPanel({ plugin }: { plugin: PluginMeta }) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  if (plugin.assetUrl) {
+  if (plugin.viewId) {
     return (
       <section className="plugin-panel system-panel">
         {loadError ? <p className="shell-message error">{loadError}</p> : null}
         <ExtensionSurface
           title={plugin.title}
-          assetUrl={plugin.assetUrl}
+          pluginId={plugin.id}
+          viewId={plugin.viewId}
           onLoadError={setLoadError}
         />
       </section>
@@ -304,9 +315,7 @@ function pluginRecordToMeta(record: PluginRecord): PluginMeta {
     subtitle: record.manifest.description ?? `${record.source} · ${record.version}`,
     health: record.health,
     enabled: record.enabled,
-    assetUrl: record.installedPath
-      ? convertFileSrc(`${record.installedPath}/${record.manifest.main}`)
-      : undefined,
+    viewId: record.protocolManifest?.contributes.views[0]?.id,
   };
 }
 
@@ -350,6 +359,7 @@ export function TrayPanelApp() {
     pluginHost.setSelectedPluginName,
   );
   const [message, setMessage] = useState<ShellMessage | null>(null);
+  usePluginMessages(setMessage);
   const [moreOpen, setMoreOpen] = useState(false);
 
   const runAction = (action: () => Promise<void>) =>
@@ -444,6 +454,7 @@ export function MainWindowApp() {
     pluginHost.setSelectedPluginName,
   );
   const [message, setMessage] = useState<ShellMessage | null>(null);
+  usePluginMessages(setMessage);
   const runAction = (action: () => Promise<void>) => runShellAction(action, setMessage, t);
 
   return (

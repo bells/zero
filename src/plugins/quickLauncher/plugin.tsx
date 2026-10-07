@@ -1,4 +1,4 @@
-import { FIRST_PARTY_PLUGIN_IDS } from "../../brand/identity";
+import metadata from "./metadata.json";
 import type { BundledPluginModule } from "../../core/pluginHost/pluginModule";
 import {
   createQuickLauncherTranslator,
@@ -8,40 +8,7 @@ import {
 export const quickLauncherPlugin: BundledPluginModule = {
   kind: "quick-launcher",
   accentClass: "accent-quick-launcher",
-  manifest: {
-    name: FIRST_PARTY_PLUGIN_IDS.launch,
-    id: FIRST_PARTY_PLUGIN_IDS.launch,
-    version: "1.0.0",
-    author: "bells",
-    main: "plugins/quickLauncher",
-    permissions: [
-      "system.apps.read",
-      "system.apps.execute",
-      "system.window.focus",
-      "system.settings.open",
-    ],
-    displayName: "Zero Launch",
-    description: "Search, launch, and switch local apps and system settings",
-    platforms: ["macos", "windows"],
-    runtime: "webview",
-    contributes: {
-      views: [{ id: "zero.launch.main", title: "Zero Launch", surface: "main" }],
-      commands: [
-        { id: "zero.launch.show", title: "Show Zero Launch" },
-        { id: "zero.launch.refresh", title: "Refresh application index" },
-      ],
-      statusBarItems: [
-        {
-          id: "zero.launch.status",
-          title: "Zero Launch",
-          icon: "launch",
-          action: { type: "open-plugin" },
-          order: 40,
-          visibleByDefault: true,
-        },
-      ],
-    },
-  },
+  manifest: metadata as BundledPluginModule["manifest"],
   presentation: {
     "zh-CN": {
       title: quickLauncherMessages["zh-CN"]["plugin.title"],

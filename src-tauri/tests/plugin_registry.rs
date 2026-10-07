@@ -67,6 +67,7 @@ fn valid_manifest_version(name: &str, version: &str) -> String {
 
 fn install_input(package_path: &std::path::Path) -> InstallPluginPackageInput {
     InstallPluginPackageInput {
+        expected_sha256: None,
         package_path: package_path.to_string_lossy().into_owned(),
         approved_permissions: vec![PluginPermission::UiMessage],
         enabled: Some(true),
@@ -436,6 +437,7 @@ fn plugin_update_atomically_switches_record_and_retains_one_rollback_version() {
 
     let updated = registry
         .install_local_package(InstallPluginPackageInput {
+            expected_sha256: None,
             package_path: second.to_string_lossy().into_owned(),
             approved_permissions: vec![PluginPermission::UiMessage],
             enabled: Some(true),
@@ -601,4 +603,107 @@ fn bundled_restore_readds_removed_default_plugins() {
         .records()
         .iter()
         .any(|record| record.name == "zero.snap" && record.enabled));
+}
+
+#[test]
+fn restore_failure_preserves_records_and_committed_revision() {
+    let root = unique_registry_root();
+    let mut registry = PluginRegistry::load_or_seed(&root).unwrap();
+    registry.set_enabled_and_save("zero.snap", false).unwrap();
+    registry.uninstall_plugin("zero.paper").unwrap();
+    let previous = registry.records().to_vec();
+    let revision = registry.revision();
+    let committed = fs::read(root.join("registry.json")).unwrap();
+    fs::rename(root.join("registry.json"), root.join("saved-registry.json")).unwrap();
+    // A directory at the destination forces atomic replacement to fail.
+    fs::create_dir(root.join("registry.json")).unwrap();
+    assert!(registry.restore_bundled_defaults().is_err());
+    assert_eq!(registry.records(), previous);
+    assert_eq!(registry.revision(), revision);
+    assert_eq!(
+        fs::read(root.join("saved-registry.json")).unwrap(),
+        committed
+    );
+    assert!(!fs::read_dir(&root).unwrap().any(|entry| entry
+        .unwrap()
+        .file_name()
+        .to_string_lossy()
+        .ends_with(".tmp")));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn revision_survives_restart_and_advances_from_the_committed_value() {
+    let root = unique_registry_root();
+    let mut registry = PluginRegistry::load_or_seed(&root).unwrap();
+    registry.set_enabled_and_save("zero.snap", false).unwrap();
+    let revision = registry.revision();
+    drop(registry);
+    let mut reloaded = PluginRegistry::load_or_seed(&root).unwrap();
+    assert!(!reloaded.startup_write_performed());
+    assert_eq!(reloaded.revision(), revision);
+    reloaded.set_enabled_and_save("zero.snap", true).unwrap();
+    assert_eq!(reloaded.revision(), revision + 1);
+    let disk: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join("registry.json")).unwrap()).unwrap();
+    assert_eq!(disk["revision"], revision + 1);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn migration_advances_the_existing_revision_instead_of_resetting_it() {
+    let root = unique_registry_root();
+    PluginRegistry::load_or_seed(&root).unwrap();
+    let path = root.join("registry.json");
+    let mut disk: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    disk["schemaVersion"] = serde_json::json!(5);
+    disk["revision"] = serde_json::json!(42);
+    fs::write(&path, serde_json::to_vec(&disk).unwrap()).unwrap();
+    let registry = PluginRegistry::load_or_seed(&root).unwrap();
+    assert!(registry.startup_write_performed());
+    assert_eq!(registry.revision(), 43);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn discovery_and_enable_reject_incompatible_persisted_plugin_without_deleting_data() {
+    let root = unique_registry_root();
+    let mut registry = PluginRegistry::load_or_seed(&root).unwrap();
+    let package = write_zplugin_package(
+        &root.join("incoming"),
+        "compat.zplugin",
+        &valid_manifest("compat-plugin"),
+        &[("dist/index.html", "<html></html>")],
+    );
+    registry
+        .install_local_package(install_input(&package))
+        .unwrap();
+    drop(registry);
+    let registry_path = root.join("registry.json");
+    let mut disk: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&registry_path).unwrap()).unwrap();
+    let record = disk["records"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|r| r["name"] == "compat-plugin")
+        .unwrap();
+    record["manifest"]["engines"] = serde_json::json!({"zero":"^99.0.0","api":"1"});
+    let installed_path = record["installedPath"].as_str().unwrap().to_owned();
+    fs::write(&registry_path, serde_json::to_vec(&disk).unwrap()).unwrap();
+    let mut registry = PluginRegistry::load_or_seed(&root).unwrap();
+    let record = registry
+        .records()
+        .iter()
+        .find(|r| r.name == "compat-plugin")
+        .unwrap();
+    assert_eq!(
+        record.health,
+        zero_lib::plugins::contracts::PluginHealth::Incompatible
+    );
+    assert!(registry.set_enabled("compat-plugin", true).is_err());
+    assert!(PathBuf::from(installed_path)
+        .join("dist/index.html")
+        .exists());
+    fs::remove_dir_all(root).unwrap();
 }

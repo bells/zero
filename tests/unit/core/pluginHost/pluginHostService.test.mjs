@@ -7,9 +7,12 @@ import {
 
 test("defines explicit Rust command names for plugin host lifecycle", () => {
   assert.deepEqual(PLUGIN_HOST_COMMANDS, {
+    openView: "open_plugin_view",
+    checkCompatibility: "check_plugin_compatibility",
     refreshMarket: "refresh_plugin_market",
     listMarketPlugins: "list_market_plugins",
     listPlugins: "list_plugins",
+    registrySnapshot: "get_plugin_registry_snapshot",
     validatePackage: "validate_plugin_package",
     installMarketPlugin: "install_market_plugin",
     installPluginPackage: "install_plugin_package",
@@ -106,4 +109,15 @@ test("invokes plugin host commands through the injected bridge", async () => {
   assert.deepEqual(calls[7].args, {
     input: { name: "local-tool", enabled: false },
   });
+});
+
+test("compatibility inspection forwards the raw manifest without granting execution", async () => {
+  const input = { manifest: { schemaVersion: 2 } };
+  const expected = { compatible: false, profile: "web-v1", hostVersion: "0.1.0", apiVersion: "1.0.0", issues: [] };
+  const service = createPluginHostService(async (command, args) => {
+    assert.equal(command, "check_plugin_compatibility");
+    assert.deepEqual(args, { input });
+    return expected;
+  });
+  assert.deepEqual(await service.checkCompatibility(input), expected);
 });

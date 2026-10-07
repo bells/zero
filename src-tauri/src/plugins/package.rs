@@ -18,8 +18,11 @@ use super::contracts::{
 
 const ZERO_FILE_PLUGIN_ID: &str = "zero.file";
 const ZERO_FILE_RELEASE_PUBLIC_KEY_BASE64: &str = "IEUnZngZj5k5vPRKkumGQ60Qs5hfQT8WAFGAD8V/ZGI=";
-const MAX_PLUGIN_PACKAGE_BYTES: u64 = 64 * 1024 * 1024;
+pub const MAX_PLUGIN_PACKAGE_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_PLUGIN_ENTRY_BYTES: u64 = 48 * 1024 * 1024;
+const MAX_MANIFEST_BYTES: u64 = 64 * 1024;
+const MAX_EXTRACTED_BYTES: u64 = 256 * 1024 * 1024;
+const MAX_ARCHIVE_ENTRIES: usize = 4096;
 const MAX_ENGINE_INSTALLED_BYTES: u64 = 45 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -62,22 +65,138 @@ pub async fn download_package_to_staging(
     request: &PluginPackageDownloadRequest,
     staging_dir: &Path,
 ) -> Result<PluginPackageDownload, PluginPackageError> {
+    use tokio::io::AsyncWriteExt;
+    let file_name = zplugin_file_name(&request.download_url)?;
+    let url = reqwest::Url::parse(&request.download_url)
+        .map_err(|_| package_error("invalid package URL"))?;
+    if !allowed_download_url(&url, false) {
+        return Err(package_error(
+            "package URL must be an HTTPS GitHub release asset",
+        ));
+    }
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 5 || !allowed_download_url(attempt.url(), true) {
+                attempt.error("package redirect target is not allowed")
+            } else {
+                attempt.follow()
+            }
+        }))
         .build()
         .map_err(|error| package_error(format!("failed to create http client: {error}")))?;
-    let response = client
-        .get(&request.download_url)
+    let mut response = client
+        .get(url)
         .send()
         .await
+        .and_then(reqwest::Response::error_for_status)
         .map_err(|error| package_error(format!("failed to download package: {error}")))?;
-    let bytes = response
-        .bytes()
+    if response
+        .content_length()
+        .is_some_and(|n| n > MAX_PLUGIN_PACKAGE_BYTES)
+    {
+        return Err(package_error("package exceeds the 64 MiB download limit"));
+    }
+    let mut stage = PackageStage::create(staging_dir)?;
+    let staged_path = staging_dir.join(file_name);
+    let mut file = tokio::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&staged_path)
         .await
-        .map_err(|error| package_error(format!("failed to read package bytes: {error}")))?;
+        .map_err(|error| package_error(format!("failed to create staged package: {error}")))?;
+    let mut meter = PackageDownloadMeter::default();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| package_error(format!("failed to read package: {error}")))?
+    {
+        meter.accept(&chunk)?;
+        file.write_all(&chunk)
+            .await
+            .map_err(|error| package_error(format!("failed to stage package: {error}")))?;
+    }
+    file.flush()
+        .await
+        .map_err(|error| package_error(format!("failed to flush package: {error}")))?;
+    drop(file);
+    let bytes_len = meter.bytes;
+    let sha256 = meter.finish(request.sha256.as_deref())?;
+    stage.keep = true;
+    Ok(PluginPackageDownload {
+        staged_path,
+        sha256,
+        bytes_len,
+    })
+}
 
-    let file_name = zplugin_file_name(&request.download_url)?;
-    stage_package_bytes(staging_dir, file_name, &bytes, request.sha256.as_deref())
+fn allowed_download_url(url: &reqwest::Url, redirect: bool) -> bool {
+    url.scheme() == "https"
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.port_or_known_default() == Some(443)
+        && match url.host_str() {
+            Some("github.com") => true,
+            Some("release-assets.githubusercontent.com" | "objects.githubusercontent.com") => {
+                redirect
+            }
+            _ => false,
+        }
+}
+
+#[derive(Default)]
+struct PackageDownloadMeter {
+    bytes: u64,
+    digest: Sha256,
+}
+impl PackageDownloadMeter {
+    fn accept(&mut self, chunk: &[u8]) -> Result<(), PluginPackageError> {
+        let next = self.bytes.saturating_add(chunk.len() as u64);
+        if next > MAX_PLUGIN_PACKAGE_BYTES {
+            return Err(package_error("package exceeds the 64 MiB download limit"));
+        }
+        self.digest.update(chunk);
+        self.bytes = next;
+        Ok(())
+    }
+    fn finish(self, expected: Option<&str>) -> Result<String, PluginPackageError> {
+        let actual = format!("{:x}", self.digest.finalize());
+        if expected.is_some_and(|expected| !expected.eq_ignore_ascii_case(&actual)) {
+            return Err(package_error("package checksum mismatch"));
+        }
+        Ok(actual)
+    }
+}
+
+// A stage is newly created for this operation; cleanup must never remove a
+// pre-existing caller directory, even when validation or cancellation fails.
+struct PackageStage {
+    root: PathBuf,
+    keep: bool,
+}
+impl PackageStage {
+    fn create(root: &Path) -> Result<Self, PluginPackageError> {
+        let mut builder = fs::DirBuilder::new();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            builder.mode(0o700);
+        }
+        builder.create(root).map_err(|error| {
+            package_error(format!("failed to create private package stage: {error}"))
+        })?;
+        Ok(Self {
+            root: root.into(),
+            keep: false,
+        })
+    }
+}
+impl Drop for PackageStage {
+    fn drop(&mut self) {
+        if !self.keep {
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
@@ -110,8 +229,23 @@ pub fn archive_entry_destination(
 pub fn validate_zplugin_package(
     package_path: &Path,
 ) -> Result<PluginPackageValidationReport, PluginPackageError> {
-    let bytes = fs::read(package_path)
+    let file = fs::File::open(package_path)
+        .map_err(|error| package_error(format!("failed to open package: {error}")))?;
+    let metadata = file
+        .metadata()
+        .map_err(|error| package_error(error.to_string()))?;
+    if !metadata.is_file() || metadata.len() > MAX_PLUGIN_PACKAGE_BYTES {
+        return Err(package_error(
+            "package exceeds the 64 MiB archive limit or is not a file",
+        ));
+    }
+    let mut bytes = Vec::new();
+    file.take(MAX_PLUGIN_PACKAGE_BYTES + 1)
+        .read_to_end(&mut bytes)
         .map_err(|error| package_error(format!("failed to read package: {error}")))?;
+    if bytes.len() as u64 > MAX_PLUGIN_PACKAGE_BYTES {
+        return Err(package_error("package exceeds the 64 MiB archive limit"));
+    }
     let package_sha256 = sha256_hex(&bytes);
     let mut issues = Vec::new();
 
@@ -145,10 +279,14 @@ pub fn validate_zplugin_package(
     };
 
     let archive_entries = inspect_archive_entries(&mut archive, &mut issues)?;
-    let mut manifest = read_manifest_from_archive(&mut archive, &mut issues)?;
+    let mut protocol_manifest = None;
+    let mut manifest =
+        read_manifest_from_archive(&mut archive, &mut issues, &mut protocol_manifest)?;
 
     if let Some(manifest) = &mut manifest {
-        issues.extend(validate_manifest(manifest));
+        if protocol_manifest.is_none() {
+            issues.extend(validate_manifest(manifest));
+        }
 
         if is_safe_package_relative_path(&manifest.main)
             && !archive_entries.contains(&normalize_manifest_path(&manifest.main))
@@ -168,12 +306,9 @@ pub fn validate_zplugin_package(
         )?);
     }
 
-    Ok(package_report(
-        package_path,
-        package_sha256,
-        issues,
-        manifest,
-    ))
+    let mut report = package_report(package_path, package_sha256, issues, manifest);
+    report.protocol_manifest = protocol_manifest;
+    Ok(report)
 }
 
 pub fn extract_zplugin_package(
@@ -390,35 +525,19 @@ fn stage_package_bytes(
     bytes: &[u8],
     expected_sha256: Option<&str>,
 ) -> Result<PluginPackageDownload, PluginPackageError> {
-    fs::create_dir_all(staging_dir)
-        .map_err(|error| package_error(format!("failed to create staging directory: {error}")))?;
-
+    let mut stage = PackageStage::create(staging_dir)?;
+    let mut meter = PackageDownloadMeter::default();
+    meter.accept(bytes)?;
+    let actual_sha256 = meter.finish(expected_sha256)?;
     let staged_path = staging_dir.join(file_name);
-    let actual_sha256 = sha256_hex(bytes);
-
-    let result = fs::write(&staged_path, bytes)
-        .map_err(|error| package_error(format!("failed to write staged package: {error}")))
-        .and_then(|_| {
-            if let Some(expected) =
-                expected_sha256.filter(|expected| !expected.eq_ignore_ascii_case(&actual_sha256))
-            {
-                return Err(package_error(format!(
-                    "package checksum mismatch: expected {expected}, got {actual_sha256}"
-                )));
-            }
-
-            Ok(PluginPackageDownload {
-                staged_path: staged_path.clone(),
-                sha256: actual_sha256,
-                bytes_len: bytes.len() as u64,
-            })
-        });
-
-    if result.is_err() {
-        let _ = fs::remove_dir_all(staging_dir);
-    }
-
-    result
+    fs::write(&staged_path, bytes)
+        .map_err(|error| package_error(format!("failed to stage package: {error}")))?;
+    stage.keep = true;
+    Ok(PluginPackageDownload {
+        staged_path,
+        sha256: actual_sha256,
+        bytes_len: bytes.len() as u64,
+    })
 }
 
 fn is_safe_archive_entry(entry_name: &str) -> bool {
@@ -444,11 +563,22 @@ fn inspect_archive_entries<R: Read + Seek>(
     issues: &mut Vec<PluginValidationIssue>,
 ) -> Result<HashSet<String>, PluginPackageError> {
     let mut entries = HashSet::new();
-
+    if archive.len() > MAX_ARCHIVE_ENTRIES {
+        return Err(package_error(
+            "package exceeds the archive entry count limit",
+        ));
+    }
+    let mut total_bytes = 0_u64;
     for index in 0..archive.len() {
         let file = archive
             .by_index(index)
             .map_err(|error| package_error(format!("failed to inspect archive entry: {error}")))?;
+        total_bytes = total_bytes.saturating_add(file.size());
+        if total_bytes > MAX_EXTRACTED_BYTES {
+            return Err(package_error(
+                "package exceeds the cumulative extracted byte limit",
+            ));
+        }
         let raw_name = file.name().to_string();
 
         let Some(normalized_name) = normalize_archive_entry(&raw_name) else {
@@ -502,6 +632,7 @@ fn inspect_archive_entries<R: Read + Seek>(
 fn read_manifest_from_archive<R: Read + Seek>(
     archive: &mut ZipArchive<R>,
     issues: &mut Vec<PluginValidationIssue>,
+    protocol_manifest: &mut Option<super::protocol::PluginManifestV2>,
 ) -> Result<Option<PluginManifest>, PluginPackageError> {
     let mut manifest_file = match archive.by_name("manifest.json") {
         Ok(file) => file,
@@ -515,12 +646,47 @@ fn read_manifest_from_archive<R: Read + Seek>(
         }
     };
 
+    if manifest_file.size() > MAX_MANIFEST_BYTES {
+        return Err(package_error("manifest exceeds 64 KiB"));
+    }
     let mut manifest_json = String::new();
-    manifest_file
+    (&mut manifest_file)
+        .take(MAX_MANIFEST_BYTES + 1)
         .read_to_string(&mut manifest_json)
         .map_err(|error| package_error(format!("failed to read manifest.json: {error}")))?;
 
-    match serde_json::from_str::<PluginManifest>(&manifest_json) {
+    if manifest_json.len() as u64 > MAX_MANIFEST_BYTES {
+        return Err(package_error("manifest exceeds 64 KiB"));
+    }
+    let value: serde_json::Value = match serde_json::from_str(&manifest_json) {
+        Ok(value) => value,
+        Err(error) => {
+            issues.push(validation_issue(
+                "package.manifest.invalid",
+                "manifest.json",
+                error.to_string(),
+            ));
+            return Ok(None);
+        }
+    };
+    if value.get("schemaVersion").is_some() {
+        let report = super::compatibility::check_manifest(&value);
+        issues.extend(
+            report
+                .issues
+                .into_iter()
+                .map(|issue| validation_issue(&issue.code, issue.path, issue.message)),
+        );
+        if !issues.is_empty() {
+            return Ok(None);
+        }
+        let parsed: super::protocol::PluginManifestV2 =
+            serde_json::from_value(value).map_err(|error| package_error(error.to_string()))?;
+        let catalog = super::compatibility::catalog_manifest(&parsed);
+        *protocol_manifest = Some(parsed);
+        return Ok(Some(catalog));
+    }
+    match serde_json::from_value::<PluginManifest>(value) {
         Ok(manifest) => Ok(Some(manifest)),
         Err(error) => {
             issues.push(validation_issue(
@@ -537,6 +703,10 @@ fn extract_archive_entries<R: Read + Seek>(
     archive: &mut ZipArchive<R>,
     destination_root: &Path,
 ) -> Result<(), PluginPackageError> {
+    if archive.len() > MAX_ARCHIVE_ENTRIES {
+        return Err(package_error("too many archive entries"));
+    }
+    let mut total_bytes = 0_u64;
     for index in 0..archive.len() {
         let mut file = archive
             .by_index(index)
@@ -563,8 +733,13 @@ fn extract_archive_entries<R: Read + Seek>(
 
         let mut output = fs::File::create(&destination)
             .map_err(|error| package_error(format!("failed to create plugin file: {error}")))?;
-        std::io::copy(&mut file, &mut output)
+        let limit = MAX_PLUGIN_ENTRY_BYTES.min(MAX_EXTRACTED_BYTES.saturating_sub(total_bytes));
+        let bytes = std::io::copy(&mut (&mut file).take(limit + 1), &mut output)
             .map_err(|error| package_error(format!("failed to extract plugin file: {error}")))?;
+        if bytes > limit {
+            return Err(package_error("extracted bytes exceed package limits"));
+        }
+        total_bytes += bytes;
     }
 
     Ok(())
@@ -950,19 +1125,7 @@ fn is_valid_plugin_name(value: &str) -> bool {
 }
 
 fn is_semver(value: &str) -> bool {
-    let core = value
-        .split_once('-')
-        .map(|(core, _)| core)
-        .unwrap_or(value)
-        .split_once('+')
-        .map(|(core, _)| core)
-        .unwrap_or(value);
-    let parts = core.split('.').collect::<Vec<_>>();
-
-    parts.len() == 3
-        && parts.iter().all(|part| {
-            !part.is_empty() && part.chars().all(|character| character.is_ascii_digit())
-        })
+    super::versions::is_protocol_version(value)
 }
 
 fn normalize_manifest_engines(manifest: &mut PluginManifest) {
@@ -976,10 +1139,7 @@ fn normalize_manifest_engines(manifest: &mut PluginManifest) {
 }
 
 fn is_compatible_zero_host_range(value: &str) -> bool {
-    value == "*"
-        || value == env!("CARGO_PKG_VERSION")
-        || value == format!("^{}", env!("CARGO_PKG_VERSION"))
-        || value == format!(">={}", env!("CARGO_PKG_VERSION"))
+    super::versions::legacy_host_matches(env!("CARGO_PKG_VERSION"), value)
 }
 
 fn current_plugin_platform() -> PluginPlatform {
@@ -1002,6 +1162,7 @@ fn package_report(
     manifest: Option<PluginManifest>,
 ) -> PluginPackageValidationReport {
     PluginPackageValidationReport {
+        protocol_manifest: None,
         valid: issues.is_empty(),
         issues,
         manifest,
@@ -1029,7 +1190,7 @@ fn zplugin_file_name(download_url: &str) -> Result<&str, PluginPackageError> {
         .filter(|value| !value.is_empty())
         .ok_or_else(|| package_error("download URL must include a .zplugin file name"))?;
 
-    if !file_name.ends_with(".zplugin") {
+    if !file_name.ends_with(".zplugin") || !is_safe_package_relative_path(file_name) {
         return Err(package_error("download URL must point to a .zplugin asset"));
     }
 
@@ -1053,6 +1214,71 @@ mod tests {
         PluginDocumentDirection, PluginEngineAsset, PluginEnginePlatformMinimum, PluginPlatform,
         PluginRuntime,
     };
+
+    #[test]
+    fn streaming_meter_rejects_overflow_before_hashing_and_matches_incremental_digest() {
+        let mut meter = PackageDownloadMeter::default();
+        meter.accept(b"first").unwrap();
+        meter.accept(b"second").unwrap();
+        assert_eq!(meter.finish(None).unwrap(), sha256_hex(b"firstsecond"));
+        let mut meter = PackageDownloadMeter {
+            bytes: MAX_PLUGIN_PACKAGE_BYTES,
+            ..Default::default()
+        };
+        assert!(meter.accept(b"x").is_err());
+        assert_eq!(meter.bytes, MAX_PLUGIN_PACKAGE_BYTES);
+    }
+
+    #[test]
+    fn download_redirects_are_limited_to_release_asset_hosts() {
+        for target in [
+            "http://github.com/a",
+            "https://evil.test/a",
+            "https://127.0.0.1/a",
+            "https://user@github.com/a",
+            "https://github.com:444/a",
+        ] {
+            assert!(
+                !allowed_download_url(&reqwest::Url::parse(target).unwrap(), true),
+                "{target}"
+            );
+        }
+        let asset = reqwest::Url::parse("https://release-assets.githubusercontent.com/a").unwrap();
+        assert!(allowed_download_url(&asset, true));
+        assert!(!allowed_download_url(&asset, false));
+    }
+
+    #[test]
+    fn existing_stage_is_never_owned_or_deleted() {
+        let root = std::env::temp_dir().join(format!(
+            "zero-stage-owner-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir(&root).unwrap();
+        fs::write(root.join("keep"), b"user data").unwrap();
+        assert!(stage_package_bytes(&root, "test.zplugin", b"payload", None).is_err());
+        assert_eq!(fs::read(root.join("keep")).unwrap(), b"user data");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn dropped_stage_cleans_only_its_new_directory() {
+        let root = std::env::temp_dir().join(format!(
+            "zero-stage-cancel-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        {
+            let _stage = PackageStage::create(&root).unwrap();
+            fs::write(root.join("partial"), b"partial").unwrap();
+        }
+        assert!(!root.exists());
+    }
 
     fn signed_manifest(signing_key: &SigningKey) -> PluginManifest {
         let mut manifest = PluginManifest {
@@ -1208,4 +1434,46 @@ mod tests {
         )
         .is_err());
     }
+}
+
+/// An immutable, privately staged package. Preparation does not require the registry lock.
+pub struct PreparedPluginPackage {
+    pub report: PluginPackageValidationReport,
+    pub extracted_root: PathBuf,
+    _stage: PackageStage,
+}
+
+pub fn prepare_plugin_package(
+    source: &Path,
+    intake_root: &Path,
+) -> Result<PreparedPluginPackage, PluginPackageError> {
+    if source.extension().and_then(|s| s.to_str()) != Some("zplugin") {
+        return Err(package_error("Package must use the .zplugin extension"));
+    }
+    fs::create_dir_all(intake_root).map_err(|e| package_error(e.to_string()))?;
+    let mut nonce = [0u8; 16];
+    getrandom::fill(&mut nonce).map_err(|_| package_error("Could not create package stage"))?;
+    let nonce: String = nonce.iter().map(|b| format!("{b:02x}")).collect();
+    let stage = PackageStage::create(&intake_root.join(nonce))?;
+    let snapshot = stage.root.join("input.zplugin");
+    let input = fs::File::open(source).map_err(|e| package_error(e.to_string()))?;
+    let metadata = input.metadata().map_err(|e| package_error(e.to_string()))?;
+    if !metadata.is_file() || metadata.len() > MAX_PLUGIN_PACKAGE_BYTES {
+        return Err(package_error("Package exceeds 64 MiB or is not a file"));
+    }
+    let mut output = fs::File::create(&snapshot).map_err(|e| package_error(e.to_string()))?;
+    let copied = std::io::copy(&mut input.take(MAX_PLUGIN_PACKAGE_BYTES + 1), &mut output)
+        .map_err(|e| package_error(e.to_string()))?;
+    if copied > MAX_PLUGIN_PACKAGE_BYTES {
+        return Err(package_error("Package exceeds 64 MiB"));
+    }
+    drop(output);
+    let extracted_root = stage.root.join("unpacked");
+    let mut report = extract_zplugin_package(&snapshot, &extracted_root)?;
+    report.package_path = source.to_string_lossy().into_owned();
+    Ok(PreparedPluginPackage {
+        report,
+        extracted_root,
+        _stage: stage,
+    })
 }

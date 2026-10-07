@@ -13,13 +13,15 @@ const plugins = [
 test("each bundled plugin owns its manifest presentation localization and lazy renderer", () => {
   for (const [directory, id, main, accent] of plugins) {
     const source = fs.readFileSync(`src/plugins/${directory}/plugin.tsx`, "utf8");
-    assert.match(source, /(?:name|id): FIRST_PARTY_PLUGIN_IDS\./);
-    assert.match(source, new RegExp(`main: ["']${main}["']`));
+    const metadata = JSON.parse(fs.readFileSync(`src/plugins/${directory}/metadata.json`, "utf8"));
+    assert.equal(metadata.id, id);
+    assert.equal(metadata.name, id);
+    assert.equal(metadata.main, main);
     assert.match(source, new RegExp(`accentClass: ["']${accent}["']`));
     assert.match(source, /presentation:/);
     assert.match(source, /loadPanel:\s*\(\)\s*=>\s*import\(/);
     assert.ok(fs.existsSync(`src/plugins/${directory}/i18n.ts`));
-    assert.match(source, new RegExp(id.split(".").join("\\.")));
+    assert.match(source, /manifest: metadata/);
   }
 });
 
@@ -57,7 +59,7 @@ test("the app shell is the only composition root for concrete plugin descriptors
 
 test("plugin manifests keep host-mediated status bar contributions", () => {
   const combined = plugins
-    .map(([directory]) => fs.readFileSync(`src/plugins/${directory}/plugin.tsx`, "utf8"))
+    .map(([directory]) => fs.readFileSync(`src/plugins/${directory}/metadata.json`, "utf8"))
     .join("\n");
   for (const contribution of [
     "zero.snap.status",
@@ -70,10 +72,19 @@ test("plugin manifests keep host-mediated status bar contributions", () => {
 });
 
 test("Zero File stays a trusted main-view plugin without extension permissions or a status item", () => {
-  const source = fs.readFileSync("src/plugins/file/plugin.tsx", "utf8");
+  const metadata = JSON.parse(fs.readFileSync("src/plugins/file/metadata.json", "utf8"));
+  assert.deepEqual(metadata.permissions, []);
+  assert.deepEqual(metadata.platforms, ["macos", "windows"]);
+  assert.equal(metadata.contributes.views[0].id, "zero.file.main");
+  assert.equal(metadata.contributes.statusBarItems, undefined);
+});
 
-  assert.match(source, /permissions:\s*\[\]/);
-  assert.match(source, /platforms:\s*\["macos",\s*"windows"\]/);
-  assert.match(source, /views:\s*\[\{ id: "zero\.file\.main"/);
-  assert.doesNotMatch(source, /statusBarItems/);
+test("plugin lifecycle commands use host adapters and restore takes the bundled gates", () => {
+  const commands = fs.readFileSync("src-tauri/src/commands/plugins.rs", "utf8");
+  assert.doesNotMatch(commands, /services::(?:file|quick_launcher|screenshot|caffeine|bing_wallpaper)/);
+  assert.doesNotMatch(commands, /sync_(?:quick_launcher|screenshot)_shortcut/);
+  const restore = commands.slice(commands.indexOf("pub async fn restore_bundled_plugins"));
+  assert.match(restore, /\.run_many\(/);
+  assert.match(restore, /record\.source == crate::plugins::contracts::PluginSource::Bundled/);
+  assert.match(restore, /publish_registry\(app, restored_ids, "restored"\)/);
 });

@@ -1,0 +1,51 @@
+{
+  "name": "zero.launch",
+  "id": "zero.launch",
+  "version": "1.0.0",
+  "author": "bells",
+  "main": "plugins/quickLauncher",
+  "permissions": [
+    "system.apps.read",
+    "system.apps.execute",
+    "system.window.focus",
+    "system.settings.open"
+  ],
+  "displayName": "Zero Launch",
+  "description": "Search, launch, and switch local apps and system settings",
+  "platforms": [
+    "macos",
+    "windows"
+  ],
+  "runtime": "webview",
+  "contributes": {
+    "views": [
+      {
+        "id": "zero.launch.main",
+        "title": "Zero Launch",
+        "surface": "main"
+      }
+    ],
+    "commands": [
+      {
+        "id": "zero.launch.show",
+        "title": "Show Zero Launch"
+      },
+      {
+        "id": "zero.launch.refresh",
+        "title": "Refresh application index"
+      }
+    ],
+    "statusBarItems": [
+      {
+        "id": "zero.launch.status",
+        "title": "Zero Launch",
+        "icon": "launch",
+        "action": {
+          "type": "open-plugin"
+        },
+        "order": 40,
+        "visibleByDefault": true
+      }
+    ]
+  }
+}

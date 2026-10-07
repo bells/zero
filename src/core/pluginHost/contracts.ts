@@ -171,6 +171,7 @@ export interface PluginManifestValidationReport {
 }
 
 export interface PluginPackageValidationReport {
+  protocolManifest?: import("./protocol/contracts").PluginManifestV2;
   valid: boolean;
   issues: PluginValidationIssue[];
   manifest?: PluginManifest;
@@ -185,6 +186,7 @@ export interface PluginMarketValidationReport {
 }
 
 export interface PluginRecord {
+  protocolManifest?: import("./protocol/contracts").PluginManifestV2;
   name: string;
   version: string;
   author: string;
@@ -213,6 +215,7 @@ export interface ValidatePluginPackageInput {
 }
 
 export interface InstallPluginPackageInput {
+  expectedSha256?: string;
   packagePath: string;
   approvedPermissions: PluginPermission[];
   enabled?: boolean;

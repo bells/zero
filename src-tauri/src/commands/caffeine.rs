@@ -17,31 +17,42 @@ pub async fn toggle_keep_awake(
     duration_minutes: Option<u64>,
 ) -> Result<CaffeineSnapshot, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let transition = app
-            .state::<CaffeineState>()
-            .set_enabled(enabled, duration_minutes)?;
-        if let Some(expiry) = transition.expiry {
-            schedule_expiry(app.clone(), expiry);
-        }
-        let _ = crate::services::status_bar::refresh_status_bar(&app);
-        Ok(transition.snapshot)
+        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+            .run(crate::brand::ZERO_AWAKE_PLUGIN_ID, || {
+                if enabled && !crate::plugin_is_enabled(&app, crate::brand::ZERO_AWAKE_PLUGIN_ID) {
+                    return Err("Zero Awake 已停用".into());
+                }
+                let transition = app
+                    .state::<CaffeineState>()
+                    .set_enabled(enabled, duration_minutes)?;
+                if let Some(expiry) = transition.expiry {
+                    schedule_expiry(app.clone(), expiry);
+                }
+                let _ = crate::services::status_bar::refresh_status_bar(&app);
+                Ok(transition.snapshot)
+            })
     })
     .await
     .map_err(|_| "防休眠状态任务异常结束".to_string())?
 }
 
 pub fn schedule_expiry(app: tauri::AppHandle, expiry: CaffeineExpiry) {
-    std::thread::spawn(move || {
+    let task_app = app.clone();
+    let task = tauri::async_runtime::spawn(async move {
         if let Ok(delay) = expiry.expires_at.duration_since(SystemTime::now()) {
-            std::thread::sleep(delay);
+            tokio::time::sleep(delay).await;
         }
-
-        let state = app.state::<CaffeineState>();
-        if state
-            .expire_if_current(expiry.generation, SystemTime::now())
-            .unwrap_or(false)
-        {
-            let _ = crate::services::status_bar::refresh_status_bar(&app);
-        }
+        let _ = tauri::async_runtime::spawn_blocking(move || {
+            let state = task_app.state::<CaffeineState>();
+            if state
+                .expire_if_current(expiry.generation, SystemTime::now())
+                .unwrap_or(false)
+            {
+                let _ = crate::services::status_bar::refresh_status_bar(&task_app);
+            }
+        })
+        .await;
     });
+    app.state::<CaffeineState>()
+        .install_expiry_task(expiry.generation, task);
 }
