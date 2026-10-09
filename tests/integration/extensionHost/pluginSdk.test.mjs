@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createZeroBridge, registerPlugin } from '/private/tmp/zero-tests/sdk/index.js';
+import { createZeroBridge, registerPlugin, emitDiagnostic } from '/private/tmp/zero-tests/sdk/index.js';
 const session = {sessionId:'test-session',generation:1,pluginId:'test.notes',pluginVersion:'1.0.0',apiVersion:'1.0.0',surfaceId:'test.notes.main',registryRevision:0};
 function transport(request) {return {session,ready:async()=>session,request,cancel:async()=>{}};}
 test('SDK plain registration activates once, cleans every subscription and reports explicit results', async()=>{
@@ -68,4 +68,15 @@ test('registry refresh coalesces overlap and never applies older snapshots',asyn
  assert.deepEqual(applied,[2,3]);await refresh.refresh(2);assert.equal(pending.length,0);
  const stale=refresh.refresh();pending.shift()({revision:1,records:[]});await stale;
  assert.deepEqual(applied,[2,3]);refresh.dispose();await refresh.refresh();assert.equal(pending.length,0);
+});
+
+test('SDK diagnostic helper preserves unsupported and denied responses without a console or native fallback', async()=> {
+  const input = {level:'warn',code:'operation.failed',phase:'execute',outcome:'failed'};
+  for (const code of ['request.unknownMethod','permission.denied','diagnostics.rateLimited']) {
+    const calls=[];
+    const bridge=createZeroBridge(transport(async r=>{calls.push(r);return {requestId:r.requestId,ok:false,error:{code,message:'Unavailable',retryable:false}};}),new AbortController().signal);
+    const result=await emitDiagnostic(bridge,input);
+    assert.equal(result.ok,false);assert.equal(result.error.code,code);
+    assert.equal(calls.length,1);assert.equal(calls[0].method,'diagnostics.emit');assert.deepEqual(calls[0].payload,input);
+  }
 });

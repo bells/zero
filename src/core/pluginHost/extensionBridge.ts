@@ -259,8 +259,8 @@ async function dispatchHostApi(
       return undefined;
     }
     case "diagnostics.report": {
-      const message = readString(payload.message, "message");
-      await hostApis.diagnosticsReport?.(pluginName, message);
+      readString(payload.message, "message");
+      await hostApis.diagnosticsReport?.(pluginName, "legacy.report_received");
       return undefined;
     }
     case "network.fetch": {

@@ -24,57 +24,63 @@ fn live_owner(
     view: &str,
 ) -> Result<SessionOwner, PluginError> {
     app.state::<PluginRegistryState>()
-        .with_registry(|registry| {
-            let record = registry
-                .records()
-                .iter()
-                .find(|r| r.name == plugin)
-                .ok_or("Plugin is not installed")?;
-            let manifest = record
-                .protocol_manifest
-                .as_ref()
-                .ok_or("Not a public Web plugin")?;
-            if !record.enabled
-                || !super::compatibility::check_record(record).compatible
-                || manifest.id != record.name
-                || manifest.version != record.version
-                || !manifest.contributes.views.iter().any(|v| v.id == view)
-                || !manifest
-                    .activation_events
-                    .iter()
-                    .any(|e| e == &format!("onView:{view}"))
-            {
-                return Err("Plugin view is not available".into());
-            }
-            let root = PathBuf::from(
-                record
-                    .installed_path
-                    .as_ref()
-                    .ok_or("Missing installed root")?,
-            );
-            let digest = record
-                .package_sha256
-                .clone()
-                .ok_or("Missing package digest")?;
-            Ok(SessionOwner {
-                plugin_id: plugin.into(),
-                version: record.version.clone(),
-                digest,
-                root,
-                view_id: view.into(),
-                revision: registry.revision(),
-                permissions: record
-                    .approved_permissions
-                    .iter()
-                    .filter_map(|p| serde_json::to_value(p).ok()?.as_str().map(str::to_owned))
-                    .collect(),
-            })
-        })
+        .with_registry(|registry| owner_from_registry(registry, plugin, view))
         .map_err(|message| PluginError {
             code: "plugin.unavailable".into(),
             message,
             retryable: false,
         })
+}
+
+fn owner_from_registry(
+    registry: &super::registry::PluginRegistry,
+    plugin: &str,
+    view: &str,
+) -> Result<SessionOwner, String> {
+    let record = registry
+        .records()
+        .iter()
+        .find(|r| r.name == plugin)
+        .ok_or("Plugin is not installed")?;
+    let manifest = record
+        .protocol_manifest
+        .as_ref()
+        .ok_or("Not a public Web plugin")?;
+    if !record.enabled
+        || !super::compatibility::check_record(record).compatible
+        || manifest.id != record.name
+        || manifest.version != record.version
+        || !manifest.contributes.views.iter().any(|v| v.id == view)
+        || !manifest
+            .activation_events
+            .iter()
+            .any(|e| e == &format!("onView:{view}"))
+    {
+        return Err("Plugin view is not available".into());
+    }
+    let root = PathBuf::from(
+        record
+            .installed_path
+            .as_ref()
+            .ok_or("Missing installed root")?,
+    );
+    let digest = record
+        .package_sha256
+        .clone()
+        .ok_or("Missing package digest")?;
+    Ok(SessionOwner {
+        plugin_id: plugin.into(),
+        version: record.version.clone(),
+        digest,
+        root,
+        view_id: view.into(),
+        revision: registry.revision(),
+        permissions: record
+            .approved_permissions
+            .iter()
+            .filter_map(|p| serde_json::to_value(p).ok()?.as_str().map(str::to_owned))
+            .collect(),
+    })
 }
 
 #[tauri::command]
@@ -251,46 +257,66 @@ pub async fn plugin_invoke(
     let request_id = request.request_id.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<WebSessions>();
-        let result = match method {
-            PluginMethod::StorageGet(input) => {
-                storage(&app, &info.plugin_id, &input.key, None, &caller, &request)
-            }
-            PluginMethod::StorageSet(input) => storage(
-                &app,
-                &info.plugin_id,
-                &input.key,
-                Some(input.value),
-                &caller,
-                &request,
-            ),
-            PluginMethod::NetworkFetch(_) => Err(error("api.unavailable")),
-            PluginMethod::ShowMessage(input) => (|| {
-                if input.message.is_empty() || input.message.chars().count() > 2048 {
-                    return Err(error("request.invalid"));
+        let result =
+            match method {
+                PluginMethod::StorageGet(input) => {
+                    storage(&app, &info.plugin_id, &input.key, None, &caller, &request)
                 }
-                let sessions = state.0.lock().map_err(|_| error("session.lock"))?;
-                sessions.commit(&caller, &request, Instant::now(), || {
-                    let payload = PluginMessage {
-                        plugin_id: info.plugin_id,
-                        message: input.message,
-                    };
-                    let mut delivered = false;
-                    for label in ["main", "tray"] {
-                        if let Some(window) = app.get_webview_window(label) {
-                            window
-                                .emit("plugin-ui-message", &payload)
-                                .map_err(|_| error("api.unavailable"))?;
-                            delivered = true;
-                        }
-                    }
-                    if delivered {
+                PluginMethod::StorageSet(input) => storage(
+                    &app,
+                    &info.plugin_id,
+                    &input.key,
+                    Some(input.value),
+                    &caller,
+                    &request,
+                ),
+                PluginMethod::NetworkFetch(_) => Err(error("api.unavailable")),
+                PluginMethod::DiagnosticsEmit(input) => (|| {
+                    crate::services::diagnostics::events::validate(&input)
+                        .map_err(|_| error("request.invalid"))?;
+                    // Registry -> session -> diagnostics is the lifecycle lock order. Keep the
+                    // live registry guard until admission so revocation cannot race the write.
+                    app.state::<PluginRegistryState>().try_read_registry(|registry| {
+                    let live = owner_from_registry(registry, &info.plugin_id, &info.surface_id)
+                        .map_err(|_| error("session.stale"))?;
+                    let sessions = state.0.lock().map_err(|_| error("session.lock"))?;
+                    sessions.commit_live(&caller, &request, &live, true, Instant::now(), || {
+                        app.state::<std::sync::Arc<crate::services::diagnostics::Diagnostics>>()
+                            .emit(crate::services::diagnostics::contracts::Source::Extension,
+                                Some(&info.plugin_id), input, Default::default(), None)
+                            .map_err(|e| error(&format!("diagnostics.{}", e.code)))?;
                         Ok(Value::Null)
-                    } else {
-                        Err(error("api.unavailable"))
+                    })
+                }).map_err(|_| error("plugin.unavailable"))?
+                })(),
+
+                PluginMethod::ShowMessage(input) => (|| {
+                    if input.message.is_empty() || input.message.chars().count() > 2048 {
+                        return Err(error("request.invalid"));
                     }
-                })
-            })(),
-        };
+                    let sessions = state.0.lock().map_err(|_| error("session.lock"))?;
+                    sessions.commit(&caller, &request, Instant::now(), || {
+                        let payload = PluginMessage {
+                            plugin_id: info.plugin_id,
+                            message: input.message,
+                        };
+                        let mut delivered = false;
+                        for label in ["main", "tray"] {
+                            if let Some(window) = app.get_webview_window(label) {
+                                window
+                                    .emit("plugin-ui-message", &payload)
+                                    .map_err(|_| error("api.unavailable"))?;
+                                delivered = true;
+                            }
+                        }
+                        if delivered {
+                            Ok(Value::Null)
+                        } else {
+                            Err(error("api.unavailable"))
+                        }
+                    })
+                })(),
+            };
         if let Ok(mut sessions) = state.0.lock() {
             let _ = sessions.finish(&caller, &request, Instant::now());
         }

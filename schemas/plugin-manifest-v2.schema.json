@@ -91,6 +91,7 @@
         "enum": [
           "storage.plugin",
           "ui.message",
+          "diagnostics.write",
           "network"
         ]
       },

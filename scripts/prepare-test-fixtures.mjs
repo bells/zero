@@ -60,6 +60,7 @@ const sources = [
   "src/plugins/screenshot/screenshotMeta.ts",
   "src/components/statusBarIconSources.ts",
   "src/services/appWindowService.ts",
+  "src/services/diagnosticsServiceCore.ts",
   "src/services/globalShortcutServiceCore.ts",
   "src/services/statusBarController.ts",
   "src/services/statusBarModel.ts",

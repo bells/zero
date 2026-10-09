@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { invoke } from "@tauri-apps/api/core";
+const isEnabled = () => invoke<boolean>("get_autostart");
+const enable = () => invoke<void>("set_autostart", { enabled: true });
+const disable = () => invoke<void>("set_autostart", { enabled: false });
 import type { PluginId } from "../pluginHost/pluginTypes";
 import type { TranslationKey } from "./i18n";
 import {

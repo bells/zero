@@ -160,6 +160,8 @@ pub enum GetMethod {
 pub enum PluginMethod {
     #[serde(rename = "ui.showMessage")]
     ShowMessage(MessageInput),
+    #[serde(rename = "diagnostics.emit")]
+    DiagnosticsEmit(crate::services::diagnostics::contracts::EmitInput),
     #[serde(rename = "storage.get")]
     StorageGet(StorageGetInput),
     #[serde(rename = "storage.set")]
@@ -404,9 +406,12 @@ pub fn validate_web_manifest(m: &PluginManifestV2) -> Vec<CompatibilityIssue> {
     );
     check(
         unique(&m.permissions)
-            && m.permissions
-                .iter()
-                .all(|p| matches!(p.as_str(), "storage.plugin" | "ui.message" | "network")),
+            && m.permissions.iter().all(|p| {
+                matches!(
+                    p.as_str(),
+                    "storage.plugin" | "ui.message" | "network" | "diagnostics.write"
+                )
+            }),
         "permissions",
         "Unsupported or duplicate public permission",
     );

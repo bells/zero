@@ -117,6 +117,45 @@ pub fn classify_provider_failure(
     }
 }
 
+pub fn record_diagnostic_error(error: &FileConversionError) {
+    use crate::services::diagnostics::{
+        contracts::{Outcome, SafeMetadata},
+        record,
+    };
+    use FileConversionErrorCode::*;
+    let (phase, code) = match error.code {
+        EngineUnavailable => ("provider", "provider.unavailable"),
+        EngineVersionUnsupported => ("provider", "provider.version_unsupported"),
+        AutomationPermissionDenied => ("provider", "provider.permission_denied"),
+        ProviderActivationFailed => ("provider", "provider.activation_failed"),
+        Timeout => ("execute", "execute.timeout"),
+        Cancelled => ("cancel", "execute.cancelled"),
+        OutputConflict => ("output", "output.conflict"),
+        OutputNotWritable | PermissionDenied => ("output", "output.permission_denied"),
+        InvalidProviderOutput => ("output", "output.invalid"),
+        OutputMissing => ("output", "output.missing"),
+        PasswordRequired => ("validate", "input.password_required"),
+        OcrRequired => ("validate", "input.ocr_required"),
+        UnsupportedFormat | UnsupportedInput => ("validate", "input.unsupported"),
+        InvalidInput | DuplicateSource => ("validate", "input.invalid"),
+        UnknownJob | InvalidJobState => ("validate", "job.invalid"),
+        ProviderFailed => ("execute", "provider.failed"),
+        Internal => ("execute", "worker.unavailable"),
+    };
+    let outcome = match error.code {
+        Cancelled => Outcome::Cancelled,
+        UnsupportedFormat | UnsupportedInput | EngineVersionUnsupported => Outcome::Unsupported,
+        _ => Outcome::Failed,
+    };
+    record(
+        Some("zero.file"),
+        phase,
+        code,
+        outcome,
+        SafeMetadata::default(),
+    );
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

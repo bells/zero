@@ -359,12 +359,27 @@ pub fn validate_approved_first_party_engine_package(
     package_version: &str,
     package_sha256: &str,
 ) -> Result<(), String> {
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.file"), "policy");
+    let result = (|| {
+        validate_engine_policy_approval(
+            include_str!("../../file-engine-policy.json"),
+            plugin_id,
+            package_version,
+            package_sha256,
+        )
+    })();
+    diagnostic.finish(&result);
+    result
+}
+
+pub fn is_approved_engine_package(plugin: &str, version: &str, digest: &str) -> bool {
     validate_engine_policy_approval(
         include_str!("../../file-engine-policy.json"),
-        plugin_id,
-        package_version,
-        package_sha256,
+        plugin,
+        version,
+        digest,
     )
+    .is_ok()
 }
 
 fn validate_engine_policy_approval(
@@ -400,100 +415,107 @@ pub(crate) fn validate_installed_first_party_engine_with_key(
     activated_manifest: &PluginManifest,
     key: &[u8; 32],
 ) -> Result<(), String> {
-    let manifest_path = version_root.join("manifest.json");
-    let packaged_manifest: PluginManifest = serde_json::from_slice(
-        &fs::read(&manifest_path)
-            .map_err(|error| format!("installed engine manifest is unreadable: {error}"))?,
-    )
-    .map_err(|error| format!("installed engine manifest is invalid: {error}"))?;
-    if packaged_manifest.name != activated_manifest.name
-        || packaged_manifest.version != activated_manifest.version
-        || packaged_manifest.author != activated_manifest.author
-        || packaged_manifest.id != activated_manifest.id
-        || packaged_manifest.permissions != activated_manifest.permissions
-        || packaged_manifest.first_party_engine != activated_manifest.first_party_engine
-    {
-        return Err(
-            "installed engine manifest does not match the activated registry record".into(),
-        );
-    }
-    let engine = packaged_manifest
-        .first_party_engine
-        .as_ref()
-        .ok_or_else(|| "installed package has no first-party engine metadata".to_string())?;
-    verify_first_party_engine_signature_with_key(&packaged_manifest, engine, key)?;
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.file"), "assets");
+    let result = (|| {
+        let manifest_path = version_root.join("manifest.json");
+        let packaged_manifest: PluginManifest = serde_json::from_slice(
+            &fs::read(&manifest_path)
+                .map_err(|error| format!("installed engine manifest is unreadable: {error}"))?,
+        )
+        .map_err(|error| format!("installed engine manifest is invalid: {error}"))?;
+        if packaged_manifest.name != activated_manifest.name
+            || packaged_manifest.version != activated_manifest.version
+            || packaged_manifest.author != activated_manifest.author
+            || packaged_manifest.id != activated_manifest.id
+            || packaged_manifest.permissions != activated_manifest.permissions
+            || packaged_manifest.first_party_engine != activated_manifest.first_party_engine
+        {
+            return Err(
+                "installed engine manifest does not match the activated registry record".into(),
+            );
+        }
+        let engine = packaged_manifest
+            .first_party_engine
+            .as_ref()
+            .ok_or_else(|| "installed package has no first-party engine metadata".to_string())?;
+        verify_first_party_engine_signature_with_key(&packaged_manifest, engine, key)?;
 
-    let engine_root = version_root.join("engine");
-    let canonical_version_root = fs::canonicalize(version_root)
-        .map_err(|_| "installed engine version root is missing".to_string())?;
-    let canonical_engine_root = fs::canonicalize(&engine_root)
-        .map_err(|_| "installed engine asset root is missing".to_string())?;
-    let installed_files = collect_installed_engine_files(&canonical_engine_root)?;
-    let declared = engine
-        .assets
-        .iter()
-        .map(|asset| asset.path.as_str())
-        .collect::<HashSet<_>>();
-    let installed = installed_files
-        .iter()
-        .map(|path| {
-            path.strip_prefix(&canonical_version_root)
-                .map(|relative| relative.to_string_lossy().replace('\\', "/"))
-                .map_err(|_| "installed engine asset escaped its version root".to_string())
-        })
-        .collect::<Result<HashSet<_>, _>>()?;
-    if declared.len() != engine.assets.len()
-        || installed.len() != engine.assets.len()
-        || !installed
+        let engine_root = version_root.join("engine");
+        let canonical_version_root = fs::canonicalize(version_root)
+            .map_err(|_| "installed engine version root is missing".to_string())?;
+        let canonical_engine_root = fs::canonicalize(&engine_root)
+            .map_err(|_| "installed engine asset root is missing".to_string())?;
+        let installed_files = collect_installed_engine_files(&canonical_engine_root)?;
+        let declared = engine
+            .assets
             .iter()
-            .all(|path| declared.contains(path.as_str()))
-    {
-        return Err("installed engine asset inventory does not match the signed manifest".into());
-    }
+            .map(|asset| asset.path.as_str())
+            .collect::<HashSet<_>>();
+        let installed = installed_files
+            .iter()
+            .map(|path| {
+                path.strip_prefix(&canonical_version_root)
+                    .map(|relative| relative.to_string_lossy().replace('\\', "/"))
+                    .map_err(|_| "installed engine asset escaped its version root".to_string())
+            })
+            .collect::<Result<HashSet<_>, _>>()?;
+        if declared.len() != engine.assets.len()
+            || installed.len() != engine.assets.len()
+            || !installed
+                .iter()
+                .all(|path| declared.contains(path.as_str()))
+        {
+            return Err(
+                "installed engine asset inventory does not match the signed manifest".into(),
+            );
+        }
 
-    let mut total_bytes = 0_u64;
-    for asset in &engine.assets {
-        if !is_safe_package_relative_path(&asset.path)
-            || !asset.path.starts_with("engine/")
-            || engine_media_type(&asset.path) != Some(asset.media_type.as_str())
-        {
-            return Err(format!(
-                "installed engine asset metadata is invalid: {}",
-                asset.path
-            ));
+        let mut total_bytes = 0_u64;
+        for asset in &engine.assets {
+            if !is_safe_package_relative_path(&asset.path)
+                || !asset.path.starts_with("engine/")
+                || engine_media_type(&asset.path) != Some(asset.media_type.as_str())
+            {
+                return Err(format!(
+                    "installed engine asset metadata is invalid: {}",
+                    asset.path
+                ));
+            }
+            let target = version_root.join(&asset.path);
+            let canonical_target = fs::canonicalize(&target)
+                .map_err(|_| format!("installed engine asset is missing: {}", asset.path))?;
+            if !canonical_target.starts_with(&canonical_engine_root) {
+                return Err(format!(
+                    "installed engine asset escaped its root: {}",
+                    asset.path
+                ));
+            }
+            let bytes = fs::read(&canonical_target)
+                .map_err(|_| format!("installed engine asset is unreadable: {}", asset.path))?;
+            total_bytes = total_bytes.saturating_add(bytes.len() as u64);
+            if bytes.len() as u64 != asset.bytes
+                || !asset.sha256.eq_ignore_ascii_case(&sha256_hex(&bytes))
+            {
+                return Err(format!(
+                    "installed engine asset failed integrity verification: {}",
+                    asset.path
+                ));
+            }
         }
-        let target = version_root.join(&asset.path);
-        let canonical_target = fs::canonicalize(&target)
-            .map_err(|_| format!("installed engine asset is missing: {}", asset.path))?;
-        if !canonical_target.starts_with(&canonical_engine_root) {
-            return Err(format!(
-                "installed engine asset escaped its root: {}",
-                asset.path
-            ));
+        if total_bytes > MAX_ENGINE_INSTALLED_BYTES {
+            return Err("installed engine assets exceed the approved size limit".into());
         }
-        let bytes = fs::read(&canonical_target)
-            .map_err(|_| format!("installed engine asset is unreadable: {}", asset.path))?;
-        total_bytes = total_bytes.saturating_add(bytes.len() as u64);
-        if bytes.len() as u64 != asset.bytes
-            || !asset.sha256.eq_ignore_ascii_case(&sha256_hex(&bytes))
-        {
-            return Err(format!(
-                "installed engine asset failed integrity verification: {}",
-                asset.path
-            ));
+        if engine.notices.iter().any(|notice| {
+            !notice.starts_with("engine/licenses/")
+                || !declared.contains(notice.as_str())
+                || !installed.contains(notice)
+        }) {
+            return Err("installed engine notices do not match the signed manifest".into());
         }
-    }
-    if total_bytes > MAX_ENGINE_INSTALLED_BYTES {
-        return Err("installed engine assets exceed the approved size limit".into());
-    }
-    if engine.notices.iter().any(|notice| {
-        !notice.starts_with("engine/licenses/")
-            || !declared.contains(notice.as_str())
-            || !installed.contains(notice)
-    }) {
-        return Err("installed engine notices do not match the signed manifest".into());
-    }
-    Ok(())
+        Ok(())
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 fn collect_installed_engine_files(root: &Path) -> Result<Vec<PathBuf>, String> {
@@ -1043,19 +1065,27 @@ fn verify_first_party_engine_signature_with_key(
     engine: &PluginFirstPartyEngine,
     key: &[u8; 32],
 ) -> Result<(), String> {
-    let verifying_key = VerifyingKey::from_bytes(key)
-        .map_err(|_| "The pinned Zero File verification key could not be loaded.".to_string())?;
-    let signature_bytes = BASE64_STANDARD
-        .decode(&engine.signature)
-        .map_err(|_| "The detached engine manifest signature is not valid base64.".to_string())?;
-    let signature = Signature::from_slice(&signature_bytes)
-        .map_err(|_| "The detached engine manifest signature has the wrong length.".to_string())?;
-    verifying_key
-        .verify(
-            &first_party_engine_signature_payload(manifest, engine),
-            &signature,
-        )
-        .map_err(|_| "The detached engine manifest signature did not verify.".to_string())
+    let mut diagnostic =
+        crate::services::diagnostics::Operation::new(Some("zero.file"), "signature");
+    let result = (|| {
+        let verifying_key = VerifyingKey::from_bytes(key).map_err(|_| {
+            "The pinned Zero File verification key could not be loaded.".to_string()
+        })?;
+        let signature_bytes = BASE64_STANDARD.decode(&engine.signature).map_err(|_| {
+            "The detached engine manifest signature is not valid base64.".to_string()
+        })?;
+        let signature = Signature::from_slice(&signature_bytes).map_err(|_| {
+            "The detached engine manifest signature has the wrong length.".to_string()
+        })?;
+        verifying_key
+            .verify(
+                &first_party_engine_signature_payload(manifest, engine),
+                &signature,
+            )
+            .map_err(|_| "The detached engine manifest signature did not verify.".to_string())
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 pub(crate) fn first_party_engine_signature_payload(
@@ -1447,33 +1477,38 @@ pub fn prepare_plugin_package(
     source: &Path,
     intake_root: &Path,
 ) -> Result<PreparedPluginPackage, PluginPackageError> {
-    if source.extension().and_then(|s| s.to_str()) != Some("zplugin") {
-        return Err(package_error("Package must use the .zplugin extension"));
-    }
-    fs::create_dir_all(intake_root).map_err(|e| package_error(e.to_string()))?;
-    let mut nonce = [0u8; 16];
-    getrandom::fill(&mut nonce).map_err(|_| package_error("Could not create package stage"))?;
-    let nonce: String = nonce.iter().map(|b| format!("{b:02x}")).collect();
-    let stage = PackageStage::create(&intake_root.join(nonce))?;
-    let snapshot = stage.root.join("input.zplugin");
-    let input = fs::File::open(source).map_err(|e| package_error(e.to_string()))?;
-    let metadata = input.metadata().map_err(|e| package_error(e.to_string()))?;
-    if !metadata.is_file() || metadata.len() > MAX_PLUGIN_PACKAGE_BYTES {
-        return Err(package_error("Package exceeds 64 MiB or is not a file"));
-    }
-    let mut output = fs::File::create(&snapshot).map_err(|e| package_error(e.to_string()))?;
-    let copied = std::io::copy(&mut input.take(MAX_PLUGIN_PACKAGE_BYTES + 1), &mut output)
-        .map_err(|e| package_error(e.to_string()))?;
-    if copied > MAX_PLUGIN_PACKAGE_BYTES {
-        return Err(package_error("Package exceeds 64 MiB"));
-    }
-    drop(output);
-    let extracted_root = stage.root.join("unpacked");
-    let mut report = extract_zplugin_package(&snapshot, &extracted_root)?;
-    report.package_path = source.to_string_lossy().into_owned();
-    Ok(PreparedPluginPackage {
-        report,
-        extracted_root,
-        _stage: stage,
-    })
+    let mut diagnostic = crate::services::diagnostics::Operation::new(None, "package");
+    let result = (|| {
+        if source.extension().and_then(|s| s.to_str()) != Some("zplugin") {
+            return Err(package_error("Package must use the .zplugin extension"));
+        }
+        fs::create_dir_all(intake_root).map_err(|e| package_error(e.to_string()))?;
+        let mut nonce = [0u8; 16];
+        getrandom::fill(&mut nonce).map_err(|_| package_error("Could not create package stage"))?;
+        let nonce: String = nonce.iter().map(|b| format!("{b:02x}")).collect();
+        let stage = PackageStage::create(&intake_root.join(nonce))?;
+        let snapshot = stage.root.join("input.zplugin");
+        let input = fs::File::open(source).map_err(|e| package_error(e.to_string()))?;
+        let metadata = input.metadata().map_err(|e| package_error(e.to_string()))?;
+        if !metadata.is_file() || metadata.len() > MAX_PLUGIN_PACKAGE_BYTES {
+            return Err(package_error("Package exceeds 64 MiB or is not a file"));
+        }
+        let mut output = fs::File::create(&snapshot).map_err(|e| package_error(e.to_string()))?;
+        let copied = std::io::copy(&mut input.take(MAX_PLUGIN_PACKAGE_BYTES + 1), &mut output)
+            .map_err(|e| package_error(e.to_string()))?;
+        if copied > MAX_PLUGIN_PACKAGE_BYTES {
+            return Err(package_error("Package exceeds 64 MiB"));
+        }
+        drop(output);
+        let extracted_root = stage.root.join("unpacked");
+        let mut report = extract_zplugin_package(&snapshot, &extracted_root)?;
+        report.package_path = source.to_string_lossy().into_owned();
+        Ok(PreparedPluginPackage {
+            report,
+            extracted_root,
+            _stage: stage,
+        })
+    })();
+    diagnostic.finish(&result);
+    result
 }

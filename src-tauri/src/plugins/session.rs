@@ -177,6 +177,7 @@ impl Sessions {
         }
         let permission = match method {
             PluginMethod::ShowMessage(_) => "ui.message",
+            PluginMethod::DiagnosticsEmit(_) => "diagnostics.write",
             PluginMethod::StorageGet(_) | PluginMethod::StorageSet(_) => "storage.plugin",
             PluginMethod::NetworkFetch(_) => "network",
         };
@@ -236,6 +237,43 @@ impl Sessions {
     ) -> Result<T, PluginError> {
         self.can_commit(caller, request, now)?;
         operation()
+    }
+
+    pub fn commit_live<T>(
+        &self,
+        caller: &str,
+        request: &PluginRequest,
+        live: &SessionOwner,
+        enabled: bool,
+        now: Instant,
+        operation: impl FnOnce() -> Result<T, PluginError>,
+    ) -> Result<T, PluginError> {
+        let session = self.get(&request.session_id, caller, request.generation)?;
+        if !enabled
+            || !session.ready
+            || session.owner.plugin_id != live.plugin_id
+            || session.owner.version != live.version
+            || session.owner.digest != live.digest
+            || session.owner.root != live.root
+        {
+            return Err(error("session.stale"));
+        }
+        if !live.permissions.iter().any(|p| p == "diagnostics.write")
+            || !session
+                .owner
+                .permissions
+                .iter()
+                .any(|p| p == "diagnostics.write")
+        {
+            return Err(error("permission.denied"));
+        }
+        if !matches!(
+            request.decode_method(),
+            Ok(PluginMethod::DiagnosticsEmit(_))
+        ) {
+            return Err(error("request.invalid"));
+        }
+        self.commit(caller, request, now, operation)
     }
 
     pub fn finish(

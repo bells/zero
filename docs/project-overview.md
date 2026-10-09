@@ -1,5 +1,7 @@
 # Zero 项目全景与维护地图
 
+2026-10-09 增量：关于窗口更新为 500 × 560（最小 420 × 360），显示原生版本、GitHub/官网地址与支持诊断入口。`services/diagnostics` 在迁移前建立本地安全 JSONL/ring，五工具通过组合层接入 cached health，第三方开发协议增加独立 `diagnostics.write`。接入与隐私契约见[诊断指南](diagnostics.md)，检查及仍未完成的实机门禁见[本次证据](../openspec/changes/improve-about-and-add-diagnostics/evidence/verification.md)。当前是未提交的工作区变更；下述旧基线和历史证据保留日期语义。
+
 核对日期：2026-09-25。源码基线：`3120f5d3162440a69f561ea114db8ea9697921df`。本次是在该基线上的文档校准和一处测试模块排序修正，不是版本发布或完整安全审计。下列检查属于本机 macOS；未重新运行 Windows/Linux 设备测试、安装包测试或交互式截图流程。
 
 ## 当前结论
@@ -51,7 +53,7 @@ Tauri 窗口 label
 | --- | --- |
 | `tray` | 默认隐藏的 400 × 500 快捷面板；`tauri.conf.json` |
 | `main` | 920 × 660 工具主窗口；`commands/app.rs` |
-| `preferences` / `about` | 设置中心 840 × 640 / 关于 460 × 420；独立于工具内容 |
+| `preferences` / `about` | 设置中心 840 × 640 / 关于 500 × 560；独立于工具内容，关于诊断内容内部滚动 |
 | `launcher` | Launch 快捷键/状态栏入口，共享索引与查询 UI |
 | `paper` | Paper 专属窗口 |
 | `snap-menu` | Snap 状态栏截图入口 |

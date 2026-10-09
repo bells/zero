@@ -67,18 +67,23 @@ pub fn sync_quick_launcher_shortcut(app: &tauri::AppHandle, enabled: bool) -> Re
 }
 
 pub fn sync_screenshot_shortcut(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> {
-    let shortcuts = app.global_shortcut();
-    if enabled && !shortcuts.is_registered(SCREENSHOT_SHORTCUT) {
-        shortcuts
-            .register(SCREENSHOT_SHORTCUT)
-            .map_err(|e| e.to_string())?;
-    }
-    if !enabled && shortcuts.is_registered(SCREENSHOT_SHORTCUT) {
-        shortcuts
-            .unregister(SCREENSHOT_SHORTCUT)
-            .map_err(|e| e.to_string())?;
-    }
-    Ok(())
+    let mut diagnostic = crate::services::diagnostics::Operation::new(None, "shortcut");
+    let result = (|| {
+        let shortcuts = app.global_shortcut();
+        if enabled && !shortcuts.is_registered(SCREENSHOT_SHORTCUT) {
+            shortcuts
+                .register(SCREENSHOT_SHORTCUT)
+                .map_err(|e| e.to_string())?;
+        }
+        if !enabled && shortcuts.is_registered(SCREENSHOT_SHORTCUT) {
+            shortcuts
+                .unregister(SCREENSHOT_SHORTCUT)
+                .map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
@@ -108,6 +113,17 @@ pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let diagnostics = services::diagnostics::Diagnostics::new(
+        brand::canonical_data_root(&brand::default_home()).join("logs"),
+    );
+    diagnostics.install();
+    diagnostics.native(
+        None,
+        "bootstrap",
+        services::diagnostics::contracts::Outcome::Started,
+        Default::default(),
+        None,
+    );
     let performance_trace = services::performance::PerformanceTrace::default();
     let migration_started = performance_trace.begin();
     let migration_report = migration::migrate_default_home();
@@ -124,9 +140,17 @@ pub fn run() {
         },
         migration_started,
     );
-    for diagnostic in migration_report.diagnostics {
-        eprintln!("Zero data migration: {diagnostic}");
-    }
+    diagnostics.native(
+        None,
+        "migration",
+        if migration_report.diagnostics.is_empty() {
+            services::diagnostics::contracts::Outcome::Succeeded
+        } else {
+            services::diagnostics::contracts::Outcome::Failed
+        },
+        Default::default(),
+        None,
+    );
 
     let managed_state_started = performance_trace.begin();
     let builder = bundled_plugins::manage_states(tauri::Builder::default());
@@ -144,6 +168,7 @@ pub fn run() {
         registry_started,
     );
     let builder = plugins::web_assets::register(plugins::engine_assets::register(builder))
+        .manage(diagnostics.clone())
         .manage(registry_state)
         .manage(performance_trace.clone());
 
@@ -176,8 +201,10 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_positioner::init())
         .setup(|app| {
+            bundled_plugins::register_diagnostics(app.handle());
             sync_screenshot_shortcut(
                 app.handle(),
                 plugin_is_enabled(app.handle(), brand::ZERO_SNAP_PLUGIN_ID),
@@ -224,6 +251,17 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(plugins::invoke_gate::gate(tauri::generate_handler![
+            commands::diagnostics::get_about_info,
+            commands::diagnostics::get_diagnostics_status,
+            commands::diagnostics::get_diagnostics_preview,
+            commands::diagnostics::copy_diagnostics_preview,
+            commands::diagnostics::clear_diagnostics,
+            commands::diagnostics::set_diagnostics_mode,
+            commands::diagnostics::open_support_link,
+            commands::diagnostics::open_diagnostics_directory,
+            commands::diagnostics::emit_frontend_diagnostic,
+            commands::autostart::get_autostart,
+            commands::autostart::set_autostart,
             commands::app::quit_app,
             commands::app::mark_frontend_ready,
             commands::app::mark_surface_ready,
@@ -306,18 +344,44 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
     performance_trace.finish("tauri_setup", "ok", tauri_setup_started);
+    diagnostics.native(
+        None,
+        "bootstrap",
+        services::diagnostics::contracts::Outcome::Succeeded,
+        Default::default(),
+        None,
+    );
     app.run(|app, event| {
+        if let tauri::RunEvent::WindowEvent {
+            label,
+            event: tauri::WindowEvent::Destroyed,
+            ..
+        } = &event
+        {
+            app.state::<std::sync::Arc<services::diagnostics::Diagnostics>>()
+                .revoke_previews(label);
+        }
         if matches!(
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
         ) {
+            services::diagnostics::native(
+                None,
+                "shutdown",
+                services::diagnostics::contracts::Outcome::Started,
+            );
             app.state::<services::file::FileConversionState>()
                 .shutdown_cleanup();
+            let _ = app
+                .state::<services::caffeine::CaffeineState>()
+                .set_enabled(false, None);
             app.state::<services::screenshot::ScreenshotSessionStore>()
                 .cleanup_all();
             app.state::<services::file::engine_bridge::FileEngineBridgeState>()
                 .bridge
                 .reset_and_destroy(app, "Zero is shutting down.");
+            app.state::<std::sync::Arc<services::diagnostics::Diagnostics>>()
+                .shutdown();
         }
     });
 }

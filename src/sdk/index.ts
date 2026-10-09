@@ -114,3 +114,9 @@ export function registerPlugin(definition: ZeroPluginDefinition, transport?: Plu
   })();
   return { ready, dispose };
 }
+
+
+/** Diagnostics never grant access to host logs, paths or clipboard content. */
+export function emitDiagnostic(bridge: ZeroBridge, input: import("../core/diagnostics/contracts").DiagnosticEmitInput): Promise<Result<null>> {
+  return bridge.request("diagnostics.emit", input);
+}

@@ -1,0 +1,11 @@
+[
+  {"phase":"policy", "code":"policy.result", "outcome":"failed"},
+  {"phase":"identity", "code":"identity.result", "outcome":"failed"},
+  {"phase":"signature", "code":"signature.result", "outcome":"failed"},
+  {"phase":"assets", "code":"assets.result", "outcome":"failed"},
+  {"phase":"engine-create", "code":"engine-create.result", "outcome":"failed"},
+  {"phase":"readiness", "code":"readiness.timeout", "outcome":"failed"},
+  {"phase":"execute", "code":"provider.failed", "outcome":"failed"},
+  {"phase":"cancel", "code":"execute.cancelled", "outcome":"cancelled"},
+  {"phase":"output", "code":"output.invalid", "outcome":"failed"}
+]

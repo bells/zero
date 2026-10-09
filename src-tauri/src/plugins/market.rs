@@ -52,10 +52,15 @@ impl PluginMarketState {
         &self,
         market_json: &str,
     ) -> Result<PluginMarketSnapshot, PluginMarketError> {
-        self.cache
-            .lock()
-            .map_err(|_| market_error("plugin market cache lock is poisoned"))?
-            .refresh_from_json(market_json)
+        let mut diagnostic = crate::services::diagnostics::Operation::new(None, "market");
+        let result = (|| {
+            self.cache
+                .lock()
+                .map_err(|_| market_error("plugin market cache lock is poisoned"))?
+                .refresh_from_json(market_json)
+        })();
+        diagnostic.finish(&result);
+        result
     }
 
     pub fn cached_entries(&self) -> Result<Vec<PluginMarketEntry>, PluginMarketError> {
@@ -123,14 +128,20 @@ impl PluginMarketCache {
 }
 
 pub async fn fetch_market_json(source_url: &str) -> Result<String, PluginMarketError> {
-    let response = reqwest::get(source_url)
-        .await
-        .map_err(|error| market_error(format!("failed to fetch market: {error}")))?;
+    let mut diagnostic = crate::services::diagnostics::Operation::new(None, "market");
+    let result = (async {
+        let response = reqwest::get(source_url)
+            .await
+            .map_err(|error| market_error(format!("failed to fetch market: {error}")))?;
 
-    response
-        .text()
-        .await
-        .map_err(|error| market_error(format!("failed to read market response: {error}")))
+        response
+            .text()
+            .await
+            .map_err(|error| market_error(format!("failed to read market response: {error}")))
+    })
+    .await;
+    diagnostic.finish(&result);
+    result
 }
 
 fn parse_market_index(market_json: &str) -> Result<PluginMarketIndex, PluginMarketError> {

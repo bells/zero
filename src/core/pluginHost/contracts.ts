@@ -7,6 +7,7 @@ export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "network",
   "storage.plugin",
   "ui.message",
+  "diagnostics.write",
   "process.execute",
   "system.wallpaper",
   "system.apps.read",

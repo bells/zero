@@ -42,7 +42,11 @@ test("dedicated surfaces and panels stay behind plugin-owned dynamic imports", (
 
   const boundary = fs.readFileSync("src/appShell/LazyPluginPanel.tsx", "utf8");
   assert.match(boundary, /<Suspense fallback=/);
-  assert.match(boundary, /getDerivedStateFromError/);
+  assert.match(boundary, /<DiagnosticBoundary/);
+  const diagnosticBoundary = fs.readFileSync("src/appShell/DiagnosticBoundary.tsx", "utf8");
+  assert.match(diagnosticBoundary, /getDerivedStateFromError/);
+  assert.match(diagnosticBoundary, /emit_frontend_diagnostic/);
+  assert.doesNotMatch(diagnosticBoundary, /_error\.(message|stack)/);
 });
 
 test("the app shell is the only composition root for concrete plugin descriptors", () => {

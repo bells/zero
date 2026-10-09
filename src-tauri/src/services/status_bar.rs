@@ -359,31 +359,36 @@ pub fn status_bar_settings_path(config_dir: &Path) -> PathBuf {
 }
 
 pub fn refresh_status_bar(app: &tauri::AppHandle) -> Result<Vec<StatusBarItemSnapshot>, String> {
-    let settings_started = app
-        .state::<crate::services::performance::PerformanceTrace>()
-        .begin();
-    let records = plugin_records(app)?;
-    let settings_result = ensure_status_bar_settings(app, &records);
-    app.state::<crate::services::performance::PerformanceTrace>()
-        .finish(
-            "status_bar_settings_load",
-            if settings_result.is_ok() {
-                "ok"
-            } else {
-                "error"
-            },
-            settings_started,
-        );
-    let settings = settings_result?;
-    let caffeine_enabled = app
-        .state::<CaffeineState>()
-        .snapshot()
-        .map(|snapshot| snapshot.enabled)
-        .unwrap_or(false);
-    let support = current_status_bar_support();
-    let items = normalize_status_bar_items(&records, &settings, caffeine_enabled, support);
-    sync_native_plugin_items(app, &items, support, settings.plugin_items_collapsed)?;
-    Ok(items)
+    let mut diagnostic = crate::services::diagnostics::Operation::new(None, "status-bar");
+    let result = (|| {
+        let settings_started = app
+            .state::<crate::services::performance::PerformanceTrace>()
+            .begin();
+        let records = plugin_records(app)?;
+        let settings_result = ensure_status_bar_settings(app, &records);
+        app.state::<crate::services::performance::PerformanceTrace>()
+            .finish(
+                "status_bar_settings_load",
+                if settings_result.is_ok() {
+                    "ok"
+                } else {
+                    "error"
+                },
+                settings_started,
+            );
+        let settings = settings_result?;
+        let caffeine_enabled = app
+            .state::<CaffeineState>()
+            .snapshot()
+            .map(|snapshot| snapshot.enabled)
+            .unwrap_or(false);
+        let support = current_status_bar_support();
+        let items = normalize_status_bar_items(&records, &settings, caffeine_enabled, support);
+        sync_native_plugin_items(app, &items, support, settings.plugin_items_collapsed)?;
+        Ok(items)
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 pub fn status_bar_items(app: &tauri::AppHandle) -> Result<Vec<StatusBarItemSnapshot>, String> {

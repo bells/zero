@@ -52,6 +52,7 @@ test("accepts a valid MVP plugin manifest", () => {
     "network",
     "storage.plugin",
     "ui.message",
+    "diagnostics.write",
     "process.execute",
     "system.wallpaper",
     "system.apps.read",

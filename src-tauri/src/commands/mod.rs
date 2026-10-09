@@ -7,3 +7,7 @@ pub mod quick_launcher;
 pub mod screenshot;
 pub mod shortcuts;
 pub mod status_bar;
+
+pub mod diagnostics;
+
+pub mod autostart;

@@ -72,7 +72,12 @@ pub(super) fn prepare_capture_target_snapshot() -> Result<CaptureTargetSnapshot,
             match snapshot {
                 Ok(snapshot) => Some(snapshot),
                 Err(error) => {
-                    eprintln!("Zero Snap skipped unreadable window candidate: {error}");
+                    let _ = error;
+                    crate::services::diagnostics::native(
+                        Some("zero.snap"),
+                        "targets",
+                        crate::services::diagnostics::contracts::Outcome::Failed,
+                    );
                     None
                 }
             }

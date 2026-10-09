@@ -1,11 +1,9 @@
 import {
-  Component,
   lazy,
   Suspense,
   useEffect,
   useRef,
   type ComponentType,
-  type ErrorInfo,
   type LazyExoticComponent,
   type ReactNode,
 } from "react";
@@ -15,6 +13,7 @@ import type {
 } from "../core/pluginHost/pluginModule";
 import type { ResolvedLanguage } from "../core/preferences/i18n";
 import { bundledPluginPanelLoader } from "./bundledPluginModules";
+import { DiagnosticBoundary } from "./DiagnosticBoundary";
 
 const panelComponents = new Map<
   string,
@@ -45,12 +44,12 @@ export function LazyPluginPanel({
   }
 
   return (
-    <PluginImportBoundary key={pluginId} fallback={unavailable}>
+    <DiagnosticBoundary key={pluginId} pluginId={pluginId} fallback={unavailable}>
       <Suspense fallback={fallback}>
         <Panel language={language} />
         <PluginActivationMarker pluginId={pluginId} />
       </Suspense>
-    </PluginImportBoundary>
+    </DiagnosticBoundary>
   );
 }
 
@@ -73,32 +72,4 @@ function PluginActivationMarker({ pluginId }: { pluginId: string }) {
   }, [pluginId]);
 
   return null;
-}
-
-interface PluginImportBoundaryProps {
-  children: ReactNode;
-  fallback: ReactNode;
-}
-
-interface PluginImportBoundaryState {
-  failed: boolean;
-}
-
-class PluginImportBoundary extends Component<
-  PluginImportBoundaryProps,
-  PluginImportBoundaryState
-> {
-  state: PluginImportBoundaryState = { failed: false };
-
-  static getDerivedStateFromError(): PluginImportBoundaryState {
-    return { failed: true };
-  }
-
-  componentDidCatch(_error: Error, _info: ErrorInfo) {
-    // The compact fallback keeps sibling navigation available after a chunk failure.
-  }
-
-  render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
-  }
 }

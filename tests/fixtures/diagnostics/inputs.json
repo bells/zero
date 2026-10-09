@@ -1,0 +1,183 @@
+[
+  {
+    "name": "safe event",
+    "valid": true,
+    "input": {
+      "level": "warn",
+      "code": "conversion.failed",
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "private message rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "conversion.failed",
+      "phase": "execute",
+      "outcome": "failed",
+      "message": "private document"
+    }
+  },
+  {
+    "name": "identity spoof rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "conversion.failed",
+      "phase": "execute",
+      "outcome": "failed",
+      "pluginId": "zero.file"
+    }
+  },
+  {
+    "name": "URL rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "https://example.com?secret=123",
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "absolute path rejected",
+    "valid": false,
+    "input": {
+      "level": "error",
+      "code": "operation.failed",
+      "phase": "C:\\Users\\private",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "invalid outcome rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "operation.failed",
+      "phase": "execute",
+      "outcome": "unknown"
+    }
+  },
+  {
+    "name": "control character rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "operation\nfailed",
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "debug schema accepted",
+    "valid": true,
+    "input": {
+      "level": "debug",
+      "code": "operation.status",
+      "phase": "execute",
+      "outcome": "succeeded"
+    }
+  },
+  {
+    "name": "null level rejected",
+    "valid": false,
+    "input": {
+      "level": null,
+      "code": "conversion.failed",
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "integer code rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": 123,
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "unicode phase rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "conversion.failed",
+      "phase": "文档",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "decimal outcome rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "conversion.failed",
+      "phase": "execute",
+      "outcome": 1.5
+    }
+  },
+  {
+    "name": "missing phase rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "conversion.failed",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "API credential rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "sk-proj-syntheticcredential",
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "payment credential rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "sk_live_syntheticcredential",
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "GitHub credential rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "ghp_syntheticcredential",
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "namespaced credential rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "operation.github_pat_syntheticcredential",
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  },
+  {
+    "name": "chat credential rejected",
+    "valid": false,
+    "input": {
+      "level": "warn",
+      "code": "xoxb-syntheticcredential",
+      "phase": "execute",
+      "outcome": "failed"
+    }
+  }
+]

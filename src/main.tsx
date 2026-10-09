@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
+import { DiagnosticBoundary } from "./appShell/DiagnosticBoundary";
 import { resolveAppSurface } from "./appShell/appSurface";
 import { bundledPluginSurfaceLoader } from "./appShell/bundledPluginModules";
 import type { BundledPluginSurface } from "./core/pluginHost/pluginModule";
@@ -15,6 +16,10 @@ import {
 const label = getCurrentWindow().label;
 const surface = resolveAppSurface(label);
 const RoutedApp = lazy(loadRoutedApp);
+const surfacePlugin = label === "zero-file-engine" ? null
+  : surface === "launcher" ? "zero.launch"
+    : surface === "paper" ? "zero.paper"
+      : ["capture", "pin", "snap-menu"].includes(surface) ? "zero.snap" : null;
 
 async function loadRoutedApp(): Promise<{ default: ComponentType }> {
   if (label === "zero-file-engine") {
@@ -45,7 +50,11 @@ function isBundledPluginSurface(
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <Suspense fallback={<div className="app-loading" aria-busy="true" />}>
-      <RoutedApp />
+      {surfacePlugin ? (
+        <DiagnosticBoundary pluginId={surfacePlugin} fallback={<div className="app-loading" role="alert">工具界面暂不可用 / Tool UI unavailable.</div>}>
+          <RoutedApp />
+        </DiagnosticBoundary>
+      ) : <RoutedApp />}
     </Suspense>
   </React.StrictMode>,
 );

@@ -28,6 +28,21 @@ pub async fn toggle_keep_awake(
                 if let Some(expiry) = transition.expiry {
                     schedule_expiry(app.clone(), expiry);
                 }
+                #[cfg(target_os = "macos")]
+                if let Some(generation) = app.state::<CaffeineState>().diagnostic_generation() {
+                    let observer_app = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        loop {
+                            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                            if !observer_app
+                                .state::<CaffeineState>()
+                                .observe_owned_backend(generation)
+                            {
+                                break;
+                            }
+                        }
+                    });
+                }
                 let _ = crate::services::status_bar::refresh_status_bar(&app);
                 Ok(transition.snapshot)
             })

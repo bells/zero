@@ -12,6 +12,8 @@ pub enum PluginPermission {
     StoragePlugin,
     #[serde(rename = "ui.message")]
     UiMessage,
+    #[serde(rename = "diagnostics.write")]
+    DiagnosticsWrite,
     #[serde(rename = "process.execute")]
     ProcessExecute,
     #[serde(rename = "system.wallpaper")]

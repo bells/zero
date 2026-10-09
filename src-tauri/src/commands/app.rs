@@ -46,8 +46,8 @@ impl AppShellWindow {
             Self::About => AppShellWindowOptions {
                 label: "about",
                 title: "About Zero",
-                width: 460.0,
-                height: 420.0,
+                width: 500.0,
+                height: 560.0,
                 min_width: 420.0,
                 min_height: 360.0,
                 resizable: false,
@@ -136,36 +136,42 @@ pub fn get_performance_trace(
 }
 
 fn show_app_shell_window(app: &tauri::AppHandle, target: AppShellWindow) -> Result<(), String> {
-    let options = target.options();
-    promote_app_for_app_window(app);
+    let mut diagnostic = crate::services::diagnostics::Operation::new(None, "window");
+    let result = (|| {
+        let options = target.options();
+        promote_app_for_app_window(app);
 
-    if let Some(existing) = app.get_webview_window(options.label) {
-        show_surface(&existing).map_err(|e| format!("显示窗口失败: {e}"))?;
-        existing
+        if let Some(existing) = app.get_webview_window(options.label) {
+            show_surface(&existing).map_err(|e| format!("显示窗口失败: {e}"))?;
+            existing
+                .set_focus()
+                .map_err(|e| format!("聚焦窗口失败: {e}"))?;
+            return Ok(());
+        }
+
+        let window =
+            tauri::WebviewWindowBuilder::new(app, options.label, WebviewUrl::App("".into()))
+                .title(options.title)
+                .inner_size(options.width, options.height)
+                .min_inner_size(options.min_width, options.min_height)
+                .resizable(options.resizable)
+                .decorations(true)
+                .transparent(false)
+                .skip_taskbar(false)
+                .focused(true)
+                .visible(false)
+                .build()
+                .map_err(|e| format!("创建窗口失败: {e}"))?;
+
+        show_surface(&window).map_err(|e| format!("显示窗口失败: {e}"))?;
+        window
             .set_focus()
             .map_err(|e| format!("聚焦窗口失败: {e}"))?;
-        return Ok(());
-    }
 
-    let window = tauri::WebviewWindowBuilder::new(app, options.label, WebviewUrl::App("".into()))
-        .title(options.title)
-        .inner_size(options.width, options.height)
-        .min_inner_size(options.min_width, options.min_height)
-        .resizable(options.resizable)
-        .decorations(true)
-        .transparent(false)
-        .skip_taskbar(false)
-        .focused(true)
-        .visible(false)
-        .build()
-        .map_err(|e| format!("创建窗口失败: {e}"))?;
-
-    show_surface(&window).map_err(|e| format!("显示窗口失败: {e}"))?;
-    window
-        .set_focus()
-        .map_err(|e| format!("聚焦窗口失败: {e}"))?;
-
-    Ok(())
+        Ok(())
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 #[cfg(target_os = "macos")]

@@ -141,6 +141,26 @@ impl std::error::Error for BingWallpaperError {}
 
 impl From<NativeResourceError> for BingWallpaperError {
     fn from(error: NativeResourceError) -> Self {
+        crate::services::diagnostics::record(
+            Some("zero.paper"),
+            if error.operation == "network.fetch" {
+                "fetch"
+            } else {
+                "cache"
+            },
+            match error.code.as_str() {
+                "network.timeout" => "fetch.timeout",
+                "network.cancelled" => "fetch.cancelled",
+                _ if error.operation != "network.fetch" => "cache.io_failed",
+                _ => "fetch.network_failed",
+            },
+            if error.code == "network.cancelled" {
+                crate::services::diagnostics::contracts::Outcome::Cancelled
+            } else {
+                crate::services::diagnostics::contracts::Outcome::Failed
+            },
+            Default::default(),
+        );
         Self {
             code: error.code,
             message: error.message,
@@ -219,6 +239,27 @@ impl Default for BingWallpaperState {
 }
 
 impl BingWallpaperState {
+    pub fn diagnostic_health(
+        &self,
+    ) -> Result<
+        super::diagnostics::contracts::HealthSnapshot,
+        super::diagnostics::contracts::DiagnosticsError,
+    > {
+        use super::diagnostics::contracts::*;
+        let snapshot = self
+            .last_refresh
+            .try_lock()
+            .map_err(|_| DiagnosticsError::new("unavailable"))?;
+        let mut health = HealthSnapshot::state(match snapshot.as_ref() {
+            None => HealthState::NotInitialized,
+            Some(s) if s.error.is_some() => HealthState::Degraded,
+            _ => HealthState::Ready,
+        });
+        health.metadata.count = snapshot.as_ref().map(|s| s.items.len() as u32);
+        health.metadata.cache_hit = snapshot.as_ref().map(|s| !s.items.is_empty());
+        Ok(health)
+    }
+
     pub fn new(root: impl Into<PathBuf>) -> Self {
         Self::with_fetcher(root, Arc::new(SystemBingWallpaperFetcher))
     }
@@ -275,168 +316,189 @@ impl BingWallpaperState {
     }
 
     async fn refresh_once(&self) -> BingWallpaperSnapshot {
-        let cached_index = load_cache_index(&self.root).unwrap_or_else(|_| empty_cache_index());
-        let cached_items = cached_index.items.clone();
-        let metadata = match self
-            .fetcher
-            .fetch(
-                NetworkFetchRequest {
-                    url: BING_ARCHIVE_URL.into(),
-                    method: Some("GET".into()),
-                },
-                MAX_METADATA_BYTES,
-            )
-            .await
-        {
-            Ok(response) if (200..300).contains(&response.status) => response,
-            Ok(response) => {
-                return snapshot_from_index(
-                    cached_index,
-                    true,
-                    Some(error(
-                        "bing.http_status",
-                        format!("Bing returned HTTP status {}.", response.status),
-                        true,
-                    )),
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.paper"), "fetch");
+        let result = (async {
+            let cached_index = load_cache_index(&self.root).unwrap_or_else(|_| empty_cache_index());
+            let cached_items = cached_index.items.clone();
+            let metadata = match self
+                .fetcher
+                .fetch(
+                    NetworkFetchRequest {
+                        url: BING_ARCHIVE_URL.into(),
+                        method: Some("GET".into()),
+                    },
+                    MAX_METADATA_BYTES,
                 )
-            }
-            Err(fetch_error) => {
-                return snapshot_from_index(cached_index, true, Some(fetch_error.into()))
-            }
-        };
-
-        let metadata_bytes = match BASE64_STANDARD.decode(metadata.body_base64) {
-            Ok(bytes) => bytes,
-            Err(decode_error) => {
-                return snapshot_from_index(
-                    cached_index,
-                    true,
-                    Some(error(
-                        "bing.response_decode",
-                        format!("Failed to decode Bing response: {decode_error}"),
+                .await
+            {
+                Ok(response) if (200..300).contains(&response.status) => response,
+                Ok(response) => {
+                    return snapshot_from_index(
+                        cached_index,
                         true,
-                    )),
-                )
-            }
-        };
-        let metadata_json = match String::from_utf8(metadata_bytes) {
-            Ok(json) => json,
-            Err(utf8_error) => {
-                return snapshot_from_index(
-                    cached_index,
-                    true,
-                    Some(error(
-                        "bing.response_encoding",
-                        format!("Bing response is not UTF-8: {utf8_error}"),
+                        Some(error(
+                            "bing.http_status",
+                            format!("Bing returned HTTP status {}.", response.status),
+                            true,
+                        )),
+                    )
+                }
+                Err(fetch_error) => {
+                    return snapshot_from_index(cached_index, true, Some(fetch_error.into()))
+                }
+            };
+
+            let metadata_bytes = match BASE64_STANDARD.decode(metadata.body_base64) {
+                Ok(bytes) => bytes,
+                Err(decode_error) => {
+                    return snapshot_from_index(
+                        cached_index,
                         true,
-                    )),
-                )
-            }
-        };
-        let remote_items = match parse_bing_archive(&metadata_json) {
-            Ok(items) => items,
-            Err(parse_error) => return snapshot_from_index(cached_index, true, Some(parse_error)),
-        };
+                        Some(error(
+                            "bing.response_decode",
+                            format!("Failed to decode Bing response: {decode_error}"),
+                            true,
+                        )),
+                    )
+                }
+            };
+            let metadata_json = match String::from_utf8(metadata_bytes) {
+                Ok(json) => json,
+                Err(utf8_error) => {
+                    return snapshot_from_index(
+                        cached_index,
+                        true,
+                        Some(error(
+                            "bing.response_encoding",
+                            format!("Bing response is not UTF-8: {utf8_error}"),
+                            true,
+                        )),
+                    )
+                }
+            };
+            let remote_items = match parse_bing_archive(&metadata_json) {
+                Ok(items) => items,
+                Err(parse_error) => {
+                    return snapshot_from_index(cached_index, true, Some(parse_error))
+                }
+            };
 
-        let mut merged = merge_wallpaper_items(remote_items, cached_items.clone());
-        let pending = merged
-            .iter()
-            .filter(|item| !item.cached)
-            .cloned()
-            .collect::<Vec<_>>();
-        let root = self.root.clone();
-        let fetcher = Arc::clone(&self.fetcher);
-        let results = stream::iter(pending.into_iter().map(|item| {
-            let root = root.clone();
-            let fetcher = Arc::clone(&fetcher);
-            async move {
-                let id = item.id.clone();
-                let result = download_wallpaper_item(&root, &item, fetcher.as_ref()).await;
-                (id, result)
-            }
-        }))
-        .buffer_unordered(2)
-        .collect::<Vec<_>>()
-        .await;
+            let mut merged = merge_wallpaper_items(remote_items, cached_items.clone());
+            let pending = merged
+                .iter()
+                .filter(|item| !item.cached)
+                .cloned()
+                .collect::<Vec<_>>();
+            let root = self.root.clone();
+            let fetcher = Arc::clone(&self.fetcher);
+            let results = stream::iter(pending.into_iter().map(|item| {
+                let root = root.clone();
+                let fetcher = Arc::clone(&fetcher);
+                async move {
+                    let id = item.id.clone();
+                    let result = download_wallpaper_item(&root, &item, fetcher.as_ref()).await;
+                    (id, result)
+                }
+            }))
+            .buffer_unordered(2)
+            .collect::<Vec<_>>()
+            .await;
 
-        let mut partial_error = None;
-        for (id, result) in results {
-            match result {
-                Ok(()) => {
-                    if let Some(item) = merged.iter_mut().find(|item| item.id == id) {
-                        item.cached = true;
+            let mut partial_error = None;
+            for (id, result) in results {
+                match result {
+                    Ok(()) => {
+                        if let Some(item) = merged.iter_mut().find(|item| item.id == id) {
+                            item.cached = true;
+                        }
+                    }
+                    Err(download_error) => {
+                        partial_error.get_or_insert(download_error);
                     }
                 }
-                Err(download_error) => {
-                    partial_error.get_or_insert(download_error);
-                }
             }
-        }
 
-        let refreshed_at = Some(now_timestamp());
-        let next_index = BingWallpaperCacheIndex {
-            schema_version: CACHE_SCHEMA_VERSION,
-            refreshed_at: refreshed_at.clone(),
-            market: BING_MARKET.into(),
-            items: merged,
-        };
-        if let Err(persist_error) = persist_cache_index(&self.root, &next_index) {
-            return snapshot_from_index(cached_index, true, Some(persist_error));
-        }
-        cleanup_obsolete_files(&self.root, &cached_items, &next_index.items);
+            let refreshed_at = Some(now_timestamp());
+            let next_index = BingWallpaperCacheIndex {
+                schema_version: CACHE_SCHEMA_VERSION,
+                refreshed_at: refreshed_at.clone(),
+                market: BING_MARKET.into(),
+                items: merged,
+            };
+            if let Err(persist_error) = persist_cache_index(&self.root, &next_index) {
+                return snapshot_from_index(cached_index, true, Some(persist_error));
+            }
+            cleanup_obsolete_files(&self.root, &cached_items, &next_index.items);
 
-        snapshot_from_index(next_index, false, partial_error)
+            snapshot_from_index(next_index, false, partial_error)
+        })
+        .await;
+        diagnostic.outcome(if result.error.is_some() {
+            crate::services::diagnostics::contracts::Outcome::Failed
+        } else {
+            crate::services::diagnostics::contracts::Outcome::Succeeded
+        });
+        result
     }
 
     pub async fn preview(
         &self,
         wallpaper_id: &str,
     ) -> Result<BingWallpaperPreview, BingWallpaperError> {
-        let item = self.ensure_cached(wallpaper_id).await?;
-        let generation_lock = self.preview_generation_lock(&item.id)?;
-        let _generation_guard = generation_lock.lock().await;
-        let _cache_guard = self.refresh_lock.lock().await;
-        let mut index = load_cache_index(&self.root)?;
-        let position = index
-            .items
-            .iter()
-            .position(|candidate| candidate.id == item.id)
-            .ok_or_else(|| error("wallpaper.not_found", "Wallpaper was not found.", false))?;
-        let validation_root = self.root.clone();
-        let cache_file_name = index.items[position].cache_file_name.clone();
-        let source_path = tauri::async_runtime::spawn_blocking(move || {
-            validate_plugin_image(&validation_root, &cache_file_name)
-                .map_err(BingWallpaperError::from)
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.paper"), "preview");
+        let result = (async {
+            let item = self.ensure_cached(wallpaper_id).await?;
+            let generation_lock = self.preview_generation_lock(&item.id)?;
+            let _generation_guard = generation_lock.lock().await;
+            let _cache_guard = self.refresh_lock.lock().await;
+            let mut index = load_cache_index(&self.root)?;
+            let position = index
+                .items
+                .iter()
+                .position(|candidate| candidate.id == item.id)
+                .ok_or_else(|| error("wallpaper.not_found", "Wallpaper was not found.", false))?;
+            let validation_root = self.root.clone();
+            let cache_file_name = index.items[position].cache_file_name.clone();
+            let source_path = tauri::async_runtime::spawn_blocking(move || {
+                validate_plugin_image(&validation_root, &cache_file_name)
+                    .map_err(BingWallpaperError::from)
+            })
+            .await
+            .map_err(|_| {
+                error(
+                    "preview.validation_worker",
+                    "The wallpaper preview validation worker stopped unexpectedly.",
+                    true,
+                )
+            })??;
+            let preview_file_name = preview_file_name(&index.items[position].cache_file_name)?;
+            let preview_path = self.root.join(&preview_file_name);
+            let derivative_preview_path = preview_path.clone();
+            let derivative = tauri::async_runtime::spawn_blocking(move || {
+                validate_preview_derivative(&derivative_preview_path).or_else(|_| {
+                    generate_preview_derivative(&source_path, &derivative_preview_path)
+                })
+            })
+            .await
+            .map_err(|_| {
+                error(
+                    "preview.worker",
+                    "The wallpaper preview worker stopped unexpectedly.",
+                    true,
+                )
+            })??;
+            if index.items[position].preview_file_name.as_deref() != Some(&preview_file_name) {
+                index.items[position].preview_file_name = Some(preview_file_name);
+                index.schema_version = CACHE_SCHEMA_VERSION;
+                persist_cache_index(&self.root, &index)?;
+            }
+            self.issue_preview_lease(&item.id, derivative)
         })
-        .await
-        .map_err(|_| {
-            error(
-                "preview.validation_worker",
-                "The wallpaper preview validation worker stopped unexpectedly.",
-                true,
-            )
-        })??;
-        let preview_file_name = preview_file_name(&index.items[position].cache_file_name)?;
-        let preview_path = self.root.join(&preview_file_name);
-        let derivative_preview_path = preview_path.clone();
-        let derivative = tauri::async_runtime::spawn_blocking(move || {
-            validate_preview_derivative(&derivative_preview_path)
-                .or_else(|_| generate_preview_derivative(&source_path, &derivative_preview_path))
-        })
-        .await
-        .map_err(|_| {
-            error(
-                "preview.worker",
-                "The wallpaper preview worker stopped unexpectedly.",
-                true,
-            )
-        })??;
-        if index.items[position].preview_file_name.as_deref() != Some(&preview_file_name) {
-            index.items[position].preview_file_name = Some(preview_file_name);
-            index.schema_version = CACHE_SCHEMA_VERSION;
-            persist_cache_index(&self.root, &index)?;
-        }
-        self.issue_preview_lease(&item.id, derivative)
+        .await;
+        diagnostic.finish(&result);
+        result
     }
 
     pub fn read_preview_bytes(&self, token: &str) -> Result<Vec<u8>, BingWallpaperError> {
@@ -587,15 +649,22 @@ impl BingWallpaperState {
         wallpaper_id: &str,
         setter: &dyn WallpaperSetter,
     ) -> Result<BingWallpaperActionResult, BingWallpaperError> {
-        let item = self.ensure_cached(wallpaper_id).await?;
-        let path = set_plugin_wallpaper(setter, &self.root, &item.cache_file_name)
-            .map_err(BingWallpaperError::from)?;
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.paper"), "apply");
+        let result = (async {
+            let item = self.ensure_cached(wallpaper_id).await?;
+            let path = set_plugin_wallpaper(setter, &self.root, &item.cache_file_name)
+                .map_err(BingWallpaperError::from)?;
 
-        Ok(BingWallpaperActionResult {
-            wallpaper_id: item.id,
-            path: path.to_string_lossy().into_owned(),
-            message: "Wallpaper applied.".into(),
+            Ok(BingWallpaperActionResult {
+                wallpaper_id: item.id,
+                path: path.to_string_lossy().into_owned(),
+                message: "Wallpaper applied.".into(),
+            })
         })
+        .await;
+        diagnostic.finish(&result);
+        result
     }
 
     pub async fn apply_with_system_setter(
@@ -628,88 +697,102 @@ impl BingWallpaperState {
         wallpaper_id: &str,
         downloads: &Path,
     ) -> Result<BingWallpaperActionResult, BingWallpaperError> {
-        let item = self.ensure_cached(wallpaper_id).await?;
-        let root = self.root.clone();
-        let downloads = downloads.to_path_buf();
-        tauri::async_runtime::spawn_blocking(move || {
-            let source = validate_plugin_image(&root, &item.cache_file_name)
-                .map_err(BingWallpaperError::from)?;
-            fs::create_dir_all(&downloads).map_err(|create_error| {
-                error(
-                    "downloads.unavailable",
-                    format!("Failed to create Downloads directory: {create_error}"),
-                    true,
-                )
-            })?;
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.paper"), "export");
+        let result = (async {
+            let item = self.ensure_cached(wallpaper_id).await?;
+            let root = self.root.clone();
+            let downloads = downloads.to_path_buf();
+            tauri::async_runtime::spawn_blocking(move || {
+                let source = validate_plugin_image(&root, &item.cache_file_name)
+                    .map_err(BingWallpaperError::from)?;
+                fs::create_dir_all(&downloads).map_err(|create_error| {
+                    error(
+                        "downloads.unavailable",
+                        format!("Failed to create Downloads directory: {create_error}"),
+                        true,
+                    )
+                })?;
 
-            let base = format!("{}-bing-wallpaper", sanitize_date(&item.start_date));
-            let mut destination = downloads.join(format!("{base}.jpg"));
-            let mut suffix = 2usize;
-            while destination.exists() {
-                destination = downloads.join(format!("{base}-{suffix}.jpg"));
-                suffix += 1;
-            }
-            fs::copy(&source, &destination).map_err(|copy_error| {
-                error(
-                    "downloads.copy",
-                    format!("Failed to save wallpaper to Downloads: {copy_error}"),
-                    true,
-                )
-            })?;
+                let base = format!("{}-bing-wallpaper", sanitize_date(&item.start_date));
+                let mut destination = downloads.join(format!("{base}.jpg"));
+                let mut suffix = 2usize;
+                while destination.exists() {
+                    destination = downloads.join(format!("{base}-{suffix}.jpg"));
+                    suffix += 1;
+                }
+                fs::copy(&source, &destination).map_err(|copy_error| {
+                    error(
+                        "downloads.copy",
+                        format!("Failed to save wallpaper to Downloads: {copy_error}"),
+                        true,
+                    )
+                })?;
 
-            Ok(BingWallpaperActionResult {
-                wallpaper_id: item.id,
-                path: destination.to_string_lossy().into_owned(),
-                message: "Wallpaper saved to Downloads.".into(),
+                Ok(BingWallpaperActionResult {
+                    wallpaper_id: item.id,
+                    path: destination.to_string_lossy().into_owned(),
+                    message: "Wallpaper saved to Downloads.".into(),
+                })
             })
+            .await
+            .map_err(|_| {
+                error(
+                    "downloads.worker",
+                    "The wallpaper save worker stopped unexpectedly.",
+                    true,
+                )
+            })?
         })
-        .await
-        .map_err(|_| {
-            error(
-                "downloads.worker",
-                "The wallpaper save worker stopped unexpectedly.",
-                true,
-            )
-        })?
+        .await;
+        diagnostic.finish(&result);
+        result
     }
 
     async fn ensure_cached(
         &self,
         wallpaper_id: &str,
     ) -> Result<BingWallpaperItem, BingWallpaperError> {
-        let _guard = self.refresh_lock.lock().await;
-        let mut index = load_cache_index(&self.root)?;
-        let position = index
-            .items
-            .iter()
-            .position(|item| item.id == wallpaper_id)
-            .ok_or_else(|| error("wallpaper.not_found", "Wallpaper was not found.", false))?;
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.paper"), "download");
+        let result = (async {
+            let _guard = self.refresh_lock.lock().await;
+            let mut index = load_cache_index(&self.root)?;
+            let position = index
+                .items
+                .iter()
+                .position(|item| item.id == wallpaper_id)
+                .ok_or_else(|| error("wallpaper.not_found", "Wallpaper was not found.", false))?;
 
-        let cached_image_valid = if index.items[position].cached {
-            let root = self.root.clone();
-            let cache_file_name = index.items[position].cache_file_name.clone();
-            tauri::async_runtime::spawn_blocking(move || {
-                validate_plugin_image(&root, &cache_file_name).is_ok()
-            })
-            .await
-            .map_err(|_| {
-                error(
-                    "cache.validation_worker",
-                    "The wallpaper cache validation worker stopped unexpectedly.",
-                    true,
-                )
-            })?
-        } else {
-            false
-        };
-        if !cached_image_valid {
-            download_wallpaper_item(&self.root, &index.items[position], self.fetcher.as_ref())
-                .await?;
-            index.items[position].cached = true;
-            persist_cache_index(&self.root, &index)?;
-        }
+            let cached_image_valid = if index.items[position].cached {
+                let root = self.root.clone();
+                let cache_file_name = index.items[position].cache_file_name.clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    validate_plugin_image(&root, &cache_file_name).is_ok()
+                })
+                .await
+                .map_err(|_| {
+                    error(
+                        "cache.validation_worker",
+                        "The wallpaper cache validation worker stopped unexpectedly.",
+                        true,
+                    )
+                })?
+            } else {
+                false
+            };
+            if !cached_image_valid {
+                download_wallpaper_item(&self.root, &index.items[position], self.fetcher.as_ref())
+                    .await?;
+                index.items[position].cached = true;
+                persist_cache_index(&self.root, &index)?;
+            }
 
-        Ok(index.items[position].clone())
+            Ok(index.items[position].clone())
+        })
+        .await;
+        diagnostic.finish(&result);
+        result
     }
 }
 
@@ -1086,57 +1169,61 @@ async fn download_wallpaper_item(
 }
 
 fn load_cache_index(root: &Path) -> Result<BingWallpaperCacheIndex, BingWallpaperError> {
-    let path = root.join("index.json");
-    if !path.exists() {
-        return Ok(empty_cache_index());
-    }
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.paper"), "cache");
+    let result =
+        (|| {
+            let path = root.join("index.json");
+            if !path.exists() {
+                return Ok(empty_cache_index());
+            }
 
-    let content = fs::read_to_string(&path).map_err(|read_error| {
-        error(
-            "cache.read",
-            format!("Failed to read wallpaper cache index: {read_error}"),
-            true,
-        )
-    })?;
-    let mut index: BingWallpaperCacheIndex =
-        serde_json::from_str(&content).map_err(|parse_error| {
-            error(
-                "cache.invalid",
-                format!("Failed to parse wallpaper cache index: {parse_error}"),
-                true,
-            )
-        })?;
-    if !matches!(
-        index.schema_version,
-        PREVIOUS_CACHE_SCHEMA_VERSION | CACHE_SCHEMA_VERSION
-    ) {
-        return Err(error(
-            "cache.schema",
-            "Wallpaper cache schema is not supported.",
-            false,
-        ));
-    }
+            let content = fs::read_to_string(&path).map_err(|read_error| {
+                error(
+                    "cache.read",
+                    format!("Failed to read wallpaper cache index: {read_error}"),
+                    true,
+                )
+            })?;
+            let mut index: BingWallpaperCacheIndex =
+                serde_json::from_str(&content).map_err(|parse_error| {
+                    error(
+                        "cache.invalid",
+                        format!("Failed to parse wallpaper cache index: {parse_error}"),
+                        true,
+                    )
+                })?;
+            if !matches!(
+                index.schema_version,
+                PREVIOUS_CACHE_SCHEMA_VERSION | CACHE_SCHEMA_VERSION
+            ) {
+                return Err(error(
+                    "cache.schema",
+                    "Wallpaper cache schema is not supported.",
+                    false,
+                ));
+            }
 
-    index.items.retain(|item| {
-        if !is_safe_cache_file_name(&item.cache_file_name)
-            || normalized_remote_url(Some(&item.remote_url), None).is_none()
-        {
-            return false;
-        }
-        true
-    });
-    for item in &mut index.items {
-        item.cached = root.join(&item.cache_file_name).is_file();
-        if item
-            .preview_file_name
-            .as_deref()
-            .is_some_and(|name| !is_safe_cache_file_name(name) || !root.join(name).is_file())
-        {
-            item.preview_file_name = None;
-        }
-    }
-    index.items = merge_wallpaper_items(Vec::new(), index.items);
-    Ok(index)
+            index.items.retain(|item| {
+                if !is_safe_cache_file_name(&item.cache_file_name)
+                    || normalized_remote_url(Some(&item.remote_url), None).is_none()
+                {
+                    return false;
+                }
+                true
+            });
+            for item in &mut index.items {
+                item.cached = root.join(&item.cache_file_name).is_file();
+                if item.preview_file_name.as_deref().is_some_and(|name| {
+                    !is_safe_cache_file_name(name) || !root.join(name).is_file()
+                }) {
+                    item.preview_file_name = None;
+                }
+            }
+            index.items = merge_wallpaper_items(Vec::new(), index.items);
+            Ok(index)
+        })();
+    diagnostic.finish(&result);
+    result
 }
 
 fn persist_cache_index(
@@ -1167,22 +1254,35 @@ fn cleanup_obsolete_files(
     previous: &[BingWallpaperItem],
     current: &[BingWallpaperItem],
 ) {
-    let retained = current
-        .iter()
-        .flat_map(|item| {
-            std::iter::once(item.cache_file_name.as_str()).chain(item.preview_file_name.as_deref())
-        })
-        .collect::<HashSet<_>>();
-    for item in previous {
-        for file_name in
-            std::iter::once(item.cache_file_name.as_str()).chain(item.preview_file_name.as_deref())
-        {
-            if retained.contains(file_name) || !is_safe_cache_file_name(file_name) {
-                continue;
+    let mut diagnostic =
+        crate::services::diagnostics::Operation::new(Some("zero.paper"), "cleanup");
+    let mut failed = false;
+    (|| {
+        let retained = current
+            .iter()
+            .flat_map(|item| {
+                std::iter::once(item.cache_file_name.as_str())
+                    .chain(item.preview_file_name.as_deref())
+            })
+            .collect::<HashSet<_>>();
+        for item in previous {
+            for file_name in std::iter::once(item.cache_file_name.as_str())
+                .chain(item.preview_file_name.as_deref())
+            {
+                if retained.contains(file_name) || !is_safe_cache_file_name(file_name) {
+                    continue;
+                }
+                if let Err(error) = fs::remove_file(root.join(file_name)) {
+                    failed |= error.kind() != std::io::ErrorKind::NotFound;
+                }
             }
-            let _ = fs::remove_file(root.join(file_name));
         }
-    }
+    })();
+    diagnostic.outcome(if failed {
+        crate::services::diagnostics::contracts::Outcome::Failed
+    } else {
+        crate::services::diagnostics::contracts::Outcome::Succeeded
+    });
 }
 
 fn snapshot_from_index(

@@ -16,12 +16,12 @@ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use tauri::Manager;
 
 use self::contracts::{
-    launcher_error, QuickLauncherActivateInput, QuickLauncherActivationResult,
-    QuickLauncherDiagnostic, QuickLauncherError, QuickLauncherIconBatchInput,
-    QuickLauncherIconBatchResult, QuickLauncherIconInput, QuickLauncherIconResult,
-    QuickLauncherIndexSnapshot, QuickLauncherIndexSource, QuickLauncherItemKind,
-    QuickLauncherPlatformSupport, QuickLauncherRunningSnapshot, QuickLauncherSearchInput,
-    QuickLauncherSearchResult,
+    launcher_error, QuickLauncherActivateInput, QuickLauncherActivationAction,
+    QuickLauncherActivationResult, QuickLauncherDiagnostic, QuickLauncherError,
+    QuickLauncherIconBatchInput, QuickLauncherIconBatchResult, QuickLauncherIconInput,
+    QuickLauncherIconResult, QuickLauncherIndexSnapshot, QuickLauncherIndexSource,
+    QuickLauncherItemKind, QuickLauncherPlatformSupport, QuickLauncherRunningSnapshot,
+    QuickLauncherSearchInput, QuickLauncherSearchResult,
 };
 use self::model::{current_platform_key, IndexedItem, LaunchTarget, UsageMap};
 use self::search::search_items_thread_local;
@@ -140,6 +140,31 @@ impl Default for QuickLauncherState {
 }
 
 impl QuickLauncherState {
+    pub fn diagnostic_health(
+        &self,
+    ) -> Result<
+        super::diagnostics::contracts::HealthSnapshot,
+        super::diagnostics::contracts::DiagnosticsError,
+    > {
+        use super::diagnostics::contracts::*;
+        let index = self
+            .index
+            .try_read()
+            .map_err(|_| DiagnosticsError::new("unavailable"))?;
+        let mut health =
+            HealthSnapshot::state(if !cfg!(any(target_os = "macos", target_os = "windows")) {
+                HealthState::Unsupported
+            } else if index.revision == 0 {
+                HealthState::NotInitialized
+            } else if !index.diagnostics.is_empty() {
+                HealthState::Degraded
+            } else {
+                HealthState::Ready
+            });
+        health.metadata.count = Some(index.items.len().min(u32::MAX as usize) as u32);
+        Ok(health)
+    }
+
     pub fn new(root: std::path::PathBuf) -> Self {
         let platform_support = if matches!(current_platform_key(), "macos" | "windows") {
             QuickLauncherPlatformSupport::Supported
@@ -253,50 +278,56 @@ impl QuickLauncherState {
         app: tauri::AppHandle,
         generation: u64,
     ) -> Result<(), QuickLauncherError> {
-        let mut diagnostics = Vec::new();
-        let (items, last_updated_at, source) = match cache::load_index(&self.root) {
-            Ok(Some((items, updated_at))) => {
-                (items, Some(updated_at), QuickLauncherIndexSource::Cache)
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.launch"), "initialize");
+        let result = (|| {
+            let mut diagnostics = Vec::new();
+            let (items, last_updated_at, source) = match cache::load_index(&self.root) {
+                Ok(Some((items, updated_at))) => {
+                    (items, Some(updated_at), QuickLauncherIndexSource::Cache)
+                }
+                Ok(None) => (Vec::new(), None, QuickLauncherIndexSource::Empty),
+                Err(error) => {
+                    diagnostics.push(QuickLauncherDiagnostic {
+                        code: "launcher.cache_rebuilt".into(),
+                        message: error,
+                    });
+                    (Vec::new(), None, QuickLauncherIndexSource::Empty)
+                }
+            };
+            let usage = match cache::load_usage(&self.root) {
+                Ok(usage) => usage,
+                Err(error) => {
+                    diagnostics.push(QuickLauncherDiagnostic {
+                        code: "launcher.usage_rebuilt".into(),
+                        message: error,
+                    });
+                    UsageMap::new()
+                }
+            };
+            if !self.is_current_generation(generation) {
+                return Err(disabled_error());
             }
-            Ok(None) => (Vec::new(), None, QuickLauncherIndexSource::Empty),
-            Err(error) => {
-                diagnostics.push(QuickLauncherDiagnostic {
-                    code: "launcher.cache_rebuilt".into(),
-                    message: error,
-                });
-                (Vec::new(), None, QuickLauncherIndexSource::Empty)
+            {
+                let mut index = self
+                    .index
+                    .write()
+                    .map_err(|_| lock_error("publish cached index"))?;
+                index.revision = u64::from(!items.is_empty());
+                index.source = source;
+                index.items = Arc::new(items);
+                index.usage = Arc::new(usage);
+                index.last_updated_at = last_updated_at;
+                index.diagnostics = diagnostics;
             }
-        };
-        let usage = match cache::load_usage(&self.root) {
-            Ok(usage) => usage,
-            Err(error) => {
-                diagnostics.push(QuickLauncherDiagnostic {
-                    code: "launcher.usage_rebuilt".into(),
-                    message: error,
-                });
-                UsageMap::new()
+            if let Err(error) = self.start_watcher(app, generation) {
+                self.add_diagnostic("launcher.watcher_unavailable", error);
             }
-        };
-        if !self.is_current_generation(generation) {
-            return Err(disabled_error());
-        }
-        {
-            let mut index = self
-                .index
-                .write()
-                .map_err(|_| lock_error("publish cached index"))?;
-            index.revision = u64::from(!items.is_empty());
-            index.source = source;
-            index.items = Arc::new(items);
-            index.usage = Arc::new(usage);
-            index.last_updated_at = last_updated_at;
-            index.diagnostics = diagnostics;
-        }
-        if let Err(error) = self.start_watcher(app, generation) {
-            self.add_diagnostic("launcher.watcher_unavailable", error);
-        }
-        self.refresh_generation(&system_language(), generation)?;
-        Ok(())
+            self.refresh_generation(&system_language(), generation)?;
+            Ok(())
+        })();
+        diagnostic.finish(&result);
+        result
     }
 
     fn is_current_generation(&self, generation: u64) -> bool {
@@ -325,66 +356,76 @@ impl QuickLauncherState {
         language: &str,
         generation: u64,
     ) -> Result<QuickLauncherIndexSnapshot, QuickLauncherError> {
-        let _refresh = match self.refresh_gate.try_lock() {
-            Ok(guard) => guard,
-            Err(std::sync::TryLockError::WouldBlock) => return self.snapshot(),
-            Err(std::sync::TryLockError::Poisoned(_)) => {
-                return Err(lock_error("start refresh"));
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.launch"), "index");
+        let result = (|| {
+            let _refresh = match self.refresh_gate.try_lock() {
+                Ok(guard) => guard,
+                Err(std::sync::TryLockError::WouldBlock) => return self.snapshot(),
+                Err(std::sync::TryLockError::Poisoned(_)) => {
+                    return Err(lock_error("start refresh"));
+                }
+            };
+            {
+                let mut index = self.index.write().map_err(|_| lock_error("mark refresh"))?;
+                index.refreshing = true;
             }
-        };
-        {
-            let mut index = self.index.write().map_err(|_| lock_error("mark refresh"))?;
-            index.refreshing = true;
-        }
 
-        let mut scan = platform::scan();
-        scan.items.extend(catalog::system_setting_items(language));
-        let running = platform::probe_running(&scan.items);
-        for item in &mut scan.items {
-            if let Some(state) = running.get(&item.id) {
-                item.running = *state;
+            let mut scan = platform::scan();
+            scan.items.extend(catalog::system_setting_items(language));
+            let running = platform::probe_running(&scan.items);
+            for item in &mut scan.items {
+                if let Some(state) = running.get(&item.id) {
+                    item.running = *state;
+                }
             }
-        }
-        scan.items.sort_by(|left, right| left.id.cmp(&right.id));
-        scan.items.dedup_by(|left, right| left.id == right.id);
-        if let Ok(mut runtime) = self.running_cache.lock() {
-            runtime.captured_at = Some(Instant::now());
-            runtime.revision = runtime.revision.saturating_add(1);
-            runtime.values = Arc::new(
-                scan.items
-                    .iter()
-                    .map(|item| (item.id.clone(), item.running))
-                    .collect(),
-            );
-        }
-        let updated_at = now_timestamp();
-        let save_error = cache::save_index(&self.root, &scan.items, updated_at).err();
+            scan.items.sort_by(|left, right| left.id.cmp(&right.id));
+            scan.items.dedup_by(|left, right| left.id == right.id);
+            if let Ok(mut runtime) = self.running_cache.lock() {
+                runtime.captured_at = Some(Instant::now());
+                runtime.revision = runtime.revision.saturating_add(1);
+                runtime.values = Arc::new(
+                    scan.items
+                        .iter()
+                        .map(|item| (item.id.clone(), item.running))
+                        .collect(),
+                );
+            }
+            let updated_at = now_timestamp();
+            let save_error = cache::save_index(&self.root, &scan.items, updated_at).err();
 
-        if !self.is_current_generation(generation) {
-            return self.snapshot();
-        }
+            if !self.is_current_generation(generation) {
+                return self.snapshot();
+            }
 
-        let mut index = self
-            .index
-            .write()
-            .map_err(|_| lock_error("publish refresh"))?;
-        index.revision = index.revision.saturating_add(1).max(1);
-        index.source = QuickLauncherIndexSource::Scan;
-        index.refreshing = false;
-        index.items = Arc::new(scan.items);
-        index.last_updated_at = Some(updated_at);
-        index.diagnostics = bounded_diagnostics(scan.diagnostics);
-        if let Some(error) = save_error {
-            push_bounded_diagnostic(&mut index.diagnostics, "launcher.cache_write_failed", error);
-            index.platform_support = QuickLauncherPlatformSupport::Degraded;
-        } else if current_platform_key() == "unsupported" {
-            index.platform_support = QuickLauncherPlatformSupport::Unsupported;
-        } else if index.diagnostics.is_empty() {
-            index.platform_support = QuickLauncherPlatformSupport::Supported;
-        } else {
-            index.platform_support = QuickLauncherPlatformSupport::Degraded;
-        }
-        Ok(snapshot_from_index(&index))
+            let mut index = self
+                .index
+                .write()
+                .map_err(|_| lock_error("publish refresh"))?;
+            index.revision = index.revision.saturating_add(1).max(1);
+            index.source = QuickLauncherIndexSource::Scan;
+            index.refreshing = false;
+            index.items = Arc::new(scan.items);
+            index.last_updated_at = Some(updated_at);
+            index.diagnostics = bounded_diagnostics(scan.diagnostics);
+            if let Some(error) = save_error {
+                push_bounded_diagnostic(
+                    &mut index.diagnostics,
+                    "launcher.cache_write_failed",
+                    error,
+                );
+                index.platform_support = QuickLauncherPlatformSupport::Degraded;
+            } else if current_platform_key() == "unsupported" {
+                index.platform_support = QuickLauncherPlatformSupport::Unsupported;
+            } else if index.diagnostics.is_empty() {
+                index.platform_support = QuickLauncherPlatformSupport::Supported;
+            } else {
+                index.platform_support = QuickLauncherPlatformSupport::Degraded;
+            }
+            Ok(snapshot_from_index(&index))
+        })();
+        diagnostic.finish(&result);
+        result
     }
 
     pub fn search(
@@ -505,79 +546,94 @@ impl QuickLauncherState {
         &self,
         input: QuickLauncherActivateInput,
     ) -> Result<QuickLauncherActivationResult, QuickLauncherError> {
-        let item = {
-            let index = self
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.launch"), "activate");
+        let result = (|| {
+            let item = {
+                let index = self
+                    .index
+                    .read()
+                    .map_err(|_| lock_error("read activation index"))?;
+                if index.revision != input.revision {
+                    return Err(stale_item_error());
+                }
+                index
+                    .items
+                    .iter()
+                    .find(|item| item.id == input.item_id)
+                    .cloned()
+                    .ok_or_else(stale_item_error)?
+            };
+            let action = match (&item.kind, &item.target) {
+                (QuickLauncherItemKind::Application, LaunchTarget::Application { .. }) => {
+                    platform::activate(&item)?
+                }
+                (QuickLauncherItemKind::SystemSetting, LaunchTarget::SystemSetting { uri }) => {
+                    platform::open_setting(uri)?
+                }
+                _ => {
+                    return Err(launcher_error(
+                        "launcher.activate",
+                        "launcher.item_kind_invalid",
+                        "Launcher item kind does not match its private target.",
+                        false,
+                    ));
+                }
+            };
+            let activated_at = now_timestamp();
+            crate::services::diagnostics::native(
+                Some("zero.launch"),
+                match action {
+                    QuickLauncherActivationAction::Focused => "focus",
+                    QuickLauncherActivationAction::OpenedSetting => "settings",
+                    _ => "activate",
+                },
+                crate::services::diagnostics::contracts::Outcome::Succeeded,
+            );
+            let _usage_write = self
+                .usage_write_gate
+                .lock()
+                .map_err(|_| lock_error("serialize usage persistence"))?;
+            let mut usage = self
                 .index
                 .read()
-                .map_err(|_| lock_error("read activation index"))?;
-            if index.revision != input.revision {
-                return Err(stale_item_error());
-            }
-            index
-                .items
-                .iter()
-                .find(|item| item.id == input.item_id)
-                .cloned()
-                .ok_or_else(stale_item_error)?
-        };
-        let action = match (&item.kind, &item.target) {
-            (QuickLauncherItemKind::Application, LaunchTarget::Application { .. }) => {
-                platform::activate(&item)?
-            }
-            (QuickLauncherItemKind::SystemSetting, LaunchTarget::SystemSetting { uri }) => {
-                platform::open_setting(uri)?
-            }
-            _ => {
-                return Err(launcher_error(
-                    "launcher.activate",
-                    "launcher.item_kind_invalid",
-                    "Launcher item kind does not match its private target.",
-                    false,
-                ));
-            }
-        };
-        let activated_at = now_timestamp();
-        let _usage_write = self
-            .usage_write_gate
-            .lock()
-            .map_err(|_| lock_error("serialize usage persistence"))?;
-        let mut usage = self
-            .index
-            .read()
-            .map_err(|_| lock_error("read usage"))?
-            .usage
-            .as_ref()
-            .clone();
-        let fallback_count = usage
-            .get(&item.id)
-            .map(|entry| entry.count.saturating_add(1))
-            .unwrap_or(1);
-        let persisted =
-            cache::record_successful_use(&self.root, &mut usage, &item.id, activated_at);
-        let mut index = self
-            .index
-            .write()
-            .map_err(|_| lock_error("publish usage"))?;
-        let usage_count = match persisted {
-            Ok(count) => {
-                index.usage = Arc::new(usage);
-                count
-            }
-            Err(error) => {
-                push_bounded_diagnostic(
-                    &mut index.diagnostics,
-                    "launcher.usage_write_failed",
-                    error,
-                );
-                fallback_count
-            }
-        };
-        Ok(QuickLauncherActivationResult {
-            item_id: item.id,
-            action,
-            usage_count,
-            activated_at,
-        })
+                .map_err(|_| lock_error("read usage"))?
+                .usage
+                .as_ref()
+                .clone();
+            let fallback_count = usage
+                .get(&item.id)
+                .map(|entry| entry.count.saturating_add(1))
+                .unwrap_or(1);
+            let persisted =
+                cache::record_successful_use(&self.root, &mut usage, &item.id, activated_at);
+            let mut index = self
+                .index
+                .write()
+                .map_err(|_| lock_error("publish usage"))?;
+            let usage_count = match persisted {
+                Ok(count) => {
+                    index.usage = Arc::new(usage);
+                    count
+                }
+                Err(error) => {
+                    push_bounded_diagnostic(
+                        &mut index.diagnostics,
+                        "launcher.usage_write_failed",
+                        error,
+                    );
+                    fallback_count
+                }
+            };
+            Ok(QuickLauncherActivationResult {
+                item_id: item.id,
+                action,
+                usage_count,
+                activated_at,
+            })
+        })();
+        diagnostic.finish(&result);
+        result
     }
 
     pub fn add_diagnostic(&self, code: &str, message: impl Into<String>) {
@@ -749,6 +805,17 @@ fn push_bounded_diagnostic(
     code: &str,
     message: impl AsRef<str>,
 ) {
+    let phase = match code {
+        "launcher.shortcut_conflict" => "shortcut",
+        "launcher.cache_write_failed" | "launcher.usage_write_failed" => "cache",
+        "launcher.initialize_failed" => "initialize",
+        _ => "watcher",
+    };
+    crate::services::diagnostics::native(
+        Some("zero.launch"),
+        phase,
+        crate::services::diagnostics::contracts::Outcome::Failed,
+    );
     if diagnostics.len() >= MAX_DIAGNOSTICS {
         diagnostics.remove(0);
     }

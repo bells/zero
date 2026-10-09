@@ -202,6 +202,34 @@ pub struct ScreenshotSessionStore {
 }
 
 impl ScreenshotSessionStore {
+    pub fn diagnostic_health(
+        &self,
+    ) -> Result<
+        super::diagnostics::contracts::HealthSnapshot,
+        super::diagnostics::contracts::DiagnosticsError,
+    > {
+        use super::diagnostics::contracts::*;
+        let pins = self
+            .pins
+            .try_lock()
+            .map_err(|_| DiagnosticsError::new("unavailable"))?;
+        let mut health =
+            HealthSnapshot::state(if cfg!(any(target_os = "macos", target_os = "windows")) {
+                HealthState::Ready
+            } else {
+                HealthState::Unsupported
+            });
+        health.metadata.count = Some(pins.len() as u32);
+        health.metadata.backend = Some(if cfg!(target_os = "macos") {
+            Backend::Macos
+        } else if cfg!(target_os = "windows") {
+            Backend::Windows
+        } else {
+            Backend::Unsupported
+        });
+        Ok(health)
+    }
+
     fn set_active(&self, session: ScreenshotSession) {
         let previous = self
             .active
@@ -426,14 +454,19 @@ pub fn start_screenshot_session(
     app: tauri::AppHandle,
     action: String,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
-    let mut result = None;
-    app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
-        .run(crate::brand::ZERO_SNAP_PLUGIN_ID, || {
-            result = Some(start_screenshot_session_inner(app.clone(), action));
-            Ok(())
-        })
-        .map_err(|message| screenshot_error("screenshot.lifecycle", message, true))?;
-    result.expect("operation ran under gate")
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.snap"), "capture");
+    let result = (|| {
+        let mut result = None;
+        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+            .run(crate::brand::ZERO_SNAP_PLUGIN_ID, || {
+                result = Some(start_screenshot_session_inner(app.clone(), action));
+                Ok(())
+            })
+            .map_err(|message| screenshot_error("screenshot.lifecycle", message, true))?;
+        result.expect("operation ran under gate")
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 fn start_screenshot_session_inner(
@@ -463,7 +496,13 @@ fn start_screenshot_session_inner(
             create_owner_only_directory(&session_directory)?;
             let media_path = session_directory.join("capture.png");
             let target_snapshot = capture_targets::prepare_capture_target_snapshot()
-                .inspect_err(|error| eprintln!("Zero Snap window targeting unavailable: {error}"))
+                .inspect_err(|_| {
+                    crate::services::diagnostics::native(
+                        Some("zero.snap"),
+                        "targets",
+                        crate::services::diagnostics::contracts::Outcome::Failed,
+                    )
+                })
                 .ok();
             let capture = capture_fullscreen_png(&media_path).inspect_err(|_error| {
                 let _ = fs::remove_dir_all(&session_directory);
@@ -554,14 +593,19 @@ pub fn init_screenshot_session(
     window_label: &str,
     session_id: Option<String>,
 ) -> Result<CaptureSessionPayload, ScreenshotError> {
-    require_capture_window(window_label)?;
-    let active = validate_session(&app, session_id.as_deref())?;
-    Ok(CaptureSessionPayload {
-        session_id: active.id,
-        initial_action: active.initial_action,
-        media: media_descriptor(&active.media, Some(active.expires_at_ms)),
-        targets: active.targets,
-    })
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.snap"), "session");
+    let result = (|| {
+        require_capture_window(window_label)?;
+        let active = validate_session(&app, session_id.as_deref())?;
+        Ok(CaptureSessionPayload {
+            session_id: active.id,
+            initial_action: active.initial_action,
+            media: media_descriptor(&active.media, Some(active.expires_at_ms)),
+            targets: active.targets,
+        })
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 pub fn read_screenshot_media(
@@ -635,11 +679,12 @@ pub fn prepare_screenshot_commit(
     input: PrepareScreenshotCommitInput,
     resolved_save_path: Option<PathBuf>,
 ) -> Result<ScreenshotUploadLease, ScreenshotError> {
-    require_capture_window(window_label)?;
-    let active = validate_session(&app, Some(&input.session_id))?;
-    let action = normalize_commit_action(&input.action)?;
-    let save_path =
-        match action.as_str() {
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.snap"), "commit");
+    let result = (|| {
+        require_capture_window(window_label)?;
+        let active = validate_session(&app, Some(&input.session_id))?;
+        let action = normalize_commit_action(&input.action)?;
+        let save_path = match action.as_str() {
             "save" => Some(resolved_save_path.ok_or_else(|| {
                 screenshot_error("screenshot.save_cancelled", "已取消保存", false)
             })?),
@@ -652,23 +697,26 @@ pub fn prepare_screenshot_commit(
             }
             _ => None,
         };
-    let token = random_resource_token("upload")?;
-    let expires_at_ms = now_ms().saturating_add(SCREENSHOT_UPLOAD_LEASE_TTL_MS);
-    app.state::<ScreenshotSessionStore>()
-        .insert_lease(ScreenshotCommitLease {
-            token: token.clone(),
-            session_id: active.id.clone(),
-            action: action.clone(),
-            save_path,
+        let token = random_resource_token("upload")?;
+        let expires_at_ms = now_ms().saturating_add(SCREENSHOT_UPLOAD_LEASE_TTL_MS);
+        app.state::<ScreenshotSessionStore>()
+            .insert_lease(ScreenshotCommitLease {
+                token: token.clone(),
+                session_id: active.id.clone(),
+                action: action.clone(),
+                save_path,
+                expires_at_ms,
+            })?;
+        Ok(ScreenshotUploadLease {
+            token,
+            session_id: active.id,
+            action,
+            max_bytes: MAX_SCREENSHOT_PNG_BYTES as u64,
             expires_at_ms,
-        })?;
-    Ok(ScreenshotUploadLease {
-        token,
-        session_id: active.id,
-        action,
-        max_bytes: MAX_SCREENSHOT_PNG_BYTES as u64,
-        expires_at_ms,
-    })
+        })
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 pub fn validate_screenshot_commit_request(
@@ -690,51 +738,71 @@ pub fn upload_screenshot_commit(
     action: Option<&str>,
     body: Option<&[u8]>,
 ) -> Result<ScreenshotCommitResult, ScreenshotError> {
-    validate_resource_token(lease_token)?;
-    let store = app.state::<ScreenshotSessionStore>();
-    let lease = store.take_lease(lease_token).ok_or_else(|| {
-        screenshot_error(
-            "screenshot.lease_invalid",
-            "截图提交凭证不存在或已被使用",
-            false,
-        )
-    })?;
-    let bytes = validate_upload_request(&lease, window_label, session_id, action, body, now_ms())?;
-    validate_session(&app, Some(&lease.session_id))?;
-    let (width, height) = validate_png_bytes(bytes)?;
-    crate::services::performance::record_media_transfer(&app, "screenshot_upload", bytes.len());
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.snap"), "commit");
+    let result = (|| {
+        validate_resource_token(lease_token)?;
+        let store = app.state::<ScreenshotSessionStore>();
+        let lease = store.take_lease(lease_token).ok_or_else(|| {
+            screenshot_error(
+                "screenshot.lease_invalid",
+                "截图提交凭证不存在或已被使用",
+                false,
+            )
+        })?;
+        let bytes =
+            validate_upload_request(&lease, window_label, session_id, action, body, now_ms())?;
+        validate_session(&app, Some(&lease.session_id))?;
+        let (width, height) = validate_png_bytes(bytes)?;
+        crate::services::performance::record_media_transfer(&app, "screenshot_upload", bytes.len());
 
-    match lease.action.as_str() {
-        "copy" => {
-            copy_png_to_clipboard(bytes)
-                .map_err(|message| screenshot_error("screenshot.clipboard", message, true))?;
-            finish_capture_session(&app, &lease.session_id);
-            Ok(ScreenshotCommitResult {
-                copied: true,
-                saved_path: None,
-                pin_window_label: None,
-            })
+        match lease.action.as_str() {
+            "copy" => {
+                copy_png_to_clipboard(bytes)
+                    .inspect(|_| {
+                        crate::services::diagnostics::native(
+                            Some("zero.snap"),
+                            "copy",
+                            crate::services::diagnostics::contracts::Outcome::Succeeded,
+                        )
+                    })
+                    .inspect_err(|_| {
+                        crate::services::diagnostics::native(
+                            Some("zero.snap"),
+                            "copy",
+                            crate::services::diagnostics::contracts::Outcome::Failed,
+                        )
+                    })
+                    .map_err(|message| screenshot_error("screenshot.clipboard", message, true))?;
+                finish_capture_session(&app, &lease.session_id);
+                Ok(ScreenshotCommitResult {
+                    copied: true,
+                    saved_path: None,
+                    pin_window_label: None,
+                })
+            }
+            "save" => {
+                let path = lease.save_path.ok_or_else(|| {
+                    screenshot_error("screenshot.save_destination", "截图保存位置不可用", false)
+                })?;
+                write_png_to_path(&path, bytes)?;
+                let saved_path = path.to_string_lossy().into_owned();
+                finish_capture_session(&app, &lease.session_id);
+                Ok(ScreenshotCommitResult {
+                    copied: false,
+                    saved_path: Some(saved_path),
+                    pin_window_label: None,
+                })
+            }
+            "pin" => create_pin_from_upload(&app, bytes, width, height),
+            _ => Err(screenshot_error(
+                "screenshot.action",
+                "不支持的截图动作",
+                false,
+            )),
         }
-        "save" => {
-            let path = lease.save_path.ok_or_else(|| {
-                screenshot_error("screenshot.save_destination", "截图保存位置不可用", false)
-            })?;
-            write_png_to_path(&path, bytes)?;
-            let saved_path = path.to_string_lossy().into_owned();
-            finish_capture_session(&app, &lease.session_id);
-            Ok(ScreenshotCommitResult {
-                copied: false,
-                saved_path: Some(saved_path),
-                pin_window_label: None,
-            })
-        }
-        "pin" => create_pin_from_upload(&app, bytes, width, height),
-        _ => Err(screenshot_error(
-            "screenshot.action",
-            "不支持的截图动作",
-            false,
-        )),
-    }
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 pub fn deactivate_screenshot(app: &tauri::AppHandle) {
@@ -754,15 +822,24 @@ pub fn cancel_screenshot_session(
     window_label: &str,
     session_id: String,
 ) -> Result<ScreenshotCancelResult, ScreenshotError> {
-    require_capture_window(window_label)?;
-    let active = validate_session(&app, Some(&session_id))?;
-    app.state::<ScreenshotSessionStore>()
-        .clear_active_if(&session_id);
-    if let Some(capture) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
-        let _ = close_surface(&capture);
-    }
-    restore_shell_window(&app, active.restore_window_label.as_deref());
-    Ok(ScreenshotCancelResult { ok: true })
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.snap"), "session");
+    let result = (|| {
+        require_capture_window(window_label)?;
+        let active = validate_session(&app, Some(&session_id))?;
+        app.state::<ScreenshotSessionStore>()
+            .clear_active_if(&session_id);
+        if let Some(capture) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
+            let _ = close_surface(&capture);
+        }
+        restore_shell_window(&app, active.restore_window_label.as_deref());
+        Ok(ScreenshotCancelResult { ok: true })
+    })();
+    diagnostic.outcome(if result.is_ok() {
+        crate::services::diagnostics::contracts::Outcome::Cancelled
+    } else {
+        crate::services::diagnostics::contracts::Outcome::Failed
+    });
+    result
 }
 
 pub fn init_pin_window(
@@ -794,63 +871,69 @@ fn create_pin_from_upload(
     width: u32,
     height: u32,
 ) -> Result<ScreenshotCommitResult, ScreenshotError> {
-    let root = screenshot_media_root(app)?;
-    let token = random_resource_token("pin-media")?;
-    let created_at_ms = now_ms();
-    let media = stage_pin_media(&root, token, created_at_ms, bytes, width, height)?;
-    let label = create_pin_label();
-    let store = app.state::<ScreenshotSessionStore>();
-    if let Err(error) = store.set_pin(
-        label.clone(),
-        PinResource {
-            media: media.clone(),
-        },
-    ) {
-        remove_owned_media(&media.path);
-        return Err(error);
-    }
-    let pin_window = match tauri::WebviewWindowBuilder::new(app, &label, WebviewUrl::App("".into()))
-        .title("Pinned Image")
-        .decorations(false)
-        .resizable(false)
-        .always_on_top(true)
-        .skip_taskbar(false)
-        .inner_size(width as f64, height as f64 + PIN_TITLEBAR_HEIGHT)
-        .build()
-    {
-        Ok(window) => window,
-        Err(error) => {
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.snap"), "pin");
+    let result = (|| {
+        let root = screenshot_media_root(app)?;
+        let token = random_resource_token("pin-media")?;
+        let created_at_ms = now_ms();
+        let media = stage_pin_media(&root, token, created_at_ms, bytes, width, height)?;
+        let label = create_pin_label();
+        let store = app.state::<ScreenshotSessionStore>();
+        if let Err(error) = store.set_pin(
+            label.clone(),
+            PinResource {
+                media: media.clone(),
+            },
+        ) {
+            remove_owned_media(&media.path);
+            return Err(error);
+        }
+        let pin_window =
+            match tauri::WebviewWindowBuilder::new(app, &label, WebviewUrl::App("".into()))
+                .title("Pinned Image")
+                .decorations(false)
+                .resizable(false)
+                .always_on_top(true)
+                .skip_taskbar(false)
+                .inner_size(width as f64, height as f64 + PIN_TITLEBAR_HEIGHT)
+                .build()
+            {
+                Ok(window) => window,
+                Err(error) => {
+                    store.remove_pin(&label);
+                    return Err(screenshot_error(
+                        "screenshot.pin_window",
+                        format!("打开钉图窗口失败: {error}"),
+                        true,
+                    ));
+                }
+            };
+        let cleanup_app = app.clone();
+        let cleanup_label = label.clone();
+        pin_window.on_window_event(move |event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                cleanup_app
+                    .state::<ScreenshotSessionStore>()
+                    .remove_pin(&cleanup_label);
+            }
+        });
+        if let Err(error) = show_surface(&pin_window).and_then(|_| pin_window.set_focus()) {
+            let _ = close_surface(&pin_window);
             store.remove_pin(&label);
             return Err(screenshot_error(
-                "screenshot.pin_window",
-                format!("打开钉图窗口失败: {error}"),
+                "screenshot.pin_show",
+                format!("显示钉图窗口失败: {error}"),
                 true,
             ));
         }
-    };
-    let cleanup_app = app.clone();
-    let cleanup_label = label.clone();
-    pin_window.on_window_event(move |event| {
-        if matches!(event, tauri::WindowEvent::Destroyed) {
-            cleanup_app
-                .state::<ScreenshotSessionStore>()
-                .remove_pin(&cleanup_label);
-        }
-    });
-    if let Err(error) = show_surface(&pin_window).and_then(|_| pin_window.set_focus()) {
-        let _ = close_surface(&pin_window);
-        store.remove_pin(&label);
-        return Err(screenshot_error(
-            "screenshot.pin_show",
-            format!("显示钉图窗口失败: {error}"),
-            true,
-        ));
-    }
-    Ok(ScreenshotCommitResult {
-        copied: false,
-        saved_path: None,
-        pin_window_label: Some(label),
-    })
+        Ok(ScreenshotCommitResult {
+            copied: false,
+            saved_path: None,
+            pin_window_label: Some(label),
+        })
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 fn finish_capture_session(app: &tauri::AppHandle, session_id: &str) {
@@ -953,13 +1036,18 @@ fn validate_upload_request<'a>(
 }
 
 fn write_png_to_path(path: &Path, bytes: &[u8]) -> Result<(), ScreenshotError> {
-    fs::write(path, bytes).map_err(|error| {
-        screenshot_error(
-            "screenshot.save_failed",
-            format!("保存截图失败: {error}"),
-            true,
-        )
-    })
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.snap"), "save");
+    let result = (|| {
+        fs::write(path, bytes).map_err(|error| {
+            screenshot_error(
+                "screenshot.save_failed",
+                format!("保存截图失败: {error}"),
+                true,
+            )
+        })
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 fn stage_pin_media(
@@ -1224,7 +1312,17 @@ fn owned_directory_created_at(name: &str) -> Option<u64> {
 }
 
 fn remove_owned_media(path: &Path) {
-    let _ = fs::remove_file(path);
+    let result = fs::remove_file(path);
+    if result
+        .as_ref()
+        .is_err_and(|e| e.kind() != std::io::ErrorKind::NotFound)
+    {
+        crate::services::diagnostics::native(
+            Some("zero.snap"),
+            "cleanup",
+            crate::services::diagnostics::contracts::Outcome::Failed,
+        );
+    }
     if let Some(parent) = path.parent() {
         let name_is_owned = parent
             .file_name()
@@ -1232,13 +1330,43 @@ fn remove_owned_media(path: &Path) {
             .and_then(owned_directory_created_at)
             .is_some();
         if name_is_owned {
-            let _ = fs::remove_dir_all(parent);
+            let result = fs::remove_dir_all(parent);
+            if result
+                .as_ref()
+                .is_err_and(|e| e.kind() != std::io::ErrorKind::NotFound)
+            {
+                crate::services::diagnostics::native(
+                    Some("zero.snap"),
+                    "cleanup",
+                    crate::services::diagnostics::contracts::Outcome::Failed,
+                );
+            }
         }
     }
 }
 
 #[cfg(target_os = "macos")]
 fn capture_fullscreen_png(path: &Path) -> Result<(u64, u32, u32), ScreenshotError> {
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGPreflightScreenCaptureAccess() -> bool;
+    }
+    let allowed = unsafe { CGPreflightScreenCaptureAccess() };
+    crate::services::diagnostics::record(
+        Some("zero.snap"),
+        "permission",
+        if allowed {
+            "permission.confirmed"
+        } else {
+            "permission.not_confirmed"
+        },
+        if allowed {
+            crate::services::diagnostics::contracts::Outcome::Succeeded
+        } else {
+            crate::services::diagnostics::contracts::Outcome::Failed
+        },
+        Default::default(),
+    );
     let status = std::process::Command::new("screencapture")
         .args(["-x", "-t", "png"])
         .arg(path)

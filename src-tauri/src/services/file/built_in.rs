@@ -55,15 +55,23 @@ impl ZeroFileBuiltInProvider {
     }
 
     fn active_engine_version(&self) -> Result<String, String> {
-        self.app
+        let version = self
+            .app
             .state::<PluginRegistryState>()
             .with_registry(|registry| registry.active_engine(ZERO_FILE_PLUGIN_ID))
-            .map(|engine| engine.package_version)
-            .or_else(|error| {
-                super::engine_bridge::development_assets_enabled()
-                    .then(|| FILE_ENGINE_VERSION.to_string())
-                    .ok_or(error)
-            })
+            .map(|engine| engine.package_version);
+        let fallback = version.is_err() && super::engine_bridge::development_assets_enabled();
+        if let Some(state) = self
+            .app
+            .try_state::<super::engine_bridge::FileEngineBridgeState>()
+        {
+            state.bridge.record_diagnostic_fallback(fallback);
+        }
+        version.or_else(|error| {
+            super::engine_bridge::development_assets_enabled()
+                .then(|| FILE_ENGINE_VERSION.to_string())
+                .ok_or(error)
+        })
     }
 }
 

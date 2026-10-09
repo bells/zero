@@ -1,3 +1,4 @@
+import type { DiagnosticEmitInput } from "../../diagnostics/contracts";
 /** Public protocol data contracts; runtime support is negotiated separately. */
 export type SemVer = string;
 export type SemVerRange = string;
@@ -5,7 +6,7 @@ export type PluginId = string;
 export type PackagePath = string;
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type Platform = "macos" | "windows" | "linux";
-export type PublicPermission = "storage.plugin" | "ui.message" | "network";
+export type PublicPermission = "storage.plugin" | "ui.message" | "network" | "diagnostics.write";
 export type InternalPermission = PublicPermission | "clipboard.read" | "clipboard.write"
   | "process.execute" | "system.wallpaper" | "system.apps.read" | "system.apps.execute"
   | "system.window.focus" | "system.settings.open" | "document.convert";
@@ -112,6 +113,7 @@ export interface PluginError {
 }
 export type Result<T> = { ok: true; value: T } | { ok: false; error: PluginError };
 export interface PluginMethodMap {
+  "diagnostics.emit": { input: DiagnosticEmitInput; output: null };
   "ui.showMessage": { input: { message: string }; output: null };
   "storage.get": { input: { key: string }; output: JsonValue };
   "storage.set": { input: { key: string; value: JsonValue }; output: null };

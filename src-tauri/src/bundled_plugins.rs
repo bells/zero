@@ -193,3 +193,62 @@ pub fn sync_lifecycle(
     }
     Ok(())
 }
+
+pub fn register_diagnostics(app: &tauri::AppHandle) {
+    use crate::services::diagnostics::Diagnostics;
+    let diagnostics = app.state::<std::sync::Arc<Diagnostics>>();
+    let owner = app.clone();
+    diagnostics.register("zero.snap", move || {
+        owner
+            .state::<crate::services::screenshot::ScreenshotSessionStore>()
+            .diagnostic_health()
+    });
+    let owner = app.clone();
+    diagnostics.register("zero.awake", move || {
+        owner
+            .state::<crate::services::caffeine::CaffeineState>()
+            .diagnostic_health()
+    });
+    let owner = app.clone();
+    diagnostics.register("zero.paper", move || {
+        owner
+            .state::<crate::services::bing_wallpaper::BingWallpaperState>()
+            .diagnostic_health()
+    });
+    let owner = app.clone();
+    diagnostics.register("zero.launch", move || {
+        owner
+            .state::<crate::services::quick_launcher::QuickLauncherState>()
+            .diagnostic_health()
+    });
+    let owner = app.clone();
+    diagnostics.register("zero.file", move || {
+        let mut health = owner
+            .state::<crate::services::file::FileConversionState>()
+            .diagnostic_health()?;
+        let approved = owner
+            .state::<crate::plugins::registry::PluginRegistryState>()
+            .try_read_registry(|r| {
+                r.records()
+                    .iter()
+                    .find(|p| p.name == "zero.file")
+                    .is_some_and(|p| {
+                        p.enabled
+                            && p.package_sha256.as_deref().is_some_and(|digest| {
+                                crate::plugins::package::is_approved_engine_package(
+                                    &p.name, &p.version, digest,
+                                )
+                            })
+                    })
+            })
+            .map_err(|_| {
+                crate::services::diagnostics::contracts::DiagnosticsError::new("unavailable")
+            })?;
+        health.metadata.approved = Some(approved);
+        health.metadata.dev_fallback = owner
+            .state::<crate::services::file::engine_bridge::FileEngineBridgeState>()
+            .bridge
+            .diagnostic_dev_fallback()?;
+        Ok(health)
+    });
+}

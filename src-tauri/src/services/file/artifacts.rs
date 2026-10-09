@@ -36,86 +36,96 @@ pub fn remove_job_temp_directory(
     temp_root: &Path,
     job_directory: &Path,
 ) -> Result<(), FileConversionError> {
-    let canonical_root = temp_root.canonicalize().map_err(|_| {
-        artifact_error(
-            FileConversionErrorCode::Internal,
-            "The conversion workspace root is unavailable.",
-            true,
-        )
-    })?;
-    let canonical_job = job_directory.canonicalize().map_err(|_| {
-        artifact_error(
-            FileConversionErrorCode::Internal,
-            "The conversion workspace is unavailable.",
-            true,
-        )
-    })?;
-    if canonical_job.parent() != Some(canonical_root.as_path())
-        || !canonical_job
-            .file_name()
-            .and_then(|name| name.to_str())
-            .is_some_and(|name| name.starts_with(JOB_DIRECTORY_PREFIX))
-    {
-        return Err(artifact_error(
-            FileConversionErrorCode::Internal,
-            "Refusing to clean a directory outside the conversion workspace.",
-            false,
-        ));
-    }
-
-    fs::remove_dir_all(canonical_job).map_err(|_| {
-        artifact_error(
-            FileConversionErrorCode::Internal,
-            "The conversion workspace could not be cleaned.",
-            true,
-        )
-    })
-}
-
-pub fn cleanup_stale_job_directories(temp_root: &Path) -> Result<usize, FileConversionError> {
-    if !temp_root.exists() {
-        return Ok(0);
-    }
-    let canonical_root = temp_root.canonicalize().map_err(|_| {
-        artifact_error(
-            FileConversionErrorCode::Internal,
-            "The conversion workspace root is unavailable.",
-            true,
-        )
-    })?;
-    let mut removed = 0;
-
-    for entry in fs::read_dir(&canonical_root).map_err(|_| {
-        artifact_error(
-            FileConversionErrorCode::Internal,
-            "The conversion workspace root cannot be inspected.",
-            true,
-        )
-    })? {
-        let entry = entry.map_err(|_| {
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.file"), "cleanup");
+    let result = (|| {
+        let canonical_root = temp_root.canonicalize().map_err(|_| {
             artifact_error(
                 FileConversionErrorCode::Internal,
-                "A stale conversion workspace cannot be inspected.",
+                "The conversion workspace root is unavailable.",
                 true,
             )
         })?;
-        let file_name = entry.file_name();
-        let owned_job = file_name
-            .to_str()
-            .is_some_and(|name| name.starts_with(JOB_DIRECTORY_PREFIX));
-        if owned_job && entry.file_type().is_ok_and(|file_type| file_type.is_dir()) {
-            fs::remove_dir_all(entry.path()).map_err(|_| {
+        let canonical_job = job_directory.canonicalize().map_err(|_| {
+            artifact_error(
+                FileConversionErrorCode::Internal,
+                "The conversion workspace is unavailable.",
+                true,
+            )
+        })?;
+        if canonical_job.parent() != Some(canonical_root.as_path())
+            || !canonical_job
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with(JOB_DIRECTORY_PREFIX))
+        {
+            return Err(artifact_error(
+                FileConversionErrorCode::Internal,
+                "Refusing to clean a directory outside the conversion workspace.",
+                false,
+            ));
+        }
+
+        fs::remove_dir_all(canonical_job).map_err(|_| {
+            artifact_error(
+                FileConversionErrorCode::Internal,
+                "The conversion workspace could not be cleaned.",
+                true,
+            )
+        })
+    })();
+    diagnostic.finish(&result);
+    result
+}
+
+pub fn cleanup_stale_job_directories(temp_root: &Path) -> Result<usize, FileConversionError> {
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.file"), "cleanup");
+    let result = (|| {
+        if !temp_root.exists() {
+            return Ok(0);
+        }
+        let canonical_root = temp_root.canonicalize().map_err(|_| {
+            artifact_error(
+                FileConversionErrorCode::Internal,
+                "The conversion workspace root is unavailable.",
+                true,
+            )
+        })?;
+        let mut removed = 0;
+
+        for entry in fs::read_dir(&canonical_root).map_err(|_| {
+            artifact_error(
+                FileConversionErrorCode::Internal,
+                "The conversion workspace root cannot be inspected.",
+                true,
+            )
+        })? {
+            let entry = entry.map_err(|_| {
                 artifact_error(
                     FileConversionErrorCode::Internal,
-                    "A stale conversion workspace could not be cleaned.",
+                    "A stale conversion workspace cannot be inspected.",
                     true,
                 )
             })?;
-            removed += 1;
+            let file_name = entry.file_name();
+            let owned_job = file_name
+                .to_str()
+                .is_some_and(|name| name.starts_with(JOB_DIRECTORY_PREFIX));
+            if owned_job && entry.file_type().is_ok_and(|file_type| file_type.is_dir()) {
+                fs::remove_dir_all(entry.path()).map_err(|_| {
+                    artifact_error(
+                        FileConversionErrorCode::Internal,
+                        "A stale conversion workspace could not be cleaned.",
+                        true,
+                    )
+                })?;
+                removed += 1;
+            }
         }
-    }
 
-    Ok(removed)
+        Ok(removed)
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 pub fn validate_provider_output(
@@ -141,82 +151,87 @@ pub fn commit_provider_output(
     direction: FileConversionDirection,
     job_id: &str,
 ) -> Result<(), FileConversionError> {
-    ensure_provider_output_is_owned(job_directory, provider_output)?;
-    validate_provider_output(provider_output, direction)?;
-    if !valid_job_id(job_id) {
-        return Err(artifact_error(
-            FileConversionErrorCode::Internal,
-            "The conversion job identifier is invalid.",
-            false,
-        ));
-    }
-    if final_output.exists() {
-        return Err(output_conflict());
-    }
+    let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.file"), "output");
+    let result = (|| {
+        ensure_provider_output_is_owned(job_directory, provider_output)?;
+        validate_provider_output(provider_output, direction)?;
+        if !valid_job_id(job_id) {
+            return Err(artifact_error(
+                FileConversionErrorCode::Internal,
+                "The conversion job identifier is invalid.",
+                false,
+            ));
+        }
+        if final_output.exists() {
+            return Err(output_conflict());
+        }
 
-    let final_directory = final_output.parent().ok_or_else(|| {
-        artifact_error(
-            FileConversionErrorCode::OutputNotWritable,
-            "The final output has no destination directory.",
-            false,
-        )
-    })?;
-    let output_name = final_output
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("converted-output");
-    let staging = final_directory.join(format!(".{output_name}.zero-{job_id}.partial"));
-
-    let commit_result = (|| {
-        let mut source = BufReader::new(File::open(provider_output).map_err(|_| {
-            artifact_error(
-                FileConversionErrorCode::InvalidProviderOutput,
-                "The provider output is no longer readable.",
-                true,
-            )
-        })?);
-        let staging_file = open_owner_only_staging_file(&staging)?;
-        let mut target = BufWriter::new(staging_file);
-        io::copy(&mut source, &mut target).map_err(|_| {
+        let final_directory = final_output.parent().ok_or_else(|| {
             artifact_error(
                 FileConversionErrorCode::OutputNotWritable,
-                "The converted file could not be staged in the output directory.",
-                true,
+                "The final output has no destination directory.",
+                false,
             )
         })?;
-        target.flush().map_err(|_| {
-            artifact_error(
-                FileConversionErrorCode::OutputNotWritable,
-                "The staged converted file could not be flushed.",
-                true,
-            )
-        })?;
-        target.get_ref().sync_all().map_err(|_| {
-            artifact_error(
-                FileConversionErrorCode::OutputNotWritable,
-                "The staged converted file could not be synchronized.",
-                true,
-            )
-        })?;
-        drop(target);
+        let output_name = final_output
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("converted-output");
+        let staging = final_directory.join(format!(".{output_name}.zero-{job_id}.partial"));
 
-        validate_provider_output(&staging, direction)?;
-        fs::hard_link(&staging, final_output).map_err(|error| {
-            if error.kind() == io::ErrorKind::AlreadyExists || final_output.exists() {
-                output_conflict()
-            } else {
+        let commit_result = (|| {
+            let mut source = BufReader::new(File::open(provider_output).map_err(|_| {
                 artifact_error(
-                    FileConversionErrorCode::OutputNotWritable,
-                    "The converted file could not be committed to the output directory.",
+                    FileConversionErrorCode::InvalidProviderOutput,
+                    "The provider output is no longer readable.",
                     true,
                 )
-            }
-        })?;
-        Ok(())
-    })();
+            })?);
+            let staging_file = open_owner_only_staging_file(&staging)?;
+            let mut target = BufWriter::new(staging_file);
+            io::copy(&mut source, &mut target).map_err(|_| {
+                artifact_error(
+                    FileConversionErrorCode::OutputNotWritable,
+                    "The converted file could not be staged in the output directory.",
+                    true,
+                )
+            })?;
+            target.flush().map_err(|_| {
+                artifact_error(
+                    FileConversionErrorCode::OutputNotWritable,
+                    "The staged converted file could not be flushed.",
+                    true,
+                )
+            })?;
+            target.get_ref().sync_all().map_err(|_| {
+                artifact_error(
+                    FileConversionErrorCode::OutputNotWritable,
+                    "The staged converted file could not be synchronized.",
+                    true,
+                )
+            })?;
+            drop(target);
 
-    let _ = fs::remove_file(&staging);
-    commit_result
+            validate_provider_output(&staging, direction)?;
+            fs::hard_link(&staging, final_output).map_err(|error| {
+                if error.kind() == io::ErrorKind::AlreadyExists || final_output.exists() {
+                    output_conflict()
+                } else {
+                    artifact_error(
+                        FileConversionErrorCode::OutputNotWritable,
+                        "The converted file could not be committed to the output directory.",
+                        true,
+                    )
+                }
+            })?;
+            Ok(())
+        })();
+
+        let _ = fs::remove_file(&staging);
+        commit_result
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 fn ensure_provider_output_is_owned(

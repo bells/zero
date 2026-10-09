@@ -90,74 +90,89 @@ impl PluginRegistryState {
 
         operation(&mut registry)
     }
+
+    pub fn try_read_registry<T>(
+        &self,
+        operation: impl FnOnce(&PluginRegistry) -> T,
+    ) -> Result<T, String> {
+        self.registry
+            .try_lock()
+            .map(|registry| operation(&registry))
+            .map_err(|_| "plugin registry is busy".into())
+    }
 }
 
 impl PluginRegistry {
     pub fn load_or_seed(root: impl Into<PathBuf>) -> Result<Self, String> {
-        let root = root.into();
-        fs::create_dir_all(&root)
-            .map_err(|error| format!("failed to create plugin root: {error}"))?;
+        let mut diagnostic = crate::services::diagnostics::Operation::new(None, "registry");
+        let result = (|| {
+            let root = root.into();
+            fs::create_dir_all(&root)
+                .map_err(|error| format!("failed to create plugin root: {error}"))?;
 
-        let registry_path = registry_path(&root);
-        if !registry_path.exists() {
-            let mut registry = Self {
-                revision: AtomicU64::new(0),
-                root,
-                records: bundled_plugin_records(),
-                diagnostics: Vec::new(),
-                engine_leases: HashMap::new(),
-                startup_write_performed: false,
-            };
-            registry.save()?;
-            registry.startup_write_performed = true;
-            return Ok(registry);
-        }
-
-        match fs::read_to_string(&registry_path)
-            .map_err(|error| format!("failed to read plugin registry: {error}"))
-            .and_then(|content| {
-                serde_json::from_str::<PluginRegistryDiskState>(&content)
-                    .map_err(|error| format!("failed to parse plugin registry: {error}"))
-            }) {
-            Ok(mut state) => {
-                let original = state.clone();
-                canonicalize_records(&mut state.records);
-                migrate_bundled_records(&mut state.records);
-                for record in &mut state.records {
-                    if !super::compatibility::check_record(record).compatible {
-                        record.health = PluginHealth::Incompatible;
-                    }
-                }
-                state.schema_version = PLUGIN_REGISTRY_SCHEMA_VERSION;
-                let changed = state != original;
-                let mut registry = Self {
-                    revision: AtomicU64::new(state.revision),
-                    root,
-                    records: state.records,
-                    diagnostics: Vec::new(),
-                    engine_leases: HashMap::new(),
-                    startup_write_performed: false,
-                };
-                if changed {
-                    registry.save()?;
-                    registry.startup_write_performed = true;
-                }
-                Ok(registry)
-            }
-            Err(error) => {
+            let registry_path = registry_path(&root);
+            if !registry_path.exists() {
                 let mut registry = Self {
                     revision: AtomicU64::new(0),
                     root,
                     records: bundled_plugin_records(),
-                    diagnostics: vec![format!("registry recovery: {error}")],
+                    diagnostics: Vec::new(),
                     engine_leases: HashMap::new(),
                     startup_write_performed: false,
                 };
                 registry.save()?;
                 registry.startup_write_performed = true;
-                Ok(registry)
+                return Ok(registry);
             }
-        }
+
+            match fs::read_to_string(&registry_path)
+                .map_err(|error| format!("failed to read plugin registry: {error}"))
+                .and_then(|content| {
+                    serde_json::from_str::<PluginRegistryDiskState>(&content)
+                        .map_err(|error| format!("failed to parse plugin registry: {error}"))
+                }) {
+                Ok(mut state) => {
+                    let original = state.clone();
+                    canonicalize_records(&mut state.records);
+                    migrate_bundled_records(&mut state.records);
+                    for record in &mut state.records {
+                        if !super::compatibility::check_record(record).compatible {
+                            record.health = PluginHealth::Incompatible;
+                        }
+                    }
+                    state.schema_version = PLUGIN_REGISTRY_SCHEMA_VERSION;
+                    let changed = state != original;
+                    let mut registry = Self {
+                        revision: AtomicU64::new(state.revision),
+                        root,
+                        records: state.records,
+                        diagnostics: Vec::new(),
+                        engine_leases: HashMap::new(),
+                        startup_write_performed: false,
+                    };
+                    if changed {
+                        registry.save()?;
+                        registry.startup_write_performed = true;
+                    }
+                    Ok(registry)
+                }
+                Err(error) => {
+                    let mut registry = Self {
+                        revision: AtomicU64::new(0),
+                        root,
+                        records: bundled_plugin_records(),
+                        diagnostics: vec![format!("registry recovery: {error}")],
+                        engine_leases: HashMap::new(),
+                        startup_write_performed: false,
+                    };
+                    registry.save()?;
+                    registry.startup_write_performed = true;
+                    Ok(registry)
+                }
+            }
+        })();
+        diagnostic.finish(&result);
+        result
     }
 
     pub fn default_root() -> PathBuf {
@@ -193,51 +208,57 @@ impl PluginRegistry {
     }
 
     pub fn save(&self) -> Result<(), String> {
-        let revision = self
-            .revision()
-            .checked_add(1)
-            .filter(|r| *r <= 9_007_199_254_740_991)
-            .ok_or("registry revision exhausted")?;
-        let state = PluginRegistryDiskState {
-            revision,
-            schema_version: PLUGIN_REGISTRY_SCHEMA_VERSION,
-            records: self.records.clone(),
-        };
-        let content = serde_json::to_string_pretty(&state)
-            .map_err(|error| format!("failed to serialize plugin registry: {error}"))?;
+        let mut diagnostic = crate::services::diagnostics::Operation::new(None, "registry");
+        let result = (|| {
+            let revision = self
+                .revision()
+                .checked_add(1)
+                .filter(|r| *r <= 9_007_199_254_740_991)
+                .ok_or("registry revision exhausted")?;
+            let state = PluginRegistryDiskState {
+                revision,
+                schema_version: PLUGIN_REGISTRY_SCHEMA_VERSION,
+                records: self.records.clone(),
+            };
+            let content = serde_json::to_string_pretty(&state)
+                .map_err(|error| format!("failed to serialize plugin registry: {error}"))?;
 
-        let target = registry_path(&self.root);
-        let temporary = self.root.join(format!(
-            ".registry-{}.tmp",
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|duration| duration.as_nanos())
-                .unwrap_or_default()
-        ));
-        let save_result = (|| -> Result<(), String> {
-            let mut file = File::create(&temporary).map_err(|error| {
-                format!("failed to create plugin registry staging file: {error}")
-            })?;
-            file.write_all(content.as_bytes()).map_err(|error| {
-                format!("failed to write plugin registry staging file: {error}")
-            })?;
-            file.sync_all()
-                .map_err(|error| format!("failed to sync plugin registry staging file: {error}"))?;
-            atomic_replace_file(&temporary, &target).map_err(|error| {
-                format!("failed to atomically replace plugin registry: {error}")
-            })?;
-            if let Ok(directory) = File::open(&self.root) {
-                let _ = directory.sync_all();
+            let target = registry_path(&self.root);
+            let temporary = self.root.join(format!(
+                ".registry-{}.tmp",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map(|duration| duration.as_nanos())
+                    .unwrap_or_default()
+            ));
+            let save_result = (|| -> Result<(), String> {
+                let mut file = File::create(&temporary).map_err(|error| {
+                    format!("failed to create plugin registry staging file: {error}")
+                })?;
+                file.write_all(content.as_bytes()).map_err(|error| {
+                    format!("failed to write plugin registry staging file: {error}")
+                })?;
+                file.sync_all().map_err(|error| {
+                    format!("failed to sync plugin registry staging file: {error}")
+                })?;
+                atomic_replace_file(&temporary, &target).map_err(|error| {
+                    format!("failed to atomically replace plugin registry: {error}")
+                })?;
+                if let Ok(directory) = File::open(&self.root) {
+                    let _ = directory.sync_all();
+                }
+                Ok(())
+            })();
+            if save_result.is_err() {
+                let _ = fs::remove_file(&temporary);
             }
-            Ok(())
+            if save_result.is_ok() {
+                self.revision.store(revision, Ordering::Release);
+            }
+            save_result
         })();
-        if save_result.is_err() {
-            let _ = fs::remove_file(&temporary);
-        }
-        if save_result.is_ok() {
-            self.revision.store(revision, Ordering::Release);
-        }
-        save_result
+        diagnostic.finish(&result);
+        result
     }
 
     pub fn set_enabled_and_save(
@@ -600,6 +621,11 @@ impl PluginRegistry {
         validate_approval: impl FnOnce(&PluginRecord) -> Result<(), String>,
     ) -> Result<ActivePluginEngine, String> {
         if name != ZERO_FILE_PLUGIN_ID {
+            crate::services::diagnostics::native(
+                Some("zero.file"),
+                "identity",
+                crate::services::diagnostics::contracts::Outcome::Failed,
+            );
             return Err(format!("plugin {name} has no trusted document engine"));
         }
         let record = self
@@ -617,12 +643,21 @@ impl PluginRegistry {
                 .approved_permissions
                 .contains(&PluginPermission::DocumentConvert)
         {
+            crate::services::diagnostics::native(
+                Some("zero.file"),
+                "identity",
+                crate::services::diagnostics::contracts::Outcome::Failed,
+            );
             return Err(format!("plugin {name} has no trusted document engine"));
         }
-        let installed_path = record
-            .installed_path
-            .as_deref()
-            .ok_or_else(|| format!("plugin {name} has no activated package assets"))?;
+        let installed_path = record.installed_path.as_deref().ok_or_else(|| {
+            crate::services::diagnostics::native(
+                Some("zero.file"),
+                "assets",
+                crate::services::diagnostics::contracts::Outcome::Failed,
+            );
+            format!("plugin {name} has no activated package assets")
+        })?;
         let version_root = PathBuf::from(installed_path);
         if !version_root.starts_with(&self.root) {
             return Err(format!(
@@ -635,6 +670,11 @@ impl PluginRegistry {
         validate_approval(record)?;
         let engine_root = version_root.join("engine");
         if !engine_root.is_dir() {
+            crate::services::diagnostics::native(
+                Some("zero.file"),
+                "assets",
+                crate::services::diagnostics::contracts::Outcome::Failed,
+            );
             return Err(format!("plugin {name} engine assets are missing"));
         }
         Ok(ActivePluginEngine {

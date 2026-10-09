@@ -3947,3 +3947,54 @@ input:focus-visible {
     transition: none;
   }
 }
+
+/* The About surface keeps identity and support actions above expandable details. */
+.about-window-shell { background: #f4f5f3; padding: 18px; }
+.about-window-shell > .standalone-header { flex: 0 0 auto; }
+.about-window-shell > .about-panel { overflow: auto; min-height: 0; background: #fff; padding: 22px; gap: 18px; }
+.about-identity { display: flex; align-items: center; gap: 18px; }
+.about-identity h2 { margin: 0; font-size: 32px; font-weight: 650; letter-spacing: -.04em; }
+.about-version { display: block; margin-top: 4px; color: #6b716c; font-size: 12px; font-variant-numeric: tabular-nums; }
+.about-identity .about-mark { width: 62px; height: 62px; border-radius: 16px; background: #1c211e; box-shadow: none; color: white; }
+.about-identity .about-mark .status-bar-glyph-mask { width: 40px; height: 40px; }
+.about-description { line-height: 1.65; }
+.about-project-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.about-action { min-width: 0; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; border: 1px solid #dce0dc; border-radius: 8px; background: #f8f9f7; color: #252d27; font: inherit; font-size: 12px; cursor: pointer; }
+.about-action:hover:not(:disabled) { border-color: #8b968e; background: #f0f3ee; }
+.about-action:disabled { opacity: .55; cursor: wait; }
+.about-panel button:focus-visible, .about-panel summary:focus-visible, .about-preview:focus-visible, .about-verbose input:focus-visible { outline: 2px solid #356548; outline-offset: 3px; }
+.about-action span { overflow-wrap: anywhere; }
+.about-project-label { min-width: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.about-project-label strong { font-weight: 600; }
+.about-project-label small { color: #647067; font-size: 10px; line-height: 1.5; }
+.about-project-actions .about-action > svg { flex: 0 0 auto; }
+.about-project-actions .about-action { justify-content: flex-start; padding-inline: 10px; }
+.about-support { border-top: 1px solid #e7eae5; padding-top: 18px; }
+.about-section-label { margin: 0 0 10px; font-size: 11px; font-weight: 600; color: #5e685f; letter-spacing: .04em; }
+.about-support-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.about-support-actions .about-action { flex-direction: column; gap: 8px; min-height: 65px; padding-inline: 6px; }
+.about-feedback { min-height: 32px; display: flex; align-items: center; gap: 5px; padding-top: 10px; color: #506654; font-size: 11px; line-height: 1.5; }
+.about-feedback.is-error { color: #a52c30; }
+.about-details { border-top: 1px solid #e7eae5; font-size: 12px; }
+.about-details summary { padding: 12px 0; min-height: 40px; cursor: pointer; color: #4f5951; }
+.about-details summary span { float: right; font-variant-numeric: tabular-nums; }
+.about-diagnostics-content { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.about-diagnostics-content p { margin: 0; font-size: 11px; line-height: 1.65; color: #5b645d; }
+.about-diagnostics-status { font-variant-numeric: tabular-nums; }
+.about-diagnostic-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.about-diagnostic-controls button, .about-clear-confirm button { min-height: 40px; display: inline-flex; align-items: center; gap: 6px; }
+.about-verbose { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: 11px; }
+.about-verbose input { width: 16px; height: 16px; accent-color: #356548; flex-shrink: 0; }
+.about-clear-confirm { background: #faf4ee; border: 1px solid #e7d4bd; border-radius: 8px; padding: 12px; }
+.about-clear-confirm p { margin-bottom: 10px; }
+.about-clear-confirm button + button { margin-left: 8px; }
+.about-preview-label { font-size: 11px; color: #59645c; }
+.about-preview { box-sizing: border-box; min-width: 0; width: 100%; min-height: 200px; resize: vertical; padding: 10px; border: 1px solid #d8ded7; border-radius: 6px; background: #f7f9f5; font: 10px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #2e3830; white-space: pre; overflow: auto; }
+.about-panel .about-grid { display: flex; flex-direction: column; gap: 8px; border: 0; background: transparent; padding: 6px 0 12px; }
+.about-stat { display: flex; justify-content: space-between; }
+@media (max-width: 420px) {
+  .about-window-shell { padding: 12px; }
+  .about-window-shell > .about-panel { padding: 16px; }
+  .about-project-actions, .about-support-actions { grid-template-columns: 1fr; }
+  .about-support-actions .about-action { flex-direction: row; min-height: 44px; }
+}

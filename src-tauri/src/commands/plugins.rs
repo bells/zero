@@ -343,7 +343,13 @@ async fn run_plugin_worker<T: Send + 'static>(
     app: tauri::AppHandle,
     operation: impl FnOnce(&tauri::AppHandle) -> Result<T, String> + Send + 'static,
 ) -> Result<T, String> {
-    tauri::async_runtime::spawn_blocking(move || operation(&app))
-        .await
-        .map_err(|_| "plugin lifecycle worker stopped unexpectedly".to_string())?
+    let mut diagnostic = crate::services::diagnostics::Operation::new(None, "lifecycle");
+    let result = (async {
+        tauri::async_runtime::spawn_blocking(move || operation(&app))
+            .await
+            .map_err(|_| "plugin lifecycle worker stopped unexpectedly".to_string())?
+    })
+    .await;
+    diagnostic.finish(&result);
+    result
 }

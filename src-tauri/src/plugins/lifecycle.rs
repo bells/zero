@@ -69,10 +69,15 @@ impl LifecycleCoordinator {
         app: &tauri::AppHandle,
         change: LifecycleChange<'_>,
     ) -> Result<(), String> {
-        for adapter in &self.adapters {
-            adapter(app, &change)?;
-        }
-        Ok(())
+        let mut diagnostic = crate::services::diagnostics::Operation::new(None, "lifecycle");
+        let result = (|| {
+            for adapter in &self.adapters {
+                adapter(app, &change)?;
+            }
+            Ok(())
+        })();
+        diagnostic.finish(&result);
+        result
     }
 }
 

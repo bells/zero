@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -106,6 +107,7 @@ impl CaffeineSession {
 pub struct CaffeineState {
     expiry_task: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
     session: Mutex<CaffeineSession>,
+    backend_failed: AtomicBool,
     #[cfg(target_os = "macos")]
     process: Mutex<Option<Child>>,
 }
@@ -117,10 +119,42 @@ impl Default for CaffeineState {
 }
 
 impl CaffeineState {
+    pub fn diagnostic_health(
+        &self,
+    ) -> Result<
+        super::diagnostics::contracts::HealthSnapshot,
+        super::diagnostics::contracts::DiagnosticsError,
+    > {
+        use super::diagnostics::contracts::*;
+        let session = self
+            .session
+            .try_lock()
+            .map_err(|_| DiagnosticsError::new("unavailable"))?;
+        let supported = cfg!(any(target_os = "macos", target_os = "windows"));
+        let mut health = HealthSnapshot::state(if !supported {
+            HealthState::Unsupported
+        } else if self.backend_failed.load(Ordering::Relaxed) {
+            HealthState::Degraded
+        } else if session.enabled {
+            HealthState::Active
+        } else {
+            HealthState::Ready
+        });
+        health.metadata.backend = Some(if cfg!(target_os = "macos") {
+            Backend::Macos
+        } else if cfg!(target_os = "windows") {
+            Backend::Windows
+        } else {
+            Backend::Unsupported
+        });
+        Ok(health)
+    }
+
     pub fn new() -> Self {
         Self {
             session: Mutex::new(CaffeineSession::default()),
             expiry_task: Mutex::new(None),
+            backend_failed: AtomicBool::new(false),
             #[cfg(target_os = "macos")]
             process: Mutex::new(None),
         }
@@ -162,31 +196,76 @@ impl CaffeineState {
         enabled: bool,
         duration_minutes: Option<u64>,
     ) -> Result<CaffeineTransition, String> {
-        let mut session = self.session.lock().map_err(|e| e.to_string())?;
+        let mut diagnostic = crate::services::diagnostics::Operation::new(
+            Some("zero.awake"),
+            if enabled { "enable" } else { "disable" },
+        );
+        let result = (|| {
+            self.backend_failed.store(false, Ordering::Relaxed);
+            let mut session = self.session.lock().map_err(|e| e.to_string())?;
 
-        if enabled {
-            if !is_allowed_duration_minutes(duration_minutes) {
-                return Err("不支持的咖啡因持续时长".into());
+            if enabled {
+                if !is_allowed_duration_minutes(duration_minutes) {
+                    return Err("不支持的咖啡因持续时长".into());
+                }
+
+                apply_platform_awake(self, true)?;
+                self.cancel_expiry_task();
+                session.enable_at(SystemTime::now(), duration_minutes)?;
+
+                return Ok(CaffeineTransition {
+                    snapshot: session.snapshot(),
+                    expiry: session.expiry(),
+                });
             }
 
-            apply_platform_awake(self, true)?;
+            apply_platform_awake(self, false)?;
             self.cancel_expiry_task();
-            session.enable_at(SystemTime::now(), duration_minutes)?;
+            session.disable();
 
-            return Ok(CaffeineTransition {
+            Ok(CaffeineTransition {
                 snapshot: session.snapshot(),
-                expiry: session.expiry(),
-            });
+                expiry: None,
+            })
+        })();
+        diagnostic.finish(&result);
+        result
+    }
+
+    #[cfg(target_os = "macos")]
+    pub fn diagnostic_generation(&self) -> Option<u64> {
+        self.session
+            .try_lock()
+            .ok()
+            .filter(|s| s.enabled)
+            .map(|s| s.generation)
+    }
+
+    #[cfg(target_os = "macos")]
+    pub fn observe_owned_backend(&self, generation: u64) -> bool {
+        let Ok(session) = self.session.try_lock() else {
+            return true;
+        };
+        if !session.enabled || session.generation != generation {
+            return false;
         }
-
-        apply_platform_awake(self, false)?;
-        self.cancel_expiry_task();
-        session.disable();
-
-        Ok(CaffeineTransition {
-            snapshot: session.snapshot(),
-            expiry: None,
-        })
+        let Ok(mut process) = self.process.try_lock() else {
+            return true;
+        };
+        let code = match process.as_mut().map(|child| child.try_wait()) {
+            Some(Ok(None)) => return true,
+            Some(Ok(Some(_))) | None => "backend.child_exited",
+            Some(Err(_)) => "backend.monitor_failed",
+        };
+        self.backend_failed.store(true, Ordering::Relaxed);
+        crate::services::diagnostics::record(
+            Some("zero.awake"),
+            "backend",
+            code,
+            crate::services::diagnostics::contracts::Outcome::Failed,
+            Default::default(),
+        );
+        false
     }
 
     pub fn expire_if_current(&self, generation: u64, now: SystemTime) -> Result<bool, String> {
@@ -195,7 +274,9 @@ impl CaffeineState {
             return Ok(false);
         }
 
-        apply_platform_awake(self, false)?;
+        let result = apply_platform_awake(self, false);
+        crate::services::diagnostics::observe(Some("zero.awake"), "expiry", &result);
+        result?;
         Ok(session.expire_if_current(generation, now))
     }
 }
@@ -206,8 +287,10 @@ impl Drop for CaffeineState {
         #[cfg(target_os = "macos")]
         if let Ok(mut process) = self.process.lock() {
             if let Some(mut child) = process.take() {
-                let _ = child.kill();
-                let _ = child.wait();
+                let killed = child.kill();
+                crate::services::diagnostics::observe(Some("zero.awake"), "cleanup", &killed);
+                let waited = child.wait();
+                crate::services::diagnostics::observe(Some("zero.awake"), "cleanup", &waited);
             }
         }
     }
@@ -243,26 +326,32 @@ fn expires_at_for(
 
 #[cfg(target_os = "macos")]
 fn apply_platform_awake(state: &CaffeineState, enabled: bool) -> Result<(), String> {
-    let mut process = state.process.lock().map_err(|e| e.to_string())?;
+    let mut diagnostic =
+        crate::services::diagnostics::Operation::new(Some("zero.awake"), "backend");
+    let result = (|| {
+        let mut process = state.process.lock().map_err(|e| e.to_string())?;
 
-    if enabled {
-        if process.is_none() {
-            let child = std::process::Command::new("caffeinate")
-                .args(["-d", "-i"])
-                .spawn()
-                .map_err(|e| format!("启动 caffeinate 失败: {e}"))?;
-            *process = Some(child);
+        if enabled {
+            if process.is_none() {
+                let child = std::process::Command::new("caffeinate")
+                    .args(["-d", "-i"])
+                    .spawn()
+                    .map_err(|e| format!("启动 caffeinate 失败: {e}"))?;
+                *process = Some(child);
+            }
+        } else if let Some(mut child) = process.take() {
+            let _ = child.kill();
+            let _ = child.wait();
         }
-    } else if let Some(mut child) = process.take() {
-        let _ = child.kill();
-        let _ = child.wait();
-    }
 
-    Ok(())
+        Ok(())
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 #[cfg(target_os = "windows")]
-fn apply_platform_awake(_state: &CaffeineState, enabled: bool) -> Result<(), String> {
+fn apply_platform_awake(state: &CaffeineState, enabled: bool) -> Result<(), String> {
     use windows::Win32::System::Power::{
         SetThreadExecutionState, ES_CONTINUOUS, ES_DISPLAY_REQUIRED, ES_SYSTEM_REQUIRED,
     };
@@ -273,7 +362,18 @@ fn apply_platform_awake(_state: &CaffeineState, enabled: bool) -> Result<(), Str
         } else {
             ES_CONTINUOUS
         };
-        SetThreadExecutionState(flags);
+        let previous = SetThreadExecutionState(flags);
+        let failed = previous.0 == 0;
+        state.backend_failed.store(failed, Ordering::Relaxed);
+        crate::services::diagnostics::native(
+            Some("zero.awake"),
+            "backend",
+            if failed {
+                crate::services::diagnostics::contracts::Outcome::Failed
+            } else {
+                crate::services::diagnostics::contracts::Outcome::Succeeded
+            },
+        );
     }
 
     Ok(())
@@ -288,6 +388,27 @@ fn apply_platform_awake(_state: &CaffeineState, _enabled: bool) -> Result<(), St
 mod tests {
     use super::*;
     use std::time::Duration;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn unexpected_child_exit_is_cached_without_snapshot_probing_or_false_active_health() {
+        let state = CaffeineState::new();
+        let generation = state
+            .session
+            .lock()
+            .unwrap()
+            .enable_at(SystemTime::now(), None)
+            .unwrap();
+        let mut child = std::process::Command::new("/usr/bin/true").spawn().unwrap();
+        child.wait().unwrap();
+        *state.process.lock().unwrap() = Some(child);
+        assert!(!state.observe_owned_backend(generation));
+        assert_eq!(
+            state.diagnostic_health().unwrap().state,
+            super::super::diagnostics::contracts::HealthState::Degraded
+        );
+        assert!(!state.observe_owned_backend(generation + 1));
+    }
 
     #[test]
     fn duration_validation_accepts_no_limit_and_supported_presets() {

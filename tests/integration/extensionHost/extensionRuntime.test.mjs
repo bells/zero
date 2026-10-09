@@ -259,3 +259,11 @@ test("launcher bridge validates exact safe payloads before host dispatch", async
     ["host.error", "host.error", "host.error", "method.unsupported"],
   );
 });
+
+test("legacy diagnostics callback receives only a fixed safe marker", async () => {
+  const events = [];
+  const bridge = createExtensionBridge(pluginRecord(), { diagnosticsReport: (id, code) => events.push({id, code}) });
+  const result = await bridge.handle({ requestId:"legacy", pluginName:"bridge-tool", method:"diagnostics.report", payload:{message:"/Users/private/document.pdf?token=SECRET"} });
+  assert.equal(result.ok, true);
+  assert.deepEqual(events, [{id:"bridge-tool",code:"legacy.report_received"}]);
+});

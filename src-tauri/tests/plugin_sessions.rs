@@ -113,3 +113,71 @@ fn cancellation_before_dispatch_prevents_late_side_effects() {
         "request.duplicate"
     );
 }
+
+#[test]
+fn diagnostic_admission_rechecks_live_permission_identity_and_cancellation() {
+    let now = Instant::now();
+    let mut sessions = Sessions::default();
+    let mut live = owner("test.notes");
+    live.permissions.push("diagnostics.write".into());
+    let info = sessions.issue(live.clone(), now).unwrap();
+    let caller = format!("plugin-{}", info.session_id);
+    sessions
+        .ready(&info.session_id, &caller, info.generation, now)
+        .unwrap();
+    let mut req = request(&info.session_id, info.generation);
+    req.method = "diagnostics.emit".into();
+    req.payload = serde_json::json!({"level":"warn", "code":"operation.failed", "phase":"execute", "outcome":"failed"});
+    let mut denied = live.clone();
+    denied.permissions.retain(|p| p != "diagnostics.write");
+    assert!(sessions.begin(&caller, &req, &denied, true, now).is_err());
+    sessions.begin(&caller, &req, &live, true, now).unwrap();
+    let effects = std::cell::Cell::new(0);
+    let emit = || {
+        effects.set(effects.get() + 1);
+        Ok(serde_json::Value::Null)
+    };
+    assert!(sessions
+        .commit_live(&caller, &req, &denied, true, now, emit)
+        .is_err());
+    assert!(sessions
+        .commit_live(&caller, &req, &live, false, now, emit)
+        .is_err());
+    let mut changed = live.clone();
+    changed.digest = "ef".repeat(32);
+    assert!(sessions
+        .commit_live(&caller, &req, &changed, true, now, emit)
+        .is_err());
+    changed = live.clone();
+    changed.version = "2.0.0".into();
+    assert!(sessions
+        .commit_live(&caller, &req, &changed, true, now, emit)
+        .is_err());
+    assert!(sessions
+        .commit_live("main", &req, &live, true, now, emit)
+        .is_err());
+    let mut stale = req.clone();
+    stale.generation += 1;
+    assert!(sessions
+        .commit_live(&caller, &stale, &live, true, now, emit)
+        .is_err());
+    assert_eq!(effects.get(), 0);
+    assert_eq!(
+        sessions
+            .commit_live(&caller, &req, &live, true, now, emit)
+            .unwrap(),
+        serde_json::Value::Null
+    );
+    sessions.finish(&caller, &req, now).unwrap();
+    assert!(sessions
+        .commit_live(&caller, &req, &live, true, now, emit)
+        .is_err());
+    req.request_id = "after-cancel".into();
+    sessions.finish(&caller, &req, now).unwrap();
+    assert!(sessions.begin(&caller, &req, &live, true, now).is_err());
+    sessions.revoke(&live.plugin_id);
+    assert!(sessions
+        .commit_live(&caller, &req, &live, true, now, emit)
+        .is_err());
+    assert_eq!(effects.get(), 1);
+}

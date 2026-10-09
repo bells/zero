@@ -92,6 +92,66 @@ impl Default for FileConversionState {
 }
 
 impl FileConversionState {
+    pub fn diagnostic_health(
+        &self,
+    ) -> Result<
+        crate::services::diagnostics::contracts::HealthSnapshot,
+        crate::services::diagnostics::contracts::DiagnosticsError,
+    > {
+        use super::contracts::{FileConversionProviderAvailability, FileConversionProviderId};
+        use crate::services::diagnostics::contracts::*;
+        let cache = self
+            .capability_cache
+            .try_lock()
+            .map_err(|_| DiagnosticsError::new("unavailable"))?;
+        let runtime = self
+            .runtime
+            .try_lock()
+            .map_err(|_| DiagnosticsError::new("unavailable"))?;
+        let mut health = HealthSnapshot::state(if runtime.temp_root.is_none() {
+            HealthState::NotInitialized
+        } else if cache
+            .snapshot
+            .as_ref()
+            .is_some_and(|s| s.directions.iter().any(|d| d.available))
+        {
+            HealthState::Ready
+        } else {
+            HealthState::Degraded
+        });
+        health.metadata.count = Some(runtime.queue.snapshots().len().min(u32::MAX as usize) as u32);
+        if let Some(snapshot) = &cache.snapshot {
+            for provider in snapshot.directions.iter().flat_map(|d| &d.providers) {
+                let id = match provider.id {
+                    FileConversionProviderId::ZeroFilePdfToDocx => Provider::ZeroFilePdfToDocx,
+                    FileConversionProviderId::ZeroFileDocxToPdfMacos => {
+                        Provider::ZeroFileDocxToPdfMacos
+                    }
+                    FileConversionProviderId::LibreOffice => Provider::LibreOffice,
+                    FileConversionProviderId::MicrosoftWordMacos => Provider::MicrosoftWordMacos,
+                    FileConversionProviderId::MicrosoftWordWindows => {
+                        Provider::MicrosoftWordWindows
+                    }
+                };
+                health.providers.push(ProviderSnapshot {
+                    provider: id,
+                    available: matches!(
+                        provider.availability,
+                        FileConversionProviderAvailability::Available
+                    ),
+                    version: crate::services::diagnostics::safe_version(&provider.version),
+                    engine_version: crate::services::diagnostics::safe_version(
+                        &provider.engine_version,
+                    ),
+                    package_version: crate::services::diagnostics::safe_version(
+                        &provider.package_version,
+                    ),
+                });
+            }
+        }
+        Ok(health)
+    }
+
     pub fn initialize(&self, temp_root: PathBuf) -> Result<(), FileConversionError> {
         self.initialize_registry(default_provider_registry, temp_root)
     }
@@ -211,83 +271,89 @@ impl FileConversionState {
         &self,
         request: FileConversionEnqueueRequest,
     ) -> Result<FileConversionBatchResult, FileConversionError> {
-        if request.items.is_empty() || request.items.len() > MAX_ENQUEUE_ITEMS {
-            return Err(FileConversionError {
-                code: FileConversionErrorCode::InvalidInput,
-                message: "A conversion batch must contain between 1 and 100 files.".into(),
-                retryable: false,
-                provider_id: None,
-                diagnostic: None,
-            });
-        }
-        let _enqueue = self
-            .enqueue_gate
-            .lock()
-            .map_err(|_| runtime_error("The File enqueue coordinator is unavailable.", true))?;
-        let (mut active_sources, mut reserved_paths) = {
-            let runtime = self.lock_runtime()?;
-            (
-                runtime.queue.active_sources(),
-                runtime.reserved_paths.clone(),
-            )
-        };
-        let mut prepared = Vec::new();
-        let mut rejected_candidates = Vec::new();
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.file"), "validate");
+        let result = (|| {
+            if request.items.is_empty() || request.items.len() > MAX_ENQUEUE_ITEMS {
+                return Err(FileConversionError {
+                    code: FileConversionErrorCode::InvalidInput,
+                    message: "A conversion batch must contain between 1 and 100 files.".into(),
+                    retryable: false,
+                    provider_id: None,
+                    diagnostic: None,
+                });
+            }
+            let _enqueue = self
+                .enqueue_gate
+                .lock()
+                .map_err(|_| runtime_error("The File enqueue coordinator is unavailable.", true))?;
+            let (mut active_sources, mut reserved_paths) = {
+                let runtime = self.lock_runtime()?;
+                (
+                    runtime.queue.active_sources(),
+                    runtime.reserved_paths.clone(),
+                )
+            };
+            let mut prepared = Vec::new();
+            let mut rejected_candidates = Vec::new();
 
-        for item in request.items {
-            let candidate = inspect_source(Path::new(&item.source_path), &active_sources);
-            let direction = match &candidate.validation {
-                FileConversionCandidateValidation::Valid { direction, .. } => *direction,
-                FileConversionCandidateValidation::Rejected { .. } => {
-                    rejected_candidates.push(candidate);
-                    continue;
-                }
-            };
-            let canonical_source = PathBuf::from(&candidate.source_path);
-            let reservation = match reserve_output_path(
-                &canonical_source,
-                direction,
-                item.output_directory.as_deref().map(Path::new),
-                &mut reserved_paths,
-            ) {
-                Ok(reservation) => reservation,
-                Err(error) => {
-                    rejected_candidates.push(rejected_from_candidate(candidate, error));
-                    continue;
-                }
-            };
-            active_sources.insert(canonical_source.clone());
-            prepared.push((candidate, canonical_source, direction, reservation));
-        }
+            for item in request.items {
+                let candidate = inspect_source(Path::new(&item.source_path), &active_sources);
+                let direction = match &candidate.validation {
+                    FileConversionCandidateValidation::Valid { direction, .. } => *direction,
+                    FileConversionCandidateValidation::Rejected { .. } => {
+                        rejected_candidates.push(candidate);
+                        continue;
+                    }
+                };
+                let canonical_source = PathBuf::from(&candidate.source_path);
+                let reservation = match reserve_output_path(
+                    &canonical_source,
+                    direction,
+                    item.output_directory.as_deref().map(Path::new),
+                    &mut reserved_paths,
+                ) {
+                    Ok(reservation) => reservation,
+                    Err(error) => {
+                        rejected_candidates.push(rejected_from_candidate(candidate, error));
+                        continue;
+                    }
+                };
+                active_sources.insert(canonical_source.clone());
+                prepared.push((candidate, canonical_source, direction, reservation));
+            }
 
-        let mut runtime = self.lock_runtime()?;
-        let mut jobs = Vec::new();
-        for (candidate, canonical_source, direction, reservation) in prepared {
-            runtime.next_job_number += 1;
-            let draft = FileConversionJobDraft {
-                id: format!("file-{}-{}", now_ms(), runtime.next_job_number),
-                canonical_source: canonical_source.clone(),
-                final_output: reservation.output_path.clone(),
-                source_name: candidate.source_name.clone(),
-                size_bytes: candidate.size_bytes.unwrap_or(0),
-                direction,
-                target_name: reservation.output_name,
-            };
-            match runtime.queue.enqueue(draft, now_ms()) {
-                Ok(snapshot) => {
-                    runtime.reserved_paths.insert(reservation.output_path);
-                    jobs.push(snapshot);
-                }
-                Err(error) => {
-                    rejected_candidates.push(rejected_from_candidate(candidate, error));
+            let mut runtime = self.lock_runtime()?;
+            let mut jobs = Vec::new();
+            for (candidate, canonical_source, direction, reservation) in prepared {
+                runtime.next_job_number += 1;
+                let draft = FileConversionJobDraft {
+                    id: format!("file-{}-{}", now_ms(), runtime.next_job_number),
+                    canonical_source: canonical_source.clone(),
+                    final_output: reservation.output_path.clone(),
+                    source_name: candidate.source_name.clone(),
+                    size_bytes: candidate.size_bytes.unwrap_or(0),
+                    direction,
+                    target_name: reservation.output_name,
+                };
+                match runtime.queue.enqueue(draft, now_ms()) {
+                    Ok(snapshot) => {
+                        runtime.reserved_paths.insert(reservation.output_path);
+                        jobs.push(snapshot);
+                    }
+                    Err(error) => {
+                        rejected_candidates.push(rejected_from_candidate(candidate, error));
+                    }
                 }
             }
-        }
 
-        Ok(FileConversionBatchResult {
-            jobs,
-            rejected_candidates,
-        })
+            Ok(FileConversionBatchResult {
+                jobs,
+                rejected_candidates,
+            })
+        })();
+        diagnostic.finish(&result);
+        result
     }
 
     pub fn snapshots(&self) -> Result<Vec<FileConversionJobSnapshot>, FileConversionError> {
@@ -324,20 +390,30 @@ impl FileConversionState {
         &self,
         job_id: &str,
     ) -> Result<Vec<FileConversionJobSnapshot>, FileConversionError> {
-        let mut runtime = self.lock_runtime()?;
-        if runtime.queue.active_job_id() == Some(job_id) {
-            runtime
-                .cancellations
-                .entry(job_id.to_string())
-                .or_default()
-                .cancel();
-            return runtime
-                .queue
-                .record(job_id)
-                .map(|record| vec![record.snapshot.clone()])
-                .ok_or_else(unknown_job);
-        }
-        runtime.queue.cancel(job_id, now_ms())
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.file"), "cancel");
+        let result = (|| {
+            let mut runtime = self.lock_runtime()?;
+            if runtime.queue.active_job_id() == Some(job_id) {
+                runtime
+                    .cancellations
+                    .entry(job_id.to_string())
+                    .or_default()
+                    .cancel();
+                return runtime
+                    .queue
+                    .record(job_id)
+                    .map(|record| vec![record.snapshot.clone()])
+                    .ok_or_else(unknown_job);
+            }
+            runtime.queue.cancel(job_id, now_ms())
+        })();
+        diagnostic.outcome(if result.is_ok() {
+            crate::services::diagnostics::contracts::Outcome::Cancelled
+        } else {
+            crate::services::diagnostics::contracts::Outcome::Failed
+        });
+        result
     }
 
     pub fn remove(&self, job_id: &str) -> Result<FileConversionJobSnapshot, FileConversionError> {
@@ -576,6 +652,16 @@ async fn execute_active_job(
     });
     let _ = remove_job_temp_directory(&temp_root, &job_directory);
 
+    let outcome = match &final_result {
+        Ok(_) => crate::services::diagnostics::contracts::Outcome::Succeeded,
+        Err(error) if error.code == FileConversionErrorCode::Cancelled => {
+            crate::services::diagnostics::contracts::Outcome::Cancelled
+        }
+        Err(_) => crate::services::diagnostics::contracts::Outcome::Failed,
+    };
+    if final_result.is_ok() {
+        crate::services::diagnostics::native(Some("zero.file"), "execute", outcome);
+    }
     match final_result {
         Ok(result) => finish_completed(app, &record.snapshot.id, result),
         Err(error) => finish_with_error(app, &record.snapshot.id, error),
@@ -613,6 +699,7 @@ fn finish_completed(app: &tauri::AppHandle, job_id: &str, result: FileConversion
 }
 
 fn finish_with_error(app: &tauri::AppHandle, job_id: &str, error: FileConversionError) {
+    super::errors::record_diagnostic_error(&error);
     let state = app.state::<FileConversionState>();
     if let Ok(updates) = state.lock_runtime().and_then(|mut runtime| {
         runtime.cancellations.remove(job_id);

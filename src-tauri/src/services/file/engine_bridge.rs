@@ -189,6 +189,7 @@ struct EngineSession {
 #[derive(Default)]
 struct EngineRuntime {
     ready_version: Option<String>,
+    last_dev_fallback: Option<bool>,
     sessions: HashMap<String, EngineSession>,
     lifecycle_generation: u64,
     scheduled_idle_generation: Option<u64>,
@@ -242,6 +243,21 @@ struct LeasedEngine {
 }
 
 impl FileEngineBridge {
+    pub fn record_diagnostic_fallback(&self, fallback: bool) {
+        if let Ok(mut runtime) = self.runtime.try_lock() {
+            runtime.last_dev_fallback = Some(fallback);
+        }
+    }
+    pub fn diagnostic_dev_fallback(
+        &self,
+    ) -> Result<Option<bool>, crate::services::diagnostics::contracts::DiagnosticsError> {
+        self.runtime
+            .try_lock()
+            .map(|r| r.last_dev_fallback)
+            .map_err(|_| {
+                crate::services::diagnostics::contracts::DiagnosticsError::new("unavailable")
+            })
+    }
     pub fn convert(
         self: &Arc<Self>,
         app: &tauri::AppHandle,
@@ -349,51 +365,63 @@ impl FileEngineBridge {
         app: &tauri::AppHandle,
         leased_engine: &LeasedEngine,
     ) -> Result<(), FileConversionError> {
-        let expected_version = leased_engine.engine.package_version.clone();
-        if self
-            .runtime
-            .lock()
-            .map_err(|_| bridge_error("The built-in engine readiness state is unavailable."))?
-            .ready_version
-            .as_deref()
-            .is_some_and(|version| version != expected_version)
-        {
-            self.reset_and_destroy(
-                app,
-                "The built-in engine version changed while a session was active.",
-            );
-        }
-        for attempt in 0..2 {
-            self.create_window_if_missing(app, leased_engine, &expected_version)?;
-            let runtime = self
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.file"), "readiness");
+        let result = (|| {
+            let expected_version = leased_engine.engine.package_version.clone();
+            if self
                 .runtime
                 .lock()
-                .map_err(|_| bridge_error("The built-in engine readiness state is unavailable."))?;
-            let (runtime, timeout) = self
-                .ready
-                .wait_timeout_while(runtime, ENGINE_STARTUP_TIMEOUT, |runtime| {
-                    runtime.ready_version.as_deref() != Some(expected_version.as_str())
-                })
-                .map_err(|_| bridge_error("The built-in engine readiness wait failed."))?;
-            if !timeout.timed_out()
-                && runtime.ready_version.as_deref() == Some(expected_version.as_str())
+                .map_err(|_| bridge_error("The built-in engine readiness state is unavailable."))?
+                .ready_version
+                .as_deref()
+                .is_some_and(|version| version != expected_version)
             {
-                return Ok(());
+                self.reset_and_destroy(
+                    app,
+                    "The built-in engine version changed while a session was active.",
+                );
             }
-            drop(runtime);
-            if attempt == 0 && app.get_webview_window(FILE_ENGINE_LABEL).is_none() {
-                continue;
+            for attempt in 0..2 {
+                self.create_window_if_missing(app, leased_engine, &expected_version)?;
+                let runtime = self.runtime.lock().map_err(|_| {
+                    bridge_error("The built-in engine readiness state is unavailable.")
+                })?;
+                let (runtime, timeout) = self
+                    .ready
+                    .wait_timeout_while(runtime, ENGINE_STARTUP_TIMEOUT, |runtime| {
+                        runtime.ready_version.as_deref() != Some(expected_version.as_str())
+                    })
+                    .map_err(|_| bridge_error("The built-in engine readiness wait failed."))?;
+                if !timeout.timed_out()
+                    && runtime.ready_version.as_deref() == Some(expected_version.as_str())
+                {
+                    return Ok(());
+                }
+                drop(runtime);
+                if attempt == 0 && app.get_webview_window(FILE_ENGINE_LABEL).is_none() {
+                    continue;
+                }
+                crate::services::diagnostics::record(
+                    Some("zero.file"),
+                    "readiness",
+                    "readiness.timeout",
+                    crate::services::diagnostics::contracts::Outcome::Failed,
+                    Default::default(),
+                );
+                return Err(provider_error(
+                    FileConversionErrorCode::Timeout,
+                    "The built-in engine did not become ready in time.",
+                    true,
+                    None,
+                ));
             }
-            return Err(provider_error(
-                FileConversionErrorCode::Timeout,
-                "The built-in engine did not become ready in time.",
-                true,
-                None,
-            ));
-        }
-        Err(bridge_error(
-            "The built-in engine readiness retry was exhausted.",
-        ))
+            Err(bridge_error(
+                "The built-in engine readiness retry was exhausted.",
+            ))
+        })();
+        diagnostic.finish(&result);
+        result
     }
 
     fn create_window_if_missing(
@@ -402,62 +430,75 @@ impl FileEngineBridge {
         leased_engine: &LeasedEngine,
         expected_version: &str,
     ) -> Result<(), FileConversionError> {
-        if app.get_webview_window(FILE_ENGINE_LABEL).is_some() {
-            return Ok(());
-        }
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let engine_app = app.clone();
-        let bridge = Arc::clone(self);
-        let window_url = if leased_engine.installed {
-            tauri::Url::parse(&format!(
-                "{FILE_ENGINE_SCHEME}://localhost/{expected_version}/index.html"
-            ))
-            .map(WebviewUrl::CustomProtocol)
-            .map_err(|_| bridge_error("The installed File engine URL is invalid."))?
-        } else {
-            WebviewUrl::App("index.html".into())
-        };
-        app.run_on_main_thread(move || {
-            let result = (|| {
-                if engine_app.get_webview_window(FILE_ENGINE_LABEL).is_some() {
-                    return Ok(());
-                }
-                let window =
-                    tauri::WebviewWindowBuilder::new(&engine_app, FILE_ENGINE_LABEL, window_url)
-                        .title("Zero File Engine")
-                        .visible(false)
-                        .decorations(false)
-                        .skip_taskbar(true)
-                        .inner_size(900.0, 1200.0)
-                        .disable_drag_drop_handler()
-                        .on_navigation(|url| {
-                            matches!(url.scheme(), "tauri" | "ipc" | FILE_ENGINE_SCHEME)
-                                || url.host_str().is_some_and(|host| {
-                                    host == "tauri.localhost"
-                                        || (cfg!(debug_assertions) && host == "localhost")
-                                })
-                        })
-                        .build()
-                        .map_err(|_| {
-                            bridge_error("The isolated built-in engine WebView could not start.")
-                        })?;
-                window.on_window_event(move |event| {
-                    if matches!(event, tauri::WindowEvent::Destroyed) {
-                        bridge
-                            .fail_all_sessions("The built-in engine WebView stopped unexpectedly.");
+        let mut diagnostic =
+            crate::services::diagnostics::Operation::new(Some("zero.file"), "engine-create");
+        let result = (|| {
+            if app.get_webview_window(FILE_ENGINE_LABEL).is_some() {
+                return Ok(());
+            }
+            let (sender, receiver) = mpsc::sync_channel(1);
+            let engine_app = app.clone();
+            let bridge = Arc::clone(self);
+            let window_url = if leased_engine.installed {
+                tauri::Url::parse(&format!(
+                    "{FILE_ENGINE_SCHEME}://localhost/{expected_version}/index.html"
+                ))
+                .map(WebviewUrl::CustomProtocol)
+                .map_err(|_| bridge_error("The installed File engine URL is invalid."))?
+            } else {
+                WebviewUrl::App("index.html".into())
+            };
+            app.run_on_main_thread(move || {
+                let result = (|| {
+                    if engine_app.get_webview_window(FILE_ENGINE_LABEL).is_some() {
+                        return Ok(());
                     }
-                });
-                Ok(())
-            })();
-            let _ = sender.send(result);
-        })
-        .map_err(|_| bridge_error("The isolated built-in engine WebView could not start."))?;
-        receiver
-            .recv_timeout(ENGINE_STARTUP_TIMEOUT)
-            .map_err(|_| {
-                bridge_error("The isolated built-in engine WebView did not start in time.")
-            })??;
-        Ok(())
+                    let window = tauri::WebviewWindowBuilder::new(
+                        &engine_app,
+                        FILE_ENGINE_LABEL,
+                        window_url,
+                    )
+                    .title("Zero File Engine")
+                    .visible(false)
+                    .decorations(false)
+                    .skip_taskbar(true)
+                    .inner_size(900.0, 1200.0)
+                    .disable_drag_drop_handler()
+                    .on_navigation(|url| {
+                        matches!(url.scheme(), "tauri" | "ipc" | FILE_ENGINE_SCHEME)
+                            || url.host_str().is_some_and(|host| {
+                                host == "tauri.localhost"
+                                    || (cfg!(debug_assertions) && host == "localhost")
+                            })
+                    })
+                    .build()
+                    .map_err(|_| {
+                        bridge_error("The isolated built-in engine WebView could not start.")
+                    })?;
+                    window.on_window_event(move |event| {
+                        if matches!(event, tauri::WindowEvent::Destroyed) {
+                            bridge.fail_all_sessions(
+                                "The built-in engine WebView stopped unexpectedly.",
+                            );
+                        }
+                    });
+                    Ok(())
+                })();
+                let _ = sender.send(result);
+            })
+            .map_err(|_| bridge_error("The isolated built-in engine WebView could not start."))?;
+            receiver
+                .recv_timeout(ENGINE_STARTUP_TIMEOUT)
+                .map_err(|_| {
+                    bridge_error("The isolated built-in engine WebView did not start in time.")
+                })??;
+            if let Ok(mut runtime) = self.runtime.lock() {
+                runtime.last_dev_fallback = Some(!leased_engine.installed);
+            }
+            Ok(())
+        })();
+        diagnostic.finish(&result);
+        result
     }
 
     fn wait_for_completion(
@@ -957,7 +998,9 @@ fn engine_header<'a>(request: &'a tauri::ipc::Request<'_>) -> Result<&'a str, St
 }
 
 fn acquire_engine(app: &tauri::AppHandle) -> Result<LeasedEngine, FileConversionError> {
-    match app
+    let mut diagnostic =
+        crate::services::diagnostics::Operation::new(Some("zero.file"), "provider");
+    let result = (|| match app
         .state::<PluginRegistryState>()
         .with_registry(|registry| registry.acquire_active_engine(FILE_ENGINE_PLUGIN_ID))
     {
@@ -983,7 +1026,9 @@ fn acquire_engine(app: &tauri::AppHandle) -> Result<LeasedEngine, FileConversion
             failure.diagnostic = Some(bounded_string(&error, 512));
             Err(failure)
         }
-    }
+    })();
+    diagnostic.finish(&result);
+    result
 }
 
 fn release_engine(app: &tauri::AppHandle, lease: &LeasedEngine) {
