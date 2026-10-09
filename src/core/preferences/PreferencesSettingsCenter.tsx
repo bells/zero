@@ -33,6 +33,7 @@ import {
 type PreferencesController = ReturnType<typeof usePreferences>;
 
 interface PreferencesSettingsCenterProps {
+  active?: boolean;
   localizedPlugins: PluginMeta[];
   pluginHost: PluginHostController;
   preferences: PreferencesController;
@@ -47,6 +48,7 @@ const NAVIGATION_GROUP_ORDER: PreferencesNavigationGroup[] = [
 ];
 
 export function PreferencesSettingsCenter({
+  active = true,
   localizedPlugins,
   pluginHost,
   preferences,
@@ -102,19 +104,18 @@ export function PreferencesSettingsCenter({
   }, []);
 
   useEffect(() => {
+    if (!active || !pendingFocusTarget) return;
     const targetId = pendingFocusTarget;
     const frame = window.requestAnimationFrame(() => {
       if (targetId) {
         const target = document.getElementById(targetId);
-        target?.scrollIntoView({ block: "center", behavior: "smooth" });
+        target?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
         target?.focus({ preventScroll: true });
         setPendingFocusTarget(null);
-      } else if (narrowPageOpen) {
-        contentHeadingRef.current?.focus();
       }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [resolvedDestinationId, pendingFocusTarget, narrowPageOpen]);
+  }, [active, resolvedDestinationId, pendingFocusTarget, narrowPageOpen]);
 
   const runOperation = useCallback(async (
     operationKey: string,
@@ -152,7 +153,7 @@ export function PreferencesSettingsCenter({
     focusTargetId?: string,
   ) => {
     setSelectedDestination(destinationId);
-    setPendingFocusTarget(focusTargetId ?? null);
+    setPendingFocusTarget(focusTargetId ?? "preferences-content-title");
     setNarrowPageOpen(true);
   }, []);
 

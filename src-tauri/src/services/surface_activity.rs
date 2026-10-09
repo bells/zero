@@ -62,6 +62,8 @@ pub fn show_surface(window: &tauri::WebviewWindow) -> tauri::Result<()> {
 
 pub fn hide_surface(window: &tauri::WebviewWindow) -> tauri::Result<()> {
     window.hide()?;
+    #[cfg(target_os = "macos")]
+    super::status_bar_highlights::sync_surface(window.app_handle(), window.label());
     emit_to_surface(window, SurfaceActivityState::Hidden)
 }
 

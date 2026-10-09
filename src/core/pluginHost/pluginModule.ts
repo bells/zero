@@ -1,3 +1,4 @@
+import type { PluginNavigationIcon } from "./pluginTypes";
 import type { ComponentType } from "react";
 import type { ResolvedLanguage } from "../preferences/i18n";
 import type { PluginManifest } from "./contracts";
@@ -21,6 +22,7 @@ export type BundledPluginLoader<Props = Record<string, never>> = () => Promise<{
 
 export interface BundledPluginModule {
   kind: string;
+  navigationIcon?: PluginNavigationIcon;
   accentClass: string;
   manifest: PluginManifest;
   presentation: Readonly<Record<ResolvedLanguage, PluginPresentation>>;

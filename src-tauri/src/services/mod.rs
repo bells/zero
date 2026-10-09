@@ -12,3 +12,13 @@ pub mod surface_activity;
 pub mod tool_windows;
 
 pub mod diagnostics;
+
+pub mod main_navigation;
+pub mod status_bar_highlight_model;
+pub mod tray_panel;
+
+#[cfg(target_os = "macos")]
+pub mod status_bar_highlights;
+
+#[cfg(target_os = "macos")]
+pub mod status_bar_tooltips;

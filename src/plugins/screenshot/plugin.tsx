@@ -4,6 +4,7 @@ import { createScreenshotTranslator, screenshotMessages } from "./i18n";
 
 export const screenshotPlugin: BundledPluginModule = {
   kind: "screenshot",
+  navigationIcon: "screenshot",
   accentClass: "accent-screenshot",
   manifest: metadata as BundledPluginModule["manifest"],
   presentation: {

@@ -1,7 +1,7 @@
-export type AppSurface = "tray" | "main" | "preferences" | "about" | "capture" | "pin" | "launcher" | "paper" | "snap-menu";
+export type AppSurface = "tray" | "main" | "about" | "capture" | "pin" | "launcher" | "paper" | "snap-menu";
 
 export function resolveAppSurface(label: string): AppSurface {
-  if (label === "main" || label === "preferences" || label === "about" || label === "capture" || label === "launcher" || label === "paper" || label === "snap-menu") {
+  if (label === "main" || label === "about" || label === "capture" || label === "launcher" || label === "paper" || label === "snap-menu") {
     return label;
   }
 

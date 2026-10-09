@@ -107,7 +107,6 @@ pub fn frontend_allowed(label: &str, input: &FrontendInput) -> bool {
     let plugin = input.plugin_id.as_deref();
     let caller = match label {
         "main" | "tray" => plugin.is_some_and(|id| TOOLS.contains(&id)),
-        "preferences" => plugin.is_none(),
         "capture" | "snap-menu" => plugin == Some("zero.snap"),
         "launcher" => plugin == Some("zero.launch"),
         "paper" => plugin == Some("zero.paper"),

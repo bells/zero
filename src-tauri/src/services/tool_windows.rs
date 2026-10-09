@@ -2,8 +2,6 @@ use tauri::{Manager, PhysicalPosition, PhysicalRect, PhysicalSize};
 
 use crate::services::surface_activity::hide_surface;
 
-const TRAY_WINDOW_LABEL: &str = "tray";
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolWindowKind {
     Paper,
@@ -146,8 +144,15 @@ pub fn position_anchored_tool_window(
         .map_err(|error| format!("failed to center {display_name} safely: {error}"))
 }
 
+pub fn prepare_tray_window(app: &tauri::AppHandle) -> Result<(), String> {
+    for tool in TOOL_WINDOWS {
+        hide_tool_window(app, tool)?;
+    }
+    Ok(())
+}
+
 pub fn prepare_tool_window(app: &tauri::AppHandle, opening: ToolWindowKind) -> Result<(), String> {
-    hide_window(app, TRAY_WINDOW_LABEL, "Zero tray")?;
+    crate::services::tray_panel::hide(app)?;
     for tool in peer_tool_windows(opening) {
         hide_tool_window(app, tool)?;
     }

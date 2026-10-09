@@ -8,7 +8,6 @@ use crate::services::surface_activity::show_surface;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum AppShellWindow {
     Main,
-    Preferences,
     About,
 }
 
@@ -34,15 +33,6 @@ impl AppShellWindow {
                 min_height: 520.0,
                 resizable: true,
             },
-            Self::Preferences => AppShellWindowOptions {
-                label: "preferences",
-                title: "Zero Preferences",
-                width: 840.0,
-                height: 640.0,
-                min_width: 420.0,
-                min_height: 500.0,
-                resizable: true,
-            },
             Self::About => AppShellWindowOptions {
                 label: "about",
                 title: "About Zero",
@@ -57,13 +47,47 @@ impl AppShellWindow {
 }
 
 #[tauri::command]
-pub fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
-    show_app_shell_window(&app, AppShellWindow::Main)
+pub fn hide_tray_quick_panel(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    crate::services::tray_panel::ensure_tray_caller(window.label())?;
+    crate::services::tray_panel::hide(&app)
 }
 
 #[tauri::command]
-pub fn show_preferences_window(app: tauri::AppHandle) -> Result<(), String> {
-    show_app_shell_window(&app, AppShellWindow::Preferences)
+pub fn show_main_window(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
+    crate::services::main_navigation::ensure_shell_caller(window.label())?;
+    open_main_window(app)
+}
+
+pub fn open_main_window(app: tauri::AppHandle) -> Result<(), String> {
+    show_main_destination(
+        &app,
+        crate::services::main_navigation::MainWindowDestination::Tools,
+    )
+}
+
+#[tauri::command]
+pub fn show_preferences_window(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    crate::services::main_navigation::ensure_shell_caller(window.label())?;
+    show_main_destination(
+        &app,
+        crate::services::main_navigation::MainWindowDestination::Preferences,
+    )
+}
+
+fn show_main_destination(
+    app: &tauri::AppHandle,
+    destination: crate::services::main_navigation::MainWindowDestination,
+) -> Result<(), String> {
+    app.state::<crate::services::main_navigation::MainNavigationState>()
+        .request(destination)?;
+    show_app_shell_window(app, AppShellWindow::Main)?;
+    crate::services::main_navigation::publish(app)
 }
 
 #[tauri::command]
@@ -139,6 +163,7 @@ fn show_app_shell_window(app: &tauri::AppHandle, target: AppShellWindow) -> Resu
     let mut diagnostic = crate::services::diagnostics::Operation::new(None, "window");
     let result = (|| {
         let options = target.options();
+        crate::services::tray_panel::hide(app)?;
         promote_app_for_app_window(app);
 
         if let Some(existing) = app.get_webview_window(options.label) {
@@ -189,29 +214,17 @@ mod tests {
     #[test]
     fn app_shell_window_labels_are_explicit() {
         assert_eq!(AppShellWindow::Main.options().label, "main");
-        assert_eq!(AppShellWindow::Preferences.options().label, "preferences");
         assert_eq!(AppShellWindow::About.options().label, "about");
     }
 
     #[test]
     fn main_window_is_roomier_than_system_windows() {
         let main = AppShellWindow::Main.options();
-        let preferences = AppShellWindow::Preferences.options();
         let about = AppShellWindow::About.options();
 
-        assert!(main.width > preferences.width);
+        assert!(main.width > about.width);
         assert!(main.height > about.height);
         assert!(main.resizable);
         assert!(!about.resizable);
-    }
-
-    #[test]
-    fn preferences_window_supports_regular_and_compact_layouts() {
-        let preferences = AppShellWindow::Preferences.options();
-
-        assert_eq!(preferences.label, "preferences");
-        assert_eq!((preferences.width, preferences.height), (840.0, 640.0));
-        assert!(preferences.min_width <= 420.0);
-        assert!(preferences.resizable);
     }
 }

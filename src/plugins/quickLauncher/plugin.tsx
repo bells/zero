@@ -7,6 +7,7 @@ import {
 
 export const quickLauncherPlugin: BundledPluginModule = {
   kind: "quick-launcher",
+  navigationIcon: "launch",
   accentClass: "accent-quick-launcher",
   manifest: metadata as BundledPluginModule["manifest"],
   presentation: {

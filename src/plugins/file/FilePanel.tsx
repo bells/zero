@@ -121,7 +121,6 @@ export function FilePanel({ t }: FilePanelProps) {
     <section className="plugin-panel file-panel accent-file" aria-labelledby="file-panel-title">
       <header className="file-panel-header">
         <div>
-          <span className="file-kicker">LOCAL / SESSION</span>
           <h2 id="file-panel-title">{t("file.title")}</h2>
         </div>
         <div className="file-header-actions">

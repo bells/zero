@@ -1,10 +1,10 @@
 # Zero Project Context
 
-Updated: 2026-09-25. Read [AGENTS.md](../AGENTS.md) and [the current project overview](../docs/project-overview.md) before proposing changes. This file describes the live source architecture; existing change artifacts can contain earlier names or superseded designs.
+Updated: 2026-10-09 (window map). Read [AGENTS.md](../AGENTS.md) and [the current project overview](../docs/project-overview.md) before proposing changes. This file describes the live source architecture; existing change artifacts can contain earlier names or superseded designs.
 
 ## Product and stack
 
-Zero is a tray-first desktop toolbox with a compact `tray` window, a standalone `main` window, separate `preferences` and `about` windows, and plugin-owned tool surfaces. It is not a web dashboard. The five bundled tools are Zero Snap, Zero Awake, Zero Paper, Zero Launch, and Zero File.
+Zero is a tray-first desktop toolbox with a compact `tray` window, a standalone `main` window containing tools and preferences views, a separate `about` window, and plugin-owned tool surfaces. It is not a web dashboard. The five bundled tools are Zero Snap, Zero Awake, Zero Paper, Zero Launch, and Zero File.
 
 Stack: Tauri 2, Rust 2021, React 19, TypeScript 5.8, Vite 7, pnpm 10.33.0. CI uses Node 24; dependencies require Node 22.13+ on 22.x or 24+. The current package/Tauri/Cargo version is 0.1.0; verify it again for release work. Mobile is a future consideration, not a delivered platform.
 
@@ -13,7 +13,7 @@ Stack: Tauri 2, Rust 2021, React 19, TypeScript 5.8, Vite 7, pnpm 10.33.0. CI us
 | Concern | Source |
 | --- | --- |
 | Lazy window routing | `src/main.tsx`, `src/appShell/appSurface.ts` |
-| Tray/main/preferences/about shells | `src/App.tsx` |
+| Tray/main (tools/preferences)/about shells | `src/App.tsx` |
 | Frontend plugin composition | `src/appShell/bundledPluginModules.ts` |
 | Host contracts, registry/market UI, Extension Bridge | `src/core/pluginHost/` |
 | Preferences, localization, storage | `src/core/preferences/` |
@@ -28,8 +28,8 @@ Core cannot import concrete plugins; plugins cannot import peers. Host coordinat
 ## Window model
 
 - `tray`: initially hidden 400 × 500 quick panel defined in `tauri.conf.json`.
-- `main`: 920 × 660 standalone tool home created by `commands/app.rs`.
-- `preferences`: 840 × 640 settings center; `about`: 460 × 420 identity surface.
+- `main`: 920 × 660 (minimum 760 × 520) tool home/settings view created by `commands/app.rs`; `show_preferences_window` redirects here through retained revisioned navigation.
+- `about`: 500 × 560 (minimum 420 × 360) identity surface.
 - `capture`, `pin-*`: macOS screenshot editing and pinned results.
 - `launcher`, `paper`, `snap-menu`: dedicated tool surfaces.
 - `zero-file-engine`: hidden isolated document engine, with separate `file-engine.json` capabilities.

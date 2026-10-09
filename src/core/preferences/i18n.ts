@@ -6,6 +6,24 @@ export type LocalizedMessages = Readonly<Record<ResolvedLanguage, MessageBundle>
 export type Translator = (key: string) => string;
 
 const zh = {
+  "shell.returnToTools": "返回工具",
+  "shell.loadingTool": "正在加载工具…",
+  "shell.noTools": "没有已启用的工具",
+  "shell.noToolsHint": "可以在扩展市场安装工具，或恢复内置工具。",
+  "shell.noToolView": "此工具没有提供工作区界面，可以在偏好设置中查看状态。",
+  "shell.collapseSidebar": "收起工具栏",
+  "shell.expandSidebar": "展开工具栏",
+  "shell.compactSidebar": "窗口较窄，使用紧凑工具栏",
+  "shell.previousTools": "查看前面的工具",
+  "shell.nextTools": "查看后面的工具",
+  "shell.preferencesSaveError": "布局在本次会话有效，偏好保存失败",
+  "shell.health.ready": "已就绪",
+  "shell.health.active": "运行中",
+  "shell.health.disabled": "已停用",
+  "shell.health.incompatible": "不兼容",
+  "shell.health.pending": "准备中",
+  "shell.health.error": "异常",
+
   "about.projectLinks": "项目链接",
   "about.website": "官网",
   "about.support": "支持与诊断",
@@ -249,6 +267,24 @@ const zh = {
 } as const;
 
 const en: Record<keyof typeof zh, string> = {
+  "shell.returnToTools": "Return to tools",
+  "shell.loadingTool": "Loading tool…",
+  "shell.noTools": "No enabled tools",
+  "shell.noToolsHint": "Install a tool from the extension market or restore bundled tools.",
+  "shell.noToolView": "This tool has no workspace view. Check its status in preferences.",
+  "shell.collapseSidebar": "Collapse tools",
+  "shell.expandSidebar": "Expand tools",
+  "shell.compactSidebar": "Compact tools for this window width",
+  "shell.previousTools": "Show previous tools",
+  "shell.nextTools": "Show next tools",
+  "shell.preferencesSaveError": "Layout applies for this session; preferences could not be saved",
+  "shell.health.ready": "Ready",
+  "shell.health.active": "Active",
+  "shell.health.disabled": "Disabled",
+  "shell.health.incompatible": "Incompatible",
+  "shell.health.pending": "Pending",
+  "shell.health.error": "Error",
+
   "about.projectLinks": "Project links",
   "about.website": "Website",
   "about.support": "Support & diagnostics",

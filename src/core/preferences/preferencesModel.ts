@@ -9,12 +9,14 @@ export type LanguagePreference = "system" | "zh-CN" | "en-US";
 
 export interface AppPreferences {
   launchAtLogin: boolean;
+  mainSidebarCollapsed: boolean;
   language: LanguagePreference;
   visibleTools: Record<PluginId, boolean>;
 }
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   launchAtLogin: false,
+  mainSidebarCollapsed: false,
   language: "system",
   visibleTools: {
     [FIRST_PARTY_PLUGIN_IDS.snap]: true,
@@ -37,6 +39,7 @@ export function normalizePreferences(
 
   return {
     launchAtLogin: input.launchAtLogin ?? false,
+    mainSidebarCollapsed: typeof input.mainSidebarCollapsed === "boolean" ? input.mainSidebarCollapsed : false,
     language: normalizeLanguage(input.language),
     visibleTools: ensureAtLeastOneVisible(visibleTools, pluginIds),
   };

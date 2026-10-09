@@ -3,7 +3,7 @@ use tauri_plugin_autostart::ManagerExt;
 fn trusted(label: &str) -> Result<(), String> {
     if matches!(
         label,
-        "main" | "tray" | "preferences" | "about" | "capture" | "launcher" | "paper" | "snap-menu"
+        "main" | "tray" | "about" | "capture" | "launcher" | "paper" | "snap-menu"
     ) || label.starts_with("pin-")
     {
         Ok(())

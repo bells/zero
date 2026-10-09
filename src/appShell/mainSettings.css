@@ -1,0 +1,18 @@
+.main-window-shell [hidden] { display: none !important; }
+.main-settings-view { flex: 1 1 0; min-height: 0; overflow: hidden; border-radius: 12px; background: #f5f6f5; color: #1d2429; }
+.settings-open .main-window-header { min-height: 44px; }
+.settings-open .app-mark { display: none; }
+.settings-open .main-window-header h1 { font-size: 20px; }
+.main-window-actions button { min-height: 44px; }
+.return-to-tools { display: inline-flex; align-items: center; gap: 6px; }
+.return-to-tools svg { width: 18px; height: 18px; }
+.main-settings-view .preferences-content-scroll { padding: 24px; }
+.main-settings-view .preferences-content-header { padding: 24px 24px 18px; }
+.main-settings-view .preferences-sidebar-title { display: none; }
+.main-settings-view .preferences-navigation button { min-height: 44px; }
+.main-window-actions button:focus-visible { outline: 2px solid #166b3b; outline-offset: 2px; }
+@media (max-width: 800px) {
+  .main-settings-view .preferences-center { grid-template-columns: 184px minmax(0, 1fr); }
+  .main-settings-view .preferences-content-scroll, .main-settings-view .preferences-content-header { padding: 18px; }
+}
+@media (max-width: 680px) { .main-settings-view .preferences-center { display: block; } }

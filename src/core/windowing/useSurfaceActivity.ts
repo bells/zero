@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { PresentationEnabledContext } from "./PresentationActivity";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -10,6 +11,7 @@ import {
 } from "./surfaceActivityCore";
 
 export function useSurfaceActivity(): SurfaceActivityState {
+  const presentationEnabled = useContext(PresentationEnabledContext);
   const [activity, setActivity] = useState<SurfaceActivityState>("hidden");
 
   useEffect(() => {
@@ -63,5 +65,5 @@ export function useSurfaceActivity(): SurfaceActivityState {
     };
   }, []);
 
-  return activity;
+  return presentationEnabled || activity === "disposed" ? activity : "hidden";
 }

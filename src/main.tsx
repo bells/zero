@@ -33,11 +33,9 @@ async function loadRoutedApp(): Promise<{ default: ComponentType }> {
   const shell = await import("./App");
   const component = surface === "main"
     ? shell.MainWindowApp
-    : surface === "preferences"
-      ? shell.PreferencesWindowApp
-      : surface === "about"
-        ? shell.AboutWindowApp
-        : shell.TrayPanelApp;
+    : surface === "about"
+      ? shell.AboutWindowApp
+      : shell.TrayPanelApp;
   return { default: component };
 }
 

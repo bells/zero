@@ -114,6 +114,7 @@ pub async fn prepare_screenshot_commit(
     let label = window.label().to_string();
     validate_screenshot_commit_request(&app, &label, &input)?;
     let save_path = if input.action == "save" {
+        let _dialog_guard = crate::services::tray_panel::DialogGuard::new(&app, &label);
         rfd::AsyncFileDialog::new()
             .add_filter("PNG image", &["png"])
             .set_file_name(DEFAULT_SAVE_FILE_NAME)

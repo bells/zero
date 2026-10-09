@@ -7,6 +7,7 @@ import {
 
 export const bingWallpaperPlugin: BundledPluginModule = {
   kind: "bing-wallpaper",
+  navigationIcon: "paper",
   accentClass: "accent-bing-wallpaper",
   manifest: metadata as BundledPluginModule["manifest"],
   presentation: {

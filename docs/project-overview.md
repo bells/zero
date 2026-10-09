@@ -1,12 +1,16 @@
 # Zero 项目全景与维护地图
 
+2026-10-09 设置/高亮增量：main 内完整设置视图已接入，分类和搜索复用原设置中心；“返回工具”保留已访问工具子树，隐藏时暂停展示轮询。兼容 IPC 通过最新目标/revision 快照交接，不再创建独立 preferences 窗口。macOS 已接入组合按钮 cell mask 与局部背景绘制，高亮跟随稳定工具 ID，主 Ø 覆盖整组；实际系统栏按压/菜单视觉与 Windows 仍有未完成项。提交前完整 Rust 串行复测通过，先前进程超时记录保留。源码、自动检查和本机设置交互的独立证据见[补充验收记录](../openspec/changes/refine-tray-and-workspace-navigation/evidence/verification-supplement-2026-10-09.md)。此前数字不覆盖此增量。
+
+2026-10-09 导航增量：托盘采用 52px 单行图标导航与独立内容滚动；main 侧栏支持 192px/64px 展开收起、偏好保存与 800px 自动紧凑，工作区由插件保留唯一可见标题。原生 host 接入 tray generation/失焦延后重查与 dialog guard，macOS 接入组合单元 AppKit tooltip rect。最终前端 339 项、Rust 沙箱外串行 325 项通过（2 ignored）；真实外部失焦、OS hover、触控板/多屏和 Windows 等门禁仍未完成，见[导航验收记录](../openspec/changes/refine-tray-and-workspace-navigation/evidence/verification-2026-10-09.md)。旧基线证据保留日期语义。
+
 2026-10-09 增量：关于窗口更新为 500 × 560（最小 420 × 360），显示原生版本、GitHub/官网地址与支持诊断入口。`services/diagnostics` 在迁移前建立本地安全 JSONL/ring，五工具通过组合层接入 cached health，第三方开发协议增加独立 `diagnostics.write`。接入与隐私契约见[诊断指南](diagnostics.md)，检查及仍未完成的实机门禁见[本次证据](../openspec/changes/improve-about-and-add-diagnostics/evidence/verification.md)。当前是未提交的工作区变更；下述旧基线和历史证据保留日期语义。
 
 核对日期：2026-09-25。源码基线：`3120f5d3162440a69f561ea114db8ea9697921df`。本次是在该基线上的文档校准和一处测试模块排序修正，不是版本发布或完整安全审计。下列检查属于本机 macOS；未重新运行 Windows/Linux 设备测试、安装包测试或交互式截图流程。
 
 ## 当前结论
 
-Zero 已形成「托盘快速入口 + 独立主窗口 + 独立设置/关于 + 插件工具窗口」的桌面工具箱，包含 Snap、Awake、Paper、Launch、File 五个内置插件。主要模块边界已有自动测试约束；功能完成度不能只看插件目录、manifest 平台列表或任务勾选。
+Zero 已形成「托盘快速入口 + 主窗口工具/设置视图 + 独立关于 + 插件工具窗口」的桌面工具箱，包含 Snap、Awake、Paper、Launch、File 五个内置插件。主要模块边界已有自动测试约束；功能完成度不能只看插件目录、manifest 平台列表或任务勾选。
 
 当前 `package.json`、`src-tauri/Cargo.toml` 和 `tauri.conf.json` 均为 **0.1.0**。Zero File 的离线实现已存在，但签名包仍是未批准候选；性能和多显示器交互也保留未完成的实机门禁。旧文档中的“四个插件”“main 就是托盘”“截图通过 Base64 JSON 提交”等描述已不适用。
 
@@ -52,8 +56,8 @@ Tauri 窗口 label
 | label | 用途与入口 |
 | --- | --- |
 | `tray` | 默认隐藏的 400 × 500 快捷面板；`tauri.conf.json` |
-| `main` | 920 × 660 工具主窗口；`commands/app.rs` |
-| `preferences` / `about` | 设置中心 840 × 640 / 关于 500 × 560；独立于工具内容，关于诊断内容内部滚动 |
+| `main` | 920 × 660（最小 760 × 520）工具/设置主窗口；兼容 `show_preferences_window` 切换到设置，返回保留会话上下文 |
+| `about` | 500 × 560 独立关于窗口；诊断内容内部滚动 |
 | `launcher` | Launch 快捷键/状态栏入口，共享索引与查询 UI |
 | `paper` | Paper 专属窗口 |
 | `snap-menu` | Snap 状态栏截图入口 |

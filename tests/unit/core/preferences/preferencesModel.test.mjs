@@ -88,3 +88,17 @@ test("supports registry plugin ids and migrates legacy bundled visibility keys",
     "ztool.third-party": false,
   });
 });
+
+
+test("sidebar preference preserves legacy defaults and other preference fields", () => {
+  const legacy = { language: "zh-CN", launchAtLogin: true, visibleTools: { "zero.snap": false, "zero.awake": true } };
+  const ids = ["zero.snap", "zero.awake"];
+  assert.equal(normalizePreferences(legacy, ids).mainSidebarCollapsed, false);
+  assert.equal(normalizePreferences({ ...legacy, mainSidebarCollapsed: "false" }, ids).mainSidebarCollapsed, false);
+  const collapsed = normalizePreferences({ ...legacy, mainSidebarCollapsed: true }, ids);
+  assert.equal(collapsed.mainSidebarCollapsed, true);
+  assert.equal(collapsed.language, legacy.language);
+  assert.equal(collapsed.launchAtLogin, true);
+  assert.deepEqual(collapsed.visibleTools, legacy.visibleTools);
+  assert.equal(setLanguagePreference(collapsed, "en-US").mainSidebarCollapsed, true);
+});

@@ -9,6 +9,8 @@ const sources = [
   "src/sdk/react.tsx",
   "src/brand/identity.ts",
   "src/appShell/appSurface.ts",
+  "src/appShell/navigationLayout.ts",
+  "src/appShell/mainNavigation.ts",
   "src/core/pluginHost/contracts.ts",
   "src/core/pluginHost/registryRefresh.ts",
   "src/core/pluginHost/protocol/requests.ts",

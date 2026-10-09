@@ -1,10 +1,14 @@
 # Zero Memory
 
+2026-10-09 supplement implementation: main now owns tools/preferences views with stable visited tool state and paused hidden presentation. Native navigation retains a revisioned destination snapshot; show_preferences_window redirects to main, with no dedicated preferences window/capability. macOS adds per-tool highlight drawing and cell-mask suppression; primary Ø covers the group. System-bar visual checks and Windows devices remain open. The pre-commit full serial Rust rerun passed; prior process-timeout evidence is retained. See [supplement evidence](openspec/changes/refine-tray-and-workspace-navigation/evidence/verification-supplement-2026-10-09.md); earlier counts do not cover this work.
+
+2026-10-09 navigation update: compact icon tray navigation and a persistent 192/64px main sidebar are implemented; narrow mode starts at 800px and does not overwrite the saved preference. Plugin content owns the visible workspace title. Tray focus/dialog coordination and macOS per-cell AppKit tooltips are implemented, but external-focus dismissal, actual OS hover, touchpad/multi-display and Windows device gates remain open. Current source/build/native evidence: [navigation verification](openspec/changes/refine-tray-and-workspace-navigation/evidence/verification-2026-10-09.md). Older numbers below remain dated historical evidence.
+
 Last verified: 2026-09-25, source baseline `3120f5d`. This is a compact working map, not a release certificate. Recheck drift-prone values against source. Full findings and platform evidence are in [docs/project-overview.md](docs/project-overview.md); working rules are in [AGENTS.md](AGENTS.md).
 
 ## Stable architecture
 
-- Tray-first desktop toolbox, with separate tray/main/preferences/about and tool-specific windows. React 19 + TypeScript + Vite; Tauri 2 + Rust 2021. Mobile is not currently delivered.
+- Tray-first desktop toolbox, with separate tray/main/about and tool-specific windows; preferences is a view within main. React 19 + TypeScript + Vite; Tauri 2 + Rust 2021. Mobile is not currently delivered.
 - Five bundled plugins: `zero.snap`, `zero.awake`, `zero.paper`, `zero.launch`, `zero.file` under `src/plugins/{screenshot,caffeine,bingWallpaper,quickLauncher,file}`.
 - Frontend composition: `src/appShell/bundledPluginModules.ts`; Rust managed state: `src-tauri/src/bundled_plugins.rs`; command/protocol registration: `src-tauri/src/lib.rs`.
 - `src/core/` cannot import concrete plugins; plugins cannot import peers. Host coordinators handle shared window/status-bar/shortcut behavior. Tests enforce these boundaries.
@@ -13,7 +17,7 @@ Last verified: 2026-09-25, source baseline `3120f5d`. This is a compact working 
 ## Windows and lifecycle
 
 - `tray` is the hidden 400 × 500 startup window; `main` is a separate 920 × 660 tool home.
-- `preferences` and `about` are dedicated windows; `launcher`, `paper`, and `snap-menu` are tool surfaces.
+- Preferences lives within `main`; `about` remains dedicated. `launcher`, `paper`, and `snap-menu` are tool surfaces.
 - `capture` and `pin-*` are screenshot surfaces. `zero-file-engine` is hidden with its own narrow capability file.
 - `src/main.tsx` lazy-loads surfaces; unknown labels fall back to tray. File engine label handling is special.
 - Preserve window label/capability/caller-check symmetry, surface-activity handling, focus behavior, resource cleanup, and transient-window coordination.

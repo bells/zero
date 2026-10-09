@@ -44,3 +44,12 @@ test("legacy preferences are read and retained while writes use only canonical k
     "zh-CN",
   );
 });
+
+
+test("failed layout preference write leaves the previously stored preferences intact", () => {
+  const previous = JSON.stringify({ language: "zh-CN", mainSidebarCollapsed: false });
+  const storage = memoryStorage({ [PREFERENCES_STORAGE_KEY]: previous });
+  storage.setItem = () => { throw new Error("quota exceeded"); };
+  assert.throws(() => writeCanonicalPreferences(storage, { language: "zh-CN", mainSidebarCollapsed: true }), /quota exceeded/);
+  assert.equal(storage.values.get(PREFERENCES_STORAGE_KEY), previous);
+});

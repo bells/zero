@@ -89,6 +89,7 @@ pub fn sync_screenshot_shortcut(app: &tauri::AppHandle, enabled: bool) -> Result
 pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
     use services::surface_activity::{hide_surface, show_surface};
 
+    services::tray_panel::invalidate(app);
     if let Some(window) = app.get_webview_window(TRAY_WINDOW_LABEL) {
         if window
             .is_visible()
@@ -96,6 +97,7 @@ pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
         {
             hide_surface(&window).map_err(|error| format!("隐藏托盘窗口失败: {error}"))?;
         } else {
+            services::tool_windows::prepare_tray_window(app)?;
             window
                 .as_ref()
                 .window()
@@ -176,6 +178,8 @@ pub fn run() {
     let app = builder
         .manage(plugins::market::PluginMarketState::default())
         .manage(services::status_bar::StatusBarState::default())
+        .manage(services::tray_panel::TrayPanelState::default())
+        .manage(services::main_navigation::MainNavigationState::default())
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -205,6 +209,7 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .setup(|app| {
             bundled_plugins::register_diagnostics(app.handle());
+            services::tray_panel::register(app.handle());
             sync_screenshot_shortcut(
                 app.handle(),
                 plugin_is_enabled(app.handle(), brand::ZERO_SNAP_PLUGIN_ID),
@@ -268,10 +273,12 @@ pub fn run() {
             commands::app::record_plugin_activation,
             commands::app::get_performance_trace,
             services::surface_activity::get_surface_activity,
+            services::main_navigation::get_main_window_navigation,
             services::surface_activity::hide_current_surface,
             services::surface_activity::close_current_surface,
             commands::app::show_about_window,
             commands::app::show_main_window,
+            commands::app::hide_tray_quick_panel,
             commands::app::show_preferences_window,
             commands::plugins::refresh_plugin_market,
             commands::plugins::list_market_plugins,
@@ -352,6 +359,15 @@ pub fn run() {
         None,
     );
     app.run(|app, event| {
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::WindowEvent {
+            label,
+            event: tauri::WindowEvent::Focused(false) | tauri::WindowEvent::Destroyed,
+            ..
+        } = &event
+        {
+            services::status_bar_highlights::sync_surface(app, label);
+        }
         if let tauri::RunEvent::WindowEvent {
             label,
             event: tauri::WindowEvent::Destroyed,
@@ -370,6 +386,10 @@ pub fn run() {
                 "shutdown",
                 services::diagnostics::contracts::Outcome::Started,
             );
+            #[cfg(target_os = "macos")]
+            services::status_bar_tooltips::clear(app);
+            #[cfg(target_os = "macos")]
+            services::status_bar_highlights::shutdown(app);
             app.state::<services::file::FileConversionState>()
                 .shutdown_cleanup();
             let _ = app

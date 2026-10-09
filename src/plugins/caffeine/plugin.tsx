@@ -4,6 +4,7 @@ import { caffeineMessages, createCaffeineTranslator } from "./i18n";
 
 export const caffeinePlugin: BundledPluginModule = {
   kind: "caffeine",
+  navigationIcon: "caffeine-empty",
   accentClass: "accent-caffeine",
   manifest: metadata as BundledPluginModule["manifest"],
   presentation: {

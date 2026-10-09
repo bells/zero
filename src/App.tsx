@@ -1,11 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
+import "./appShell/navigation.css";
+import "./appShell/mainSettings.css";
 import {
   bundledPluginPresentation,
-  pluginAccentClass,
+  bundledPluginModule,
 } from "./appShell/bundledPluginModules";
 import { LazyPluginPanel } from "./appShell/LazyPluginPanel";
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PluginNavigation } from "./appShell/PluginNavigation";
+import { useCompactSidebar } from "./appShell/useCompactSidebar";
+import { useMainNavigation } from "./appShell/useMainNavigation";
+import { PresentationActivity } from "./core/windowing/PresentationActivity";
 import { PRODUCT_NAME } from "./brand/identity";
 import { StatusBarGlyph } from "./components/StatusBarGlyph";
 import { ExtensionSurface } from "./core/pluginHost/ExtensionSurface";
@@ -201,7 +208,7 @@ function pluginPanel(
           <section className="plugin-panel system-panel" aria-busy="true">
             <div className="panel-copy">
               <strong>{plugin.title}</strong>
-              <span>Loading…</span>
+              <span>{t("shell.loadingTool")}</span>
             </div>
           </section>
         }
@@ -210,48 +217,7 @@ function pluginPanel(
     );
   }
 
-  return <GenericPluginPanel plugin={plugin} />;
-}
-
-interface PluginPickerProps {
-  activePluginId: PluginId | undefined;
-  ariaLabel: string;
-  plugins: PluginMeta[];
-  variant: "grid" | "rail";
-  onSelect: (pluginId: PluginId) => void;
-}
-
-function PluginPicker({
-  activePluginId,
-  ariaLabel,
-  plugins,
-  variant,
-  onSelect,
-}: PluginPickerProps) {
-  return (
-    <section className={variant === "rail" ? "plugin-list plugin-rail" : "plugin-list"} aria-label={ariaLabel}>
-      {plugins.map((plugin) => (
-        <button
-          type="button"
-          className={[
-            "plugin-card",
-            pluginAccentClass(plugin.id),
-            plugin.id === activePluginId ? "selected" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          key={plugin.id}
-          onClick={() => onSelect(plugin.id)}
-        >
-          <span className={`plugin-health ${plugin.health}`} />
-          <span>
-            <strong>{plugin.title}</strong>
-            <small>{plugin.subtitle}</small>
-          </span>
-        </button>
-      ))}
-    </section>
-  );
+  return <GenericPluginPanel plugin={plugin} t={createTranslator(language)} />;
 }
 
 function EmptyPluginState({ t }: { t: (key: TranslationKey) => string }) {
@@ -265,14 +231,14 @@ function EmptyPluginState({ t }: { t: (key: TranslationKey) => string }) {
         <span className="status-pill">{t("app.tagline")}</span>
       </div>
       <div className="panel-copy">
-        <strong>No enabled plugins</strong>
-        <span>Install a plugin from the market or restore bundled defaults.</span>
+        <strong>{t("shell.noTools")}</strong>
+        <span>{t("shell.noToolsHint")}</span>
       </div>
     </section>
   );
 }
 
-function GenericPluginPanel({ plugin }: { plugin: PluginMeta }) {
+function GenericPluginPanel({ plugin, t }: { plugin: PluginMeta; t: (key: TranslationKey) => string }) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   if (plugin.viewId) {
@@ -293,16 +259,16 @@ function GenericPluginPanel({ plugin }: { plugin: PluginMeta }) {
     <section className="plugin-panel system-panel">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">Extension</span>
+          <span className="eyebrow">{t("extensions.title")}</span>
           <h2>{plugin.title}</h2>
         </div>
         <span className={`status-pill ${plugin.health === "ready" ? "active" : ""}`}>
-          {plugin.health}
+          {t(`shell.health.${plugin.health}`)}
         </span>
       </div>
       <div className="panel-copy">
         <strong>{plugin.subtitle}</strong>
-        <span>Generic extension rendering will be isolated in the extension surface.</span>
+        <span>{t("shell.noToolView")}</span>
       </div>
     </section>
   );
@@ -328,6 +294,7 @@ function localizePluginMeta(
     return {
       ...plugin,
       ...presentation,
+      navigationIcon: bundledPluginModule(plugin.id)?.navigationIcon,
     };
   }
 
@@ -362,6 +329,22 @@ export function TrayPanelApp() {
   usePluginMessages(setMessage);
   const [moreOpen, setMoreOpen] = useState(false);
 
+  useEffect(() => {
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      if (moreOpen) setMoreOpen(false);
+      else void runShellAction(appWindows.hideTrayQuickPanel, setMessage, t);
+    };
+    const clearMenu = () => setMoreOpen(false);
+    document.addEventListener("keydown", dismiss);
+    window.addEventListener("blur", clearMenu);
+    return () => {
+      document.removeEventListener("keydown", dismiss);
+      window.removeEventListener("blur", clearMenu);
+    };
+  }, [moreOpen, resolvedLanguage]);
+
   const runAction = (action: () => Promise<void>) =>
     runShellAction(action, setMessage, t).finally(() => setMoreOpen(false));
 
@@ -370,7 +353,6 @@ export function TrayPanelApp() {
       <header className="app-header" data-tauri-drag-region>
         <div>
           <h1>{PRODUCT_NAME}</h1>
-          <p>{t("app.tagline")}</p>
         </div>
         <span className="shell-badge">
           {visiblePlugins.length}/{totalPluginCount} {t("app.pluginCount")}
@@ -384,15 +366,9 @@ export function TrayPanelApp() {
         onRunItem={(itemId) => runAction(() => statusBar.runItemAction(itemId))}
       />
 
-      <PluginPicker
-        activePluginId={activePlugin?.id}
-        ariaLabel={t("shell.plugins")}
-        plugins={visiblePlugins}
-        variant="grid"
-        onSelect={setSelectedPlugin}
-      />
+      <PluginNavigation activePluginId={activePlugin?.id} plugins={visiblePlugins} variant="strip" t={t} onSelect={setSelectedPlugin} />
 
-      {pluginPanel(activePlugin, resolvedLanguage)}
+      <div className="tray-plugin-content">{pluginPanel(activePlugin, resolvedLanguage)}</div>
 
       {message ? <p className={`shell-message ${message.tone}`}>{message.text}</p> : null}
 
@@ -401,6 +377,7 @@ export function TrayPanelApp() {
           type="button"
           className="tray-icon-action"
           title={t("nav.preferences")}
+          aria-label={t("nav.preferences")}
           onClick={() => runAction(appWindows.openPreferencesWindow)}
         >
           ⚙
@@ -416,6 +393,7 @@ export function TrayPanelApp() {
           type="button"
           className="tray-icon-action"
           title={t("shell.more")}
+          aria-label={t("shell.more")}
           aria-expanded={moreOpen}
           onClick={() => setMoreOpen((open) => !open)}
         >
@@ -447,7 +425,7 @@ export function TrayPanelApp() {
 }
 
 export function MainWindowApp() {
-  const { pluginHost, t, resolvedLanguage, visiblePlugins, totalPluginCount } = useLocalizedPlugins();
+  const { pluginHost, preferences, t, resolvedLanguage, localizedPlugins, visiblePlugins, totalPluginCount } = useLocalizedPlugins();
   const { activePlugin, setSelectedPlugin } = useSelectedPlugin(
     visiblePlugins,
     pluginHost.selectedPluginName,
@@ -456,23 +434,50 @@ export function MainWindowApp() {
   const [message, setMessage] = useState<ShellMessage | null>(null);
   usePluginMessages(setMessage);
   const runAction = (action: () => Promise<void>) => runShellAction(action, setMessage, t);
+  const statusBar = useStatusBar(pluginHost.records);
+  const { destination, navigate, error: navigationError, isReady } = useMainNavigation();
+  const settingsOpen = destination === "preferences";
+  const [settingsVisited, setSettingsVisited] = useState(false);
+  const [toolsVisited, setToolsVisited] = useState(false);
+  const preferencesButton = useRef<HTMLButtonElement>(null);
+  const returnButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!isReady) return;
+    if (settingsOpen) setSettingsVisited(true);
+    else setToolsVisited(true);
+    const frame = requestAnimationFrame(() => {
+      if (settingsOpen) returnButton.current?.focus();
+      else preferencesButton.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [settingsOpen, isReady]);
+  const narrow = useCompactSidebar();
+  const collapsed = narrow || preferences.preferences.mainSidebarCollapsed;
+
+  if (!isReady) return <main className="app-loading" aria-busy="true" />;
 
   return (
-    <main className="app-shell main-window-shell">
+    <main className={`app-shell main-window-shell ${collapsed ? "sidebar-collapsed" : ""} ${settingsOpen ? "settings-open" : ""}`}>
       <header className="main-window-header" data-tauri-drag-region>
         <div className="main-window-title">
           <span className="app-mark">
             <StatusBarGlyph icon="zero" />
           </span>
           <div>
-            <h1>{t("shell.mainTitle")}</h1>
-            <p>{t("shell.mainSubtitle")}</p>
+            <h1>{settingsOpen ? t("prefs.title") : t("shell.mainTitle")}</h1>
+            {!settingsOpen ? <p>{t("shell.mainSubtitle")}</p> : null}
           </div>
         </div>
         <div className="main-window-actions" aria-label={t("shell.systemActions")}>
-          <button type="button" className="secondary-action" onClick={() => runAction(appWindows.openPreferencesWindow)}>
-            {t("nav.preferences")}
-          </button>
+          {settingsOpen ? (
+            <button ref={returnButton} type="button" className="secondary-action return-to-tools" onClick={() => navigate("tools")}>
+              <ArrowLeft aria-hidden="true" />{t("shell.returnToTools")}
+            </button>
+          ) : (
+            <button ref={preferencesButton} type="button" className="secondary-action" onClick={() => navigate("preferences")}>
+              {t("nav.preferences")}
+            </button>
+          )}
           <button type="button" className="secondary-action" onClick={() => runAction(appWindows.openAboutWindow)}>
             {t("nav.about")}
           </button>
@@ -481,51 +486,30 @@ export function MainWindowApp() {
 
       {message ? <p className={`shell-message ${message.tone}`}>{message.text}</p> : null}
 
-      <div className="main-window-layout">
-        <aside className="main-sidebar">
-          <div>
-            <strong>{t("shell.plugins")}</strong>
-            <span>
-              {visiblePlugins.length}/{totalPluginCount} {t("app.pluginCount")}
-            </span>
+      {preferences.storageError ? <p className="shell-message error" role="status">{t("shell.preferencesSaveError")}</p> : null}
+      {navigationError ? <p className="shell-message error" role="status">{t("shell.actionError")}: {navigationError}</p> : null}
+      {!settingsOpen || toolsVisited ? <PresentationActivity enabled={!settingsOpen}>
+        <div className="main-window-layout" hidden={settingsOpen} inert={settingsOpen}>
+        <aside className="main-sidebar" id="main-tool-sidebar">
+          <div className="main-sidebar-heading">
+            {!collapsed ? <div><strong>{t("shell.plugins")}</strong><span>{visiblePlugins.length}/{totalPluginCount} {t("app.pluginCount")}</span></div> : null}
+            <button type="button" className="sidebar-toggle" aria-label={t(narrow ? "shell.compactSidebar" : collapsed ? "shell.expandSidebar" : "shell.collapseSidebar")} title={t(narrow ? "shell.compactSidebar" : collapsed ? "shell.expandSidebar" : "shell.collapseSidebar")} aria-expanded={!collapsed} aria-controls="main-tool-sidebar" disabled={narrow} onClick={() => preferences.setMainSidebarCollapsed(!collapsed)}>
+              {collapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}
+            </button>
           </div>
-          <PluginPicker
-            activePluginId={activePlugin?.id}
-            ariaLabel={t("shell.plugins")}
-            plugins={visiblePlugins}
-            variant="rail"
-            onSelect={setSelectedPlugin}
-          />
+          <PluginNavigation activePluginId={activePlugin?.id} plugins={visiblePlugins} variant="sidebar" collapsed={collapsed} t={t} onSelect={setSelectedPlugin} />
         </aside>
 
-        <section className="main-workspace" aria-label={t("shell.pluginWorkspace")}>
-          <div className="main-workspace-heading">
-            <div>
-              <span className="eyebrow">{t("shell.pluginWorkspace")}</span>
-              <h2>{activePlugin?.title ?? PRODUCT_NAME}</h2>
-            </div>
-            <span className="status-pill active">{activePlugin?.subtitle ?? t("app.tagline")}</span>
-          </div>
+        <section className="main-workspace" aria-label={activePlugin?.title ?? t("shell.pluginWorkspace")}>
           {pluginPanel(activePlugin, resolvedLanguage)}
         </section>
       </div>
-    </main>
-  );
-}
-
-export function PreferencesWindowApp() {
-  const { pluginHost, preferences, t, localizedPlugins } = useLocalizedPlugins();
-  const statusBar = useStatusBar(pluginHost.records);
-
-  return (
-    <main className="preferences-window-shell">
-      <PreferencesSettingsCenter
-        localizedPlugins={localizedPlugins}
-        pluginHost={pluginHost}
-        preferences={preferences}
-        statusBar={statusBar}
-        t={t}
-      />
+      </PresentationActivity> : null}
+      {settingsOpen || settingsVisited ? (
+        <div className="main-settings-view" hidden={!settingsOpen} inert={!settingsOpen}>
+          <PreferencesSettingsCenter active={settingsOpen} localizedPlugins={localizedPlugins} pluginHost={pluginHost} preferences={preferences} statusBar={statusBar} t={t} />
+        </div>
+      ) : null}
     </main>
   );
 }

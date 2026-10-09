@@ -11,6 +11,7 @@ test("defines explicit Rust command names for app window actions", () => {
     openPreferencesWindow: "show_preferences_window",
     openAboutWindow: "show_about_window",
     quitApp: "quit_app",
+    hideTrayQuickPanel: "hide_tray_quick_panel",
   });
 });
 
@@ -24,11 +25,13 @@ test("invokes app window commands through the injected bridge", async () => {
   await service.openPreferencesWindow();
   await service.openAboutWindow();
   await service.quitApp();
+  await service.hideTrayQuickPanel();
 
   assert.deepEqual(calls, [
     "show_main_window",
     "show_preferences_window",
     "show_about_window",
     "quit_app",
+    "hide_tray_quick_panel",
   ]);
 });

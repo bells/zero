@@ -10,7 +10,7 @@ Zero is for desktop users who want small native utilities close at hand without 
 
 ## Product Purpose
 
-Zero is a Tauri desktop toolbox. It provides compact tray access for fast actions, a standalone main window for tools, and separate preferences and about windows. Success means users can discover, launch, configure, and understand tools without the app feeling like a crowded control panel.
+Zero is a Tauri desktop toolbox. It provides compact tray access for fast actions, a standalone main window for tools and preferences, and a separate about window. Success means users can discover, launch, configure, and understand tools without the app feeling like a crowded control panel.
 
 The five bundled tools are Zero Snap, Zero Awake, Zero Paper, Zero Launch, and Zero File. Capability and release readiness vary by platform; use [the project overview](docs/project-overview.md) for the current implementation and verification boundaries. Mobile remains a future design consideration.
 

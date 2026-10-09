@@ -41,9 +41,12 @@ pub async fn refresh_file_conversion_capabilities(
 
 #[tauri::command]
 pub async fn choose_file_conversion_inputs(
+    window: tauri::WebviewWindow,
     app: tauri::AppHandle,
 ) -> Result<Vec<FileConversionCandidate>, FileConversionError> {
-    let paths = tauri::async_runtime::spawn_blocking(|| {
+    let dialog_guard = crate::services::tray_panel::DialogGuard::new(&app, window.label());
+    let paths = tauri::async_runtime::spawn_blocking(move || {
+        let _guard = dialog_guard;
         rfd::FileDialog::new()
             .add_filter("PDF and Word documents", &["pdf", "docx"])
             .pick_files()

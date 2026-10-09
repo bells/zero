@@ -1,3 +1,7 @@
+import type { StatusBarIconId } from "./contracts";
+
+export type PluginNavigationIcon = StatusBarIconId | "file";
+
 export type PluginId = string;
 
 export type PluginHealth =
@@ -10,6 +14,7 @@ export type PluginHealth =
 
 export interface PluginMeta {
   id: PluginId;
+  navigationIcon?: PluginNavigationIcon;
   title: string;
   subtitle: string;
   health: PluginHealth;

@@ -4,6 +4,7 @@ import { createFileTranslator, fileMessages } from "./i18n";
 
 export const filePlugin: BundledPluginModule = {
   kind: "file",
+  navigationIcon: "file",
   accentClass: "accent-file",
   manifest: metadata as BundledPluginModule["manifest"],
   presentation: {

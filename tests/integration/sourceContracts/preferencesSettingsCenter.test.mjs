@@ -9,7 +9,7 @@ const extensions = fs.readFileSync("src/core/pluginHost/PluginManagerPanel.tsx",
 const css = fs.readFileSync("src/App.css", "utf8");
 
 test("preferences route uses one settings center instead of stacked legacy panels", () => {
-  const preferencesApp = app.slice(app.indexOf("export function PreferencesWindowApp"), app.indexOf("export function AboutWindowApp"));
+  const preferencesApp = app.slice(app.indexOf("export function MainWindowApp"), app.indexOf("export function AboutWindowApp"));
   assert.match(preferencesApp, /<PreferencesSettingsCenter/);
   assert.doesNotMatch(preferencesApp, /<PreferencesPanel|<PluginManagerPanel/);
 });

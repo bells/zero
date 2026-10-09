@@ -534,7 +534,7 @@ pub fn handle_status_bar_action(
                     .map_err(|error| error.message)?;
             }
             StatusBarActionEffect::ShowMainWindow => {
-                crate::commands::app::show_main_window(app.clone())?;
+                crate::commands::app::open_main_window(app.clone())?;
             }
             StatusBarActionEffect::EmitOpenPlugin(plugin_name) => {
                 let _ = app.emit("status-bar-open-plugin", plugin_name);
@@ -647,6 +647,19 @@ pub fn grouped_status_item_ids(
     };
     ids.push(PRIMARY_STATUS_ITEM_ID.to_string());
     ids
+}
+
+pub fn grouped_status_item_titles(items: &[StatusBarItemSnapshot], collapsed: bool) -> Vec<String> {
+    grouped_status_item_ids(items, collapsed)
+        .iter()
+        .map(|id| {
+            items
+                .iter()
+                .find(|item| &item.id == id)
+                .map(|item| item.title.clone())
+                .unwrap_or_else(|| PRODUCT_NAME.into())
+        })
+        .collect()
 }
 
 pub fn grouped_status_item_length(
@@ -803,6 +816,58 @@ fn run_grouped_status_item_action(
     }
 }
 
+#[cfg(target_os = "macos")]
+fn handle_grouped_status_item_event(tray: &TrayIcon, event: TrayIconEvent) -> Result<(), String> {
+    use super::{status_bar_highlight_model::HighlightPhase, status_bar_highlights as highlights};
+    let app = tray.app_handle();
+    match event {
+        TrayIconEvent::Click {
+            id,
+            position,
+            rect,
+            button,
+            button_state,
+            ..
+        } => {
+            let target = grouped_status_item_target(app, position.x, rect)?;
+            if button == MouseButton::Right && button_state == MouseButtonState::Down {
+                let generation = highlights::begin(tray, target.id, HighlightPhase::Menu)?;
+                let result = show_grouped_status_item_menu(tray, position.x, rect);
+                highlights::clear(tray, generation);
+                return result;
+            }
+            if button != MouseButton::Left {
+                return Ok(());
+            }
+            if button_state == MouseButtonState::Down {
+                highlights::begin(tray, target.id, HighlightPhase::Press)?;
+            } else if highlights::finish_press(tray, target.id.clone())? {
+                run_grouped_status_item_action(app, id, position, rect)?;
+                let label = if target.id == PRIMARY_STATUS_ITEM_ID {
+                    Some("tray")
+                } else {
+                    match native_status_bar_activation(target.plugin_name.as_deref()) {
+                        NativeStatusBarActivation::Launch => Some("launcher"),
+                        NativeStatusBarActivation::Paper => Some("paper"),
+                        NativeStatusBarActivation::Snap => Some("snap-menu"),
+                        NativeStatusBarActivation::ExistingAction => None,
+                    }
+                };
+                if let Some(label) = label {
+                    if app.get_webview_window(label).is_some_and(|window| {
+                        window.is_visible().unwrap_or(false) && window.is_focused().unwrap_or(false)
+                    }) {
+                        highlights::begin(tray, target.id, HighlightPhase::Surface(label.into()))?;
+                    }
+                }
+            }
+        }
+        TrayIconEvent::Leave { .. } => highlights::clear_press(tray),
+        _ => {}
+    }
+    Ok(())
+}
+
 fn paper_window_anchor(
     rect: tauri::Rect,
 ) -> Option<crate::commands::bing_wallpaper::PaperWindowAnchor> {
@@ -948,6 +1013,15 @@ fn apply_existing_status_bar_layout(
             Some(grouped_status_item_length(&items, plugin_items_collapsed)),
         )?;
 
+        super::status_bar_tooltips::apply(
+            &primary,
+            grouped_status_item_titles(&items, plugin_items_collapsed),
+        )?;
+        super::status_bar_highlights::apply(
+            &primary,
+            grouped_status_item_ids(&items, plugin_items_collapsed),
+        )?;
+
         primary
             .set_menu(Some(primary_status_bar_menu(app, plugin_items_collapsed)?))
             .map_err(|error| format!("failed to update primary status bar menu: {error}"))?;
@@ -1016,22 +1090,9 @@ fn sync_primary_status_item(
 
     #[cfg(target_os = "macos")]
     let builder = builder.on_tray_icon_event(move |tray, event| {
-        let app_handle = tray.app_handle();
-
-        if let TrayIconEvent::Click {
-            id,
-            position,
-            rect,
-            button,
-            button_state,
-            ..
-        } = event
-        {
-            if button_state == MouseButtonState::Up && button == MouseButton::Left {
-                let _ = run_grouped_status_item_action(app_handle, id, position, rect);
-            } else if button_state == MouseButtonState::Down && button == MouseButton::Right {
-                let _ = show_grouped_status_item_menu(tray, position.x, rect);
-            }
+        let result = handle_grouped_status_item_event(tray, event);
+        if let Err(error) = result {
+            tracing::warn!(error = %error, "grouped status item interaction failed");
         }
     });
 
@@ -1094,6 +1155,14 @@ fn sync_primary_status_item(
 
     #[cfg(target_os = "macos")]
     if support == StatusBarSupport::NativeMultiItem {
+        super::status_bar_tooltips::apply(
+            &tray,
+            grouped_status_item_titles(items, plugin_items_collapsed),
+        )?;
+        super::status_bar_highlights::apply(
+            &tray,
+            grouped_status_item_ids(items, plugin_items_collapsed),
+        )?;
         tray.with_inner_tray_icon(|inner| inner.set_show_menu_on_right_click(false))
             .map_err(|error| format!("failed to configure grouped status bar menu: {error}"))?;
     }
@@ -1288,6 +1357,29 @@ mod tests {
             "icon must contain visible pixels"
         );
         (left, top, right, bottom)
+    }
+
+    #[test]
+    fn tooltip_names_follow_visible_cells_and_primary_fallback() {
+        let mut tool = primary_item();
+        tool.id = "example.status".into();
+        tool.plugin_name = Some("example".into());
+        tool.title = "Example Tool".into();
+        let mut items = vec![tool, primary_item()];
+        assert_eq!(
+            grouped_status_item_titles(&items, false),
+            vec!["Example Tool", "Zero"]
+        );
+        assert_eq!(grouped_status_item_titles(&items, true), vec!["Zero"]);
+        assert_eq!(
+            grouped_status_item_id_at_x(&items, false, 22.0, 0.0, 44.0),
+            Some(PRIMARY_STATUS_ITEM_ID.into())
+        );
+        items[0].title = "Changed name".into();
+        assert_eq!(grouped_status_item_titles(&items, false)[0], "Changed name");
+        items[0].native_visible = false;
+        assert_eq!(grouped_status_item_titles(&items, false), vec!["Zero"]);
+        assert_eq!(grouped_status_item_titles(&[], false), vec!["Zero"]);
     }
 
     #[test]

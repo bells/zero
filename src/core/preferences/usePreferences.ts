@@ -24,12 +24,18 @@ export function usePreferences(pluginIds: PluginId[]) {
   const [preferences, setPreferences] = useState<AppPreferences>(() =>
     normalizePreferences(readStoredPreferences(window.localStorage), pluginIds),
   );
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [isAutostartBusy, setIsAutostartBusy] = useState(false);
   const [messageKey, setMessageKey] = useState<TranslationKey>("prefs.message.ready");
   const [messageDetail, setMessageDetail] = useState<string | null>(null);
 
   useEffect(() => {
-    writeCanonicalPreferences(window.localStorage, preferences);
+    try {
+      writeCanonicalPreferences(window.localStorage, preferences);
+      setStorageError(null);
+    } catch (error) {
+      setStorageError(String(error));
+    }
   }, [preferences]);
 
   useEffect(() => {
@@ -48,6 +54,20 @@ export function usePreferences(pluginIds: PluginId[]) {
         setMessageKey("prefs.message.autostartReadError");
         setMessageDetail(String(error));
       });
+  }, []);
+
+  useEffect(() => {
+    const refresh = (event: StorageEvent) => {
+      if (event.key === "zero.preferences.v1") {
+        setPreferences(normalizePreferences(readStoredPreferences(window.localStorage), pluginIds));
+      }
+    };
+    window.addEventListener("storage", refresh);
+    return () => window.removeEventListener("storage", refresh);
+  }, [pluginIdsKey]);
+
+  const setMainSidebarCollapsed = useCallback((collapsed: boolean) => {
+    setPreferences((current) => ({ ...current, mainSidebarCollapsed: collapsed }));
   }, []);
 
   const visiblePluginIds = useMemo(
@@ -99,6 +119,8 @@ export function usePreferences(pluginIds: PluginId[]) {
 
   return {
     preferences,
+    storageError,
+    setMainSidebarCollapsed,
     visiblePluginIds,
     isAutostartBusy,
     messageKey,
