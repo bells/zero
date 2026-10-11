@@ -1,5 +1,6 @@
 pub mod compatibility;
 pub mod contracts;
+#[cfg(feature = "file-tool")]
 pub mod engine_assets;
 pub mod invoke_gate;
 pub mod market;

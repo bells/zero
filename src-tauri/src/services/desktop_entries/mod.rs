@@ -7,11 +7,16 @@ mod macos;
 #[cfg(target_os = "windows")]
 mod windows;
 
-pub(super) const TOOLS: [(&str, &str); 5] = [
+pub(super) const TOOLS: &[(&str, &str)] = &[
+    #[cfg(feature = "bundled-tools")]
     ("snap", "Zero Snap"),
+    #[cfg(feature = "bundled-tools")]
     ("awake", "Zero Awake"),
+    #[cfg(feature = "bundled-tools")]
     ("paper", "Zero Paper"),
+    #[cfg(feature = "bundled-tools")]
     ("launch", "Zero Launch"),
+    #[cfg(feature = "file-tool")]
     ("file", "Zero File"),
 ];
 const OWNER: &str = "com.watson.ztool.desktop-entries.v1";
@@ -159,7 +164,7 @@ mod tests {
 
     #[test]
     fn only_exact_bundled_tool_arguments_are_accepted() {
-        for (id, _) in TOOLS {
+        for (id, _) in TOOLS.iter().copied() {
             let args = vec!["Zero".into(), "--zero-tool".into(), id.into()];
             assert_eq!(activation(&args), Ok(Some(id)));
         }

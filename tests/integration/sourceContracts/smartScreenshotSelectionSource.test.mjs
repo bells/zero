@@ -30,7 +30,7 @@ test("keeps the screenshot target contract symmetric and privacy-minimal", () =>
 
 test("scopes xcap and the custom candidate provider to macOS", () => {
   const macDependencies = cargo.match(/\[target\.'cfg\(target_os = "macos"\)'\.dependencies\]([\s\S]*?)\n\[/)?.[1] ?? "";
-  assert.match(macDependencies, /^xcap = "0\.9\.8"$/m);
+  assert.match(macDependencies, /^xcap = \{ version = "0\.9\.8", optional = true \}$/m);
   assert.equal((cargo.match(/^xcap\s*=/gm) ?? []).length, 1);
   assert.match(rust, /#\[cfg\(target_os = "macos"\)\]\s*mod capture_targets;/);
   assert.match(rust, /#\[cfg\(not\(target_os = "macos"\)\)\]/);

@@ -895,6 +895,7 @@ pub fn start_maintenance(app: &tauri::AppHandle) {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
             app.state::<snap_ocr::SnapOcrState>().expire();
+            #[cfg(feature = "file-tool")]
             app.state::<crate::services::file::engine_bridge::ocr::FileOcrLeases>()
                 .expire();
             if let Some(active) = app

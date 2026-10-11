@@ -21,6 +21,7 @@ use crate::plugins::contracts::{
     StatusBarActionType, StatusBarIconId,
 };
 use crate::plugins::registry::PluginRegistryState;
+#[cfg(feature = "bundled-tools")]
 use crate::services::caffeine::CaffeineState;
 
 pub const MACOS_COMPACT_STATUS_ITEM_LENGTH: f64 = 22.0;
@@ -94,6 +95,7 @@ pub enum ToolStatusBarMenuAction {
 }
 
 impl ToolStatusBarMenuAction {
+    #[cfg(feature = "bundled-tools")]
     fn capture_intent(self) -> Option<&'static str> {
         match self {
             Self::Screenshot => Some("copy"),
@@ -369,6 +371,20 @@ pub fn status_bar_settings_path(config_dir: &Path) -> PathBuf {
     config_dir.join("status-bar.json")
 }
 
+fn caffeine_enabled(app: &tauri::AppHandle) -> bool {
+    #[cfg(feature = "bundled-tools")]
+    return app
+        .state::<CaffeineState>()
+        .snapshot()
+        .map(|s| s.enabled)
+        .unwrap_or(false);
+    #[cfg(not(feature = "bundled-tools"))]
+    {
+        let _ = app;
+        false
+    }
+}
+
 pub fn refresh_status_bar(app: &tauri::AppHandle) -> Result<Vec<StatusBarItemSnapshot>, String> {
     let mut diagnostic = crate::services::diagnostics::Operation::new(None, "status-bar");
     let result = (|| {
@@ -388,11 +404,7 @@ pub fn refresh_status_bar(app: &tauri::AppHandle) -> Result<Vec<StatusBarItemSna
                 settings_started,
             );
         let settings = settings_result?;
-        let caffeine_enabled = app
-            .state::<CaffeineState>()
-            .snapshot()
-            .map(|snapshot| snapshot.enabled)
-            .unwrap_or(false);
+        let caffeine_enabled = caffeine_enabled(app);
         let support = current_status_bar_support();
         let items = normalize_status_bar_items(&records, &settings, caffeine_enabled, support);
         sync_native_plugin_items(app, &items, support, settings.plugin_items_collapsed)?;
@@ -405,11 +417,7 @@ pub fn refresh_status_bar(app: &tauri::AppHandle) -> Result<Vec<StatusBarItemSna
 pub fn status_bar_items(app: &tauri::AppHandle) -> Result<Vec<StatusBarItemSnapshot>, String> {
     let records = plugin_records(app)?;
     let settings = ensure_status_bar_settings(app, &records)?;
-    let caffeine_enabled = app
-        .state::<CaffeineState>()
-        .snapshot()
-        .map(|snapshot| snapshot.enabled)
-        .unwrap_or(false);
+    let caffeine_enabled = caffeine_enabled(app);
 
     Ok(normalize_status_bar_items(
         &records,
@@ -461,7 +469,7 @@ pub fn status_bar_language<R: Runtime>(app: &tauri::AppHandle<R>) -> String {
         .lock()
         .ok()
         .and_then(|language| language.clone())
-        .unwrap_or_else(crate::services::quick_launcher::system_language)
+        .unwrap_or_else(|| std::env::var("LANG").unwrap_or_else(|_| "en-US".into()))
 }
 
 pub fn set_status_bar_language(app: &tauri::AppHandle, language: String) -> Result<(), String> {
@@ -550,6 +558,7 @@ pub fn tool_status_bar_quit_menu_id(item_id: &str) -> String {
     format!("{TOOL_STATUS_ITEM_QUIT_MENU_ID_PREFIX}{item_id}")
 }
 
+#[cfg(feature = "bundled-tools")]
 pub fn tool_status_bar_menu_action(
     menu_id: &str,
     item_id: &str,
@@ -583,6 +592,14 @@ pub fn tool_status_bar_menu_action(
     Some(ToolStatusBarMenuAction::AwakeDuration(duration))
 }
 
+#[cfg(not(feature = "bundled-tools"))]
+pub fn tool_status_bar_menu_action(
+    menu_id: &str,
+    item_id: &str,
+) -> Option<ToolStatusBarMenuAction> {
+    (menu_id == tool_status_bar_quit_menu_id(item_id)).then_some(ToolStatusBarMenuAction::Quit)
+}
+
 pub fn awake_duration_menu_label(duration: Option<u64>, language: &str) -> String {
     match (duration, language.starts_with("zh")) {
         (None, true) => "无期限".into(),
@@ -598,7 +615,7 @@ pub fn awake_duration_menu_label(duration: Option<u64>, language: &str) -> Strin
     }
 }
 
-#[cfg(any(target_os = "macos", test))]
+#[cfg(all(feature = "bundled-tools", any(target_os = "macos", test)))]
 struct AwakeDurationMenuEntry {
     id: String,
     label: String,
@@ -606,6 +623,7 @@ struct AwakeDurationMenuEntry {
 }
 
 #[cfg(any(target_os = "macos", test))]
+#[cfg(feature = "bundled-tools")]
 fn awake_duration_menu_entries(
     enabled: bool,
     current_duration: Option<u64>,
@@ -637,11 +655,28 @@ pub fn handle_status_bar_action(
         match effect {
             StatusBarActionEffect::ToggleTray => crate::toggle_tray_quick_panel(&app)?,
             StatusBarActionEffect::ToggleCaffeine => {
-                toggle_caffeine_from_status_bar(app.clone())?;
+                #[cfg(feature = "bundled-tools")]
+                {
+                    toggle_caffeine_from_status_bar(app.clone())?;
+                }
+                #[cfg(not(feature = "bundled-tools"))]
+                {
+                    return Err("This tool is not included in this build".into());
+                }
             }
             StatusBarActionEffect::StartScreenshotCopy => {
-                crate::services::screenshot::start_screenshot_session(app.clone(), "copy".into())
+                #[cfg(feature = "bundled-tools")]
+                {
+                    crate::services::screenshot::start_screenshot_session(
+                        app.clone(),
+                        "copy".into(),
+                    )
                     .map_err(|error| error.message)?;
+                }
+                #[cfg(not(feature = "bundled-tools"))]
+                {
+                    return Err("This tool is not included in this build".into());
+                }
             }
             StatusBarActionEffect::ShowMainWindow => {
                 crate::commands::app::open_main_window(app.clone())?;
@@ -892,20 +927,34 @@ fn run_grouped_status_item_action(
 
     match native_status_bar_activation(item.plugin_name.as_deref()) {
         NativeStatusBarActivation::Launch => {
-            crate::commands::quick_launcher::toggle_quick_launcher_window(app)
+            #[cfg(feature = "bundled-tools")]
+            {
+                crate::commands::quick_launcher::toggle_quick_launcher_window(app)
+            }
+            #[cfg(not(feature = "bundled-tools"))]
+            {
+                return Err("This tool is not included in this build".into());
+            }
         }
         NativeStatusBarActivation::Paper => {
-            let records = plugin_records(app)?;
-            let settings = ensure_status_bar_settings(app, &records)?;
-            let items = status_bar_items(app)?;
-            let anchor = grouped_status_item_cell_rect(
-                &items,
-                settings.plugin_items_collapsed,
-                &item.id,
-                rect,
-            )
-            .and_then(paper_window_anchor);
-            crate::commands::bing_wallpaper::toggle_paper_window(app, anchor)
+            #[cfg(feature = "bundled-tools")]
+            {
+                let records = plugin_records(app)?;
+                let settings = ensure_status_bar_settings(app, &records)?;
+                let items = status_bar_items(app)?;
+                let anchor = grouped_status_item_cell_rect(
+                    &items,
+                    settings.plugin_items_collapsed,
+                    &item.id,
+                    rect,
+                )
+                .and_then(paper_window_anchor);
+                crate::commands::bing_wallpaper::toggle_paper_window(app, anchor)
+            }
+            #[cfg(not(feature = "bundled-tools"))]
+            {
+                return Err("This tool is not included in this build".into());
+            }
         }
         NativeStatusBarActivation::Snap => Ok(()),
         NativeStatusBarActivation::ExistingAction => {
@@ -974,12 +1023,14 @@ fn handle_grouped_status_item_event(tray: &TrayIcon, event: TrayIconEvent) -> Re
     Ok(())
 }
 
+#[cfg(feature = "bundled-tools")]
 fn paper_window_anchor(
     rect: tauri::Rect,
 ) -> Option<crate::commands::bing_wallpaper::PaperWindowAnchor> {
     tool_window_anchor(rect)
 }
 
+#[cfg(feature = "bundled-tools")]
 fn tool_window_anchor(
     rect: tauri::Rect,
 ) -> Option<crate::services::tool_windows::ToolWindowAnchor> {
@@ -1025,6 +1076,7 @@ fn show_grouped_status_item_menu(
     let item = grouped_status_item_target(app, cursor_x, rect)?;
     let settings = ensure_status_bar_settings(app, &plugin_records(app)?)?;
     let snap = item.plugin_name.as_deref() == Some(ZERO_SNAP_PLUGIN_ID);
+    #[cfg(feature = "bundled-tools")]
     if snap {
         crate::services::screenshot::capture_menu_display(app);
     }
@@ -1190,7 +1242,9 @@ fn tool_status_bar_menu(
     item_id: &str,
 ) -> Result<tauri::menu::Menu<tauri::Wry>, String> {
     let language = status_bar_language(app);
+    #[allow(unused_mut)]
     let mut builder = MenuBuilder::new(app);
+    #[cfg(feature = "bundled-tools")]
     if item_id == "zero.snap.status" {
         let shortcut = super::global_shortcuts::global_shortcut_snapshots(app)?
             .into_iter()
@@ -1226,6 +1280,7 @@ fn tool_status_bar_menu(
         .map_err(|error| error.to_string())?;
         builder = builder.item(&capture).item(&ocr).separator();
     }
+    #[cfg(feature = "bundled-tools")]
     if item_id == AWAKE_STATUS_ITEM_ID {
         let snapshot = app.state::<CaffeineState>().snapshot()?;
         for entry in
@@ -1325,6 +1380,7 @@ fn sync_primary_status_item(
                 Some(PrimaryStatusBarMenuAction::Quit) => {
                     crate::commands::app::quit_app(app.clone());
                 }
+                #[cfg(feature = "bundled-tools")]
                 None if tool_status_bar_menu_action(event.id().as_ref(), "zero.snap.status")
                     .and_then(ToolStatusBarMenuAction::capture_intent)
                     .is_some() =>
@@ -1366,6 +1422,7 @@ fn sync_primary_status_item(
                         }
                     });
                 }
+                #[cfg(feature = "bundled-tools")]
                 None if tool_status_bar_menu_action(event.id().as_ref(), AWAKE_STATUS_ITEM_ID)
                     .is_some_and(|action| !matches!(action, ToolStatusBarMenuAction::Quit)) =>
                 {
@@ -1448,6 +1505,7 @@ fn apply_native_status_item_length<R: Runtime>(
     Ok(())
 }
 
+#[cfg(feature = "bundled-tools")]
 fn toggle_caffeine_from_status_bar(app: tauri::AppHandle) -> Result<(), String> {
     super::caffeine_runtime::dispatch_native(app, super::caffeine_runtime::AwakeRequest::Toggle);
     Ok(())
@@ -1577,7 +1635,7 @@ fn normalize_order(order: Option<u32>, plugin_index: usize) -> u32 {
         .saturating_add(u32::try_from(plugin_index).unwrap_or(u32::MAX))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "bundled-tools"))]
 mod tests {
     #[test]
     fn snap_actions_preserve_intent_and_do_not_route_other_tools_or_quit() {

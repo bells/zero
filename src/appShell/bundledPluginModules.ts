@@ -1,24 +1,12 @@
 import { createExtensionLauncherHostApis } from "../core/pluginHost/extensionLauncherHost";
 import type {
-  BundledPluginModule,
   BundledPluginSurface,
 } from "../core/pluginHost/pluginModule";
 import { createBundledPluginRegistry } from "../core/pluginHost/pluginModuleRegistry";
 import type { ResolvedLanguage } from "../core/preferences/i18n";
-import { bingWallpaperPlugin } from "../plugins/bingWallpaper/plugin";
-import { caffeinePlugin } from "../plugins/caffeine/plugin";
-import { filePlugin } from "../plugins/file/plugin";
-import { quickLauncherPlugin } from "../plugins/quickLauncher/plugin";
-import { quickLauncherService } from "../plugins/quickLauncher/quickLauncherService";
-import { screenshotPlugin } from "../plugins/screenshot/plugin";
+import { BUNDLED_PLUGIN_MODULES, quickLauncherService } from "./bundledPluginCatalog.full";
 
-export const BUNDLED_PLUGIN_MODULES = [
-  screenshotPlugin,
-  caffeinePlugin,
-  bingWallpaperPlugin,
-  quickLauncherPlugin,
-  filePlugin,
-] as const satisfies readonly BundledPluginModule[];
+export { BUNDLED_PLUGIN_MODULES };
 
 export const bundledPluginRegistry = createBundledPluginRegistry(
   BUNDLED_PLUGIN_MODULES,

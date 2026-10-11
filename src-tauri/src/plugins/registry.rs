@@ -39,6 +39,7 @@ pub struct PluginRegistry {
     root: PathBuf,
     records: Vec<PluginRecord>,
     diagnostics: Vec<String>,
+    excluded_records: Vec<PluginRecord>,
     engine_leases: HashMap<(String, String), usize>,
     startup_write_performed: bool,
 }
@@ -116,6 +117,7 @@ impl PluginRegistry {
                     revision: AtomicU64::new(0),
                     root,
                     records: bundled_plugin_records(),
+                    excluded_records: Vec::new(),
                     diagnostics: Vec::new(),
                     engine_leases: HashMap::new(),
                     startup_write_performed: false,
@@ -142,10 +144,15 @@ impl PluginRegistry {
                     }
                     state.schema_version = PLUGIN_REGISTRY_SCHEMA_VERSION;
                     let changed = state != original;
+                    let (records, excluded_records): (Vec<_>, Vec<_>) = state
+                        .records
+                        .into_iter()
+                        .partition(|r| compiled_plugin_available(&r.name));
                     let mut registry = Self {
                         revision: AtomicU64::new(state.revision),
                         root,
-                        records: state.records,
+                        records,
+                        excluded_records,
                         diagnostics: Vec::new(),
                         engine_leases: HashMap::new(),
                         startup_write_performed: false,
@@ -161,6 +168,7 @@ impl PluginRegistry {
                         revision: AtomicU64::new(0),
                         root,
                         records: bundled_plugin_records(),
+                        excluded_records: Vec::new(),
                         diagnostics: vec![format!("registry recovery: {error}")],
                         engine_leases: HashMap::new(),
                         startup_write_performed: false,
@@ -218,7 +226,12 @@ impl PluginRegistry {
             let state = PluginRegistryDiskState {
                 revision,
                 schema_version: PLUGIN_REGISTRY_SCHEMA_VERSION,
-                records: self.records.clone(),
+                records: self
+                    .records
+                    .iter()
+                    .chain(&self.excluded_records)
+                    .cloned()
+                    .collect(),
             };
             let content = serde_json::to_string_pretty(&state)
                 .map_err(|error| format!("failed to serialize plugin registry: {error}"))?;
@@ -425,6 +438,10 @@ impl PluginRegistry {
             .manifest
             .clone()
             .ok_or_else(|| "package manifest was not available after validation".to_string())?;
+
+        if !compiled_plugin_available(&manifest.name) {
+            return Err("This first-party tool is not included in this build".into());
+        }
 
         if let Some(entry) = market_entry {
             validate_market_entry_matches_manifest(entry, &manifest)?;
@@ -859,6 +876,16 @@ fn plugin_version_root(root: &Path, name: &str, version: &str) -> PathBuf {
     plugin_name_root(root, name).join(version)
 }
 
+fn compiled_plugin_available(name: &str) -> bool {
+    match name {
+        "zero.snap" | "zero.awake" | "zero.paper" | "zero.launch" => {
+            cfg!(feature = "bundled-tools")
+        }
+        "zero.file" => cfg!(feature = "file-tool"),
+        _ => true,
+    }
+}
+
 fn bundled_plugin_records() -> Vec<PluginRecord> {
     crate::bundled_metadata::manifests()
         .into_iter()
@@ -867,10 +894,10 @@ fn bundled_plugin_records() -> Vec<PluginRecord> {
 }
 
 fn bundled_file_record() -> PluginRecord {
-    bundled_plugin_records()
-        .into_iter()
-        .find(|r| r.name == ZERO_FILE_PLUGIN_ID)
-        .unwrap()
+    bundled_record(
+        serde_json::from_str(include_str!("../../../src/plugins/file/metadata.json"))
+            .expect("validated File metadata"),
+    )
 }
 
 fn bundled_record(manifest: PluginManifest) -> PluginRecord {

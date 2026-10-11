@@ -1,10 +1,16 @@
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "bundled-tools")]
 use tauri::Manager;
+#[cfg(feature = "bundled-tools")]
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
+#[cfg(any(test, feature = "bundled-tools"))]
 use crate::brand::{ZERO_LAUNCH_PLUGIN_ID, ZERO_SNAP_PLUGIN_ID};
+#[cfg(feature = "bundled-tools")]
 use crate::plugins::registry::PluginRegistryState;
+#[cfg(feature = "bundled-tools")]
 use crate::services::quick_launcher::QuickLauncherState;
+#[cfg(any(test, feature = "bundled-tools"))]
 use crate::{QUICK_LAUNCHER_SHORTCUT, SCREENSHOT_SHORTCUT};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -39,45 +45,58 @@ pub struct GlobalShortcutSnapshot {
 pub fn global_shortcut_snapshots(
     app: &tauri::AppHandle,
 ) -> Result<Vec<GlobalShortcutSnapshot>, String> {
-    let registry = app.state::<PluginRegistryState>();
-    let (snap_enabled, launch_enabled) = registry.with_registry(|registry| {
-        Ok((
-            plugin_enabled(registry.records(), ZERO_SNAP_PLUGIN_ID),
-            plugin_enabled(registry.records(), ZERO_LAUNCH_PLUGIN_ID),
-        ))
-    })?;
-    let shortcut_manager = app.global_shortcut();
-    let launcher_diagnostic = app
-        .state::<QuickLauncherState>()
-        .snapshot()
-        .map_err(|error| error.to_string())?
-        .diagnostics
-        .into_iter()
-        .find(|diagnostic| diagnostic.code == "launcher.shortcut_conflict")
-        .map(|diagnostic| diagnostic.code);
+    #[cfg(not(feature = "bundled-tools"))]
+    {
+        let _ = app;
+        Ok(Vec::new())
+    }
+    #[cfg(feature = "bundled-tools")]
+    {
+        let registry = app.state::<PluginRegistryState>();
+        let (snap_enabled, launch_enabled) = registry.with_registry(|registry| {
+            Ok((
+                plugin_enabled(registry.records(), ZERO_SNAP_PLUGIN_ID),
+                plugin_enabled(registry.records(), ZERO_LAUNCH_PLUGIN_ID),
+            ))
+        })?;
+        let shortcut_manager = app.global_shortcut();
+        #[cfg(feature = "bundled-tools")]
+        let launcher_diagnostic = app
+            .state::<QuickLauncherState>()
+            .snapshot()
+            .map_err(|error| error.to_string())?
+            .diagnostics
+            .into_iter()
+            .find(|diagnostic| diagnostic.code == "launcher.shortcut_conflict")
+            .map(|diagnostic| diagnostic.code);
 
-    Ok(vec![
-        resolve_shortcut_snapshot(ShortcutSnapshotInput {
-            id: GlobalShortcutActionId::SnapCapture,
-            plugin_name: ZERO_SNAP_PLUGIN_ID,
-            accelerator: SCREENSHOT_SHORTCUT,
-            enabled: snap_enabled,
-            registered: shortcut_manager.is_registered(SCREENSHOT_SHORTCUT),
-            platform_supported: cfg!(any(target_os = "macos", target_os = "windows")),
-            diagnostic_code: None,
-        }),
-        resolve_shortcut_snapshot(ShortcutSnapshotInput {
-            id: GlobalShortcutActionId::LaunchPanel,
-            plugin_name: ZERO_LAUNCH_PLUGIN_ID,
-            accelerator: QUICK_LAUNCHER_SHORTCUT,
-            enabled: launch_enabled,
-            registered: shortcut_manager.is_registered(QUICK_LAUNCHER_SHORTCUT),
-            platform_supported: cfg!(any(target_os = "macos", target_os = "windows")),
-            diagnostic_code: launcher_diagnostic,
-        }),
-    ])
+        #[cfg(feature = "bundled-tools")]
+        {
+            Ok(vec![
+                resolve_shortcut_snapshot(ShortcutSnapshotInput {
+                    id: GlobalShortcutActionId::SnapCapture,
+                    plugin_name: ZERO_SNAP_PLUGIN_ID,
+                    accelerator: SCREENSHOT_SHORTCUT,
+                    enabled: snap_enabled,
+                    registered: shortcut_manager.is_registered(SCREENSHOT_SHORTCUT),
+                    platform_supported: cfg!(any(target_os = "macos", target_os = "windows")),
+                    diagnostic_code: None,
+                }),
+                resolve_shortcut_snapshot(ShortcutSnapshotInput {
+                    id: GlobalShortcutActionId::LaunchPanel,
+                    plugin_name: ZERO_LAUNCH_PLUGIN_ID,
+                    accelerator: QUICK_LAUNCHER_SHORTCUT,
+                    enabled: launch_enabled,
+                    registered: shortcut_manager.is_registered(QUICK_LAUNCHER_SHORTCUT),
+                    platform_supported: cfg!(any(target_os = "macos", target_os = "windows")),
+                    diagnostic_code: launcher_diagnostic,
+                }),
+            ])
+        }
+    }
 }
 
+#[cfg(any(test, feature = "bundled-tools"))]
 struct ShortcutSnapshotInput<'a> {
     id: GlobalShortcutActionId,
     plugin_name: &'a str,
@@ -88,6 +107,7 @@ struct ShortcutSnapshotInput<'a> {
     diagnostic_code: Option<String>,
 }
 
+#[cfg(any(test, feature = "bundled-tools"))]
 fn resolve_shortcut_snapshot(input: ShortcutSnapshotInput<'_>) -> GlobalShortcutSnapshot {
     let registration_state = if !input.platform_supported {
         GlobalShortcutRegistrationState::Unsupported
@@ -111,6 +131,7 @@ fn resolve_shortcut_snapshot(input: ShortcutSnapshotInput<'_>) -> GlobalShortcut
     }
 }
 
+#[cfg(feature = "bundled-tools")]
 fn plugin_enabled(records: &[crate::plugins::contracts::PluginRecord], name: &str) -> bool {
     records
         .iter()

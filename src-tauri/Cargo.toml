@@ -15,6 +15,11 @@ rust-version = "1.89"
 name = "zero_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+default = ["bundled-tools", "file-tool"]
+bundled-tools = ["dep:wallpaper", "dep:nucleo-matcher", "dep:pinyin", "dep:notify", "dep:xcap", "dep:objc2-vision"]
+file-tool = ["dep:quick-xml", "dep:objc2-web-kit", "dep:objc2-vision"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
@@ -38,14 +43,14 @@ rfd = "0.15"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 reqwest = "0.13.3"
 sha2 = "0.10"
-quick-xml = "=0.39.2"
+quick-xml = { version = "=0.39.2", optional = true }
 zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2"] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["sync", "fs", "io-util", "time"] }
-wallpaper = { version = "3.2", default-features = false }
-nucleo-matcher = "0.3"
-pinyin = "0.11"
-notify = "8"
+wallpaper = { version = "3.2", default-features = false, optional = true }
+nucleo-matcher = { version = "0.3", optional = true }
+pinyin = { version = "0.11", optional = true }
+notify = { version = "8", optional = true }
 plist = "1"
 semver = "=1.0.28"
 tauri-plugin-single-instance = "2.4.2"
@@ -56,13 +61,13 @@ block2 = "0.6.2"
 cocoa = "0.26.1"
 objc = "0.2"
 objc2 = "0.6.4"
-objc2-vision = { version = "=0.3.2", default-features = false, features = ["std", "VNRequest", "VNRequestHandler", "VNRecognizeTextRequest", "VNObservation", "VNTypes", "objc2-core-foundation", "objc2-core-graphics", "objc2-image-io"] }
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSWindow", "NSView", "NSStatusItem", "NSStatusBarButton", "NSButton", "NSControl", "NSButtonCell", "NSCell", "NSColor", "NSBezierPath"] }
+objc2-vision = { optional = true, version = "=0.3.2", default-features = false, features = ["std", "VNRequest", "VNRequestHandler", "VNRecognizeTextRequest", "VNObservation", "VNTypes", "objc2-core-foundation", "objc2-core-graphics", "objc2-image-io"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSWindow", "NSView", "NSStatusItem", "NSStatusBarButton", "NSButton", "NSControl", "NSButtonCell", "NSActionCell", "NSCell", "NSColor", "NSBezierPath"] }
 objc2-core-foundation = { version = "0.3.2", features = ["CFCGTypes", "objc2"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSData", "NSError", "NSString", "NSObject", "NSGeometry"] }
-objc2-web-kit = { version = "0.3.2", default-features = false, features = ["std", "WKWebView", "WKPDFConfiguration", "block2", "objc2-core-foundation"] }
+objc2-web-kit = { optional = true, version = "0.3.2", default-features = false, features = ["std", "WKWebView", "WKPDFConfiguration", "block2", "objc2-core-foundation"] }
 window-vibrancy = "0.7.1"
-xcap = "0.9.8"
+xcap = { version = "0.9.8", optional = true }
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.52", features = [
   "Win32_Foundation",

@@ -104,7 +104,7 @@ Tauri 窗口 label
 
 CI 覆盖 macOS/Windows 编译和 Rust 测试，完整前端测试只在 macOS 运行；Windows 有 File engine 构建与 packaging source-contract 检查。当前没有 Linux/mobile CI，CI 也没有覆盖所有本地门禁（如 Clippy、完整 OpenSpec 校验与 bundle budget）。
 
-Release 工作流配置 Apple Silicon、Intel macOS、Windows，创建 Draft Release。工作流标题、正文及手动触发 tag 模板仍含 ZTool；这是待处理的发布文案/约定，不能误改 bundle identifier。本次不触发构建发布，不改变 tag 和签名策略。
+Package Zero 工作流新增 core（无工具）和 standard（Awake、Paper、Snap、Launch）× Apple Silicon/Intel macOS/Windows 六组产物，手动运行上传 Actions artifacts，版本 tag 运行附加到 Draft Release。构建裁剪与大小/校验清单见 [打包指南](packaging.md)；当前实施证据单列，不能从源码配置推断 Hosted Actions 成功。bundle identifier 保持不变。
 
 ## OpenSpec 状态快照
 

@@ -6,7 +6,7 @@ import test from "node:test";
 const ROOT = process.cwd();
 const PLUGINS_ROOT = path.join(ROOT, "src/plugins");
 const CORE_ROOT = path.join(ROOT, "src/core");
-const COMPOSITION_FILE = path.join(ROOT, "src/appShell/bundledPluginModules.ts");
+const COMPOSITION_FILE = path.join(ROOT, "src/appShell/bundledPluginCatalog.full.ts");
 const EXPECTED_PLUGINS = ["bingWallpaper", "caffeine", "file", "quickLauncher", "screenshot"];
 
 test("plugins directory contains only self-contained registered bundled plugins", () => {

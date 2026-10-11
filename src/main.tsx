@@ -22,7 +22,7 @@ const surfacePlugin = label === "zero-file-engine" ? null
       : ["capture", "pin"].includes(surface) ? "zero.snap" : null;
 
 async function loadRoutedApp(): Promise<{ default: ComponentType }> {
-  if (label === "zero-file-engine") {
+  if (import.meta.env.VITE_ZERO_HAS_FILE && label === "zero-file-engine") {
     const module = await import("./plugins/file/engine/FileEngineApp");
     return { default: module.FileEngineApp };
   }

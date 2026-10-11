@@ -30,7 +30,7 @@ pub(super) fn install() -> Result<(), String> {
     unsafe {
         CoInitializeEx(None, COINIT_APARTMENTTHREADED).map_err(|e| e.to_string())?;
         let result = (|| {
-            for (tool, title) in TOOLS {
+            for (tool, title) in TOOLS.iter().copied() {
                 let path = root.join(format!("{title}.lnk"));
                 regular_file_or_missing(&path)?;
                 let identity = path.with_extension("zero-target");

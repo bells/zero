@@ -210,3 +210,7 @@ After the packaged release app starts, it creates **Zero Snap**, **Zero Awake**,
 Alfred, Spotlight, Raycast, and Windows Search use their own index and search scope; allow time for indexing and include the user Applications folder in the launcher's search scope. These are standard application entries, with no Alfred workflow or paid feature required. Moving Zero requires opening it once to update entry paths. Quit and uninstall Zero, then remove only its owned `Zero Tools` folder to remove these entries.
 
 Raw development builds do not install persistent entries. Packaged macOS debug smoke can set `ZERO_DESKTOP_ENTRIES_TEST_ROOT` to an isolated temporary Applications directory. Generated wrappers forward to Zero; they are not independent signed distribution packages.
+
+## Trial installers and size comparison
+
+See [v0.1.0 packaging](docs/packaging.md) for core (no bundled tools) and standard (Awake, Paper, Snap, Launch), local commands, GitHub Actions artifact downloads and size/checksum reports. Both trial profiles exclude File.

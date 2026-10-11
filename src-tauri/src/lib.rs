@@ -4,7 +4,9 @@
 mod bundled_metadata;
 
 use tauri::Manager;
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, ShortcutState};
+use tauri_plugin_global_shortcut::ShortcutState;
+#[cfg(feature = "bundled-tools")]
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 pub mod brand;
@@ -21,6 +23,7 @@ pub const QUICK_LAUNCHER_SHORTCUT: &str = "Alt+Space";
 pub const QUICK_LAUNCHER_SHORTCUT: &str = "Control+Alt+Space";
 const TRAY_WINDOW_LABEL: &str = "tray";
 
+#[cfg(feature = "bundled-tools")]
 fn is_quick_launcher_shortcut(modifiers: Modifiers, key: Code) -> bool {
     #[cfg(target_os = "macos")]
     let launch_modifiers = Modifiers::ALT;
@@ -41,10 +44,12 @@ pub(crate) fn plugin_is_enabled(app: &tauri::AppHandle, plugin_name: &str) -> bo
         .unwrap_or(false)
 }
 
+#[cfg(feature = "bundled-tools")]
 fn quick_launcher_is_enabled(app: &tauri::AppHandle) -> bool {
     plugin_is_enabled(app, brand::ZERO_LAUNCH_PLUGIN_ID)
 }
 
+#[cfg(feature = "bundled-tools")]
 pub fn sync_quick_launcher_shortcut(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> {
     let shortcuts = app.global_shortcut();
     if enabled {
@@ -69,6 +74,7 @@ pub fn sync_quick_launcher_shortcut(app: &tauri::AppHandle, enabled: bool) -> Re
     }
 }
 
+#[cfg(feature = "bundled-tools")]
 pub fn sync_screenshot_shortcut(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> {
     let mut diagnostic = crate::services::diagnostics::Operation::new(None, "shortcut");
     let result = (|| {
@@ -177,7 +183,9 @@ pub fn run() {
         registry_outcome,
         registry_started,
     );
-    let builder = plugins::web_assets::register(plugins::engine_assets::register(builder))
+    #[cfg(feature = "file-tool")]
+    let builder = plugins::engine_assets::register(builder);
+    let builder = plugins::web_assets::register(builder)
         .manage(diagnostics.clone())
         .manage(registry_state)
         .manage(performance_trace.clone());
@@ -192,10 +200,13 @@ pub fn run() {
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
+                    let _ = (app, shortcut);
                     if event.state != ShortcutState::Pressed {
                         return;
                     }
+                    #[cfg(feature = "bundled-tools")]
                     if is_quick_launcher_shortcut(shortcut.mods, shortcut.key) {
+                        #[cfg(feature = "bundled-tools")]
                         if quick_launcher_is_enabled(app) {
                             let _ = commands::quick_launcher::toggle_quick_launcher_window(app);
                         }
@@ -217,6 +228,7 @@ pub fn run() {
         .setup(|app| {
             bundled_plugins::register_diagnostics(app.handle());
             services::tray_panel::register(app.handle());
+            #[cfg(feature = "bundled-tools")]
             sync_screenshot_shortcut(
                 app.handle(),
                 plugin_is_enabled(app.handle(), brand::ZERO_SNAP_PLUGIN_ID),
@@ -241,13 +253,15 @@ pub fn run() {
                     status_bar_started,
                 );
 
+            #[cfg(feature = "bundled-tools")]
             services::screenshot::start_maintenance(app.handle());
+            #[cfg(feature = "bundled-tools")]
             if quick_launcher_is_enabled(app.handle()) {
                 bundled_plugins::start_quick_launcher(app.handle());
                 let _ = sync_quick_launcher_shortcut(app.handle(), true);
             }
 
-            #[cfg(debug_assertions)]
+            #[cfg(all(debug_assertions, feature = "file-tool"))]
             bundled_plugins::start_file_engine_smoke_if_requested(app.handle());
 
             let trace = app
@@ -315,60 +329,115 @@ pub fn run() {
             commands::status_bar::get_status_bar_items,
             commands::status_bar::run_status_bar_item_action,
             commands::shortcuts::get_global_shortcut_snapshots,
+            #[cfg(feature = "bundled-tools")]
             commands::caffeine::get_caffeine_state,
+            #[cfg(feature = "bundled-tools")]
             commands::caffeine::toggle_keep_awake,
+            #[cfg(feature = "file-tool")]
             commands::file::get_file_conversion_capabilities,
+            #[cfg(feature = "file-tool")]
             commands::file::refresh_file_conversion_capabilities,
+            #[cfg(feature = "file-tool")]
             commands::file::choose_file_conversion_inputs,
+            #[cfg(feature = "file-tool")]
             commands::file::inspect_file_conversion_inputs,
+            #[cfg(feature = "file-tool")]
             commands::file::enqueue_file_conversions,
+            #[cfg(feature = "file-tool")]
             commands::file::list_file_conversion_jobs,
+            #[cfg(feature = "file-tool")]
             commands::file::start_file_conversion_queue,
+            #[cfg(feature = "file-tool")]
             commands::file::cancel_file_conversion_job,
+            #[cfg(feature = "file-tool")]
             commands::file::remove_file_conversion_job,
+            #[cfg(feature = "file-tool")]
             commands::file::retry_file_conversion_job,
+            #[cfg(feature = "file-tool")]
             commands::file::clear_completed_file_conversion_jobs,
+            #[cfg(feature = "file-tool")]
             commands::file::open_file_conversion_output,
+            #[cfg(feature = "file-tool")]
             commands::file::reveal_file_conversion_output,
+            #[cfg(feature = "file-tool")]
             services::file::engine_bridge::file_engine_ready,
+            #[cfg(feature = "file-tool")]
             services::file::engine_bridge::file_engine_read_input,
+            #[cfg(feature = "file-tool")]
             services::file::engine_bridge::file_engine_write_output,
+            #[cfg(feature = "file-tool")]
             services::file::engine_bridge::file_engine_progress,
+            #[cfg(feature = "file-tool")]
             services::file::engine_bridge::file_engine_complete,
+            #[cfg(feature = "file-tool")]
             services::file::engine_bridge::file_engine_print_rendered,
+            #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::get_bing_wallpaper_snapshot,
+            #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::refresh_bing_wallpapers,
+            #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::get_bing_wallpaper_preview,
+            #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::read_bing_wallpaper_preview,
+            #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::release_bing_wallpaper_preview,
+            #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::save_bing_wallpaper_to_downloads,
+            #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::apply_bing_wallpaper,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::get_quick_launcher_snapshot,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::refresh_quick_launcher_index,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::search_quick_launcher,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::get_quick_launcher_icon,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::get_quick_launcher_icons,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::refresh_quick_launcher_running_state,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::activate_quick_launcher_item,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::show_quick_launcher_window,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::hide_quick_launcher_window,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::get_screenshot_capabilities,
+            #[cfg(feature = "bundled-tools")]
             commands::ocr::get_ocr_capability,
+            #[cfg(feature = "file-tool")]
             commands::ocr::prepare_file_page_ocr,
+            #[cfg(feature = "file-tool")]
             commands::ocr::upload_file_page_ocr,
+            #[cfg(feature = "bundled-tools")]
             commands::ocr::start_snap_ocr,
+            #[cfg(feature = "bundled-tools")]
             commands::ocr::get_snap_ocr,
+            #[cfg(feature = "bundled-tools")]
             commands::ocr::cancel_snap_ocr,
+            #[cfg(feature = "bundled-tools")]
             commands::ocr::clear_snap_ocr,
+            #[cfg(feature = "bundled-tools")]
             commands::ocr::copy_snap_ocr,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::start_screenshot,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::start_snap_menu_screenshot,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::init_screenshot_session,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::read_screenshot_media,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::reveal_screenshot_capture,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::prepare_screenshot_commit,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::upload_screenshot_commit,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::cancel_screenshot_session,
+            #[cfg(feature = "bundled-tools")]
             commands::screenshot::init_pin_window,
         ]))
         .build(tauri::generate_context!())
@@ -410,6 +479,7 @@ pub fn run() {
             app.state::<std::sync::Arc<services::diagnostics::Diagnostics>>()
                 .revoke_previews(label);
         }
+        #[cfg(feature = "bundled-tools")]
         if let tauri::RunEvent::WindowEvent {
             label,
             event: tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed,
@@ -417,6 +487,7 @@ pub fn run() {
         } = &event
         {
             if label == "main" {
+                #[cfg(feature = "bundled-tools")]
                 app.state::<services::screenshot::snap_ocr::SnapOcrState>()
                     .cancel();
             }
@@ -434,15 +505,20 @@ pub fn run() {
             services::status_bar_tooltips::clear(app);
             #[cfg(target_os = "macos")]
             services::status_bar_highlights::shutdown(app);
+            #[cfg(feature = "file-tool")]
             app.state::<services::file::FileConversionState>()
                 .shutdown_cleanup();
+            #[cfg(feature = "bundled-tools")]
             let _ = app
                 .state::<services::caffeine::CaffeineState>()
                 .set_enabled(false, None);
+            #[cfg(feature = "bundled-tools")]
             app.state::<services::screenshot::snap_ocr::SnapOcrState>()
                 .clear();
+            #[cfg(feature = "bundled-tools")]
             app.state::<services::screenshot::ScreenshotSessionStore>()
                 .cleanup_all();
+            #[cfg(feature = "file-tool")]
             app.state::<services::file::engine_bridge::FileEngineBridgeState>()
                 .bridge
                 .reset_and_destroy(app, "Zero is shutting down.");
@@ -452,7 +528,7 @@ pub fn run() {
     });
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "bundled-tools"))]
 mod tests {
     use super::*;
 

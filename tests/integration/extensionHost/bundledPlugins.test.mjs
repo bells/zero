@@ -51,14 +51,15 @@ test("dedicated surfaces and panels stay behind plugin-owned dynamic imports", (
 
 test("the app shell is the only composition root for concrete plugin descriptors", () => {
   const composition = fs.readFileSync(
-    "src/appShell/bundledPluginModules.ts",
+    "src/appShell/bundledPluginCatalog.full.ts",
     "utf8",
   );
   for (const [directory] of plugins) {
     assert.match(composition, new RegExp(`plugins/${directory}/plugin`));
   }
-  assert.match(composition, /createBundledPluginRegistry/);
-  assert.match(composition, /createExtensionLauncherHostApis\(\s*quickLauncherService/);
+  const host = fs.readFileSync("src/appShell/bundledPluginModules.ts", "utf8");
+  assert.match(host, /createBundledPluginRegistry/);
+  assert.match(host, /createExtensionLauncherHostApis\(\s*quickLauncherService/);
 });
 
 test("plugin manifests keep host-mediated status bar contributions", () => {

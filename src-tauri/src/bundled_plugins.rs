@@ -1,22 +1,32 @@
+#[cfg(any(feature = "bundled-tools", feature = "file-tool"))]
 use tauri::Manager;
 
 pub fn manage_states(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+    #[cfg(feature = "file-tool")]
     let engine_bridge = crate::services::file::engine_bridge::FileEngineBridgeState::default();
-    builder
-        .manage(crate::plugins::lifecycle::LifecycleCoordinator::new(vec![
-            sync_lifecycle,
-        ]))
+    let builder = builder.manage(crate::plugins::lifecycle::LifecycleCoordinator::new(vec![
+        sync_lifecycle,
+    ]));
+    #[cfg(feature = "bundled-tools")]
+    let builder = builder
         .manage(crate::services::caffeine::CaffeineState::default())
         .manage(crate::services::bing_wallpaper::BingWallpaperState::default())
-        .manage(crate::services::quick_launcher::QuickLauncherState::default())
+        .manage(crate::services::quick_launcher::QuickLauncherState::default());
+    #[cfg(feature = "file-tool")]
+    let builder = builder
         .manage(crate::services::file::FileConversionState::default())
         .manage(engine_bridge)
-        .manage(crate::services::file::engine_bridge::ocr::FileOcrLeases::default())
-        .manage(crate::services::ocr::OcrState::default())
+        .manage(crate::services::file::engine_bridge::ocr::FileOcrLeases::default());
+    #[cfg(any(feature = "bundled-tools", feature = "file-tool"))]
+    let builder = builder.manage(crate::services::ocr::OcrState::default());
+    #[cfg(feature = "bundled-tools")]
+    let builder = builder
         .manage(crate::services::screenshot::snap_ocr::SnapOcrState::default())
-        .manage(crate::services::screenshot::ScreenshotSessionStore::default())
+        .manage(crate::services::screenshot::ScreenshotSessionStore::default());
+    builder
 }
 
+#[cfg(feature = "bundled-tools")]
 pub fn start_quick_launcher(app: &tauri::AppHandle) {
     let launcher_state = app.state::<crate::services::quick_launcher::QuickLauncherState>();
     launcher_state.set_enabled(true);
@@ -54,7 +64,7 @@ pub fn start_quick_launcher(app: &tauri::AppHandle) {
     });
 }
 
-#[cfg(debug_assertions)]
+#[cfg(all(debug_assertions, feature = "file-tool"))]
 pub fn start_file_engine_smoke_if_requested(app: &tauri::AppHandle) {
     use crate::services::file::contracts::{
         FileConversionEnqueueItem, FileConversionEnqueueRequest, FileConversionJobState,
@@ -157,7 +167,9 @@ pub fn sync_lifecycle(
     app: &tauri::AppHandle,
     change: &crate::plugins::lifecycle::LifecycleChange<'_>,
 ) -> Result<(), String> {
+    let _ = app;
     match change.plugin_id {
+        #[cfg(feature = "bundled-tools")]
         crate::brand::ZERO_LAUNCH_PLUGIN_ID => {
             if change.enabled {
                 start_quick_launcher(app);
@@ -167,16 +179,19 @@ pub fn sync_lifecycle(
             }
             crate::sync_quick_launcher_shortcut(app, change.enabled)?;
         }
+        #[cfg(feature = "bundled-tools")]
         crate::brand::ZERO_SNAP_PLUGIN_ID => {
             crate::sync_screenshot_shortcut(app, change.enabled)?;
             if !change.enabled {
                 crate::services::screenshot::deactivate_screenshot(app);
             }
         }
+        #[cfg(feature = "bundled-tools")]
         crate::brand::ZERO_AWAKE_PLUGIN_ID if !change.enabled => {
             app.state::<crate::services::caffeine::CaffeineState>()
                 .set_enabled(false, None)?;
         }
+        #[cfg(feature = "file-tool")]
         crate::brand::ZERO_FILE_PLUGIN_ID => {
             use crate::services::file::runtime::FileCapabilityInvalidationCause as Cause;
             let cause = match change.reason {
@@ -198,60 +213,78 @@ pub fn sync_lifecycle(
 }
 
 pub fn register_diagnostics(app: &tauri::AppHandle) {
+    #[cfg(any(feature = "bundled-tools", feature = "file-tool"))]
     use crate::services::diagnostics::Diagnostics;
+    let _ = app;
+    #[cfg(any(feature = "bundled-tools", feature = "file-tool"))]
     let diagnostics = app.state::<std::sync::Arc<Diagnostics>>();
-    let owner = app.clone();
-    diagnostics.register("zero.snap", move || {
-        owner
-            .state::<crate::services::screenshot::ScreenshotSessionStore>()
-            .diagnostic_health()
-    });
-    let owner = app.clone();
-    diagnostics.register("zero.awake", move || {
-        owner
-            .state::<crate::services::caffeine::CaffeineState>()
-            .diagnostic_health()
-    });
-    let owner = app.clone();
-    diagnostics.register("zero.paper", move || {
-        owner
-            .state::<crate::services::bing_wallpaper::BingWallpaperState>()
-            .diagnostic_health()
-    });
-    let owner = app.clone();
-    diagnostics.register("zero.launch", move || {
-        owner
-            .state::<crate::services::quick_launcher::QuickLauncherState>()
-            .diagnostic_health()
-    });
-    let owner = app.clone();
-    diagnostics.register("zero.file", move || {
-        let mut health = owner
-            .state::<crate::services::file::FileConversionState>()
-            .diagnostic_health()?;
-        let approved = owner
-            .state::<crate::plugins::registry::PluginRegistryState>()
-            .try_read_registry(|r| {
-                r.records()
-                    .iter()
-                    .find(|p| p.name == "zero.file")
-                    .is_some_and(|p| {
-                        p.enabled
-                            && p.package_sha256.as_deref().is_some_and(|digest| {
-                                crate::plugins::package::is_approved_engine_package(
-                                    &p.name, &p.version, digest,
-                                )
-                            })
-                    })
-            })
-            .map_err(|_| {
-                crate::services::diagnostics::contracts::DiagnosticsError::new("unavailable")
-            })?;
-        health.metadata.approved = Some(approved);
-        health.metadata.dev_fallback = owner
-            .state::<crate::services::file::engine_bridge::FileEngineBridgeState>()
-            .bridge
-            .diagnostic_dev_fallback()?;
-        Ok(health)
-    });
+    #[cfg(feature = "bundled-tools")]
+    {
+        let owner = app.clone();
+        diagnostics.register("zero.snap", move || {
+            owner
+                .state::<crate::services::screenshot::ScreenshotSessionStore>()
+                .diagnostic_health()
+        });
+    }
+    #[cfg(feature = "bundled-tools")]
+    {
+        let owner = app.clone();
+        diagnostics.register("zero.awake", move || {
+            owner
+                .state::<crate::services::caffeine::CaffeineState>()
+                .diagnostic_health()
+        });
+    }
+    #[cfg(feature = "bundled-tools")]
+    {
+        let owner = app.clone();
+        diagnostics.register("zero.paper", move || {
+            owner
+                .state::<crate::services::bing_wallpaper::BingWallpaperState>()
+                .diagnostic_health()
+        });
+    }
+    #[cfg(feature = "bundled-tools")]
+    {
+        let owner = app.clone();
+        diagnostics.register("zero.launch", move || {
+            owner
+                .state::<crate::services::quick_launcher::QuickLauncherState>()
+                .diagnostic_health()
+        });
+    }
+    #[cfg(feature = "file-tool")]
+    {
+        let owner = app.clone();
+        diagnostics.register("zero.file", move || {
+            let mut health = owner
+                .state::<crate::services::file::FileConversionState>()
+                .diagnostic_health()?;
+            let approved = owner
+                .state::<crate::plugins::registry::PluginRegistryState>()
+                .try_read_registry(|r| {
+                    r.records()
+                        .iter()
+                        .find(|p| p.name == "zero.file")
+                        .is_some_and(|p| {
+                            p.enabled
+                                && p.package_sha256.as_deref().is_some_and(|digest| {
+                                    crate::plugins::package::is_approved_engine_package(
+                                        &p.name, &p.version, digest,
+                                    )
+                                })
+                        })
+                })
+                .map_err(|_| {
+                    crate::services::diagnostics::contracts::DiagnosticsError::new("unavailable")
+                })?;
+            health.metadata.approved = Some(approved);
+            health.metadata.dev_fallback = owner
+                .state::<crate::services::file::engine_bridge::FileEngineBridgeState>()
+                .bridge
+                .diagnostic_dev_fallback()?;
+            Ok(health)
+        });
+    }
 }

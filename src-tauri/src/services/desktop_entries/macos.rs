@@ -28,7 +28,7 @@ pub(super) fn install(applications: &Path, bundle: &Path) -> Result<(), String> 
     real_directory(applications)?;
     let root = applications.join("Zero Tools");
     owned_directory(&root)?;
-    for (tool, title) in TOOLS {
+    for (tool, title) in TOOLS.iter().copied() {
         let entry = root.join(format!("{title}.app"));
         owned_directory(&entry)?;
         let contents = entry.join("Contents");
@@ -105,7 +105,7 @@ mod tests {
         assert!(std::fs::read_to_string(&entry)
             .unwrap()
             .contains("New Zero.app"));
-        for (_, title) in TOOLS {
+        for (_, title) in TOOLS.iter().copied() {
             let plist = plist::Value::from_file(
                 root.join(format!("Zero Tools/{title}.app/Contents/Info.plist")),
             )
