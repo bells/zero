@@ -1,18 +1,10 @@
+import { Copy, Download, ScanText } from "lucide-react";
 import { useSnapOcr } from "./useSnapOcr";
 import { SnapOcrResult } from "./SnapOcrResult";
-import { ScreenshotAction, useScreenshotPlugin } from "./useScreenshotPlugin";
+import { type ScreenshotAction, useScreenshotPlugin } from "./useScreenshotPlugin";
 import { SCREENSHOT_SHORTCUT, SCREENSHOT_USAGE_KEYS } from "./screenshotMeta";
 import type { TranslationKey } from "./i18n";
-
-const pendingTools = [
-  { key: "rectangle", icon: "□", labelKey: "tool.rectangle" },
-  { key: "ellipse", icon: "○", labelKey: "tool.ellipse" },
-  { key: "arrow", icon: "↗", labelKey: "tool.arrow" },
-  { key: "pen", icon: "✎", labelKey: "tool.pen" },
-  { key: "mosaic", icon: "▦", labelKey: "tool.mosaic" },
-  { key: "text", icon: "T", labelKey: "tool.text" },
-  { key: "pin", icon: "⌖", labelKey: "tool.pin" },
-];
+import "./screenshot.css";
 
 interface ScreenshotPanelProps {
   t: (key: TranslationKey) => string;
@@ -25,100 +17,62 @@ export function ScreenshotPanel({ t, surface }: ScreenshotPanelProps) {
   const message = screenshot.messageDetail
     ? `${t(screenshot.messageKey)}: ${screenshot.messageDetail}`
     : t(screenshot.messageKey);
-
+  const hasError = screenshot.messageKey === "screenshot.status.startError"
+    || screenshot.messageKey === "screenshot.status.initError";
+  const showFeedback = hasError || screenshot.messageKey.endsWith("Started")
+    || screenshot.messageKey === "ocr.started";
+  const shortcut = screenshot.capabilities.platform === "macOS"
+    ? "⌘ + Shift + A"
+    : screenshot.capabilities.platform === "Windows"
+      ? "Ctrl + Shift + A"
+      : SCREENSHOT_SHORTCUT.display;
   const launch = (action: ScreenshotAction) => {
-    screenshot.start(action);
+    void screenshot.start(action);
   };
 
   return (
-    <section className="plugin-panel screenshot-panel">
-      <div className="panel-heading">
-        <div>
-          <span className="eyebrow">{t("screenshot.eyebrow")}</span>
-          <h2>{t("screenshot.title")}</h2>
+    <section className={`plugin-panel screenshot-panel snap-${surface}`} aria-busy={screenshot.isBusy}>
+      <header className="snap-heading">
+        <h2>{t("screenshot.title")}</h2>
+        <div className="snap-shortcut" aria-label={t("screenshot.shortcut")}>
+          <kbd>{shortcut}</kbd>
         </div>
-        <span className="status-pill active">{SCREENSHOT_SHORTCUT.display}</span>
-      </div>
+      </header>
+      <p className="snap-hint">
+        {screenshot.capabilities.custom_overlay
+          ? t("screenshot.captureHint")
+          : screenshot.capabilities.system_launcher
+            ? t("screenshot.systemHint")
+            : t("screenshot.shortcutHint")}
+      </p>
 
-      <div className="shortcut-card" aria-label="截图快捷键">
-        <span>{t("screenshot.shortcut")}</span>
-        <strong>{SCREENSHOT_SHORTCUT.display}</strong>
-        <small>
-          {screenshot.capabilities.platform} · {t("screenshot.shortcutHint")}
-        </small>
-      </div>
-
-      <div className="usage-list">
-        {SCREENSHOT_USAGE_KEYS.map((key) => (
-          <p key={key}>{t(key)}</p>
-        ))}
-      </div>
-
-      <div className="compact-tools" aria-label="截图工具状态">
-        {pendingTools.map((tool) => (
-          <button
-            type="button"
-            className="tool-button pending"
-            key={tool.key}
-            title={`${t(tool.labelKey as TranslationKey)} (${t("screenshot.pendingSuffix")})`}
-            disabled
-          >
-            {tool.icon}
-          </button>
-        ))}
-        <span className="tool-divider" />
-        <button
-          type="button"
-          className="tool-button"
-          title={t("screenshot.save")}
-          onClick={() => launch("save")}
-          disabled={screenshot.isBusy}
-        >
-          ↓
-        </button>
-        <button
-          type="button"
-          className="tool-button confirm"
-          title={t("screenshot.copy")}
-          onClick={() => launch("copy")}
-          disabled={screenshot.isBusy}
-        >
-          ✓
-        </button>
-      </div>
-
-      <div className="panel-copy">
-        <strong>
-          {screenshot.capabilities.selection_visual
-            ? t("screenshot.readyTitle")
-            : t("screenshot.fallbackTitle")}
-        </strong>
-        <span>{message}</span>
-      </div>
-
-      <p className="panel-copy">{ocr.capability?.available ? t("ocr.available") : t("ocr.unavailable")}</p>
-      {surface === "main" ? <SnapOcrResult ocr={ocr} t={t} /> : null}
-      <div className="button-row">
-        <button type="button" className="secondary-action" onClick={() => launch("ocr")} disabled={screenshot.isBusy || !ocr.capability?.available}>{t("ocr.capture")}</button>
-        <button
-          type="button"
-          className="primary-action"
-          onClick={() => launch("copy")}
-          disabled={screenshot.isBusy}
-        >
-          <span className="button-icon">✓</span>
+      <div className="snap-actions">
+        <button type="button" className="primary-action snap-copy" onClick={() => launch("copy")} disabled={screenshot.isBusy}>
+          <Copy aria-hidden="true" />
           {t("screenshot.copyAction")}
         </button>
-        <button
-          type="button"
-          className="secondary-action"
-          onClick={() => launch("save")}
-          disabled={screenshot.isBusy}
-        >
-          <span className="button-icon">↓</span>
+        <button type="button" className="secondary-action" onClick={() => launch("save")} disabled={screenshot.isBusy}>
+          <Download aria-hidden="true" />
           {t("screenshot.saveAction")}
         </button>
+        <button type="button" className="secondary-action" onClick={() => launch("ocr")} disabled={screenshot.isBusy || !ocr.capability?.available} title={ocr.capability?.available ? t("ocr.originalHint") : t("ocr.unavailable")}>
+          <ScanText aria-hidden="true" />
+          {t("ocr.capture")}
+        </button>
       </div>
+      {showFeedback ? <p className={`snap-feedback${hasError ? " error" : ""}`} role={hasError ? "alert" : "status"}>{message}</p> : null}
+      {!ocr.capability?.available && ocr.capability && (surface === "tray" || ocr.snapshot) ? <p className="snap-note">{t("ocr.unavailable")}</p> : null}
+
+      {surface === "main" ? <>
+        {screenshot.capabilities.custom_overlay ? <details className="snap-guide">
+          <summary>{t("screenshot.guide")}</summary>
+          <ul>{SCREENSHOT_USAGE_KEYS.map(key => <li key={key}>{t(key)}</li>)}</ul>
+        </details> : null}
+        {ocr.snapshot ? <SnapOcrResult ocr={ocr} t={t} /> : <section className="snap-ocr-empty" aria-label={t("ocr.result")}>
+          <h3>{t("ocr.result")}</h3>
+          <p>{ocr.capability ? ocr.capability.available ? t("ocr.resultHint") : t("ocr.unavailable") : t("screenshot.status.initializing")}</p>
+        </section>}
+      </> : null}
     </section>
   );
 }

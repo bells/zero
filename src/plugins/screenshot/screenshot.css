@@ -1,0 +1,41 @@
+.screenshot-panel {
+  min-width: 0;
+  gap: 12px;
+  box-shadow: none;
+  color: #203129;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.snap-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.snap-heading h2 { margin: 0; font-size: 17px; font-weight: 650; line-height: 1.4; }
+.snap-shortcut { display: flex; align-items: center; }
+.snap-shortcut kbd { padding: 5px 7px; border: 1px solid #bdc9c0; border-radius: 5px; background: #edf2ee; color: #3c5144; font: 500 11px/1.3 ui-sans-serif, system-ui, sans-serif; white-space: nowrap; }
+.snap-hint, .snap-note, .snap-feedback { margin: 0; color: #47594e; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.snap-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.snap-actions .snap-copy { grid-column: 1 / -1; }
+.snap-actions button { min-width: 0; min-height: 44px; padding: 8px; font-size: 12px; font-weight: 600; line-height: 1.4; }
+.snap-actions svg { width: 16px; height: 16px; flex-shrink: 0; }
+.snap-actions button:hover:not(:disabled) { background: #e0e9e2; }
+.snap-actions .primary-action:hover:not(:disabled) { background: #2b4033; }
+.snap-actions button:disabled { opacity: .6; }
+.snap-actions button:focus-visible, .snap-guide summary:focus-visible, .snap-ocr-result textarea:focus-visible { outline: 2px solid #166b3b; outline-offset: 2px; }
+.snap-feedback.error { color: #932f32; }
+.tray-plugin-content > .screenshot-panel.snap-tray { flex: 0 0 auto; padding: 12px 8px; border: 0; border-radius: 0; background: transparent; }
+.main-window-shell .main-workspace > .snap-main { flex: 1 0 auto; padding: 20px; border-radius: 12px; gap: 16px; }
+.snap-main .snap-heading h2 { font-size: 22px; }
+.snap-main .snap-shortcut kbd { font-size: 12px; }
+.snap-main .snap-actions { display: flex; flex-wrap: wrap; }
+.snap-main .snap-actions button { padding-inline: 16px; font-size: 13px; }
+.snap-guide { border-top: 1px solid #cbd5ce; color: #47594e; font-size: 12px; line-height: 1.6; }
+.snap-guide summary { width: fit-content; min-height: 44px; align-content: center; cursor: pointer; font-weight: 600; }
+.snap-guide ul { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 6px; }
+.snap-ocr-empty { flex: 1 0 auto; min-height: 160px; padding-top: 16px; border-top: 1px solid #cbd5ce; }
+.snap-ocr-empty h3, .screenshot-panel .snap-ocr-result h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.snap-ocr-empty p { max-width: 60ch; margin: 8px 0 0; color: #47594e; font-size: 13px; line-height: 1.6; }
+.screenshot-panel .snap-ocr-result { flex: 1 0 auto; display: flex; flex-direction: column; padding: 16px 0 0; border: 0; border-top: 1px solid #cbd5ce; border-radius: 0; }
+.screenshot-panel .snap-ocr-result p { margin: 0; color: #47594e; font-size: 13px; line-height: 1.6; }
+.screenshot-panel .snap-ocr-result p[role="alert"] { color: #932f32; }
+.screenshot-panel .snap-ocr-result textarea { flex: 1 0 auto; min-height: 180px; border-color: #9faf9f; background: #f8faf8; font-size: 14px; }
+.screenshot-panel .snap-ocr-result button { min-height: 44px; font-weight: 600; }
+.screenshot-panel .snap-ocr-result .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 12px; }
+@media (max-width: 380px) { .snap-actions button { gap: 5px; font-size: 11px; } }
+@media (prefers-reduced-motion: reduce) { .screenshot-panel button { transition: none; transform: none; } }

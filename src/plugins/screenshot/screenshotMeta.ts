@@ -4,9 +4,9 @@ export const SCREENSHOT_SHORTCUT = {
 } as const;
 
 export const SCREENSHOT_USAGE_ITEMS = [
-  "按快捷键即可立即进入截图操作。",
-  "确认后复制到剪贴板，保存按钮可将截图写入文件。",
-  "矩形、箭头、画笔、文字、马赛克和钉图会在后续阶段逐步点亮。",
+  "通过菜单栏或快捷键开始截图，单击选择窗口，拖动自由框选。",
+  "在选区中添加标注，确认后复制；也可以保存图片或钉在屏幕上。",
+  "Esc 取消截图；OCR 识别原始文字，结果在此校对后复制。",
 ] as const;
 
 export const SCREENSHOT_USAGE_KEYS = [
