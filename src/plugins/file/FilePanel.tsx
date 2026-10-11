@@ -405,7 +405,10 @@ function FileJobRow({ job, controller, t }: { job: FileConversionJobSnapshot; co
         </span>
         {job.state.status === "completed" ? job.state.result.warningKeys.flatMap((key) => {
           const warning = key === "file.quality.structureSimplified" ? "quality.structureSimplified"
-            : key === "file.quality.imagesRetained" ? "quality.imagesRetained" : null;
+            : key === "file.quality.imagesRetained" ? "quality.imagesRetained"
+            : key === "file.quality.ocrUsed" ? "quality.ocrUsed"
+            : key === "file.quality.ocrLowConfidence" ? "quality.ocrLowConfidence"
+            : key === "file.quality.ocrDownsampled" ? "quality.ocrDownsampled" : null;
           return warning ? [<span key={key}>{t(warning)}</span>] : [];
         }) : null}
       </div>

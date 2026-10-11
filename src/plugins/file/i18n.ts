@@ -7,6 +7,10 @@ import type { FileConversionErrorCode } from "./contracts";
 
 export const fileMessages = {
   "zh-CN": {
+    "quality.ocrUsed": "扫描页已通过离线 OCR 转成可编辑文字，请校对识别结果。",
+    "quality.ocrLowConfidence": "部分文字置信度较低，请对照源文件校对。",
+    "quality.ocrDownsampled": "扫描页因尺寸限制已降低识别分辨率。",
+
     "plugin.title": "Zero File",
     "plugin.subtitle": "内置离线引擎，安装后即可转换 PDF 与 Word 文件",
     "file.title": "Zero File",
@@ -18,7 +22,7 @@ export const fileMessages = {
     "file.emptyHint": "拖入 PDF 或 DOCX，或使用文件选择器。加入队列不会自动开始转换。",
     "file.chooseTitle": "选择 PDF 或 DOCX 文件",
     "file.chooseHint": "支持多选；添加后可检查目标格式",
-    "file.editableNote": "PDF → DOCX 生成可编辑文字，复杂版式可能调整；扫描件需要 OCR。",
+    "file.editableNote": "PDF → DOCX 生成可编辑文字，复杂版式可能调整；macOS 扫描件使用离线 OCR，请校对结果；表格与复杂版式不保证还原。",
     "file.dropTitle": "拖入或选择 PDF / DOCX 文件",
     "file.dropActive": "松开以检查这些文件",
     "file.dropHint": "支持拖放和多选；添加后可检查目标格式",
@@ -104,6 +108,10 @@ export const fileMessages = {
     "error.internal": "Zero 无法完成此操作，请稍后重试。",
   },
   "en-US": {
+    "quality.ocrUsed": "Scanned pages were recognized locally as editable text. Please review the result.",
+    "quality.ocrLowConfidence": "Some recognized text has low confidence. Compare it with the source.",
+    "quality.ocrDownsampled": "Scan resolution was reduced to stay within OCR limits.",
+
     "plugin.title": "Zero File",
     "plugin.subtitle": "Built-in offline engines for PDF and Word conversion",
     "file.title": "Zero File",
@@ -115,7 +123,7 @@ export const fileMessages = {
     "file.emptyHint": "Drop PDF or DOCX files, or use the file picker. Adding files never starts conversion automatically.",
     "file.chooseTitle": "Choose PDF or DOCX files",
     "file.chooseHint": "Select multiple files and review targets before conversion",
-    "file.editableNote": "PDF → DOCX creates editable text; complex layout may change. Scans require OCR.",
+    "file.editableNote": "PDF → DOCX creates editable text; complex layout may change. Scans use offline OCR on macOS; proofread the result. Tables and complex layouts may change.",
     "file.dropTitle": "Drop or choose PDF / DOCX files",
     "file.dropActive": "Release to inspect these files",
     "file.dropHint": "Drag or select multiple files and review targets before conversion",

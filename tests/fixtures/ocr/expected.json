@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/generate-file-conversion-fixtures.py --ocr-only",
+  "containsUserData": false,
+  "expectedText": [
+    "Zero OCR synthetic page",
+    "中文测试内容",
+    "Editable text from offline OCR",
+    "Bottom edge text 2026"
+  ],
+  "topText": "Zero OCR synthetic page",
+  "bottomText": "Bottom edge text 2026",
+  "cases": [
+    {
+      "file": "bilingual.png",
+      "sha256": "7da12049f4a064e6d1d5bcfe1ffcec9554d7847c5569123a974cfe6840862cb9"
+    },
+    {
+      "file": "blank.png",
+      "sha256": "dc303af3e6f9217870a505a8af76408e68d51914f95d64f86896da4e288ccb2c"
+    },
+    {
+      "file": "columns.pdf",
+      "sha256": "d295c4a31f8ce77cd9e12354feaa7419bcd7526d65472642c44b469a1b82d361"
+    },
+    {
+      "file": "columns.png",
+      "sha256": "b1f7cb52187ac13feaeefb79ce4c3971f61230f2bd59ff5f5301d07a7c3ab37e"
+    },
+    {
+      "file": "low-resolution.png",
+      "sha256": "063c9c093714788a757ba029ee9035d7e22f47478c968dc293afe0df1d868b8d"
+    },
+    {
+      "file": "mixed.pdf",
+      "sha256": "074376d481e938c00e1850ce6bef6629a38ec25c38563ec1a098f34c47a77228"
+    },
+    {
+      "file": "scan.pdf",
+      "sha256": "cd637b825341a2fe8060aac5032610a597170a5fc89c99087b93d895f530ed82"
+    },
+    {
+      "file": "table-text.pdf",
+      "sha256": "0e776e1793bfabadf8db339f93efa73d673a13494ca4b959da64974770ae882f"
+    },
+    {
+      "file": "table-text.png",
+      "sha256": "22790ae20a58cd209d1328624ccbb82b0c9dbfb2ea06fa0ba391b19e5b1d900c"
+    }
+  ]
+}

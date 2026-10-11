@@ -89,6 +89,18 @@ pub enum ToolStatusBarMenuAction {
     Quit,
     AwakeDuration(Option<u64>),
     ExitAwake,
+    Screenshot,
+    ScreenshotOcr,
+}
+
+impl ToolStatusBarMenuAction {
+    fn capture_intent(self) -> Option<&'static str> {
+        match self {
+            Self::Screenshot => Some("copy"),
+            Self::ScreenshotOcr => Some("ocr"),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -545,6 +557,13 @@ pub fn tool_status_bar_menu_action(
     if menu_id == tool_status_bar_quit_menu_id(item_id) {
         return Some(ToolStatusBarMenuAction::Quit);
     }
+    if item_id == "zero.snap.status" {
+        return match menu_id {
+            "zero.snap.capture" => Some(ToolStatusBarMenuAction::Screenshot),
+            "zero.snap.ocr" => Some(ToolStatusBarMenuAction::ScreenshotOcr),
+            _ => None,
+        };
+    }
     if item_id != AWAKE_STATUS_ITEM_ID {
         return None;
     }
@@ -888,19 +907,7 @@ fn run_grouped_status_item_action(
             .and_then(paper_window_anchor);
             crate::commands::bing_wallpaper::toggle_paper_window(app, anchor)
         }
-        NativeStatusBarActivation::Snap => {
-            let records = plugin_records(app)?;
-            let settings = ensure_status_bar_settings(app, &records)?;
-            let items = status_bar_items(app)?;
-            let anchor = grouped_status_item_cell_rect(
-                &items,
-                settings.plugin_items_collapsed,
-                &item.id,
-                rect,
-            )
-            .and_then(tool_window_anchor);
-            crate::services::snap_menu::toggle_snap_menu_window(app, anchor)
-        }
+        NativeStatusBarActivation::Snap => Ok(()),
         NativeStatusBarActivation::ExistingAction => {
             handle_status_bar_action(app.clone(), item.action, item.plugin_name)
         }
@@ -933,6 +940,14 @@ fn handle_grouped_status_item_event(tray: &TrayIcon, event: TrayIconEvent) -> Re
             if button_state == MouseButtonState::Down {
                 highlights::begin(tray, target.id, HighlightPhase::Press)?;
             } else if highlights::finish_press(tray, target.id.clone())? {
+                if native_status_bar_activation(target.plugin_name.as_deref())
+                    == NativeStatusBarActivation::Snap
+                {
+                    let generation = highlights::begin(tray, target.id, HighlightPhase::Menu)?;
+                    let result = show_grouped_status_item_menu(tray, position.x, rect);
+                    highlights::clear(tray, generation);
+                    return result;
+                }
                 run_grouped_status_item_action(app, id, position, rect)?;
                 let label = if target.id == PRIMARY_STATUS_ITEM_ID {
                     Some("tray")
@@ -940,7 +955,7 @@ fn handle_grouped_status_item_event(tray: &TrayIcon, event: TrayIconEvent) -> Re
                     match native_status_bar_activation(target.plugin_name.as_deref()) {
                         NativeStatusBarActivation::Launch => Some("launcher"),
                         NativeStatusBarActivation::Paper => Some("paper"),
-                        NativeStatusBarActivation::Snap => Some("snap-menu"),
+                        NativeStatusBarActivation::Snap => None,
                         NativeStatusBarActivation::ExistingAction => None,
                     }
                 };
@@ -1009,6 +1024,10 @@ fn show_grouped_status_item_menu(
     let app = tray.app_handle();
     let item = grouped_status_item_target(app, cursor_x, rect)?;
     let settings = ensure_status_bar_settings(app, &plugin_records(app)?)?;
+    let snap = item.plugin_name.as_deref() == Some(ZERO_SNAP_PLUGIN_ID);
+    if snap {
+        crate::services::screenshot::capture_menu_display(app);
+    }
     let menu = if item.id == PRIMARY_STATUS_ITEM_ID {
         primary_status_bar_menu(app, settings.plugin_items_collapsed)?
     } else {
@@ -1017,8 +1036,30 @@ fn show_grouped_status_item_menu(
 
     tray.set_menu(Some(menu))
         .map_err(|error| format!("failed to update grouped status bar menu: {error}"))?;
-    tray.with_inner_tray_icon(|inner| inner.show_menu())
-        .map_err(|error| format!("failed to show grouped status bar menu: {error}"))?;
+    if snap {
+        let items = status_bar_items(app)?;
+        let index = grouped_status_item_ids(&items, settings.plugin_items_collapsed)
+            .iter()
+            .position(|id| id == &item.id)
+            .ok_or("Snap cell unavailable")?;
+        tray.with_inner_tray_icon(move |inner| {
+            let mtm = objc2_foundation::MainThreadMarker::new()
+                .ok_or("menu requires native main thread")?;
+            let status = inner.ns_status_item().ok_or("status item unavailable")?;
+            let button = status.button(mtm).ok_or("status button unavailable")?;
+            let menu = status.menu(mtm).ok_or("native menu unavailable")?;
+            let point = objc2_foundation::NSPoint::new(
+                index as f64 * MACOS_STATUS_ITEM_CELL_SIZE as f64,
+                0.0,
+            );
+            menu.popUpMenuPositioningItem_atLocation_inView(None, point, Some(&button));
+            Ok::<_, String>(())
+        })
+        .map_err(|error| error.to_string())??;
+    } else {
+        tray.with_inner_tray_icon(|inner| inner.show_menu())
+            .map_err(|error| format!("failed to show grouped status bar menu: {error}"))?;
+    }
     Ok(())
 }
 
@@ -1144,12 +1185,47 @@ fn primary_status_bar_menu<R: Runtime>(
 }
 
 #[cfg(target_os = "macos")]
-fn tool_status_bar_menu<R: Runtime>(
-    app: &tauri::AppHandle<R>,
+fn tool_status_bar_menu(
+    app: &tauri::AppHandle,
     item_id: &str,
-) -> Result<tauri::menu::Menu<R>, String> {
+) -> Result<tauri::menu::Menu<tauri::Wry>, String> {
     let language = status_bar_language(app);
     let mut builder = MenuBuilder::new(app);
+    if item_id == "zero.snap.status" {
+        let shortcut = super::global_shortcuts::global_shortcut_snapshots(app)?
+            .into_iter()
+            .find(|shortcut| {
+                shortcut.id == super::global_shortcuts::GlobalShortcutActionId::SnapCapture
+                    && shortcut.registered
+            });
+        let capture = tauri::menu::MenuItem::with_id(
+            app,
+            "zero.snap.capture",
+            if language.starts_with("zh") {
+                "截图"
+            } else {
+                "Screenshot"
+            },
+            true,
+            shortcut
+                .as_ref()
+                .map(|shortcut| shortcut.accelerator.as_str()),
+        )
+        .map_err(|error| error.to_string())?;
+        let ocr = tauri::menu::MenuItem::with_id(
+            app,
+            "zero.snap.ocr",
+            if language.starts_with("zh") {
+                "截图 OCR"
+            } else {
+                "Screenshot OCR"
+            },
+            super::ocr::capability().available,
+            None::<&str>,
+        )
+        .map_err(|error| error.to_string())?;
+        builder = builder.item(&capture).item(&ocr).separator();
+    }
     if item_id == AWAKE_STATUS_ITEM_ID {
         let snapshot = app.state::<CaffeineState>().snapshot()?;
         for entry in
@@ -1248,6 +1324,47 @@ fn sync_primary_status_item(
                 }
                 Some(PrimaryStatusBarMenuAction::Quit) => {
                     crate::commands::app::quit_app(app.clone());
+                }
+                None if tool_status_bar_menu_action(event.id().as_ref(), "zero.snap.status")
+                    .and_then(ToolStatusBarMenuAction::capture_intent)
+                    .is_some() =>
+                {
+                    let Some(action) =
+                        tool_status_bar_menu_action(event.id().as_ref(), "zero.snap.status")
+                            .and_then(ToolStatusBarMenuAction::capture_intent)
+                    else {
+                        return;
+                    };
+                    let app = app.clone();
+                    tauri::async_runtime::spawn_blocking(move || {
+                        // Let native menu tracking dismiss and the compositor retire its frame.
+                        std::thread::sleep(std::time::Duration::from_millis(100));
+                        if let Err(error) =
+                            super::screenshot::start_menu_screenshot(app.clone(), action.into())
+                        {
+                            super::diagnostics::native(
+                                Some("zero.snap"),
+                                "capture",
+                                super::diagnostics::contracts::Outcome::Failed,
+                            );
+                            let chinese = status_bar_language(&app).starts_with("zh");
+                            let message = if error.code == "screenshot.permission" {
+                                if chinese {
+                                    "请在系统设置的屏幕录制权限中允许 Zero，然后重试。"
+                                } else {
+                                    "Allow Zero in System Settings → Screen Recording, then retry."
+                                }
+                            } else if chinese {
+                                "截图未能启动，请关闭现有截图窗口后重试。"
+                            } else {
+                                "Capture could not start. Close the existing capture and retry."
+                            };
+                            rfd::MessageDialog::new()
+                                .set_title("Zero Snap")
+                                .set_description(message)
+                                .show();
+                        }
+                    });
                 }
                 None if tool_status_bar_menu_action(event.id().as_ref(), AWAKE_STATUS_ITEM_ID)
                     .is_some_and(|action| !matches!(action, ToolStatusBarMenuAction::Quit)) =>
@@ -1462,6 +1579,39 @@ fn normalize_order(order: Option<u32>, plugin_index: usize) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn snap_actions_preserve_intent_and_do_not_route_other_tools_or_quit() {
+        use super::*;
+        for (id, expected) in [("zero.snap.capture", "copy"), ("zero.snap.ocr", "ocr")] {
+            assert_eq!(
+                tool_status_bar_menu_action(id, "zero.snap.status")
+                    .and_then(ToolStatusBarMenuAction::capture_intent),
+                Some(expected)
+            );
+            for other in [
+                AWAKE_STATUS_ITEM_ID,
+                PRIMARY_STATUS_ITEM_ID,
+                "zero.paper.status",
+            ] {
+                assert_eq!(tool_status_bar_menu_action(id, other), None);
+            }
+        }
+        let quit = tool_status_bar_menu_action(
+            &tool_status_bar_quit_menu_id("zero.snap.status"),
+            "zero.snap.status",
+        )
+        .unwrap();
+        assert_eq!(quit, ToolStatusBarMenuAction::Quit);
+        assert_eq!(quit.capture_intent(), None);
+        for id in [
+            "zero.awake.exit",
+            "zero.awake.duration:5",
+            "zero.snap.save",
+            "zero.snap.ocr:any",
+        ] {
+            assert_eq!(tool_status_bar_menu_action(id, "zero.snap.status"), None);
+        }
+    }
     fn declared_bundled_records() -> Vec<super::PluginRecord> {
         use super::*;
         crate::bundled_metadata::manifests()

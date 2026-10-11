@@ -16,7 +16,7 @@ import {
 import { installFileEngineRuntimePolyfills } from "./runtimePolyfills";
 import "./fileEngine.css";
 
-const ENGINE_VERSION = "1.1.0";
+const ENGINE_VERSION = "1.2.0";
 const controllers = new Map<string, AbortController>();
 
 export function FileEngineApp() {
@@ -78,7 +78,11 @@ async function runJob(request: FileEngineRunRequest) {
       const { convertPdfToDocx } = await import("./pdfToDocx");
       const result = await convertPdfToDocx(input, controller.signal, async (progress) => {
         await reportProgress(request, progress.stage, progress.percent);
-      }, { deadlineMs: request.deadlineMs });
+      }, { deadlineMs: request.deadlineMs, recognizePage: request.ocrAvailable ? async (page, pageNumber) => {
+        const lease = await invoke<{ leaseToken: string; expiresAtMs: number }>("prepare_file_page_ocr", { input: { token: request.token, jobId: request.jobId, engineVersion: request.engineVersion, pageNumber, width: page.width, height: page.height } });
+        try { return await invoke<import("../../../core/ocr/contracts").OcrPageResult>("upload_file_page_ocr", page.bytes, { headers: { "x-zero-file-ocr-lease": lease.leaseToken } }); }
+        catch (error) { throw new Error(error === "providerUnavailable" || error === "languageUnavailable" || error === "unsupportedPlatform" ? "ocrRequired" : error === "timeout" ? "timeout" : error === "cancelled" ? "cancelled" : error === "resourceLimit" || error === "invalidInput" ? "unsupportedInput" : "providerFailed"); }
+      } : undefined });
       output = result.bytes;
       await invoke<void>("file_engine_write_output", output, tokenHeaders(request));
       await reportCompletion(request, "completed", result.qualityProfile, result.warningKeys, result.pageCount);
@@ -97,7 +101,7 @@ async function runJob(request: FileEngineRunRequest) {
     }
   } catch (error) {
     const cancelled = controller.signal.aborted ||
-      (error instanceof Error && error.name === "FileEngineCancelledError") ||
+      (error instanceof Error && (error.name === "FileEngineCancelledError" || error.message === "cancelled")) ||
       (error instanceof DOMException && error.name === "AbortError");
     const knownCode = error instanceof Error && ["passwordRequired", "ocrRequired", "unsupportedInput", "timeout"].includes(error.message)
       ? error.message as "passwordRequired" | "ocrRequired" | "unsupportedInput" | "timeout" : "providerFailed";

@@ -595,6 +595,7 @@ def verify_docx(path: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--ocr-only", action="store_true", help="Generate only synthetic OCR fixtures; preserve existing corpus.")
     parser.add_argument("--editable-only", action="store_true", help="Generate the editable PDF corpus without rewriting existing fixtures.")
     parser.add_argument(
         "--cjk-font",
@@ -610,6 +611,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     global PDF_FONT_PATH
     args = parse_args()
+    if args.ocr_only:
+        build_ocr_corpus()
+        return
     if args.editable_only:
         build_editable_corpus()
         return
@@ -743,6 +747,52 @@ def build_editable_corpus() -> None:
             case["expectedFullText"] = "\n".join(page.extract_text() or "" for page in PdfReader(str(OUTPUT / case["file"])).pages)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     print(f"Generated {len(expectations)} editable PDF fixtures; existing PDFs and DOCX files preserved.")
+
+
+def build_ocr_corpus() -> None:
+    from reportlab.pdfgen.canvas import Canvas
+    import tempfile
+    output = ROOT / "tests" / "fixtures" / "ocr"
+    output.mkdir(parents=True, exist_ok=True)
+    expected = ["Zero OCR synthetic page", "中文测试内容", "Editable text from offline OCR", "Bottom edge text 2026"]
+    with tempfile.TemporaryDirectory(prefix="zero-ocr-fixture-") as temporary:
+        cjk_font = Path(temporary) / "cjk.ttf"
+        with zipfile.ZipFile(OUTPUT / "rich-layout.docx") as package:
+            table = etree.fromstring(package.read("word/fontTable.xml"))
+            embed = table.xpath("//w:embedRegular", namespaces={"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"})[0]
+            key = uuid.UUID(embed.get(qn("w:fontKey")).strip("{}"))
+            part = next(name for name in package.namelist() if name.endswith(".odttf"))
+            cjk_font.write_bytes(obfuscate_openxml_font(package.read(part), key))
+        latin = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 48)
+        chinese = ImageFont.truetype(str(cjk_font), 48)
+        def image(lines):
+            result = Image.new("RGB", (1400,1800), "white")
+            draw = ImageDraw.Draw(result)
+            for text,x,y in lines:
+                draw.text((x,y),text,fill="black",font=chinese if any(ord(char)>127 for char in text) else latin)
+            return result
+        image([(expected[0],60,24),(expected[1],60,240),(expected[2],60,420),(expected[3],60,1700)]).save(output / "bilingual.png")
+        blank = image([]); blank.save(output / "blank.png")
+        with Image.open(output / "bilingual.png") as source:
+            source.resize((350,450)).save(output / "low-resolution.png")
+        image([(f"Left {i}",60,150+i*100) for i in range(3)]+[(f"Right {i}",760,150+i*100) for i in range(3)]).save(output / "columns.png")
+        image([(f"Cell {i}       Value {i}",60,150+i*100) for i in range(3)]).save(output / "table-text.png")
+        def scan(name,pages):
+            c=Canvas(str(output/name),pagesize=(560,720),invariant=1)
+            for page in pages:
+                if page == "text":
+                    c.setFont("Helvetica",18);c.drawString(24,670,"Original text layer first")
+                elif page:
+                    c.drawImage(str(output/page),0,0,width=560,height=720)
+                c.showPage()
+            c.save()
+        scan("scan.pdf",["bilingual.png"])
+        scan("mixed.pdf",["text","bilingual.png",None,"blank.png"])
+        scan("columns.pdf",["columns.png"])
+        scan("table-text.pdf",["table-text.png"])
+    manifest={"schemaVersion":1,"generatedBy":"scripts/generate-file-conversion-fixtures.py --ocr-only","containsUserData":False,"expectedText":expected,"topText":expected[0],"bottomText":expected[-1],"cases":[{"file":path.name,"sha256":sha256(path)} for path in sorted(output.iterdir()) if path.suffix in {".png", ".pdf"}]}
+    (output/"expected.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n")
+    print(f"Generated synthetic OCR corpus in {output}")
 
 
 if __name__ == "__main__":

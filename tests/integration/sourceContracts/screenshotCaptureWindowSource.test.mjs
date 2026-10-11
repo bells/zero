@@ -21,16 +21,12 @@ test("opens the macOS capture overlay borderlessly without native fullscreen chr
     screenshotServiceSource.indexOf("fn reveal_capture_window_on_main_thread"),
   );
 
-  assert.match(openCaptureWindowSource, /primary_monitor\(\)/);
+  assert.match(openCaptureWindowSource, /monitor_frame\(monitor\)/);
   assert.match(openCaptureWindowSource, /\.decorations\(false\)/);
   assert.match(openCaptureWindowSource, /\.visible\(false\)/);
-  assert.match(openCaptureWindowSource, /set_position\(monitor_position\)/);
-  assert.match(openCaptureWindowSource, /set_size\(monitor_size\)/);
-  assert.ok(
-    openCaptureWindowSource.indexOf("set_size(monitor_size)") <
-      openCaptureWindowSource.indexOf("set_position(monitor_position)"),
-    "the hidden window must be sized before positioning so macOS resize anchoring cannot shift its top edge",
-  );
+  assert.match(openCaptureWindowSource, /setFrame_display/);
+  assert.match(openCaptureWindowSource, /appkit_frame/);
+  assert.match(openCaptureWindowSource, /wait_for_capture_teardown/);
   assert.doesNotMatch(openCaptureWindowSource, /show_surface\(&capture_window\)/);
   assert.doesNotMatch(openCaptureWindowSource, /capture_window\.set_focus\(\)/);
   assert.doesNotMatch(openCaptureWindowSource, /\.title\(/);

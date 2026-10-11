@@ -42,8 +42,8 @@ export function prepareFileEngine(root = ROOT) {
   const compressedBytes = files.reduce((sum, file) => sum + file.gzipBytes, 0);
   const manifest = {
     schemaVersion: 1,
-    engineVersion: "1.1.0",
-    protocolVersion: 1,
+    engineVersion: "1.2.0",
+    protocolVersion: 2,
     components: {
       pdfjsDist: "6.2.108",
       docx: "9.7.1",

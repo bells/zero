@@ -1,3 +1,5 @@
+import { useSnapOcr } from "./useSnapOcr";
+import { SnapOcrResult } from "./SnapOcrResult";
 import { ScreenshotAction, useScreenshotPlugin } from "./useScreenshotPlugin";
 import { SCREENSHOT_SHORTCUT, SCREENSHOT_USAGE_KEYS } from "./screenshotMeta";
 import type { TranslationKey } from "./i18n";
@@ -14,10 +16,12 @@ const pendingTools = [
 
 interface ScreenshotPanelProps {
   t: (key: TranslationKey) => string;
+  surface: "tray" | "main";
 }
 
-export function ScreenshotPanel({ t }: ScreenshotPanelProps) {
+export function ScreenshotPanel({ t, surface }: ScreenshotPanelProps) {
   const screenshot = useScreenshotPlugin();
+  const ocr = useSnapOcr(surface);
   const message = screenshot.messageDetail
     ? `${t(screenshot.messageKey)}: ${screenshot.messageDetail}`
     : t(screenshot.messageKey);
@@ -92,7 +96,10 @@ export function ScreenshotPanel({ t }: ScreenshotPanelProps) {
         <span>{message}</span>
       </div>
 
+      <p className="panel-copy">{ocr.capability?.available ? t("ocr.available") : t("ocr.unavailable")}</p>
+      {surface === "main" ? <SnapOcrResult ocr={ocr} t={t} /> : null}
       <div className="button-row">
+        <button type="button" className="secondary-action" onClick={() => launch("ocr")} disabled={screenshot.isBusy || !ocr.capability?.available}>{t("ocr.capture")}</button>
         <button
           type="button"
           className="primary-action"

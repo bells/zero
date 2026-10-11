@@ -6,7 +6,6 @@ use crate::services::surface_activity::hide_surface;
 pub enum ToolWindowKind {
     Paper,
     QuickLauncher,
-    SnapMenu,
 }
 
 impl ToolWindowKind {
@@ -14,7 +13,6 @@ impl ToolWindowKind {
         match self {
             Self::Paper => "paper",
             Self::QuickLauncher => "launcher",
-            Self::SnapMenu => "snap-menu",
         }
     }
 
@@ -22,16 +20,11 @@ impl ToolWindowKind {
         match self {
             Self::Paper => "Zero Paper",
             Self::QuickLauncher => "Zero Launch",
-            Self::SnapMenu => "Zero Snap",
         }
     }
 }
 
-const TOOL_WINDOWS: [ToolWindowKind; 3] = [
-    ToolWindowKind::Paper,
-    ToolWindowKind::QuickLauncher,
-    ToolWindowKind::SnapMenu,
-];
+const TOOL_WINDOWS: [ToolWindowKind; 2] = [ToolWindowKind::Paper, ToolWindowKind::QuickLauncher];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ToolWindowAnchor {
@@ -185,22 +178,17 @@ mod tests {
     fn tool_window_labels_are_host_owned_and_stable() {
         assert_eq!(ToolWindowKind::Paper.label(), "paper");
         assert_eq!(ToolWindowKind::QuickLauncher.label(), "launcher");
-        assert_eq!(ToolWindowKind::SnapMenu.label(), "snap-menu");
     }
 
     #[test]
     fn opening_a_tool_hides_only_peer_tool_windows() {
         assert_eq!(
             peer_tool_windows(ToolWindowKind::Paper).collect::<Vec<_>>(),
-            vec![ToolWindowKind::QuickLauncher, ToolWindowKind::SnapMenu]
+            vec![ToolWindowKind::QuickLauncher]
         );
         assert_eq!(
             peer_tool_windows(ToolWindowKind::QuickLauncher).collect::<Vec<_>>(),
-            vec![ToolWindowKind::Paper, ToolWindowKind::SnapMenu]
-        );
-        assert_eq!(
-            peer_tool_windows(ToolWindowKind::SnapMenu).collect::<Vec<_>>(),
-            vec![ToolWindowKind::Paper, ToolWindowKind::QuickLauncher]
+            vec![ToolWindowKind::Paper]
         );
     }
 

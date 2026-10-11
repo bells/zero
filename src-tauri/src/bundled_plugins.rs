@@ -11,6 +11,9 @@ pub fn manage_states(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<taur
         .manage(crate::services::quick_launcher::QuickLauncherState::default())
         .manage(crate::services::file::FileConversionState::default())
         .manage(engine_bridge)
+        .manage(crate::services::file::engine_bridge::ocr::FileOcrLeases::default())
+        .manage(crate::services::ocr::OcrState::default())
+        .manage(crate::services::screenshot::snap_ocr::SnapOcrState::default())
         .manage(crate::services::screenshot::ScreenshotSessionStore::default())
 }
 

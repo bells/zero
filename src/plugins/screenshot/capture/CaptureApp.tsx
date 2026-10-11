@@ -10,6 +10,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { normalizeOcrError, type OcrCapability } from "../../../core/ocr/contracts";
 import {
   Check,
   Circle,
@@ -49,6 +50,7 @@ import {
   isPointInBounds,
   moveSelectionBy,
   resolveSelectPointerTarget,
+  resolveSelectionPointerMode,
   resolveSelectionDrag,
   resolveSelectionNudge,
   resolveSelectionResize,
@@ -120,7 +122,7 @@ type SelectionPointerInteraction =
       target: ResolvedScreenshotTarget | null;
     }
   | {
-      kind: "create";
+      kind: "create" | "move";
       pointerId: number;
       start: Point;
       initial: SelectionGeometry;
@@ -187,6 +189,7 @@ export function CaptureApp() {
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
   const [tool, setTool] = useState<CaptureTool>("select");
   const [selection, setSelection] = useState<SelectionGeometry | null>(null);
+  const [selectionCursor, setSelectionCursor] = useState<"default" | "grab" | "grabbing">("default");
   const [selectionDraft, setSelectionDraft] = useState<SelectionGeometry | null>(null);
   const [hoverTarget, setHoverTarget] = useState<ResolvedScreenshotTarget | null>(null);
   const [crosshair, setCrosshair] = useState<Point | null>(null);
@@ -200,6 +203,7 @@ export function CaptureApp() {
   const [textDraft, setTextDraft] = useState<TextDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
+  const [ocrAvailable, setOcrAvailable] = useState(false);
   const dragStartRef = useRef<Point | null>(null);
   const selectionInteractionRef = useRef<SelectionPointerInteraction | null>(null);
   const draftIdRef = useRef<string | null>(null);
@@ -210,6 +214,14 @@ export function CaptureApp() {
   const textInputRef = useRef<HTMLTextAreaElement | null>(null);
   const toolbarRef = useRef<HTMLElement | null>(null);
   const revealedSessionIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let disposed = false;
+    void invoke<OcrCapability>("get_ocr_capability").then(capability => {
+      if (!disposed) setOcrAvailable(capability.available);
+    }).catch(() => undefined);
+    return () => { disposed = true; };
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -448,6 +460,14 @@ export function CaptureApp() {
     setTextDraft(nextDraft);
   }, []);
 
+  const recognizeSelection = useCallback(async () => {
+    if (!session || !selection || isCommitting) return;
+    setIsCommitting(true); setError(null);
+    try { await invoke("start_snap_ocr", { input: { sessionId: session.sessionId, selection: selection.bounds, languages: [] } }); }
+    catch (reason) { setError(t(`ocr.error.${normalizeOcrError(reason)}`)); }
+    finally { setIsCommitting(false); }
+  }, [session, selection, isCommitting, t]);
+
   const renderCurrentFinalCanvas = useCallback((): HTMLCanvasElement => {
     if (!session || !baseImage) {
       throw new Error("Capture session is not ready");
@@ -543,6 +563,7 @@ export function CaptureApp() {
       draftIdRef.current = null;
       setCrosshair(null);
       setHoverTarget(null);
+      setSelectionCursor("default");
       return;
     }
 
@@ -723,13 +744,16 @@ export function CaptureApp() {
       }
       event.currentTarget.setPointerCapture(event.pointerId);
       dispatch({ type: "select", id: null });
+      const mode = resolveSelectionPointerMode([], point, selection.bounds);
+      if (mode === "annotation") return;
       selectionInteractionRef.current = {
-        kind: "create",
+        kind: mode,
         pointerId: event.pointerId,
         start: point,
         initial: selection,
       };
       setSelectionDraft(null);
+      setSelectionCursor(isPointInBounds(point, selection.bounds) ? "grabbing" : "default");
       setCrosshair(point);
       return;
     }
@@ -752,7 +776,7 @@ export function CaptureApp() {
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    const point = pointerToImagePoint(event);
+    const point = pointerToImagePoint(event, Boolean(selectionInteractionRef.current));
     if (!point) {
       if (!selectionInteractionRef.current) {
         setHoverTarget(null);
@@ -762,6 +786,7 @@ export function CaptureApp() {
     }
 
     const interaction = selectionInteractionRef.current;
+    setSelectionCursor(interaction?.kind === "move" ? "grabbing" : tool === "select" && selection && isPointInBounds(point, selection.bounds) && resolveSelectPointerTarget(history.annotations, point).kind !== "annotation" ? "grab" : "default");
     if (
       interaction?.kind === "pending-target" &&
       interaction.pointerId === event.pointerId &&
@@ -800,11 +825,13 @@ export function CaptureApp() {
       return;
     }
     if (
-      interaction?.kind === "create" &&
+      (interaction?.kind === "create" || interaction?.kind === "move") &&
       interaction.pointerId === event.pointerId &&
       session
     ) {
-      const nextSelection = resolveSelectionDrag(
+      const nextSelection = interaction.kind === "move"
+        ? moveSelectionBy(interaction.initial.bounds, { x: point.x - interaction.start.x, y: point.y - interaction.start.y }, imageSize)
+        : resolveSelectionDrag(
         interaction.initial.bounds,
         interaction.start,
         point,
@@ -836,7 +863,7 @@ export function CaptureApp() {
   };
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    const point = pointerToImagePoint(event);
+    const point = pointerToImagePoint(event, true);
     const interaction = selectionInteractionRef.current;
     if (
       interaction?.kind === "pending-target" &&
@@ -859,12 +886,14 @@ export function CaptureApp() {
       return;
     }
     if (
-      interaction?.kind === "create" &&
+      (interaction?.kind === "create" || interaction?.kind === "move") &&
       interaction.pointerId === event.pointerId &&
       session
     ) {
       const nextSelection = point
-        ? resolveSelectionDrag(
+        ? interaction.kind === "move"
+          ? moveSelectionBy(interaction.initial.bounds, { x: point.x - interaction.start.x, y: point.y - interaction.start.y }, imageSize)
+          : resolveSelectionDrag(
             interaction.initial.bounds,
             interaction.start,
             point,
@@ -882,6 +911,7 @@ export function CaptureApp() {
         setSelection(nextGeometry);
       }
       setSelectionDraft(null);
+      setSelectionCursor("grab");
       selectionInteractionRef.current = null;
       setHoverTarget(null);
       setCrosshair(null);
@@ -922,6 +952,7 @@ export function CaptureApp() {
 
     selectionInteractionRef.current = null;
     setSelectionDraft(null);
+    setSelectionCursor("default");
     setCrosshair(null);
     setHoverTarget(null);
   };
@@ -1078,6 +1109,7 @@ export function CaptureApp() {
       <canvas
         ref={overlayRef}
         className="capture-overlay"
+        style={{ cursor: tool === "select" ? selectionCursor : undefined }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -1271,6 +1303,7 @@ export function CaptureApp() {
           role="group"
           aria-label={t("screenshot.toolbar.finish")}
         >
+          <button type="button" className="capture-tool-live" title={t("ocr.originalHint")} aria-label={t("ocr.capture")} disabled={isCommitting || !selection || !ocrAvailable} onClick={() => void recognizeSelection()}>OCR</button>
           <button
             type="button"
             className="capture-tool-live danger"
@@ -1293,10 +1326,10 @@ export function CaptureApp() {
           <button
             type="button"
             className="capture-tool-live confirm"
-            title={t("screenshot.toolbar.copy")}
-            aria-label={t("screenshot.toolbar.copy")}
-            disabled={isCommitting || !selection}
-            onClick={() => commit("copy")}
+            title={session?.initialAction === "ocr" ? t("ocr.originalHint") : t("screenshot.toolbar.copy")}
+            aria-label={session?.initialAction === "ocr" ? t("ocr.capture") : t("screenshot.toolbar.copy")}
+            disabled={isCommitting || !selection || (session?.initialAction === "ocr" && !ocrAvailable)}
+            onClick={() => session?.initialAction === "ocr" ? void recognizeSelection() : void commit("copy")}
           >
             <Check aria-hidden="true" />
           </button>

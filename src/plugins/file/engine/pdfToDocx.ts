@@ -1,11 +1,13 @@
 import { GlobalWorkerOptions, ImageKind, OPS, PasswordResponses, getDocument, type PDFPageProxy } from "pdfjs-dist";
+import { rasterizeOcrPage, ocrTextSamples, type RasterPage } from "./pdfOcr.js";
+import type { OcrPageResult } from "../../../core/ocr/contracts.js";
 import { PdfReconstructionError, reconstructPdfPage, type PdfTextSample } from "./pdfComplexity.js";
 import { assertNotCancelled, writeEditableDocx, type PdfDocxPage, type PdfEditableImage } from "./editableDocx.js";
 
 export { FileEngineCancelledError } from "./editableDocx.js";
 
 export interface PdfToDocxProgress {
-  stage: "parsing" | "analyzing" | "rendering" | "packaging";
+  stage: "parsing" | "analyzing" | "rendering" | "recognizing" | "packaging";
   percent?: number;
 }
 export interface PdfToDocxResult {
@@ -18,6 +20,8 @@ export interface PdfToDocxOptions {
   assetBaseUrl?: string;
   deadlineMs?: number;
   writeDocx?: typeof writeEditableDocx;
+  recognizePage?: (page: RasterPage, pageNumber: number) => Promise<OcrPageResult>;
+  rasterizePage?: typeof rasterizeOcrPage;
 }
 
 export async function convertPdfToDocx(
@@ -66,7 +70,7 @@ export async function convertPdfToDocx(
         check();
         const operators = await page.getOperatorList();
         check();
-        const text = content.items.flatMap<PdfTextSample>((item) => {
+        let text = content.items.flatMap<PdfTextSample>((item) => {
           if (!("str" in item) || item.str.trim().length === 0) return [];
           const [a, b, , d, x, y] = item.transform;
           const family = content.styles[item.fontName]?.fontFamily;
@@ -83,13 +87,37 @@ export async function convertPdfToDocx(
           [OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageXObjectRepeat,
             OPS.paintImageMaskXObject, OPS.paintImageMaskXObjectRepeat, OPS.paintImageMaskXObjectGroup].includes(operation)
             ? [{ operation, args: operators.argsArray[index] as unknown }] : []);
+        let scanned = false;
+        const ocrWarnings: string[] = [];
+        if (text.length === 0 && (imageOperations.length > 0 || operators.fnArray.includes(OPS.constructPath))) {
+          if (!options.rasterizePage && typeof document === "undefined") throw new PdfReconstructionError("ocrRequired");
+          const raster = await (options.rasterizePage ?? rasterizeOcrPage)(page, signal);
+          try {
+            check();
+            if (!raster.blank) {
+              if (!options.recognizePage) throw new PdfReconstructionError("ocrRequired");
+              await onProgress({ stage: "recognizing", percent: Math.round((pageNumber / pdf.numPages) * 80) });
+              const result = await options.recognizePage(raster, pageNumber);
+              check();
+              text = ocrTextSamples(result, viewport.width, viewport.height);
+              if (text.length === 0) throw new PdfReconstructionError("unsupportedInput");
+              totalCharacters += text.reduce((sum, line) => sum + line.text.length, 0);
+              if (totalCharacters > 5_000_000) throw new PdfReconstructionError("unsupportedInput");
+              ocrWarnings.push("file.quality.ocrUsed");
+              if (result.warnings.includes("lowConfidence")) ocrWarnings.push("file.quality.ocrLowConfidence");
+              if (raster.downsampled) ocrWarnings.push("file.quality.ocrDownsampled");
+            }
+            scanned = true;
+          } finally { raster.bytes.fill(0); }
+        }
         const model = reconstructPdfPage({
-          width: viewport.width, height: viewport.height, text, imageCount: imageOperations.length,
-          vectorOperationCount: operators.fnArray.filter((operation) => operation === OPS.constructPath || operation === OPS.paintFormXObjectBegin).length,
+          width: viewport.width, height: viewport.height, text, imageCount: scanned ? 0 : imageOperations.length,
+          vectorOperationCount: scanned ? 0 : operators.fnArray.filter((operation) => operation === OPS.constructPath || operation === OPS.paintFormXObjectBegin).length,
         });
+        model.warningKeys.push(...ocrWarnings);
         const images: PdfEditableImage[] = [];
         const seen = new Set<string>();
-        for (const { operation, args } of imageOperations) {
+        for (const { operation, args } of scanned ? [] : imageOperations) {
           check();
           if (!Array.isArray(args)) throw new PdfReconstructionError("unsupportedInput");
           if (![OPS.paintImageXObject, OPS.paintInlineImageXObject].includes(operation)) {

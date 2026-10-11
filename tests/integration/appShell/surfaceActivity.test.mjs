@@ -16,7 +16,7 @@ test("native window lifecycle transitions are owned by the surface activity help
   const offenders = sourceFiles("src-tauri/src", ".rs")
     .filter((file) => !file.endsWith("services/surface_activity.rs"))
     .filter((file) => !file.endsWith("services/file/word_macos.rs"))
-    .filter((file) => directTransition.test(fs.readFileSync(file, "utf8")));
+    .filter((file) => directTransition.test(fs.readFileSync(file, "utf8").replace(/rfd::MessageDialog::new\(\)[^;]*\.show\(\)/g, "native-message-dialog")));
 
   assert.deepEqual(offenders, []);
 });
@@ -39,12 +39,10 @@ test("Rust and TypeScript share the surface activity event and states", () => {
 test("frontend hide and close actions use host-owned lifecycle commands", () => {
   const paper = fs.readFileSync("src/plugins/bingWallpaper/PaperApp.tsx", "utf8");
   const pin = fs.readFileSync("src/plugins/screenshot/capture/PinApp.tsx", "utf8");
-  const snapMenu = fs.readFileSync("src/plugins/screenshot/SnapMenuApp.tsx", "utf8");
 
   assert.match(paper, /invoke\("hide_current_surface"\)/);
   assert.match(pin, /invoke\("close_current_surface"\)/);
-  assert.match(snapMenu, /invoke\("hide_current_surface"\)/);
-  assert.doesNotMatch(`${paper}\n${pin}\n${snapMenu}`, /getCurrentWindow\(\)\.(?:hide|close)/);
+  assert.doesNotMatch(`${paper}\n${pin}`, /getCurrentWindow\(\)\.(?:hide|close)/);
 });
 
 test("Paper preview work follows activity and revokes opaque preview resources", () => {

@@ -102,9 +102,19 @@ export interface ScreenshotTargetCandidate {
   bounds: ScreenshotSourceBounds;
 }
 
+export interface CaptureDisplaySnapshot {
+  nativeId: number;
+  logicalFrame: { x: number; y: number; width: number; height: number };
+  physicalFrame: { x: number; y: number; width: number; height: number };
+  pixelWidth: number;
+  pixelHeight: number;
+  sourceScaleX: number;
+  sourceScaleY: number;
+}
 export interface CaptureSession {
+  display: CaptureDisplaySnapshot;
   sessionId: string;
-  initialAction: "copy" | "save";
+  initialAction: "copy" | "save" | "ocr";
   media: ScreenshotMediaDescriptor;
   targets: ScreenshotTargetCandidate[];
 }

@@ -1,5 +1,7 @@
 # Zero 项目全景与维护地图
 
+2026-10-11 Snap/OCR 增量：Snap 左/右键改为与 Awake 共用宿主机制的原生菜单，废弃 `snap-menu` WebView；截图会话合并重复启动，并将指定显示器捕获、overlay 与窗口候选绑定到同一快照。选区内部可用手掌光标平移。新增 macOS Vision 共享离线 OCR，Snap 结果在 main 中编辑并显式复制，File 无文字扫描页逐页识别后生成可编辑 DOCX。File 候选为 `1.2.0`、run 协议为 `2`，仍未批准。合成混合 PDF 的真实 macOS debug 转换及 TextEdit 修改/保存/重开已验证；TextEdit 重写了分页结构，不构成版式保真证明。原生菜单视觉、双屏/混合 DPI、完整 Snap OCR 交互、Windows 和签名包仍待验收，详见[本次记录](../openspec/changes/enhance-snap-and-share-offline-ocr/evidence/verification.md)。下述旧日期基线不覆盖此增量。
+
 2026-10-11 Launch/搜索入口增量：默认 macOS Option + Space、Windows Ctrl + Alt + Space；Launch 重复标签已移除。已打包 release 启动时为五工具生成系统应用搜索入口，并通过单实例保留导航目标。前端/Rust 和 Windows 交叉编译通过；macOS debug 冷启动及 Snap/File 入口转发已验证，物理全局快捷键、实际搜索索引及 Windows 设备仍待验证。详见[本次证据](../openspec/changes/refine-launch-and-system-search/evidence/verification-2026-10-11.md)。
 
 2026-10-09 设置/高亮增量：main 内完整设置视图已接入，分类和搜索复用原设置中心；“返回工具”保留已访问工具子树，隐藏时暂停展示轮询。兼容 IPC 通过最新目标/revision 快照交接，不再创建独立 preferences 窗口。macOS 已接入组合按钮 cell mask 与局部背景绘制，高亮跟随稳定工具 ID，主 Ø 覆盖整组；实际系统栏按压/菜单视觉与 Windows 仍有未完成项。提交前完整 Rust 串行复测通过，先前进程超时记录保留。源码、自动检查和本机设置交互的独立证据见[补充验收记录](../openspec/changes/refine-tray-and-workspace-navigation/evidence/verification-supplement-2026-10-09.md)。此前数字不覆盖此增量。
@@ -62,7 +64,6 @@ Tauri 窗口 label
 | `about` | 500 × 560 独立关于窗口；诊断内容内部滚动 |
 | `launcher` | Launch 快捷键/状态栏入口，共享索引与查询 UI |
 | `paper` | Paper 专属窗口 |
-| `snap-menu` | Snap 状态栏截图入口 |
 | `capture` / `pin-*` | macOS 截图编辑 / 钉图 |
 | `zero-file-engine` | 隐藏的文件转换引擎，使用独立 capability 和调用者限制 |
 
@@ -70,7 +71,7 @@ Tauri 窗口 label
 
 | 工具 | 主要源码 | 当前实现与平台边界 |
 | --- | --- | --- |
-| Snap (`zero.snap`) | `src/plugins/screenshot/`、`services/screenshot.rs`、`services/screenshot/capture_targets.rs` | macOS 自定义选区、窗口候选、尺寸/圆角、标注、复制/保存/钉图；Windows 系统截图启动器；Linux 截图不支持 |
+| Snap (`zero.snap`) | `src/plugins/screenshot/`、`services/screenshot.rs`、`services/screenshot/` | macOS 原生动作菜单、单显示器编辑、选区拖动、窗口候选、尺寸/圆角、标注、复制/保存/钉图和 OCR；Windows 系统截图启动器；Linux 截图不支持 |
 | Awake (`zero.awake`) | `src/plugins/caffeine/`、`services/caffeine.rs` | 时长/状态；macOS `caffeinate -d -i`，Windows `SetThreadExecutionState`；其他平台返回不支持 |
 | Paper (`zero.paper`) | `src/plugins/bingWallpaper/`、`services/bing_wallpaper/` | Bing 元数据、最多 10 条缓存、下载/应用；Linux 应用依赖桌面后端，不等于已有设备验证 |
 | Launch (`zero.launch`) | `src/plugins/quickLauncher/`、`services/quick_launcher/` | 中英文/拼音模糊搜索、图标、成功使用记录、启动/聚焦/系统设置；macOS 应用包、Windows Start Menu；Linux/mobile 不支持 |
@@ -82,6 +83,7 @@ Tauri 窗口 label
 
 - 截图当前使用 `CaptureSessionPayload.media` 与短期 token 读取 raw bytes。导出先调用 `prepare_screenshot_commit` 取得一次性 lease，再通过 `upload_screenshot_commit` 提交 PNG raw body，并携带 lease/session/action headers；Rust 决定保存路径并校验会话、窗口、尺寸和有效期。
 - 新截图 session/media/lease 结构使用 `serde(rename_all = "camelCase")`；旧 capability/start response 仍有 snake_case。TS 接口和 invoke 必须逐项匹配，不能统一替换命名。
+- `CaptureDisplaySnapshot` 明确逻辑 frame、实际物理 frame、源像素和每轴比例；禁止使用目标屏 scale 乘全局原点。共享 `services/ocr/` 只接收受控 PNG，Snap adapter 限 active session/原始 crop，File adapter 限 engine run/page/版本/单次上传 lease。两插件不相互导入；结果不写持久历史或正文诊断。
 - 启动器接收宿主索引生成的 `itemId`，不开放任意路径、命令行、Bundle ID 或 URI 执行；原始搜索词不持久化或上传。
 - 壁纸由 Rust 限定网络目标、图片和插件目录，WebView 不获得任意文件访问；缓存失败应保留可用旧快照。
 - 安装包路径为 `~/.zero/plugins/<plugin>/<version>/`；Paper 为 `~/.zero/data/wallpaper/`；Launch 为 `~/.zero/data/quick-launcher/`。File 临时转换数据在 Tauri app cache 的 `file-conversion` 下，不能与插件安装目录混为一谈。
@@ -90,7 +92,7 @@ Tauri 窗口 label
 
 ## Zero File 的关键状态
 
-`file-engine-policy.json` 的 `approvedEnginePackages` 为空；候选 `1.1.0` 的 `approved` 为 false，`packageSha256` 为 null，签名包完整语料、打包 smoke、发布测量和 Windows runtime 标志均未通过。当前源码 PDF→DOCX 只生成可编辑正文；扫描页需要 OCR，不再回退整页图片。`engine/pdfComplexity.ts` 负责阅读顺序，`editableDocx.ts` 负责 OOXML，Rust `services/file/editable_output.rs` 在提交前检查最低正文语义。源码测试与 provider 启用不能代替包审批。
+`file-engine-policy.json` 的 `approvedEnginePackages` 为空；候选 `1.2.0` 的 `approved` 为 false，`packageSha256` 为 null，签名包完整语料、打包 smoke、发布测量和 Windows runtime 标志均未通过。当前源码 PDF→DOCX 只生成可编辑正文：可靠文字页直接提取，无文字非空页在 macOS 用共享 Vision OCR，普通/扫描空白页保留分页，不回退整页图片。Windows 仍无 OCR provider；同页文字加局部扫描、真实表格/公式/复杂旋转排版不承诺完整恢复。`engine/pdfComplexity.ts` 负责阅读顺序，`pdfOcr.ts` 负责有界逐页 raster 和像素坐标映射，`editableDocx.ts` 负责 OOXML，Rust `services/file/editable_output.rs` 在提交前检查最低正文语义。源码测试与 provider 启用不能代替包审批。
 
 开发命令 `ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev` 仅在 debug 构建中允许源码引擎 fallback。普通 `pnpm dev/build` 准备资源，不等于安装/批准签名包。正式包仍必须经过签名、摘要、安装资产和版本租约校验。
 

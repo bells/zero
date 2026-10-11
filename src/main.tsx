@@ -19,7 +19,7 @@ const RoutedApp = lazy(loadRoutedApp);
 const surfacePlugin = label === "zero-file-engine" ? null
   : surface === "launcher" ? "zero.launch"
     : surface === "paper" ? "zero.paper"
-      : ["capture", "pin", "snap-menu"].includes(surface) ? "zero.snap" : null;
+      : ["capture", "pin"].includes(surface) ? "zero.snap" : null;
 
 async function loadRoutedApp(): Promise<{ default: ComponentType }> {
   if (label === "zero-file-engine") {
@@ -42,7 +42,7 @@ async function loadRoutedApp(): Promise<{ default: ComponentType }> {
 function isBundledPluginSurface(
   surface: string,
 ): surface is BundledPluginSurface {
-  return ["capture", "pin", "launcher", "paper", "snap-menu"].includes(surface);
+  return ["capture", "pin", "launcher", "paper"].includes(surface);
 }
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

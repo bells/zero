@@ -1,2 +1,3 @@
 tests/fixtures/fileConversion/*.pdf binary
 tests/fixtures/fileConversion/*.docx binary
+tests/fixtures/ocr/*.pdf binary

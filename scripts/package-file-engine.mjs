@@ -11,8 +11,8 @@ import { prepareFileEngine } from "./prepare-file-engine.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BUILD_ROOT = path.join(ROOT, "build/file-engine-package");
 const ENGINE_ROOT = path.join(BUILD_ROOT, "engine");
-const OUTPUT = path.join(ROOT, "build/zero-file-1.1.0.zplugin");
-const ENGINE_VERSION = "1.1.0";
+const OUTPUT = path.join(ROOT, "build/zero-file-1.2.0.zplugin");
+const ENGINE_VERSION = "1.2.0";
 const PINNED_PUBLIC_KEY = Buffer.from(
   "IEUnZngZj5k5vPRKkumGQ60Qs5hfQT8WAFGAD8V/ZGI=",
   "base64",
@@ -73,7 +73,7 @@ export async function packageFileEngine({ signingKeyBase64 = process.env.ZERO_FI
     .map((asset) => asset.path)
     .filter((assetPath) => assetPath.startsWith("engine/licenses/"));
   const firstPartyEngine = {
-    protocolVersion: 1,
+    protocolVersion: 2,
     packageVersion: ENGINE_VERSION,
     hostApiRange: ">=0.1.0",
     directions: ["pdfToDocx", "docxToPdf"],

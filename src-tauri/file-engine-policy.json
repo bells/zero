@@ -5,12 +5,12 @@
   "candidateEnginePackages": [
     {
       "pluginId": "zero.file",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "approved": false,
       "packageSha256": null,
-      "assetManifestSha256": "abf8a62165a2ea9c108adbb876196559f26777ea633b0fecdfc219852b930c8e",
+      "assetManifestSha256": "19e53ee676dee02bfbb315e9fbe76759c42804fb19203afe7241420f15e75d39",
       "signatureAlgorithm": "Ed25519",
-      "protocolVersion": 1,
+      "protocolVersion": 2,
       "hostApiRange": ">=0.1.0",
       "components": [
         { "name": "pdfjs-dist", "version": "6.2.108", "license": "Apache-2.0" },

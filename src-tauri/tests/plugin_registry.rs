@@ -179,7 +179,7 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
         ]
     );
     assert_eq!(file.author, "bells");
-    assert_eq!(file.version, "1.1.0");
+    assert_eq!(file.version, "1.2.0");
     assert_eq!(file.manifest.id.as_deref(), Some("zero.file"));
     assert!(file.manifest.permissions.is_empty());
     assert_eq!(

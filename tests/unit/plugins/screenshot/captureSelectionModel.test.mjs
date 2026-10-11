@@ -181,3 +181,21 @@ test("resolves only unmodified Select-mode arrow nudges outside editing gestures
     assert.equal(resolveSelectionNudge(blocked), null);
   }
 });
+
+test("absolute interior drag clamps all edges and reverses without accumulated drift", () => {
+  const original={x:100,y:100,width:500,height:300};
+  const image={width:2560,height:1440};
+  assert.deepEqual(moveSelectionBy(original,{x:10000,y:10000},image),{x:2060,y:1140,width:500,height:300});
+  assert.deepEqual(moveSelectionBy(original,{x:-10000,y:-10000},image),{x:0,y:0,width:500,height:300});
+  assert.deepEqual(moveSelectionBy(original,{x:20,y:10},image),{x:120,y:110,width:500,height:300});
+  assert.deepEqual(original,{x:100,y:100,width:500,height:300});
+});
+
+test("annotation hit outranks interior move, which outranks outside creation",async()=>{
+  const {resolveSelectionPointerMode}=await import("/private/tmp/zero-tests/plugins/screenshot/capture/captureSelectionModel.js");
+  const selection={x:100,y:100,width:300,height:200};
+  assert.equal(resolveSelectionPointerMode([],{x:150,y:150},selection),"move");
+  assert.equal(resolveSelectionPointerMode([],{x:50,y:150},selection),"create");
+  const annotation={id:"object",type:"rectangle",x:140,y:140,width:30,height:30,color:"red",strokeWidth:2};
+  assert.equal(resolveSelectionPointerMode([annotation],{x:140,y:150},selection),"annotation");
+});

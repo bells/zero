@@ -11,3 +11,5 @@ pub mod status_bar;
 pub mod diagnostics;
 
 pub mod autostart;
+
+pub mod ocr;

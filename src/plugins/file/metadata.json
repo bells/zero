@@ -1,7 +1,7 @@
 {
   "name": "zero.file",
   "id": "zero.file",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "bells",
   "main": "plugins/file",
   "permissions": [],

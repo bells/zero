@@ -254,3 +254,8 @@ export function resolveSelectPointerTarget(
     ? { kind: "annotation", annotationId: annotation.id }
     : { kind: "selection" };
 }
+
+export function resolveSelectionPointerMode(annotations: AnnotationObject[], point: Point, selection: Bounds): "annotation" | "move" | "create" {
+  if (resolveSelectPointerTarget(annotations, point).kind === "annotation") return "annotation";
+  return isPointInBounds(point, selection) ? "move" : "create";
+}

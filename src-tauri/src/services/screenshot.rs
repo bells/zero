@@ -30,6 +30,10 @@ use crate::services::surface_activity::{close_surface, hide_surface, show_surfac
 
 #[cfg(target_os = "macos")]
 mod capture_targets;
+mod display;
+mod lifecycle;
+pub mod snap_ocr;
+use display::{CaptureDisplaySnapshot, DisplayFrame};
 
 const CAPTURE_WINDOW_LABEL: &str = "capture";
 const TRAY_WINDOW_LABEL: &str = "tray";
@@ -72,6 +76,7 @@ pub struct ScreenshotStartResult {
 pub struct CaptureSessionPayload {
     pub session_id: String,
     pub initial_action: String,
+    pub display: CaptureDisplaySnapshot,
     pub media: ScreenshotMediaDescriptor,
     pub targets: Vec<ScreenshotTargetCandidate>,
 }
@@ -164,6 +169,7 @@ pub struct ScreenshotError {
 struct ScreenshotSession {
     id: String,
     initial_action: String,
+    display: CaptureDisplaySnapshot,
     media: ScreenshotMedia,
     targets: Vec<ScreenshotTargetCandidate>,
     revealed: bool,
@@ -197,6 +203,9 @@ struct PinResource {
 #[derive(Debug, Default)]
 pub struct ScreenshotSessionStore {
     active: Mutex<Option<ScreenshotSession>>,
+    starts: lifecycle::CaptureStarts,
+    window_owner: Mutex<Option<String>>,
+    menu_display: Mutex<Option<u32>>,
     leases: Mutex<HashMap<String, ScreenshotCommitLease>>,
     pins: Mutex<HashMap<String, PinResource>>,
 }
@@ -454,17 +463,31 @@ pub fn start_screenshot_session(
     app: tauri::AppHandle,
     action: String,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
+    start_screenshot_session_on_display(app, action, None)
+}
+
+fn start_screenshot_session_on_display(
+    app: tauri::AppHandle,
+    action: String,
+    display: Option<u32>,
+) -> Result<ScreenshotStartResult, ScreenshotError> {
+    let store = app.state::<ScreenshotSessionStore>();
+    let (flight, leader) = store.starts.claim()?;
+    if !leader {
+        return flight.wait();
+    }
     let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.snap"), "capture");
     let result = (|| {
         let mut result = None;
         app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
             .run(crate::brand::ZERO_SNAP_PLUGIN_ID, || {
-                result = Some(start_screenshot_session_inner(app.clone(), action));
+                result = Some(start_screenshot_session_inner(app.clone(), action, display));
                 Ok(())
             })
             .map_err(|message| screenshot_error("screenshot.lifecycle", message, true))?;
         result.expect("operation ran under gate")
     })();
+    store.starts.finish(&flight, result.clone());
     diagnostic.finish(&result);
     result
 }
@@ -472,6 +495,7 @@ pub fn start_screenshot_session(
 fn start_screenshot_session_inner(
     app: tauri::AppHandle,
     action: String,
+    display: Option<u32>,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
     if !crate::plugin_is_enabled(&app, crate::brand::ZERO_SNAP_PLUGIN_ID) {
         return Err(screenshot_error(
@@ -480,6 +504,33 @@ fn start_screenshot_session_inner(
             false,
         ));
     }
+    let store = app.state::<ScreenshotSessionStore>();
+    if let Some(active) = store
+        .active()
+        .filter(|active| active.expires_at_ms > now_ms())
+    {
+        if let Some(window) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
+            if active.revealed {
+                let _ = window.set_focus();
+            }
+            return Ok(ScreenshotStartResult {
+                mode: "custom-overlay".into(),
+                platform: platform_name().into(),
+                action: active.initial_action,
+                message: "截图会话已打开".into(),
+                session_id: Some(active.id),
+                capture_window_label: Some(CAPTURE_WINDOW_LABEL.into()),
+            });
+        }
+    }
+    if let Some(stale) = store.active() {
+        close_capture_session_window(&app, &stale.id)?;
+        store.clear_active_if(&stale.id);
+    } else if let Some(window) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
+        crate::services::surface_activity::destroy_surface(&window)
+            .map_err(|_| screenshot_error("screenshot.closing", "无法关闭旧截图窗口", true))?;
+    }
+    wait_for_capture_teardown(&app)?;
     let normalized_action = normalize_start_action(action);
     let restore_window_label = hide_visible_shell_windows(&app);
 
@@ -495,7 +546,16 @@ fn start_screenshot_session_inner(
             let session_directory = root.join(format!("session-{created_at_ms}-{session_id}"));
             create_owner_only_directory(&session_directory)?;
             let media_path = session_directory.join("capture.png");
-            let target_snapshot = capture_targets::prepare_capture_target_snapshot()
+            let monitor = display
+                .and_then(|id| {
+                    xcap::Monitor::all()
+                        .ok()?
+                        .into_iter()
+                        .find(|m| m.id().ok() == Some(id))
+                })
+                .map(Ok)
+                .unwrap_or_else(|| resolve_capture_monitor(&app))?;
+            let target_snapshot = capture_targets::prepare_capture_target_snapshot(&monitor)
                 .inspect_err(|_| {
                     crate::services::diagnostics::native(
                         Some("zero.snap"),
@@ -504,9 +564,18 @@ fn start_screenshot_session_inner(
                     )
                 })
                 .ok();
-            let capture = capture_fullscreen_png(&media_path).inspect_err(|_error| {
+            let frozen_frame = monitor_frame(&monitor)?;
+            let capture = capture_fullscreen_png(&media_path, &monitor).inspect_err(|_error| {
                 let _ = fs::remove_dir_all(&session_directory);
             })?;
+            if monitor_frame(&monitor)? != frozen_frame {
+                let _ = fs::remove_dir_all(&session_directory);
+                return Err(screenshot_error(
+                    "screenshot.monitor_changed",
+                    "显示器布局已变化，请重新截图",
+                    true,
+                ));
+            }
             Ok::<_, ScreenshotError>((
                 session_id,
                 media_token,
@@ -514,9 +583,10 @@ fn start_screenshot_session_inner(
                 media_path,
                 capture,
                 target_snapshot,
+                monitor,
             ))
         })();
-        let (session_id, media_token, created_at_ms, media_path, capture, target_snapshot) =
+        let (session_id, media_token, created_at_ms, media_path, capture, target_snapshot, monitor) =
             match prepared {
                 Ok(prepared) => prepared,
                 Err(error) => {
@@ -539,6 +609,17 @@ fn start_screenshot_session_inner(
         let restore_window_label_for_error = restore_window_label.clone();
         store.set_active(ScreenshotSession {
             id: session_id.clone(),
+            display: CaptureDisplaySnapshot {
+                native_id: monitor
+                    .id()
+                    .map_err(|_| screenshot_error("screenshot.monitor", "显示器已移除", true))?,
+                logical_frame: monitor_frame(&monitor)?,
+                pixel_width: width,
+                pixel_height: height,
+                source_scale_x: f64::from(width) / f64::from(monitor.width().unwrap_or(1)),
+                source_scale_y: f64::from(height) / f64::from(monitor.height().unwrap_or(1)),
+                ..Default::default()
+            },
             initial_action: normalized_action.clone(),
             media: ScreenshotMedia {
                 token: media_token,
@@ -552,7 +633,7 @@ fn start_screenshot_session_inner(
             expires_at_ms: created_at_ms.saturating_add(SCREENSHOT_SESSION_TTL_MS),
             restore_window_label,
         });
-        if let Err(error) = open_capture_window(&app, &session_id) {
+        if let Err(error) = open_capture_window(&app, &session_id, &monitor) {
             store.clear_active_if(&session_id);
             restore_shell_window(&app, restore_window_label_for_error.as_deref());
             return Err(error);
@@ -599,6 +680,7 @@ pub fn init_screenshot_session(
         let active = validate_session(&app, session_id.as_deref())?;
         Ok(CaptureSessionPayload {
             session_id: active.id,
+            display: active.display,
             initial_action: active.initial_action,
             media: media_descriptor(&active.media, Some(active.expires_at_ms)),
             targets: active.targets,
@@ -663,7 +745,9 @@ pub fn reveal_screenshot_capture(
         )
     });
     let reveal_result = match capture_window {
-        Ok(capture_window) => reveal_capture_window_on_main_thread(capture_window),
+        Ok(capture_window) => {
+            reveal_capture_window_on_main_thread(capture_window, session_id.clone())
+        }
         Err(error) => Err(error),
     };
     if let Err(error) = reveal_result {
@@ -773,7 +857,7 @@ pub fn upload_screenshot_commit(
                         )
                     })
                     .map_err(|message| screenshot_error("screenshot.clipboard", message, true))?;
-                finish_capture_session(&app, &lease.session_id);
+                finish_capture_session(&app, &lease.session_id)?;
                 Ok(ScreenshotCommitResult {
                     copied: true,
                     saved_path: None,
@@ -786,7 +870,7 @@ pub fn upload_screenshot_commit(
                 })?;
                 write_png_to_path(&path, bytes)?;
                 let saved_path = path.to_string_lossy().into_owned();
-                finish_capture_session(&app, &lease.session_id);
+                finish_capture_session(&app, &lease.session_id)?;
                 Ok(ScreenshotCommitResult {
                     copied: false,
                     saved_path: Some(saved_path),
@@ -805,7 +889,27 @@ pub fn upload_screenshot_commit(
     result
 }
 
+pub fn start_maintenance(app: &tauri::AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            app.state::<snap_ocr::SnapOcrState>().expire();
+            app.state::<crate::services::file::engine_bridge::ocr::FileOcrLeases>()
+                .expire();
+            if let Some(active) = app
+                .state::<ScreenshotSessionStore>()
+                .active()
+                .filter(|session| session.expires_at_ms <= now_ms())
+            {
+                cleanup_failed_reveal(&app, &active.id);
+            }
+        }
+    });
+}
+
 pub fn deactivate_screenshot(app: &tauri::AppHandle) {
+    app.state::<snap_ocr::SnapOcrState>().clear();
     let store = app.state::<ScreenshotSessionStore>();
     let active = store.active();
     store.clear_active();
@@ -828,9 +932,7 @@ pub fn cancel_screenshot_session(
         let active = validate_session(&app, Some(&session_id))?;
         app.state::<ScreenshotSessionStore>()
             .clear_active_if(&session_id);
-        if let Some(capture) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
-            let _ = close_surface(&capture);
-        }
+        close_capture_session_window(&app, &session_id)?;
         restore_shell_window(&app, active.restore_window_label.as_deref());
         Ok(ScreenshotCancelResult { ok: true })
     })();
@@ -936,16 +1038,129 @@ fn create_pin_from_upload(
     result
 }
 
-fn finish_capture_session(app: &tauri::AppHandle, session_id: &str) {
+fn finish_capture_session(app: &tauri::AppHandle, session_id: &str) -> Result<(), ScreenshotError> {
     let active = app.state::<ScreenshotSessionStore>().active();
     app.state::<ScreenshotSessionStore>()
         .clear_active_if(session_id);
-    if let Some(capture) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
-        let _ = close_surface(&capture);
-    }
+    close_capture_session_window(app, session_id)?;
     if let Some(active) = active.filter(|active| active.id == session_id) {
         restore_shell_window(app, active.restore_window_label.as_deref());
     }
+    Ok(())
+}
+
+fn close_capture_session_window(
+    app: &tauri::AppHandle,
+    session_id: &str,
+) -> Result<(), ScreenshotError> {
+    let owner = app
+        .state::<ScreenshotSessionStore>()
+        .window_owner
+        .lock()
+        .ok()
+        .and_then(|owner| owner.clone());
+    if owner.as_deref() == Some(session_id) {
+        if let Some(window) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
+            crate::services::surface_activity::destroy_surface(&window)
+                .map_err(|_| screenshot_error("screenshot.closing", "无法关闭截图窗口", true))?;
+        }
+    }
+    Ok(())
+}
+
+fn wait_for_capture_teardown(app: &tauri::AppHandle) -> Result<(), ScreenshotError> {
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    while app.get_webview_window(CAPTURE_WINDOW_LABEL).is_some() {
+        if std::time::Instant::now() >= deadline {
+            return Err(screenshot_error(
+                "screenshot.closing",
+                "截图窗口仍在关闭，请稍后重试",
+                true,
+            ));
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+pub fn start_menu_screenshot(
+    app: tauri::AppHandle,
+    action: String,
+) -> Result<ScreenshotStartResult, ScreenshotError> {
+    let display = app
+        .state::<ScreenshotSessionStore>()
+        .menu_display
+        .lock()
+        .ok()
+        .and_then(|mut d| d.take());
+    start_screenshot_session_on_display(app, action, display)
+}
+
+#[cfg(target_os = "macos")]
+pub fn capture_menu_display(app: &tauri::AppHandle) {
+    if let Ok(monitor) = resolve_capture_monitor(app) {
+        if let Ok(mut display) = app.state::<ScreenshotSessionStore>().menu_display.lock() {
+            *display = monitor.id().ok();
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn monitor_frame(monitor: &xcap::Monitor) -> Result<DisplayFrame, ScreenshotError> {
+    let read = || -> Result<DisplayFrame, xcap::XCapError> {
+        Ok(DisplayFrame {
+            x: monitor.x()? as f64,
+            y: monitor.y()? as f64,
+            width: monitor.width()? as f64,
+            height: monitor.height()? as f64,
+        })
+    };
+    read().map_err(|_| {
+        screenshot_error(
+            "screenshot.monitor_changed",
+            "显示器布局已变化，请重试",
+            true,
+        )
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn resolve_capture_monitor(app: &tauri::AppHandle) -> Result<xcap::Monitor, ScreenshotError> {
+    #[repr(C)]
+    struct CGPoint {
+        x: f64,
+        y: f64,
+    }
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGEventCreate(source: *const std::ffi::c_void) -> *const std::ffi::c_void;
+        fn CGEventGetLocation(event: *const std::ffi::c_void) -> CGPoint;
+    }
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFRelease(object: *const std::ffi::c_void);
+    }
+    let point = unsafe {
+        let event = CGEventCreate(std::ptr::null());
+        if event.is_null() {
+            None
+        } else {
+            let point = CGEventGetLocation(event);
+            CFRelease(event);
+            Some(point)
+        }
+    };
+    let _ = app;
+    point
+        .and_then(|p| xcap::Monitor::from_point(p.x as i32, p.y as i32).ok())
+        .or_else(|| {
+            xcap::Monitor::all()
+                .ok()?
+                .into_iter()
+                .find(|m| m.is_primary().unwrap_or(false))
+        })
+        .ok_or_else(|| screenshot_error("screenshot.monitor", "未找到目标显示器", true))
 }
 
 fn validate_session(
@@ -1145,7 +1360,7 @@ fn validate_dimensions(width: u32, height: u32) -> Result<(), ScreenshotError> {
 
 fn hide_visible_shell_windows(app: &tauri::AppHandle) -> Option<String> {
     let mut restore_window_label = None;
-    for label in [TRAY_WINDOW_LABEL, MAIN_WINDOW_LABEL] {
+    for label in [TRAY_WINDOW_LABEL, MAIN_WINDOW_LABEL, "launcher", "paper"] {
         if let Some(window) = app.get_webview_window(label) {
             if window.is_visible().unwrap_or(false) {
                 if restore_window_label.is_none() {
@@ -1169,7 +1384,7 @@ fn restore_shell_window(app: &tauri::AppHandle, label: Option<&str>) {
 
 fn normalize_start_action(action: String) -> String {
     match action.as_str() {
-        "copy" | "save" => action,
+        "copy" | "save" | "ocr" => action,
         _ => "copy".into(),
     }
 }
@@ -1346,7 +1561,10 @@ fn remove_owned_media(path: &Path) {
 }
 
 #[cfg(target_os = "macos")]
-fn capture_fullscreen_png(path: &Path) -> Result<(u64, u32, u32), ScreenshotError> {
+fn capture_fullscreen_png(
+    path: &Path,
+    monitor: &xcap::Monitor,
+) -> Result<(u64, u32, u32), ScreenshotError> {
     #[link(name = "CoreGraphics", kind = "framework")]
     extern "C" {
         fn CGPreflightScreenCaptureAccess() -> bool;
@@ -1367,24 +1585,20 @@ fn capture_fullscreen_png(path: &Path) -> Result<(u64, u32, u32), ScreenshotErro
         },
         Default::default(),
     );
-    let status = std::process::Command::new("screencapture")
-        .args(["-x", "-t", "png"])
-        .arg(path)
-        .status()
-        .map_err(|error| {
-            screenshot_error(
-                "screenshot.capture_launch",
-                format!("调用系统截图失败: {error}"),
-                true,
-            )
-        })?;
-    if !status.success() {
+    if !allowed {
         return Err(screenshot_error(
-            "screenshot.capture_failed",
-            "系统截图命令执行失败",
+            "screenshot.capture_permission",
+            "请在系统设置中允许 Zero 录制屏幕后重试",
             true,
         ));
     }
+    let image = monitor
+        .capture_image()
+        .map_err(|_| screenshot_error("screenshot.capture_failed", "目标显示器截图失败", true))?;
+    validate_dimensions(image.width(), image.height())?;
+    image
+        .save(path)
+        .map_err(|_| screenshot_error("screenshot.capture_write", "无法保存临时截图", true))?;
     let metadata = fs::metadata(path).map_err(|error| {
         screenshot_error(
             "screenshot.capture_missing",
@@ -1416,28 +1630,13 @@ fn capture_fullscreen_png(path: &Path) -> Result<(u64, u32, u32), ScreenshotErro
     Ok((metadata.len(), width, height))
 }
 
-fn open_capture_window(app: &tauri::AppHandle, session_id: &str) -> Result<(), ScreenshotError> {
-    if let Some(existing) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
-        let _ = close_surface(&existing);
-    }
-    let monitor = app
-        .primary_monitor()
-        .map_err(|error| {
-            screenshot_error(
-                "screenshot.monitor",
-                format!("读取主显示器失败: {error}"),
-                true,
-            )
-        })?
-        .ok_or_else(|| {
-            screenshot_error(
-                "screenshot.monitor_missing",
-                "未找到可用于截图的主显示器",
-                true,
-            )
-        })?;
-    let monitor_position = *monitor.position();
-    let monitor_size = *monitor.size();
+fn open_capture_window(
+    app: &tauri::AppHandle,
+    session_id: &str,
+    monitor: &xcap::Monitor,
+) -> Result<(), ScreenshotError> {
+    wait_for_capture_teardown(app)?;
+    let frame = monitor_frame(monitor)?;
     let capture_window =
         tauri::WebviewWindowBuilder::new(app, CAPTURE_WINDOW_LABEL, WebviewUrl::App("".into()))
             .decorations(false)
@@ -1456,6 +1655,11 @@ fn open_capture_window(app: &tauri::AppHandle, session_id: &str) -> Result<(), S
                     true,
                 )
             })?;
+    *app.state::<ScreenshotSessionStore>()
+        .window_owner
+        .lock()
+        .map_err(|_| screenshot_error("screenshot.lifecycle", "窗口状态不可用", true))? =
+        Some(session_id.into());
     let cleanup_app = app.clone();
     let cleanup_session_id = session_id.to_string();
     capture_window.on_window_event(move |event| {
@@ -1465,23 +1669,68 @@ fn open_capture_window(app: &tauri::AppHandle, session_id: &str) -> Result<(), S
                 .active()
                 .filter(|session| session.id == cleanup_session_id);
             store.clear_active_if(&cleanup_session_id);
+            if let Ok(mut owner) = store.window_owner.lock() {
+                if owner.as_deref() == Some(&cleanup_session_id) {
+                    *owner = None;
+                }
+            }
             if let Some(active) = active {
                 restore_shell_window(&cleanup_app, active.restore_window_label.as_deref());
             }
         }
     });
-    // AppKit keeps the lower-left corner fixed while resizing. Size the hidden
-    // window first so the final position restores the monitor's global top-left.
-    let prepare_result = capture_window
-        .set_size(monitor_size)
-        .and_then(|_| capture_window.set_position(monitor_position));
-    if let Err(error) = prepare_result {
-        let _ = close_surface(&capture_window);
+    let native_window = capture_window.clone();
+    let primary_height = xcap::Monitor::all()
+        .ok()
+        .and_then(|monitors| {
+            monitors
+                .into_iter()
+                .find(|monitor| monitor.is_primary().unwrap_or(false))
+        })
+        .and_then(|monitor| monitor.height().ok())
+        .ok_or_else(|| screenshot_error("screenshot.monitor", "主显示器不可用", true))?
+        as f64;
+    let native_frame = display::appkit_frame(&frame, primary_height)
+        .ok_or_else(|| screenshot_error("screenshot.monitor", "屏幕坐标无效", true))?;
+    let (sender, receiver) = mpsc::sync_channel(1);
+    capture_window
+        .run_on_main_thread(move || {
+            let result = native_window.ns_window().map(|pointer| unsafe {
+                let window = &*pointer.cast::<NSWindow>();
+                window.setFrame_display(
+                    objc2_foundation::NSRect::new(
+                        objc2_foundation::NSPoint::new(native_frame.x, native_frame.y),
+                        objc2_foundation::NSSize::new(native_frame.width, native_frame.height),
+                    ),
+                    false,
+                );
+            });
+            let _ = sender.send(result);
+        })
+        .map_err(|_| screenshot_error("screenshot.capture_show", "无法安排窗口位置", true))?;
+    if !matches!(receiver.recv_timeout(Duration::from_secs(2)), Ok(Ok(()))) {
+        let _ = close_capture_session_window(app, session_id);
         return Err(screenshot_error(
             "screenshot.capture_show",
-            format!("显示截图编辑窗口失败: {error}"),
+            "无法定位截图窗口",
             true,
         ));
+    }
+    let position = capture_window
+        .inner_position()
+        .map_err(|_| screenshot_error("screenshot.monitor", "无法读取窗口原点", true))?;
+    let size = capture_window
+        .inner_size()
+        .map_err(|_| screenshot_error("screenshot.monitor", "无法读取窗口尺寸", true))?;
+    if let Ok(mut active) = app.state::<ScreenshotSessionStore>().active.lock() {
+        if let Some(active) = active.as_mut().filter(|active| active.id == session_id) {
+            active.display.physical_frame = DisplayFrame {
+                x: position.x as f64,
+                y: position.y as f64,
+                width: size.width as f64,
+                height: size.height as f64,
+            };
+        }
     }
     let timeout_app = app.clone();
     let timeout_session_id = session_id.to_string();
@@ -1499,12 +1748,14 @@ fn open_capture_window(app: &tauri::AppHandle, session_id: &str) -> Result<(), S
 
 fn reveal_capture_window_on_main_thread(
     capture_window: tauri::WebviewWindow,
+    session_id: String,
 ) -> Result<(), ScreenshotError> {
     let scheduling_window = capture_window.clone();
     let (sender, receiver) = mpsc::sync_channel(1);
     scheduling_window
         .run_on_main_thread(move || {
-            let result = configure_and_reveal_capture_window(&capture_window);
+            let result = validate_session(capture_window.app_handle(), Some(&session_id))
+                .and_then(|_| configure_and_reveal_capture_window(&capture_window));
             let _ = sender.send(result);
         })
         .map_err(|error| {
@@ -1579,9 +1830,7 @@ fn cleanup_failed_reveal(app: &tauri::AppHandle, session_id: &str) {
         .filter(|session| session.id == session_id);
     app.state::<ScreenshotSessionStore>()
         .clear_active_if(session_id);
-    if let Some(capture) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
-        let _ = close_surface(&capture);
-    }
+    let _ = close_capture_session_window(app, session_id);
     if let Some(active) = active {
         restore_shell_window(app, active.restore_window_label.as_deref());
     }
@@ -1702,6 +1951,8 @@ mod tests {
     fn normalizes_actions() {
         assert_eq!(normalize_start_action("unknown".into()), "copy");
         assert_eq!(normalize_start_action("save".into()), "save");
+        assert_eq!(normalize_start_action("ocr".into()), "ocr");
+        assert!(normalize_commit_action("ocr").is_err());
         assert!(normalize_commit_action("pin").is_ok());
         assert!(normalize_commit_action("unknown").is_err());
     }
@@ -1765,6 +2016,7 @@ mod tests {
     fn capture_session_serializes_only_opaque_source_pixel_targets() {
         let payload = CaptureSessionPayload {
             session_id: "session-1".into(),
+            display: CaptureDisplaySnapshot::default(),
             initial_action: "copy".into(),
             media: ScreenshotMediaDescriptor {
                 token: "media-1".into(),
@@ -1916,6 +2168,7 @@ mod tests {
         let store = ScreenshotSessionStore::default();
         store.set_active(ScreenshotSession {
             id: "session-1".into(),
+            display: CaptureDisplaySnapshot::default(),
             initial_action: "copy".into(),
             media: media(session_path, "media-session"),
             targets: Vec::new(),
@@ -2018,6 +2271,7 @@ mod tests {
         let store = ScreenshotSessionStore::default();
         store.set_active(ScreenshotSession {
             id: "session-1".into(),
+            display: CaptureDisplaySnapshot::default(),
             initial_action: "copy".into(),
             media: media(path, "media-session"),
             targets: Vec::new(),
@@ -2047,6 +2301,7 @@ mod tests {
         let store = ScreenshotSessionStore::default();
         store.set_active(ScreenshotSession {
             id: "session-1".into(),
+            display: CaptureDisplaySnapshot::default(),
             initial_action: "copy".into(),
             media: media(path, "media-session"),
             targets: Vec::new(),
@@ -2107,6 +2362,7 @@ mod tests {
             fs::write(&path, b"x").expect("session media");
             store.set_active(ScreenshotSession {
                 id: id.into(),
+                display: CaptureDisplaySnapshot::default(),
                 initial_action: "copy".into(),
                 media: media(path, &format!("media-{id}")),
                 targets: Vec::new(),
@@ -2144,6 +2400,7 @@ mod tests {
             fs::write(&path, b"x").expect("cycle media");
             store.set_active(ScreenshotSession {
                 id: format!("session-{cycle}"),
+                display: CaptureDisplaySnapshot::default(),
                 initial_action: "copy".into(),
                 media: media(path, &format!("media-{cycle}")),
                 targets: Vec::new(),

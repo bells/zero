@@ -31,12 +31,9 @@ pub(super) struct CaptureTargetSnapshot {
     windows: Vec<NativeWindowSnapshot>,
 }
 
-pub(super) fn prepare_capture_target_snapshot() -> Result<CaptureTargetSnapshot, String> {
-    let monitor = xcap::Monitor::all()
-        .map_err(|error| format!("list monitors: {error}"))?
-        .into_iter()
-        .find(|monitor| monitor.is_primary().unwrap_or(false))
-        .ok_or_else(|| "primary monitor is unavailable".to_string())?;
+pub(super) fn prepare_capture_target_snapshot(
+    monitor: &xcap::Monitor,
+) -> Result<CaptureTargetSnapshot, String> {
     let geometry = NativeCaptureGeometry {
         monitor: NativeRect {
             x: monitor.x().map_err(|error| format!("monitor x: {error}"))? as f64,

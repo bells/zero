@@ -67,8 +67,8 @@ function inspectCandidatePolicy(root, policy, issues) {
     return;
   }
   const candidate = candidates[0];
-  if (candidate.pluginId !== "zero.file" || candidate.version !== "1.1.0") {
-    issues.push(`${FILE_ENGINE_POLICY}: the candidate must identify zero.file version 1.1.0`);
+  if (candidate.pluginId !== "zero.file" || candidate.version !== "1.2.0") {
+    issues.push(`${FILE_ENGINE_POLICY}: the candidate must identify zero.file version 1.2.0`);
   }
   if (candidate.approved !== false || candidate.packageSha256 !== null) {
     issues.push(`${FILE_ENGINE_POLICY}: the candidate must remain unapproved until packaged gates pass`);

@@ -241,6 +241,7 @@ pub fn run() {
                     status_bar_started,
                 );
 
+            services::screenshot::start_maintenance(app.handle());
             if quick_launcher_is_enabled(app.handle()) {
                 bundled_plugins::start_quick_launcher(app.handle());
                 let _ = sync_quick_launcher_shortcut(app.handle(), true);
@@ -352,6 +353,14 @@ pub fn run() {
             commands::quick_launcher::show_quick_launcher_window,
             commands::quick_launcher::hide_quick_launcher_window,
             commands::screenshot::get_screenshot_capabilities,
+            commands::ocr::get_ocr_capability,
+            commands::ocr::prepare_file_page_ocr,
+            commands::ocr::upload_file_page_ocr,
+            commands::ocr::start_snap_ocr,
+            commands::ocr::get_snap_ocr,
+            commands::ocr::cancel_snap_ocr,
+            commands::ocr::clear_snap_ocr,
+            commands::ocr::copy_snap_ocr,
             commands::screenshot::start_screenshot,
             commands::screenshot::start_snap_menu_screenshot,
             commands::screenshot::init_screenshot_session,
@@ -401,6 +410,17 @@ pub fn run() {
             app.state::<std::sync::Arc<services::diagnostics::Diagnostics>>()
                 .revoke_previews(label);
         }
+        if let tauri::RunEvent::WindowEvent {
+            label,
+            event: tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed,
+            ..
+        } = &event
+        {
+            if label == "main" {
+                app.state::<services::screenshot::snap_ocr::SnapOcrState>()
+                    .cancel();
+            }
+        }
         if matches!(
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
@@ -419,6 +439,8 @@ pub fn run() {
             let _ = app
                 .state::<services::caffeine::CaffeineState>()
                 .set_enabled(false, None);
+            app.state::<services::screenshot::snap_ocr::SnapOcrState>()
+                .clear();
             app.state::<services::screenshot::ScreenshotSessionStore>()
                 .cleanup_all();
             app.state::<services::file::engine_bridge::FileEngineBridgeState>()

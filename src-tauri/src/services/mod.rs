@@ -7,7 +7,6 @@ pub mod native_resources;
 pub mod performance;
 pub mod quick_launcher;
 pub mod screenshot;
-pub mod snap_menu;
 pub mod status_bar;
 pub mod surface_activity;
 pub mod tool_windows;
@@ -25,3 +24,5 @@ pub mod status_bar_highlights;
 pub mod status_bar_tooltips;
 
 pub mod desktop_entries;
+
+pub mod ocr;

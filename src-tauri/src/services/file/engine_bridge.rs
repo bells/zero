@@ -1,3 +1,4 @@
+pub mod ocr;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -26,12 +27,12 @@ use super::provider::{
 };
 
 pub const FILE_ENGINE_LABEL: &str = "zero-file-engine";
-pub const FILE_ENGINE_VERSION: &str = "1.1.0";
+pub const FILE_ENGINE_VERSION: &str = "1.2.0";
 
 pub(super) fn supports_editable_engine(version: &str) -> bool {
     version == FILE_ENGINE_VERSION
 }
-pub const FILE_ENGINE_PROTOCOL_VERSION: u16 = 1;
+pub const FILE_ENGINE_PROTOCOL_VERSION: u16 = 2;
 const FILE_ENGINE_PLUGIN_ID: &str = ZERO_FILE_PLUGIN_ID;
 const FILE_ENGINE_RUN_EVENT: &str = "zero://file-engine/run";
 const FILE_ENGINE_CANCEL_EVENT: &str = "zero://file-engine/cancel";
@@ -55,6 +56,7 @@ pub struct FileEngineRunRequest {
     output_name: &'static str,
     deadline_ms: u64,
     max_input_bytes: u64,
+    ocr_available: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -90,6 +92,7 @@ enum FileEngineProgressStage {
     Parsing,
     Analyzing,
     Rendering,
+    Recognizing,
     Packaging,
     Printing,
 }
@@ -189,6 +192,7 @@ struct EngineSession {
     output_path: PathBuf,
     deadline: Instant,
     sender: Sender<EngineMessage>,
+    ocr_pages: std::collections::HashSet<u32>,
 }
 
 #[derive(Default)]
@@ -306,6 +310,7 @@ impl FileEngineBridge {
                         output_path: output_path.clone(),
                         deadline,
                         sender,
+                        ocr_pages: Default::default(),
                     },
                 );
 
@@ -323,6 +328,7 @@ impl FileEngineBridge {
                     output_name,
                     deadline_ms: now_ms().saturating_add(ENGINE_JOB_TIMEOUT.as_millis() as u64),
                     max_input_bytes: MAX_INPUT_BYTES,
+                    ocr_available: crate::services::ocr::capability().available,
                 },
             )
             .map_err(|_| bridge_error("The built-in engine job could not be dispatched."))?;
@@ -705,6 +711,10 @@ pub async fn file_engine_read_input(
     .await
     .map_err(|_| "The File engine input worker stopped unexpectedly.".to_string())??;
     crate::services::performance::record_media_transfer(&app, "file_engine_read", bytes.len());
+    #[cfg(debug_assertions)]
+    if std::env::var_os("ZERO_FILE_ENGINE_SMOKE_INPUT").is_some() {
+        eprintln!("ZERO_FILE_ENGINE_SMOKE input-read");
+    }
     Ok(tauri::ipc::Response::new(bytes))
 }
 
@@ -761,6 +771,10 @@ pub fn file_engine_progress(
     state: tauri::State<'_, FileEngineBridgeState>,
     request: FileEngineProgressRequest,
 ) -> Result<(), String> {
+    #[cfg(debug_assertions)]
+    if std::env::var_os("ZERO_FILE_ENGINE_SMOKE_INPUT").is_some() {
+        eprintln!("ZERO_FILE_ENGINE_SMOKE progress {:?}", request.stage);
+    }
     require_engine_window(&window)?;
     validate_protocol(request.protocol_version)?;
     let runtime = state
@@ -780,7 +794,8 @@ pub fn file_engine_progress(
         }
         FileEngineProgressStage::Parsing
         | FileEngineProgressStage::Analyzing
-        | FileEngineProgressStage::Rendering => FileConversionStage::Converting,
+        | FileEngineProgressStage::Rendering
+        | FileEngineProgressStage::Recognizing => FileConversionStage::Converting,
     };
     let progress =
         request
@@ -1157,6 +1172,7 @@ mod tests {
                 output_path: root.join("provider-output.docx"),
                 deadline,
                 sender,
+                ocr_pages: Default::default(),
             },
             receiver,
         )

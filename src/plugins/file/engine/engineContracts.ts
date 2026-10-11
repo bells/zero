@@ -3,7 +3,7 @@ import type {
   FileConversionQualityProfile,
 } from "../contracts";
 
-export const FILE_ENGINE_PROTOCOL_VERSION = 1;
+export const FILE_ENGINE_PROTOCOL_VERSION = 2;
 export const FILE_ENGINE_RUN_EVENT = "zero://file-engine/run";
 export const FILE_ENGINE_CANCEL_EVENT = "zero://file-engine/cancel";
 
@@ -18,6 +18,7 @@ export interface FileEngineRunRequest {
   outputName: "provider-output.docx" | "provider-output.pdf";
   deadlineMs: number;
   maxInputBytes: number;
+  ocrAvailable: boolean;
 }
 
 export interface FileEngineCancelRequest {
@@ -37,7 +38,7 @@ export interface FileEngineProgressRequest {
   token: string;
   engineVersion: string;
   jobId: string;
-  stage: "parsing" | "analyzing" | "rendering" | "packaging" | "printing";
+  stage: "parsing" | "analyzing" | "rendering" | "recognizing" | "packaging" | "printing";
   percent?: number;
 }
 

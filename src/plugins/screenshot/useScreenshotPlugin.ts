@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { TranslationKey } from "./i18n";
 
-export type ScreenshotAction = "copy" | "save";
+export type ScreenshotAction = "copy" | "save" | "ocr";
 
 interface ScreenshotCapabilities {
   platform: string;
@@ -54,7 +54,7 @@ export function useScreenshotPlugin() {
       setMessageKey(
         result.action === "save"
           ? "screenshot.status.saveStarted"
-          : "screenshot.status.copyStarted",
+          : result.action === "ocr" ? "ocr.started" : "screenshot.status.copyStarted",
       );
       setMessageDetail(null);
     } catch (err) {

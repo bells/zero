@@ -18,13 +18,12 @@ export const screenshotPlugin: BundledPluginModule = {
     },
   },
   loadPanel: () => import("./ScreenshotPanel").then(({ ScreenshotPanel }) => ({
-    default: ({ language }) => (
-      <ScreenshotPanel t={createScreenshotTranslator(language)} />
+    default: ({ language, surface }) => (
+      <ScreenshotPanel surface={surface} t={createScreenshotTranslator(language)} />
     ),
   })),
   surfaces: {
     capture: () => import("./capture/CaptureApp"),
     pin: () => import("./capture/PinApp"),
-    "snap-menu": () => import("./SnapMenuApp"),
   },
 };
