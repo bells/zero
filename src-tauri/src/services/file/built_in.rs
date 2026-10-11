@@ -60,12 +60,20 @@ impl ZeroFileBuiltInProvider {
             .state::<PluginRegistryState>()
             .with_registry(|registry| registry.active_engine(ZERO_FILE_PLUGIN_ID))
             .map(|engine| engine.package_version);
+        let incompatible = version
+            .as_ref()
+            .is_ok_and(|version| !super::engine_bridge::supports_editable_engine(version));
         let fallback = version.is_err() && super::engine_bridge::development_assets_enabled();
         if let Some(state) = self
             .app
             .try_state::<super::engine_bridge::FileEngineBridgeState>()
         {
             state.bridge.record_diagnostic_fallback(fallback);
+        }
+        if incompatible {
+            return Err(format!(
+                "The installed File engine must be upgraded to version {FILE_ENGINE_VERSION}."
+            ));
         }
         version.or_else(|error| {
             super::engine_bridge::development_assets_enabled()
@@ -109,10 +117,10 @@ impl FileConversionProvider for ZeroFileBuiltInProvider {
                 _ => None,
             },
             quality_profiles: match self.provider_id {
-                FileConversionProviderId::ZeroFilePdfToDocx => vec![
-                    FileConversionQualityProfile::EditableReconstruction,
-                    FileConversionQualityProfile::LayoutPreserving,
-                ],
+                _ if !available => Vec::new(),
+                FileConversionProviderId::ZeroFilePdfToDocx => {
+                    vec![FileConversionQualityProfile::EditableReconstruction]
+                }
                 FileConversionProviderId::ZeroFileDocxToPdfMacos => {
                     vec![FileConversionQualityProfile::WebRenderedPdf]
                 }

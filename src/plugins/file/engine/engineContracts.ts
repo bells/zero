@@ -52,6 +52,7 @@ export interface FileEngineCompletionRequest {
   pageCount?: number;
   errorCode?:
     | "passwordRequired"
+    | "ocrRequired"
     | "invalidInput"
     | "unsupportedInput"
     | "timeout"

@@ -3,6 +3,7 @@ pub mod built_in;
 pub mod capabilities;
 pub mod contracts;
 pub mod discovery;
+pub mod editable_output;
 pub mod engine_bridge;
 pub mod errors;
 pub mod libreoffice;

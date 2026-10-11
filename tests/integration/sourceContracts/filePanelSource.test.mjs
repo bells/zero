@@ -14,6 +14,23 @@ test("File drag and picker intake enqueue reviewed candidates without auto-start
   assert.match(panel, /onClick=\{\(\) => void controller\.start\(\)\}/);
 });
 
+test("host passes typed surface through the lazy boundary and tray picker keeps its dialog guard", () => {
+  const host = fs.readFileSync("src/App.tsx", "utf8");
+  const lazy = fs.readFileSync("src/appShell/LazyPluginPanel.tsx", "utf8");
+  const descriptor = fs.readFileSync("src/plugins/file/plugin.tsx", "utf8");
+  const commands = fs.readFileSync("src-tauri/src/commands/file.rs", "utf8");
+  assert.match(host, /pluginPanel\(activePlugin, resolvedLanguage, "tray"\)/);
+  assert.match(host, /pluginPanel\(activePlugin, resolvedLanguage, "main"\)/);
+  assert.match(lazy, /<Panel[^>]*surface=\{surface\}/);
+  assert.match(descriptor, /<FilePanel[^>]*surface=\{surface\}/);
+  assert.match(panel, /if \(surface !== "main"\) return/);
+  assert.match(panel, /if \(disposed\) disposeListener\(\)/);
+  assert.match(panel, /unlisten\?\.\(\)/);
+  assert.match(panel, /paths\.length === 0/);
+  assert.match(commands, /DialogGuard::new\(&app, window\.label\(\)\)/);
+  assert.match(commands, /pick_files\(\)/);
+});
+
 test("File exposes truthful progress and job-scoped actions", () => {
   assert.match(panel, /role="progressbar"/);
   assert.match(panel, /aria-valuenow=\{summary\.percent\}/);

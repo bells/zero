@@ -42,12 +42,13 @@ import {
 } from "./useFileConversion";
 
 interface FilePanelProps {
+  surface: "tray" | "main";
   t: (key: TranslationKey) => string;
 }
 
 const DIRECTIONS: FileConversionDirection[] = ["pdfToDocx", "docxToPdf"];
 
-export function FilePanel({ t }: FilePanelProps) {
+export function FilePanel({ t, surface }: FilePanelProps) {
   const controller = useFileConversion();
   const [isDragActive, setIsDragActive] = useState(false);
   const queueActions = useMemo(
@@ -90,6 +91,7 @@ export function FilePanel({ t }: FilePanelProps) {
   }, [addCandidates, controller.choose]);
 
   useEffect(() => {
+    if (surface !== "main") return;
     let disposed = false;
     let unlisten: (() => void) | undefined;
     getCurrentWindow()
@@ -115,7 +117,7 @@ export function FilePanel({ t }: FilePanelProps) {
       disposed = true;
       unlisten?.();
     };
-  }, [inspectPaths]);
+  }, [inspectPaths, surface]);
 
   return (
     <section className="plugin-panel file-panel accent-file" aria-labelledby="file-panel-title">
@@ -145,6 +147,7 @@ export function FilePanel({ t }: FilePanelProps) {
       </header>
 
       <ProviderStrip controller={controller} t={t} />
+      <p className="file-conversion-note">{t("file.editableNote")}</p>
 
       {controller.isLoading ? (
         <QueueSkeleton t={t} />
@@ -153,14 +156,14 @@ export function FilePanel({ t }: FilePanelProps) {
           <button
             type="button"
             className={`file-drop-zone ${isDragActive ? "drag-active" : ""}`}
-            aria-label={t("file.dropTitle")}
+            aria-label={t(surface === "tray" ? "file.chooseTitle" : "file.dropTitle")}
             disabled={controller.busy.choose === true || controller.busy.inspect === true}
             onClick={() => void chooseFiles()}
           >
             <span className="file-drop-icon"><FilePlus2 aria-hidden="true" /></span>
             <span>
-              <strong>{isDragActive ? t("file.dropActive") : t("file.dropTitle")}</strong>
-              <small>{t("file.dropHint")}</small>
+              <strong>{isDragActive ? t("file.dropActive") : t(surface === "tray" ? "file.chooseTitle" : "file.dropTitle")}</strong>
+              <small>{t(surface === "tray" ? "file.chooseHint" : "file.dropHint")}</small>
             </span>
             <span className="file-drop-action">{t("action.choose")}</span>
           </button>
@@ -400,6 +403,11 @@ function FileJobRow({ job, controller, t }: { job: FileConversionJobSnapshot; co
             ? t(qualityTranslationKey(job.state.result.qualityProfile))
             : t("file.fidelityNote")}
         </span>
+        {job.state.status === "completed" ? job.state.result.warningKeys.flatMap((key) => {
+          const warning = key === "file.quality.structureSimplified" ? "quality.structureSimplified"
+            : key === "file.quality.imagesRetained" ? "quality.imagesRetained" : null;
+          return warning ? [<span key={key}>{t(warning)}</span>] : [];
+        }) : null}
       </div>
 
       <div className="file-job-actions">

@@ -556,8 +556,8 @@ def write_manifest() -> None:
         ("large-structured.docx", "docxToPdf", "valid", "webRenderedPdf", ["large", "pagination", "wordPagination", "cjk", "fonts"]),
         ("malformed.docx", None, "invalidInput", None, ["malformedContainer"]),
         ("~$office-lock.docx", None, "invalidInput", None, ["officeLockFile"]),
-        ("rich-layout.pdf", "pdfToDocx", "valid", "layoutPreserving", ["latin", "cjk", "table", "image", "columns", "pageBreak"]),
-        ("image-only-scan.pdf", "pdfToDocx", "valid", "layoutPreserving", ["scanned", "imageOnly"]),
+        ("rich-layout.pdf", "pdfToDocx", "valid", "editableReconstruction", ["latin", "cjk", "table", "image", "columns", "pageBreak"]),
+        ("image-only-scan.pdf", "pdfToDocx", "valid", None, ["scanned", "imageOnly"]),
         ("encrypted.pdf", "pdfToDocx", "passwordRequired", None, ["encrypted"]),
         ("large-structured.pdf", "pdfToDocx", "valid", "editableReconstruction", ["large", "pagination", "cjk"]),
         ("malformed.pdf", None, "invalidInput", None, ["malformedHeader"]),
@@ -573,6 +573,7 @@ def write_manifest() -> None:
                 "direction": direction,
                 "expectedPreflight": expected,
                 **({"expectedQualityProfile": profile} if profile else {}),
+                **({"expectedConversionError": "ocrRequired"} if name == "image-only-scan.pdf" else {}),
                 "coverage": coverage,
                 "sha256": sha256(OUTPUT / name),
             }
@@ -594,6 +595,7 @@ def verify_docx(path: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--editable-only", action="store_true", help="Generate the editable PDF corpus without rewriting existing fixtures.")
     parser.add_argument(
         "--cjk-font",
         type=Path,
@@ -608,6 +610,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     global PDF_FONT_PATH
     args = parse_args()
+    if args.editable_only:
+        build_editable_corpus()
+        return
     if args.cjk_font is None or not args.cjk_font.is_file():
         raise SystemExit(
             "--cjk-font must name an existing embeddable TrueType font; "
@@ -642,7 +647,102 @@ def main() -> None:
     verify_docx(OUTPUT / "rich-layout.docx")
     verify_docx(OUTPUT / "large-structured.docx")
     write_manifest()
+    build_editable_corpus()
     print(f"Generated {len(FIXTURE_NAMES) - 1} fixtures in {OUTPUT}")
+
+
+def build_editable_corpus() -> None:
+    from reportlab.pdfgen.canvas import Canvas
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="zero-editable-fixtures-") as temporary:
+        font = Path(temporary) / "fixture-font.ttf"
+        with zipfile.ZipFile(OUTPUT / "rich-layout.docx") as package:
+            table = etree.fromstring(package.read("word/fontTable.xml"))
+            embed = table.xpath("//w:embedRegular", namespaces={"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"})[0]
+            key = uuid.UUID(embed.get(qn("w:fontKey")).strip("{}"))
+            part = next(name for name in package.namelist() if name.endswith(".odttf"))
+            font.write_bytes(obfuscate_openxml_font(package.read(part), key))
+        pdfmetrics.registerFont(TTFont("EditableFixtureCJK", str(font)))
+        figure = Path(temporary) / "figure.png"
+        Image.new("RGB", (80, 40), "#3978C5").save(figure)
+
+        def canvas(name):
+            result = Canvas(str(OUTPUT / name), pagesize=letter, invariant=1)
+            result.setTitle("Generated editable PDF fixture")
+            result.setFont("EditableFixtureCJK", 12)
+            return result
+
+        c = canvas("editable-simple.pdf")
+        c.drawString(54, 730, "Hello")
+        c.drawString(96, 730, "World")
+        c.drawString(54, 700, "中文测试内容")
+        c.showPage()
+        c.showPage()
+        c.setFont("EditableFixtureCJK", 12)
+        c.drawString(54, 730, "Second page after blank")
+        c.save()
+        c = canvas("editable-short.pdf")
+        c.drawString(54, 730, "Hi")
+        c.save()
+        c = canvas("editable-columns.pdf")
+        for index in range(3):
+            c.drawString(54, 730 - index * 30, f"Left {index}")
+            c.drawString(340, 730 - index * 30, f"Right {index}")
+        c.save()
+        c = canvas("editable-table-image.pdf")
+        for index in range(4):
+            c.line(54, 650 + index * 24, 275, 650 + index * 24)
+        for x in [54, 154, 275]:
+            c.line(x, 650, x, 722)
+        for index in range(3):
+            c.drawString(60, 704 - index * 24, f"Cell {index}")
+            c.drawString(160, 704 - index * 24, f"Value {index}")
+        c.drawImage(str(figure), 54, 540, width=80, height=40)
+        c.save()
+        c = canvas("editable-rotated.pdf")
+        c.translate(100, 300)
+        c.rotate(90)
+        c.drawString(0, 0, "Rotated unsupported text")
+        c.save()
+        c = canvas("editable-blank.pdf")
+        c.showPage()
+        c.save()
+        rotated_page = PdfReader(str(OUTPUT / "editable-short.pdf")).pages[0]
+        rotated_page.rotate(90)
+        rotated_writer = PdfWriter()
+        rotated_writer.add_page(rotated_page)
+        with (OUTPUT / "editable-page-rotated.pdf").open("wb") as stream:
+            rotated_writer.write(stream)
+        writer = PdfWriter()
+        for name in ["editable-short.pdf", "image-only-scan.pdf"]:
+            for pdf_page in PdfReader(str(OUTPUT / name)).pages:
+                writer.add_page(pdf_page)
+        with (OUTPUT / "editable-mixed.pdf").open("wb") as stream:
+            writer.write(stream)
+    expectations = [
+        ("editable-simple.pdf", ["Hello World", "中文测试内容", "Second page after blank"], 3, None),
+        ("editable-short.pdf", ["Hi"], 1, None),
+        ("editable-columns.pdf", ["Left 0", "Left 1", "Left 2", "Right 0", "Right 1", "Right 2"], 1, None),
+        ("editable-table-image.pdf", ["Cell 0", "Value 0", "Cell 1", "Value 1", "Cell 2", "Value 2"], 1, None),
+        ("editable-rotated.pdf", [], None, "unsupportedInput"),
+        ("editable-page-rotated.pdf", [], None, "unsupportedInput"),
+        ("editable-blank.pdf", [], None, "unsupportedInput"),
+        ("editable-mixed.pdf", [], None, "ocrRequired"),
+    ]
+    manifest_path = OUTPUT / "expected.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["cases"] = [case for case in manifest["cases"] if not case["file"].startswith("editable-")]
+    manifest["cases"].extend({
+        "file": name, "direction": "pdfToDocx", "expectedPreflight": "valid", "coverage": ["editableCorpus"],
+        "expectedText": texts, "expectedPageCount": pages, "sha256": sha256(OUTPUT / name),
+        **({"expectedConversionError": error} if error else {"expectedQualityProfile": "editableReconstruction"}),
+    } for name, texts, pages, error in expectations)
+    for case in manifest["cases"]:
+        if case.get("expectedQualityProfile") == "editableReconstruction":
+            case["expectedFullText"] = "\n".join(page.extract_text() or "" for page in PdfReader(str(OUTPUT / case["file"])).pages)
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    print(f"Generated {len(expectations)} editable PDF fixtures; existing PDFs and DOCX files preserved.")
 
 
 if __name__ == "__main__":

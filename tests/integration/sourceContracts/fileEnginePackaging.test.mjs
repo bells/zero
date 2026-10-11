@@ -108,7 +108,9 @@ test("engine document work is sequential and releases page, canvas, DOM, and byt
   );
   assert.match(pdfEngine, /for \(let pageNumber = 1; pageNumber <= pdf\.numPages/);
   assert.match(pdfEngine, /page\.cleanup\(\)/);
-  assert.match(pdfEngine, /renderTask\.cancel\(\)/);
+  assert.match(pdfEngine, /signal\.addEventListener\("abort", abort/);
+  assert.match(pdfEngine, /loadingTask\.destroy\(\)/);
+  assert.doesNotMatch(pdfEngine, /page\.render\(|createLayoutDocx/);
   assert.match(pdfEngine, /canvas\.width = 1/);
   assert.match(pdfEngine, /canvas\.height = 1/);
   assert.match(docxEngine, /MAX_IMAGE_DECODE_CONCURRENCY = 4/);
@@ -176,7 +178,7 @@ test("File conversion has no network or cloud fallback path", () => {
   for (const sourcePath of sources) {
     const source = fs.readFileSync(sourcePath, "utf8");
     assert.doesNotMatch(source, /\b(?:reqwest|ureq|fetch|XMLHttpRequest)\b/);
-    assert.doesNotMatch(source, /https?:\/\//);
+    assert.doesNotMatch(source.replaceAll("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "WORD_NAMESPACE"), /https?:\/\//);
   }
 });
 
@@ -204,7 +206,7 @@ test("clean preparation produces identical assets from LF and CRLF source checko
     ["src/plugins/file/engine/THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md", "# Notices\nLicense text\n"],
   ];
   for (const [relative, bytes] of [
-    ["node_modules/pdfjs-dist/build/pdf.worker.min.mjs", thirdPartyText],
+    ["node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs", thirdPartyText],
     ["node_modules/pdfjs-dist/cmaps/sample.bcmap", binary],
     ["node_modules/pdfjs-dist/standard_fonts/sample.pfb", binary],
     ["node_modules/pdfjs-dist/wasm/sample.wasm", binary],
@@ -251,9 +253,9 @@ test("conversion corpus pins truthful built-in quality profiles", () => {
   const cases = new Map(corpus.cases.map((fixture) => [fixture.file, fixture]));
   assert.equal(cases.get("rich-layout.docx").expectedQualityProfile, "webRenderedPdf");
   assert.equal(cases.get("large-structured.docx").expectedQualityProfile, "webRenderedPdf");
-  assert.equal(cases.get("rich-layout.pdf").expectedQualityProfile, "layoutPreserving");
+  assert.equal(cases.get("rich-layout.pdf").expectedQualityProfile, "editableReconstruction");
   assert.equal(cases.get("image-only-scan.pdf").expectedPreflight, "valid");
-  assert.equal(cases.get("image-only-scan.pdf").expectedQualityProfile, "layoutPreserving");
+  assert.equal(cases.get("image-only-scan.pdf").expectedConversionError, "ocrRequired");
   assert.equal(cases.get("large-structured.pdf").expectedQualityProfile, "editableReconstruction");
   assert.ok(cases.get("large-structured.docx").coverage.includes("wordPagination"));
 });

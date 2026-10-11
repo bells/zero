@@ -9,7 +9,7 @@ const INSTALLED_BUDGET = 45 * 1024 * 1024;
 const COMPRESSED_BUDGET = 20 * 1024 * 1024;
 
 const ASSETS = [
-  ["node_modules/pdfjs-dist/build/pdf.worker.min.mjs", "pdf.worker-core.min.mjs"],
+  ["node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs", "pdf.worker-core.min.mjs"],
   ["src/plugins/file/engine/pdf.worker.bootstrap.mjs", "pdf.worker.min.mjs", true],
   ["node_modules/pdfjs-dist/cmaps", "cmaps"],
   ["node_modules/pdfjs-dist/standard_fonts", "standard_fonts"],
@@ -42,7 +42,7 @@ export function prepareFileEngine(root = ROOT) {
   const compressedBytes = files.reduce((sum, file) => sum + file.gzipBytes, 0);
   const manifest = {
     schemaVersion: 1,
-    engineVersion: "1.0.0",
+    engineVersion: "1.1.0",
     protocolVersion: 1,
     components: {
       pdfjsDist: "6.2.108",

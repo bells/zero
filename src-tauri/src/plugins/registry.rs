@@ -1048,7 +1048,14 @@ mod tests {
         let mut registry = PluginRegistry::load_or_seed(root.clone()).unwrap();
         fs::create_dir_all(root.join("zero.file/0.8.0/engine")).unwrap();
         fs::create_dir_all(root.join("zero.file/0.9.0/engine")).unwrap();
-        fs::create_dir_all(root.join("zero.file/1.0.0/engine")).unwrap();
+        let active_version = registry
+            .records
+            .iter()
+            .find(|record| record.name == ZERO_FILE_PLUGIN_ID)
+            .unwrap()
+            .version
+            .clone();
+        fs::create_dir_all(root.join(format!("zero.file/{active_version}/engine"))).unwrap();
         registry
             .engine_leases
             .insert((ZERO_FILE_PLUGIN_ID.into(), "0.9.0".into()), 1);
@@ -1058,7 +1065,7 @@ mod tests {
             .expect_err("active lease must block uninstall")
             .contains("active document conversion"));
         registry
-            .cleanup_inactive_versions(ZERO_FILE_PLUGIN_ID, "1.0.0")
+            .cleanup_inactive_versions(ZERO_FILE_PLUGIN_ID, &active_version)
             .unwrap();
         assert!(root.join("zero.file/0.9.0").exists());
         registry
@@ -1066,7 +1073,7 @@ mod tests {
             .unwrap();
         assert!(!root.join("zero.file/0.8.0").exists());
         assert!(root.join("zero.file/0.9.0").exists());
-        assert!(root.join("zero.file/1.0.0").exists());
+        assert!(root.join(format!("zero.file/{active_version}")).exists());
     }
 
     #[test]

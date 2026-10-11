@@ -6,8 +6,9 @@ This directory contains generated, non-sensitive documents used to evaluate loca
 
 - `rich-layout.docx` and `rich-layout.pdf`: Latin and CJK editable text, explicit fonts, headings, a table, an image, columns, headers/footers, and page breaks.
 - `large-structured.docx` and `large-structured.pdf`: 24-page representative workloads with stable pagination and CJK text.
-- `image-only-scan.pdf`: one raster-only page with no PDF text layer; expected to complete as a non-editable `layoutPreserving` DOCX without claiming OCR.
-- `expected.json` records `editableReconstruction`, `layoutPreserving`, and `webRenderedPdf` expectations. Rotation/overlap confidence signals are covered by synthetic engine unit cases because rotating this timestamped corpus would make its visual baseline less representative.
+- `image-only-scan.pdf`: a valid raster-only PDF; conversion fails with `ocrRequired`. Mixed text/scan documents also fail without committing partial output.
+- `editable-*.pdf`: generated single-column English/CJK, short text, two columns, table text/figure, blank intermediate page, all blank, rotated text/page metadata, and mixed scan cases. Unsupported inputs fail explicitly.
+- `expected.json` records editable reconstruction and web-rendered PDF expectations, ordered text anchors, full extracted text, expected errors and hashes. The old image-DOCX expectations were replaced on 2026-10-11; historical visual evidence below retains its original date.
 - `encrypted.pdf`: one password-protected page; the fixture-only password is `zero-test`.
 - `malformed.docx`, `malformed.pdf`, `~$office-lock.docx`, and `unsupported.txt`: invalid-container, malformed-header, Office lock-file, and unsupported-extension cases.
 - `assets/OFL.txt`: the Noto Sans SC Open Font License notice. Each valid DOCX embeds a generated subset of the OFL font; no complete font binary is committed separately.
@@ -21,7 +22,15 @@ python3 scripts/generate-file-conversion-fixtures.py --cjk-font /path/to/NotoSan
 python3 scripts/validate-file-conversion-fixtures.py
 ```
 
-Regeneration changes hashes because PDF metadata contains creation timestamps. Commit regenerated documents and their updated `expected.json` together only after repeating visual QA.
+Original corpus regeneration changes timestamped PDF hashes. Use `--editable-only` to regenerate the deterministic editable additions and expectations without changing the original documents. This mode reuses the licensed subset font embedded in the synthetic rich DOCX.
+
+After `pnpm test:prepare`, run the real PDF parser and OOXML output checks using an installed `@napi-rs/canvas`:
+
+```sh
+ZERO_FILE_TEST_CANVAS_MODULE=/absolute/path/to/@napi-rs/canvas/index.js node scripts/verify-editable-pdf.mjs
+```
+
+Outputs go to `/private/tmp/zero-editable-pdf-results`. This validates generated text completeness, ordered anchors, sections, image relationships, error propagation and cancellation. It is separate from native editor/device acceptance.
 
 ## Visual QA evidence
 

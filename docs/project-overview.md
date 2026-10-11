@@ -90,7 +90,7 @@ Tauri 窗口 label
 
 ## Zero File 的关键状态
 
-`file-engine-policy.json` 的 `approvedEnginePackages` 为空；候选 `1.0.0` 的 `approved` 为 false，`packageSha256` 为 null，完整语料、打包 smoke、发布测量和 Windows runtime 标志均未通过。源码里 provider 的启用常量不能代替这套包审批。
+`file-engine-policy.json` 的 `approvedEnginePackages` 为空；候选 `1.1.0` 的 `approved` 为 false，`packageSha256` 为 null，签名包完整语料、打包 smoke、发布测量和 Windows runtime 标志均未通过。当前源码 PDF→DOCX 只生成可编辑正文；扫描页需要 OCR，不再回退整页图片。`engine/pdfComplexity.ts` 负责阅读顺序，`editableDocx.ts` 负责 OOXML，Rust `services/file/editable_output.rs` 在提交前检查最低正文语义。源码测试与 provider 启用不能代替包审批。
 
 开发命令 `ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev` 仅在 debug 构建中允许源码引擎 fallback。普通 `pnpm dev/build` 准备资源，不等于安装/批准签名包。正式包仍必须经过签名、摘要、安装资产和版本租约校验。
 

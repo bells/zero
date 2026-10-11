@@ -11,8 +11,8 @@ import { prepareFileEngine } from "./prepare-file-engine.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BUILD_ROOT = path.join(ROOT, "build/file-engine-package");
 const ENGINE_ROOT = path.join(BUILD_ROOT, "engine");
-const OUTPUT = path.join(ROOT, "build/zero-file-1.0.0.zplugin");
-const ENGINE_VERSION = "1.0.0";
+const OUTPUT = path.join(ROOT, "build/zero-file-1.1.0.zplugin");
+const ENGINE_VERSION = "1.1.0";
 const PINNED_PUBLIC_KEY = Buffer.from(
   "IEUnZngZj5k5vPRKkumGQ60Qs5hfQT8WAFGAD8V/ZGI=",
   "base64",

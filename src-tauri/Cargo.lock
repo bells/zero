@@ -7337,6 +7337,7 @@ dependencies = [
  "objc2-web-kit",
  "pinyin",
  "plist",
+ "quick-xml 0.39.2",
  "reqwest",
  "rfd",
  "semver",

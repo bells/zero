@@ -142,8 +142,7 @@ def main() -> int:
     expected_profiles = {
         "rich-layout.docx": "webRenderedPdf",
         "large-structured.docx": "webRenderedPdf",
-        "rich-layout.pdf": "layoutPreserving",
-        "image-only-scan.pdf": "layoutPreserving",
+        "rich-layout.pdf": "editableReconstruction",
         "large-structured.pdf": "editableReconstruction",
     }
     for name, profile in expected_profiles.items():
@@ -183,8 +182,8 @@ def main() -> int:
     if len(scan_pdf.pages) != 1 or scan_text.strip():
         fail("image-only-scan.pdf: expected one page with no text layer")
     scan_case = next(case for case in cases if case["file"] == "image-only-scan.pdf")
-    if scan_case["expectedPreflight"] != "valid":
-        fail("image-only-scan.pdf: scans must use layoutPreserving rather than claim OCR")
+    if scan_case["expectedPreflight"] != "valid" or scan_case.get("expectedConversionError") != "ocrRequired":
+        fail("image-only-scan.pdf: valid container must fail conversion with ocrRequired")
 
     assert_encrypted_pdf(FIXTURES / "encrypted.pdf")
     assert_malformed_inputs()

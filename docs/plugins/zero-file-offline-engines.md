@@ -4,7 +4,7 @@ The signed first-party `zero.file` package is designed to install its conversion
 
 ## Current checkout and source development
 
-Verified on 2026-09-25 at source revision `3120f5d`: `src-tauri/file-engine-policy.json` has an empty `approvedEnginePackages` list, and candidate `1.0.0` has `approved: false` and no package digest. Bundled tool registration and successful asset preparation do not establish that an approved engine is installed.
+Current source candidate on 2026-10-11 is `1.1.0`: `src-tauri/file-engine-policy.json` has an empty `approvedEnginePackages` list, `approved: false` and no package digest. Bundled tool registration and successful asset preparation do not establish that an approved engine is installed.
 
 For local source development on a supported platform:
 
@@ -21,10 +21,14 @@ For the “内置 PDF 引擎未能加载；请修复或重新安装 Zero File �
 
 | Direction | Built-in implementation | Platform boundary | Result profile |
 | --- | --- | --- | --- |
-| PDF to DOCX | PDF.js 6.2.108 plus `docx` 9.7.1 | macOS and Windows desktop WebViews | `editableReconstruction` for simple ordered text; otherwise `layoutPreserving` |
+| PDF to DOCX | PDF.js 6.2.108 plus `docx` 9.7.1 | macOS and Windows desktop WebViews; Windows device acceptance pending | `editableReconstruction` only |
 | DOCX to PDF | `docx-preview` 0.4.0, bounded `WKWebView.createPDF`, and PDFKit merge | macOS 11+ | `webRenderedPdf` |
 
-`layoutPreserving` puts each rendered PDF page into a matching DOCX page. It preserves visible layout but its text is not editable and no OCR is claimed. `webRenderedPdf` is not a promise of exact proprietary Word pagination. LibreOffice and Microsoft Word remain optional compatibility providers; neither is required for the built-in path. Windows DOCX-to-PDF remains unavailable until a separately tested WebView2 exporter is approved.
+PDF-to-DOCX now reconstructs visible paragraphs and runs, English spacing, CJK text and reliable column order. Text tables may be linearized; basic figures remain individual images after page text. Complex structure may change, and no exact Word pagination is promised. Raster-only or mixed scan pages require OCR, which this engine does not provide; ambiguous/rotated text fails explicitly. Generation errors no longer fall back to full-page images. Rust checks bounded ZIP/XML and minimum visible Word body text before commit; corpus checks separately establish completeness and reading order.
+
+Old `layoutPreserving` results remain readable, but engine `1.1.0` does not advertise or generate this profile. Older installed engines must be upgraded and cannot claim the new editable capability. `webRenderedPdf` remains a best-effort browser render. LibreOffice and Microsoft Word are optional compatibility providers. Windows DOCX-to-PDF remains unavailable until a separately tested WebView2 exporter is approved.
+
+The File tray page offers native file selection; the main page additionally accepts drag/drop. Bundled tools require an explicit status-bar contribution, so File retains normal tool/search navigation without an undeclared native icon.
 
 ## Installation, integrity, and repair
 
@@ -36,7 +40,7 @@ The engine runs in the hidden `zero-file-engine` WebView. Its read-only custom p
 
 ## Size and licenses
 
-The current candidate contains about 4.78 MiB of prepared PDF assets (2.46 MiB total per-file gzip measurement) plus about 1.2 MiB of engine harness code. Release limits are 20 MiB compressed and 45 MiB installed.
+The current prepared PDF assets measure 4,830,937 bytes installed and 2,474,519 bytes total per-file gzip. The same PDF.js version's legacy worker supplies upstream compatibility polyfills for older WebViews. Harness/package measurements remain release gates; the policy's harness estimate is not an exact signed-package measurement. Release limits are 20 MiB compressed and 45 MiB installed.
 
 - PDF.js 6.2.108 — Apache-2.0
 - `docx` 9.7.1 — MIT
@@ -63,6 +67,8 @@ export ZERO_FILE_ENGINE_SIGNING_KEY='<base64 Ed25519 32-byte release seed>'
 pnpm file-engine:package
 ```
 
-The private key must come from the release secret store and must never be committed or written into generated metadata. Packaging refuses a missing key or a key that does not match the pinned public key. It builds an independent engine entrypoint, generates the signed manifest and per-file digests, includes notices, and emits `build/zero-file-1.0.0.zplugin` plus its reported SHA-256.
+The private key must come from the release secret store and must never be committed or written into generated metadata. Packaging refuses a missing key or a key that does not match the pinned public key. It builds an independent engine entrypoint, generates the signed manifest and per-file digests, includes notices, and emits `build/zero-file-1.1.0.zplugin` plus its reported SHA-256.
 
 Keep `src-tauri/file-engine-policy.json` unapproved until the signed package passes the complete corpus, size/readiness/memory/cancellation measurements, clean-profile offline install, macOS packaged smoke, signing/notarization, rollback, repair, and platform gates. Record the final package digest and only the directions/platforms actually tested.
+
+Current editable conversion decisions and validation are in `openspec/changes/refine-zero-file-editable-conversion/verification.md`. The earlier `add-file-plugin` and `bundle-zero-file-offline-engines` artifacts retain historical facsimile/fallback requirements; a future explicitly requested spec sync must reconcile those requirements in dependency order, then apply the editable replacement. This change does not archive or approve either engine.

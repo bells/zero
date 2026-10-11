@@ -58,7 +58,7 @@
       "file": "rich-layout.pdf",
       "direction": "pdfToDocx",
       "expectedPreflight": "valid",
-      "expectedQualityProfile": "layoutPreserving",
+      "expectedQualityProfile": "editableReconstruction",
       "coverage": [
         "latin",
         "cjk",
@@ -67,18 +67,19 @@
         "columns",
         "pageBreak"
       ],
-      "sha256": "96a13affd7b645ae5a8eed00b7ecf6c1144b0d568f478ad6a404a62938a16879"
+      "sha256": "96a13affd7b645ae5a8eed00b7ecf6c1144b0d568f478ad6a404a62938a16879",
+      "expectedFullText": "Zero File Conversion\n Corpus\nEnglish and 中文 text with two-column reading\norder.\nEditable content\nColumn paragraph 1. Preserve paragraph\nboundaries, punctuation, and reading order.\n中文内容 1。\nColumn paragraph 2. Preserve paragraph\nboundaries, punctuation, and reading order.\n中文内容 2。\nColumn paragraph 3. Preserve paragraph\nboundaries, punctuation, and reading order.\n中文内容 3。\nColumn paragraph 4. Preserve paragraph\nboundaries, punctuation, and reading order.\n中文内容 4。\nColumn paragraph 5. Preserve paragraph\nboundaries, punctuation, and reading order.\n中文内容 5。\nColumn paragraph 6. Preserve paragraph\nboundaries, punctuation, and reading order.\n中文内容 6。\nColumn paragraph 7. Preserve paragraph\nboundaries, punctuation, and reading order.\n中文内容 7。\nColumn paragraph 8. Preserve paragraph\nboundaries, punctuation, and reading order.\n中文内容 8。\nTable and image\nFormat\nTarget\nStructure\nPDF\nDOCX\nText order\nDOCX\nPDF\nPagination\n中文\n双向\n字体\n\nExplicit page break\nThis page verifies page boundaries and headers.\n第二页用于测试分页。\n"
     },
     {
       "file": "image-only-scan.pdf",
       "direction": "pdfToDocx",
       "expectedPreflight": "valid",
-      "expectedQualityProfile": "layoutPreserving",
       "coverage": [
         "scanned",
         "imageOnly"
       ],
-      "sha256": "faef07a6e2ef1d50b6e695e3528f64754fb99c7c0578ce2a63714d38887d9f19"
+      "sha256": "faef07a6e2ef1d50b6e695e3528f64754fb99c7c0578ce2a63714d38887d9f19",
+      "expectedConversionError": "ocrRequired"
     },
     {
       "file": "encrypted.pdf",
@@ -99,7 +100,8 @@
         "pagination",
         "cjk"
       ],
-      "sha256": "a012b50bbceebac7b19b1c310b7a7d136515e1f51893356a84f09a6c7fbaa6ac"
+      "sha256": "a012b50bbceebac7b19b1c310b7a7d136515e1f51893356a84f09a6c7fbaa6ac",
+      "expectedFullText": "Large conversion page 1\nPage 1, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 1, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 1, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 1, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 1, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 1, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 1, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 1, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 1, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 1, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 2\nPage 2, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 2, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 2, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 2, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 2, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 2, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 2, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 2, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 2, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 2, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 3\nPage 3, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 3, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 3, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 3, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 3, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 3, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 3, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 3, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 3, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 3, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 4\nPage 4, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 4, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 4, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 4, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 4, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 4, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 4, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 4, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 4, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 4, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 5\nPage 5, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 5, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 5, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 5, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 5, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 5, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 5, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 5, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 5, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 5, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 6\nPage 6, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 6, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 6, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 6, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 6, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 6, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 6, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 6, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 6, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 6, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 7\nPage 7, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 7, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 7, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 7, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 7, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 7, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 7, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 7, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 7, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 7, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 8\nPage 8, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 8, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 8, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 8, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 8, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 8, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 8, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 8, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 8, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 8, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 9\nPage 9, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 9, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 9, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 9, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 9, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 9, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 9, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 9, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 9, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 9, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 10\nPage 10, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 10, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 10, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 10, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 10, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 10, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 10, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 10, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 10, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 10, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 11\nPage 11, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 11, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 11, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 11, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 11, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 11, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 11, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 11, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 11, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 11, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 12\nPage 12, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 12, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 12, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 12, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 12, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 12, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 12, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 12, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 12, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 12, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 13\nPage 13, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 13, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 13, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 13, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 13, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 13, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 13, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 13, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 13, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 13, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 14\nPage 14, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 14, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 14, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 14, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 14, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 14, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 14, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 14, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 14, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 14, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 15\nPage 15, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 15, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 15, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 15, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 15, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 15, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 15, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 15, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 15, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 15, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 16\nPage 16, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 16, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 16, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 16, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 16, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 16, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 16, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 16, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 16, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 16, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 17\nPage 17, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 17, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 17, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 17, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 17, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 17, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 17, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 17, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 17, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 17, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 18\nPage 18, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 18, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 18, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 18, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 18, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 18, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 18, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 18, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 18, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 18, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 19\nPage 19, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 19, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 19, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 19, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 19, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 19, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 19, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 19, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 19, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 19, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 20\nPage 20, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 20, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 20, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 20, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 20, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 20, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 20, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 20, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 20, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 20, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 21\nPage 21, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 21, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 21, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 21, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 21, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 21, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 21, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 21, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 21, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 21, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 22\nPage 22, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 22, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 22, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 22, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 22, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 22, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 22, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 22, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 22, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 22, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 23\nPage 23, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 23, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 23, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 23, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 23, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 23, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 23, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 23, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 23, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 23, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n\nLarge conversion page 24\nPage 24, paragraph 1. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 24, paragraph 2. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 24, paragraph 3. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 24, paragraph 4. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 24, paragraph 5. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 24, paragraph 6. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 24, paragraph 7. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 24, paragraph 8. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 24, paragraph 9. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\nPage 24, paragraph 10. Reproducible workload for resource, timeout, and pagination checks.\n中文测试内容。\n"
     },
     {
       "file": "malformed.pdf",
@@ -118,6 +120,126 @@
         "unsupportedExtension"
       ],
       "sha256": "f4466f2534b75d3a77b766a6da86ca286cbac06ab0a70cb56d3c90f3b74d840c"
+    },
+    {
+      "file": "editable-simple.pdf",
+      "direction": "pdfToDocx",
+      "expectedPreflight": "valid",
+      "coverage": [
+        "editableCorpus"
+      ],
+      "expectedText": [
+        "Hello World",
+        "中文测试内容",
+        "Second page after blank"
+      ],
+      "expectedPageCount": 3,
+      "sha256": "f70123721391ebdbd71127b644a876fe1cd82e3793c20ce1eaf7c2531e59b7c8",
+      "expectedQualityProfile": "editableReconstruction",
+      "expectedFullText": "Hello\nWorld\n中文测试内容\n\n\nSecond page after blank\n"
+    },
+    {
+      "file": "editable-short.pdf",
+      "direction": "pdfToDocx",
+      "expectedPreflight": "valid",
+      "coverage": [
+        "editableCorpus"
+      ],
+      "expectedText": [
+        "Hi"
+      ],
+      "expectedPageCount": 1,
+      "sha256": "d5d25b6dda74fbdd95820c9cbed53e860a042b0a056b93fae7c9b4b6601c4c07",
+      "expectedQualityProfile": "editableReconstruction",
+      "expectedFullText": "Hi\n"
+    },
+    {
+      "file": "editable-columns.pdf",
+      "direction": "pdfToDocx",
+      "expectedPreflight": "valid",
+      "coverage": [
+        "editableCorpus"
+      ],
+      "expectedText": [
+        "Left 0",
+        "Left 1",
+        "Left 2",
+        "Right 0",
+        "Right 1",
+        "Right 2"
+      ],
+      "expectedPageCount": 1,
+      "sha256": "5e3133d9ead8498f07c963c584069036d85370b95af1967bd9cead1d28749cc2",
+      "expectedQualityProfile": "editableReconstruction",
+      "expectedFullText": "Left 0\nRight 0\nLeft 1\nRight 1\nLeft 2\nRight 2\n"
+    },
+    {
+      "file": "editable-table-image.pdf",
+      "direction": "pdfToDocx",
+      "expectedPreflight": "valid",
+      "coverage": [
+        "editableCorpus"
+      ],
+      "expectedText": [
+        "Cell 0",
+        "Value 0",
+        "Cell 1",
+        "Value 1",
+        "Cell 2",
+        "Value 2"
+      ],
+      "expectedPageCount": 1,
+      "sha256": "32647109e565c042dcbc40330b67e5a037ba39831cd01156162decdc71cc1999",
+      "expectedQualityProfile": "editableReconstruction",
+      "expectedFullText": "Cell 0\nValue 0\nCell 1\nValue 1\nCell 2\nValue 2\n"
+    },
+    {
+      "file": "editable-rotated.pdf",
+      "direction": "pdfToDocx",
+      "expectedPreflight": "valid",
+      "coverage": [
+        "editableCorpus"
+      ],
+      "expectedText": [],
+      "expectedPageCount": null,
+      "sha256": "5d42651d59a73a29083ffc552f920fa20d562bfc64b36085080db9a4d550e831",
+      "expectedConversionError": "unsupportedInput"
+    },
+    {
+      "file": "editable-page-rotated.pdf",
+      "direction": "pdfToDocx",
+      "expectedPreflight": "valid",
+      "coverage": [
+        "editableCorpus"
+      ],
+      "expectedText": [],
+      "expectedPageCount": null,
+      "sha256": "c30f648813964ea161c7adcfa91d157ef04b5f81101d3d8b5ebafc9e33d04ca1",
+      "expectedConversionError": "unsupportedInput"
+    },
+    {
+      "file": "editable-blank.pdf",
+      "direction": "pdfToDocx",
+      "expectedPreflight": "valid",
+      "coverage": [
+        "editableCorpus"
+      ],
+      "expectedText": [],
+      "expectedPageCount": null,
+      "sha256": "4477ff7be2fd5926823e7a0ee896ce51af44664013fd1e29eb40c33ebd76fca9",
+      "expectedConversionError": "unsupportedInput"
+    },
+    {
+      "file": "editable-mixed.pdf",
+      "direction": "pdfToDocx",
+      "expectedPreflight": "valid",
+      "coverage": [
+        "editableCorpus"
+      ],
+      "expectedText": [],
+      "expectedPageCount": null,
+      "sha256": "b6fd0994362b06f5f0f45549cde6640001682b7eed350a7398337f5279f6044b",
+      "expectedConversionError": "ocrRequired"
     }
   ]
 }

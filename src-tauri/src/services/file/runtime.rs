@@ -628,13 +628,22 @@ async fn execute_active_job(
     .and_then(|result| result);
 
     let final_result = provider_result.and_then(|output| {
-        commit_provider_output(
-            &job_directory,
-            &output.path,
-            &record.final_output,
-            record.snapshot.direction,
-            &record.snapshot.id,
-        )?;
+        if provider_id == super::contracts::FileConversionProviderId::ZeroFilePdfToDocx {
+            super::editable_output::commit_editable_docx(
+                &job_directory,
+                &output.path,
+                &record.final_output,
+                &record.snapshot.id,
+            )?;
+        } else {
+            commit_provider_output(
+                &job_directory,
+                &output.path,
+                &record.final_output,
+                record.snapshot.direction,
+                &record.snapshot.id,
+            )?;
+        }
         let metadata = std::fs::metadata(&record.final_output)
             .map_err(|_| runtime_error("The completed output could not be revalidated.", true))?;
         Ok(FileConversionResult {

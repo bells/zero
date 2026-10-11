@@ -16,7 +16,7 @@ import {
 import { installFileEngineRuntimePolyfills } from "./runtimePolyfills";
 import "./fileEngine.css";
 
-const ENGINE_VERSION = "1.0.0";
+const ENGINE_VERSION = "1.1.0";
 const controllers = new Map<string, AbortController>();
 
 export function FileEngineApp() {
@@ -78,7 +78,7 @@ async function runJob(request: FileEngineRunRequest) {
       const { convertPdfToDocx } = await import("./pdfToDocx");
       const result = await convertPdfToDocx(input, controller.signal, async (progress) => {
         await reportProgress(request, progress.stage, progress.percent);
-      });
+      }, { deadlineMs: request.deadlineMs });
       output = result.bytes;
       await invoke<void>("file_engine_write_output", output, tokenHeaders(request));
       await reportCompletion(request, "completed", result.qualityProfile, result.warningKeys, result.pageCount);
@@ -99,7 +99,8 @@ async function runJob(request: FileEngineRunRequest) {
     const cancelled = controller.signal.aborted ||
       (error instanceof Error && error.name === "FileEngineCancelledError") ||
       (error instanceof DOMException && error.name === "AbortError");
-    const passwordRequired = error instanceof Error && error.message === "passwordRequired";
+    const knownCode = error instanceof Error && ["passwordRequired", "ocrRequired", "unsupportedInput", "timeout"].includes(error.message)
+      ? error.message as "passwordRequired" | "ocrRequired" | "unsupportedInput" | "timeout" : "providerFailed";
     await invoke<void>("file_engine_complete", {
       request: {
         protocolVersion: FILE_ENGINE_PROTOCOL_VERSION,
@@ -108,8 +109,8 @@ async function runJob(request: FileEngineRunRequest) {
         jobId: request.jobId,
         status: cancelled ? "cancelled" : "failed",
         warningKeys: [],
-        errorCode: cancelled ? "cancelled" : passwordRequired ? "passwordRequired" : "providerFailed",
-        diagnostic: boundedDiagnostic(error),
+        errorCode: cancelled ? "cancelled" : knownCode,
+        diagnostic: cancelled ? "cancelled" : knownCode,
       } satisfies FileEngineCompletionRequest,
     }).catch(() => undefined);
   } finally {
@@ -184,13 +185,4 @@ async function reportCompletion(
       pageCount,
     } satisfies FileEngineCompletionRequest,
   });
-}
-
-function boundedDiagnostic(error: unknown) {
-  const message = error instanceof Error
-    ? `${error.name}: ${error.message}`
-    : typeof error === "string"
-      ? error
-      : "Unknown engine error";
-  return message.replace(/[\r\n\t]+/g, " ").slice(0, 512);
 }

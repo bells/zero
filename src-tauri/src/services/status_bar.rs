@@ -1412,7 +1412,13 @@ fn status_bar_contributions(record: &PluginRecord) -> Vec<PluginContributionStat
         .contributes
         .as_ref()
         .and_then(|contributions| contributions.status_bar_items.clone())
-        .unwrap_or_else(|| vec![default_status_bar_item(record)])
+        .unwrap_or_else(|| {
+            if record.source == PluginSource::Bundled {
+                Vec::new()
+            } else {
+                vec![default_status_bar_item(record)]
+            }
+        })
         .into_iter()
         .filter(is_supported_status_bar_contribution)
         .collect()
@@ -1456,6 +1462,77 @@ fn normalize_order(order: Option<u32>, plugin_index: usize) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    fn declared_bundled_records() -> Vec<super::PluginRecord> {
+        use super::*;
+        crate::bundled_metadata::manifests()
+            .into_iter()
+            .map(|manifest| PluginRecord {
+                name: manifest.name.clone(),
+                version: manifest.version.clone(),
+                author: manifest.author.clone(),
+                source: PluginSource::Bundled,
+                enabled: true,
+                health: PluginHealth::Ready,
+                protocol_manifest: None,
+                approved_permissions: manifest.permissions.clone(),
+                manifest,
+                installed_path: None,
+                package_sha256: None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn bundled_entries_require_declarations_even_with_old_visible_preferences() {
+        use super::*;
+        let records = declared_bundled_records();
+        let settings = StatusBarSettings::default_for_records(&records);
+        assert!(settings.visible_plugin_items["zero.file"]);
+        for support in [
+            StatusBarSupport::NativeMultiItem,
+            StatusBarSupport::FallbackActionRow,
+        ] {
+            let items = normalize_status_bar_items(&records, &settings, false, support);
+            assert_eq!(items.len(), 5);
+            assert!(items
+                .iter()
+                .all(|item| item.plugin_name.as_deref() != Some("zero.file")));
+            let expected_cells = if support == StatusBarSupport::NativeMultiItem {
+                5
+            } else {
+                1
+            };
+            let ids = grouped_status_item_ids(&items, false);
+            assert_eq!(ids.len(), expected_cells);
+            assert_eq!(
+                grouped_status_item_titles(&items, false).len(),
+                expected_cells
+            );
+            for (index, id) in ids.iter().enumerate() {
+                assert_eq!(
+                    grouped_status_item_id_at_x(
+                        &items,
+                        false,
+                        index as f64 * 22.0 + 11.0,
+                        0.0,
+                        expected_cells as f64 * 22.0
+                    )
+                    .as_ref(),
+                    Some(id)
+                );
+            }
+            assert_eq!(grouped_status_item_ids(&items, true).len(), 1);
+        }
+        let mut file = records
+            .into_iter()
+            .find(|record| record.name == "zero.file")
+            .unwrap();
+        file.manifest.contributes.as_mut().unwrap().status_bar_items = Some(Vec::new());
+        assert!(status_bar_contributions(&file).is_empty());
+        file.manifest.contributes.as_mut().unwrap().status_bar_items = None;
+        file.source = PluginSource::Local;
+        assert_eq!(status_bar_contributions(&file).len(), 1);
+    }
     use std::cell::{Cell, RefCell};
 
     use super::*;

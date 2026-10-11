@@ -5,10 +5,10 @@
   "candidateEnginePackages": [
     {
       "pluginId": "zero.file",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "approved": false,
       "packageSha256": null,
-      "assetManifestSha256": "d78fcb42739cdd72e01594a605966bf8ba7e9a3a6853371bb60bae7d23c2f863",
+      "assetManifestSha256": "abf8a62165a2ea9c108adbb876196559f26777ea633b0fecdfc219852b930c8e",
       "signatureAlgorithm": "Ed25519",
       "protocolVersion": 1,
       "hostApiRange": ">=0.1.0",
@@ -22,7 +22,7 @@
         {
           "direction": "pdfToDocx",
           "platforms": ["macos", "windows"],
-          "profiles": ["editableReconstruction", "layoutPreserving"]
+          "profiles": ["editableReconstruction"]
         },
         {
           "direction": "docxToPdf",
@@ -32,15 +32,16 @@
         }
       ],
       "confidencePolicy": {
-        "minimumTextCoverage": 0.55,
-        "maximumOverlapRatio": 0.08,
-        "maximumVectorOperationsPerPage": 16,
-        "maximumUnsupportedRotations": 0,
-        "imageOnlyUsesLayoutPreserving": true
+        "maximumPageTextItems": 50000,
+        "maximumDocumentCharacters": 5000000,
+        "minimumColumnGutterRatio": 0.04,
+        "unsupportedRotationsFail": true,
+        "imageOnlyRequiresOcr": true,
+        "wholePageImageFallback": false
       },
       "measurements": {
-        "preparedAssetInstalledBytes": 4780883,
-        "preparedAssetGzipBytes": 2458867,
+        "preparedAssetInstalledBytes": 4830937,
+        "preparedAssetGzipBytes": 2474519,
         "harnessInstalledBytes": 1228800,
         "compressedBudgetBytes": 20971520,
         "installedBudgetBytes": 47185920,

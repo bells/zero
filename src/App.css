@@ -3900,3 +3900,10 @@ input:focus-visible {
   .about-project-actions, .about-support-actions { grid-template-columns: 1fr; }
   .about-support-actions .about-action { flex-direction: row; min-height: 44px; }
 }
+
+.file-conversion-note {
+  margin: 0 0 10px;
+  color: #647067;
+  font-size: 12px;
+  line-height: 1.5;
+}

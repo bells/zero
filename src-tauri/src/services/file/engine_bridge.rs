@@ -26,7 +26,11 @@ use super::provider::{
 };
 
 pub const FILE_ENGINE_LABEL: &str = "zero-file-engine";
-pub const FILE_ENGINE_VERSION: &str = "1.0.0";
+pub const FILE_ENGINE_VERSION: &str = "1.1.0";
+
+pub(super) fn supports_editable_engine(version: &str) -> bool {
+    version == FILE_ENGINE_VERSION
+}
 pub const FILE_ENGINE_PROTOCOL_VERSION: u16 = 1;
 const FILE_ENGINE_PLUGIN_ID: &str = ZERO_FILE_PLUGIN_ID;
 const FILE_ENGINE_RUN_EVENT: &str = "zero://file-engine/run";
@@ -118,6 +122,7 @@ enum FileEngineCompletionStatus {
 #[serde(rename_all = "camelCase")]
 enum FileEngineErrorCode {
     PasswordRequired,
+    OcrRequired,
     InvalidInput,
     UnsupportedInput,
     Timeout,
@@ -833,6 +838,16 @@ fn completion_message(
             let profile = request
                 .quality_profile
                 .ok_or_else(|| "Completed engine output requires a quality profile.".to_string())?;
+            if session.direction == FileConversionDirection::PdfToDocx
+                && profile != FileConversionQualityProfile::EditableReconstruction
+            {
+                return Ok(EngineMessage::Failed(provider_error(
+                    FileConversionErrorCode::InvalidProviderOutput,
+                    "The built-in PDF output must contain editable text.",
+                    false,
+                    None,
+                )));
+            }
             if !session.output_path.is_file() {
                 return Err("The completed File engine output is missing.".into());
             }
@@ -1002,9 +1017,23 @@ fn acquire_engine(app: &tauri::AppHandle) -> Result<LeasedEngine, FileConversion
         crate::services::diagnostics::Operation::new(Some("zero.file"), "provider");
     let result = (|| match app
         .state::<PluginRegistryState>()
-        .with_registry(|registry| registry.acquire_active_engine(FILE_ENGINE_PLUGIN_ID))
-    {
-        Ok(engine) => Ok(LeasedEngine {
+        .with_registry(|registry| {
+            let active = registry.active_engine(FILE_ENGINE_PLUGIN_ID)?;
+            // Reject incompatible assets before incrementing the registry's version lease.
+            if !supports_editable_engine(&active.package_version) {
+                return Ok(None);
+            }
+            registry
+                .acquire_active_engine(FILE_ENGINE_PLUGIN_ID)
+                .map(Some)
+        }) {
+        Ok(None) => Err(provider_error(
+            FileConversionErrorCode::EngineVersionUnsupported,
+            "The installed File engine must be upgraded for editable conversion.",
+            false,
+            None,
+        )),
+        Ok(Some(engine)) => Ok(LeasedEngine {
             engine,
             installed: true,
         }),
@@ -1087,6 +1116,7 @@ fn bounded_string(value: &str, limit: usize) -> String {
 fn map_engine_error(code: FileEngineErrorCode) -> FileConversionErrorCode {
     match code {
         FileEngineErrorCode::PasswordRequired => FileConversionErrorCode::PasswordRequired,
+        FileEngineErrorCode::OcrRequired => FileConversionErrorCode::OcrRequired,
         FileEngineErrorCode::InvalidInput => FileConversionErrorCode::InvalidInput,
         FileEngineErrorCode::UnsupportedInput => FileConversionErrorCode::UnsupportedInput,
         FileEngineErrorCode::Timeout => FileConversionErrorCode::Timeout,
@@ -1169,7 +1199,7 @@ mod tests {
         let malformed = serde_json::json!({
             "protocolVersion": 1,
             "token": "token",
-            "engineVersion": "1.0.0",
+            "engineVersion": "1.1.0",
             "jobId": "job",
             "sectionCount": 1,
             "measuredPageCount": 1,
@@ -1292,7 +1322,7 @@ mod tests {
         let malformed = serde_json::json!({
             "protocolVersion": 1,
             "token": "token",
-            "engineVersion": "1.0.0",
+            "engineVersion": "1.1.0",
             "jobId": "job-token",
             "status": "completed",
             "qualityProfile": "editableReconstruction",
@@ -1313,6 +1343,43 @@ mod tests {
         fs::write(&session.output_path, b"output").unwrap();
         assert!(completion_message(&session, invalid_warning).is_err());
         fs::remove_dir_all(session.output_path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn editable_contract_rejects_old_versions_and_image_profiles_and_preserves_errors() {
+        assert!(supports_editable_engine(FILE_ENGINE_VERSION));
+        assert!(!supports_editable_engine("1.0.0"));
+        assert!(!supports_editable_engine("1.1.1"));
+        let (session, _) =
+            test_session("editable-errors", Instant::now() + Duration::from_secs(10));
+        let mut request = completed_request("editable-errors");
+        request.quality_profile = Some(FileConversionQualityProfile::LayoutPreserving);
+        assert!(
+            matches!(completion_message(&session, request).unwrap(), EngineMessage::Failed(error)
+            if error.code == FileConversionErrorCode::InvalidProviderOutput)
+        );
+        for (serialized, expected) in [
+            ("ocrRequired", FileConversionErrorCode::OcrRequired),
+            (
+                "unsupportedInput",
+                FileConversionErrorCode::UnsupportedInput,
+            ),
+            (
+                "passwordRequired",
+                FileConversionErrorCode::PasswordRequired,
+            ),
+            ("cancelled", FileConversionErrorCode::Cancelled),
+            ("timeout", FileConversionErrorCode::Timeout),
+        ] {
+            let mut request = completed_request("editable-errors");
+            request.status = FileEngineCompletionStatus::Failed;
+            request.error_code =
+                Some(serde_json::from_value(serde_json::json!(serialized)).unwrap());
+            assert!(
+                matches!(completion_message(&session, request).unwrap(), EngineMessage::Failed(error)
+                if error.code == expected && error.diagnostic.is_none())
+            );
+        }
     }
 
     #[test]

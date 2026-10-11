@@ -18,6 +18,6 @@ export const filePlugin: BundledPluginModule = {
     },
   },
   loadPanel: () => import("./FilePanel").then(({ FilePanel }) => ({
-    default: ({ language }) => <FilePanel t={createFileTranslator(language)} />,
+    default: ({ language, surface }) => <FilePanel surface={surface} t={createFileTranslator(language)} />,
   })),
 };

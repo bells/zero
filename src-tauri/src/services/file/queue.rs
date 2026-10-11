@@ -496,6 +496,30 @@ mod tests {
     }
 
     #[test]
+    fn document_errors_preserve_codes_without_stopping_the_batch() {
+        for code in [
+            FileConversionErrorCode::OcrRequired,
+            FileConversionErrorCode::UnsupportedInput,
+            FileConversionErrorCode::ProviderFailed,
+            FileConversionErrorCode::Timeout,
+        ] {
+            let mut queue = FileConversionQueue::default();
+            queue.enqueue(draft("one", "one.pdf"), 10).unwrap();
+            queue.enqueue(draft("two", "two.pdf"), 11).unwrap();
+            queue.start(12).unwrap();
+            let mut error = retryable_failure();
+            error.code = code;
+            error.diagnostic = None;
+            let updates = queue.fail("one", error, 13).unwrap();
+            assert!(
+                matches!(&updates[0].state, FileConversionJobState::Failed { error }
+                if error.code == code && error.diagnostic.is_none())
+            );
+            assert_eq!(queue.active_job_id(), Some("two"));
+        }
+    }
+
+    #[test]
     fn cancellation_handles_queued_and_active_jobs_without_stopping_the_batch() {
         let mut queue = FileConversionQueue::default();
         queue.enqueue(draft("one", "one.pdf"), 10).unwrap();

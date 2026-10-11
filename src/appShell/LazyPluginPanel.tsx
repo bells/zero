@@ -24,6 +24,7 @@ const activatedPluginIds = new Set<string>();
 interface LazyPluginPanelProps {
   pluginId: string;
   language: ResolvedLanguage;
+  surface: BundledPluginPanelProps["surface"];
   fallback: ReactNode;
   unavailable: ReactNode;
 }
@@ -31,6 +32,7 @@ interface LazyPluginPanelProps {
 export function LazyPluginPanel({
   pluginId,
   language,
+  surface,
   fallback,
   unavailable,
 }: LazyPluginPanelProps) {
@@ -46,7 +48,7 @@ export function LazyPluginPanel({
   return (
     <DiagnosticBoundary key={pluginId} pluginId={pluginId} fallback={unavailable}>
       <Suspense fallback={fallback}>
-        <Panel language={language} />
+        <Panel language={language} surface={surface} />
         <PluginActivationMarker pluginId={pluginId} />
       </Suspense>
     </DiagnosticBoundary>

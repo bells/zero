@@ -14,6 +14,7 @@ export interface PluginPresentation {
 
 export interface BundledPluginPanelProps {
   language: ResolvedLanguage;
+  surface: "tray" | "main";
 }
 
 export type BundledPluginLoader<Props = Record<string, never>> = () => Promise<{

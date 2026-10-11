@@ -185,6 +185,7 @@ function useSelectedPlugin(
 function pluginPanel(
   plugin: PluginMeta | undefined,
   language: ResolvedLanguage,
+  surface: "tray" | "main",
 ) {
   if (!plugin) {
     return <EmptyPluginState t={createTranslator(language)} />;
@@ -204,6 +205,7 @@ function pluginPanel(
       <LazyPluginPanel
         pluginId={plugin.id}
         language={language}
+        surface={surface}
         fallback={
           <section className="plugin-panel system-panel" aria-busy="true">
             <div className="panel-copy">
@@ -368,7 +370,7 @@ export function TrayPanelApp() {
 
       <PluginNavigation activePluginId={activePlugin?.id} plugins={visiblePlugins} variant="strip" t={t} onSelect={setSelectedPlugin} />
 
-      <div className="tray-plugin-content">{pluginPanel(activePlugin, resolvedLanguage)}</div>
+      <div className="tray-plugin-content">{pluginPanel(activePlugin, resolvedLanguage, "tray")}</div>
 
       {message ? <p className={`shell-message ${message.tone}`}>{message.text}</p> : null}
 
@@ -508,7 +510,7 @@ export function MainWindowApp() {
         </aside>
 
         <section className="main-workspace" aria-label={activePlugin?.title ?? t("shell.pluginWorkspace")}>
-          {pluginPanel(activePlugin, resolvedLanguage)}
+          {pluginPanel(activePlugin, resolvedLanguage, "main")}
         </section>
       </div>
       </PresentationActivity> : null}
