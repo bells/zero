@@ -1,3 +1,4 @@
+import { useGlobalShortcuts } from "../../services/useGlobalShortcuts";
 import { useEffect, useMemo, useRef } from "react";
 import type { KeyboardEvent } from "react";
 import type { TranslationKey } from "./i18n";
@@ -20,6 +21,9 @@ export function QuickLauncherView({
   onDismiss,
   onActivationSuccess,
 }: QuickLauncherViewProps) {
+  const { snapshots } = useGlobalShortcuts();
+  const shortcut = snapshots.find((item) => item.id === "launchPanel")?.accelerator;
+  const shortcutLabel = shortcut === "Alt+Space" ? "⌥Space" : shortcut?.replace("Control", "Ctrl");
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
   const support = controller.snapshot?.platformSupport;
@@ -101,7 +105,7 @@ export function QuickLauncherView({
           onChange={(event) => controller.setQuery(event.currentTarget.value)}
           onKeyDown={onKeyDown}
         />
-        <kbd>{surface === "floating" ? "esc" : "⌘⇧Space"}</kbd>
+        {surface === "floating" || shortcutLabel ? <kbd>{surface === "floating" ? "esc" : shortcutLabel}</kbd> : null}
       </div>
 
       <div className="quick-launcher-toolbar">

@@ -15,16 +15,19 @@ pub mod plugins;
 pub mod services;
 
 pub const SCREENSHOT_SHORTCUT: &str = "CommandOrControl+Shift+A";
-pub const QUICK_LAUNCHER_SHORTCUT: &str = "CommandOrControl+Shift+Space";
+#[cfg(target_os = "macos")]
+pub const QUICK_LAUNCHER_SHORTCUT: &str = "Alt+Space";
+#[cfg(not(target_os = "macos"))]
+pub const QUICK_LAUNCHER_SHORTCUT: &str = "Control+Alt+Space";
 const TRAY_WINDOW_LABEL: &str = "tray";
 
 fn is_quick_launcher_shortcut(modifiers: Modifiers, key: Code) -> bool {
     #[cfg(target_os = "macos")]
-    let command_or_control = Modifiers::SUPER;
+    let launch_modifiers = Modifiers::ALT;
     #[cfg(not(target_os = "macos"))]
-    let command_or_control = Modifiers::CONTROL;
+    let launch_modifiers = Modifiers::CONTROL | Modifiers::ALT;
 
-    modifiers == (command_or_control | Modifiers::SHIFT) && key == Code::Space
+    modifiers == launch_modifiers && key == Code::Space
 }
 
 pub(crate) fn plugin_is_enabled(app: &tauri::AppHandle, plugin_name: &str) -> bool {
@@ -155,7 +158,12 @@ pub fn run() {
     );
 
     let managed_state_started = performance_trace.begin();
-    let builder = bundled_plugins::manage_states(tauri::Builder::default());
+    let builder = tauri::Builder::default();
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _| {
+        services::desktop_entries::dispatch(app, &args, true);
+    }));
+    let builder = bundled_plugins::manage_states(builder);
     performance_trace.finish("managed_state_construction", "ok", managed_state_started);
     let registry_started = performance_trace.begin();
     let registry_state = plugins::registry::PluginRegistryState::default();
@@ -189,8 +197,7 @@ pub fn run() {
                     }
                     if is_quick_launcher_shortcut(shortcut.mods, shortcut.key) {
                         if quick_launcher_is_enabled(app) {
-                            let _ =
-                                commands::quick_launcher::show_quick_launcher_window(app.clone());
+                            let _ = commands::quick_launcher::toggle_quick_launcher_window(app);
                         }
                     } else if plugin_is_enabled(app, brand::ZERO_SNAP_PLUGIN_ID) {
                         let screenshot_app = app.clone();
@@ -253,6 +260,12 @@ pub fn run() {
                 });
             }
 
+            services::desktop_entries::start_sync(app.handle());
+            services::desktop_entries::dispatch(
+                app.handle(),
+                &std::env::args().collect::<Vec<_>>(),
+                false,
+            );
             Ok(())
         })
         .invoke_handler(plugins::invoke_gate::gate(tauri::generate_handler![
@@ -361,6 +374,16 @@ pub fn run() {
     );
     app.run(|app, event| {
         #[cfg(target_os = "macos")]
+        if matches!(
+            &event,
+            tauri::RunEvent::Reopen {
+                has_visible_windows: false,
+                ..
+            }
+        ) {
+            let _ = commands::app::open_main_window(app.clone());
+        }
+        #[cfg(target_os = "macos")]
         if let tauri::RunEvent::WindowEvent {
             label,
             event: tauri::WindowEvent::Focused(false) | tauri::WindowEvent::Destroyed,
@@ -414,18 +437,15 @@ mod tests {
     #[test]
     fn launcher_shortcut_matches_expected_modifiers_only() {
         #[cfg(target_os = "macos")]
-        let command_or_control = Modifiers::SUPER;
+        let launch_modifiers = Modifiers::ALT;
         #[cfg(not(target_os = "macos"))]
-        let command_or_control = Modifiers::CONTROL;
+        let launch_modifiers = Modifiers::CONTROL | Modifiers::ALT;
 
-        assert!(is_quick_launcher_shortcut(
-            command_or_control | Modifiers::SHIFT,
+        assert!(is_quick_launcher_shortcut(launch_modifiers, Code::Space));
+        assert!(!is_quick_launcher_shortcut(
+            launch_modifiers | Modifiers::SHIFT,
             Code::Space
         ));
-        assert!(!is_quick_launcher_shortcut(command_or_control, Code::Space));
-        assert!(!is_quick_launcher_shortcut(
-            command_or_control | Modifiers::SHIFT,
-            Code::KeyA
-        ));
+        assert!(!is_quick_launcher_shortcut(launch_modifiers, Code::KeyA));
     }
 }

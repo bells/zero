@@ -68,6 +68,16 @@ pub fn open_main_window(app: tauri::AppHandle) -> Result<(), String> {
     )
 }
 
+pub fn open_main_tool(app: &tauri::AppHandle, plugin_id: &str) -> Result<(), String> {
+    app.state::<crate::services::main_navigation::MainNavigationState>()
+        .request_tool(
+            crate::services::main_navigation::MainWindowDestination::Tools,
+            Some(plugin_id.into()),
+        )?;
+    show_app_shell_window(app, AppShellWindow::Main)?;
+    crate::services::main_navigation::publish(app)
+}
+
 #[tauri::command]
 pub fn show_preferences_window(
     window: tauri::WebviewWindow,

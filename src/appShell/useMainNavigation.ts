@@ -5,6 +5,7 @@ import { acceptMainNavigation, MAIN_NAVIGATION_EVENT, type MainWindowDestination
 
 export function useMainNavigation() {
   const [destination, setDestination] = useState<MainWindowDestination>("tools");
+  const [toolRequest, setToolRequest] = useState<MainWindowNavigationRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const latest = useRef<MainWindowNavigationRequest>({ destination: "tools", revision: -1 });
@@ -20,6 +21,7 @@ export function useMainNavigation() {
       if (next === latest.current) return;
       latest.current = next;
       setDestination(next.destination);
+      setToolRequest(next.pluginId ? next : null);
       setError(null);
     };
     // Listen before reading: the retained snapshot also covers first-window creation.
@@ -39,6 +41,7 @@ export function useMainNavigation() {
   const navigate = useCallback((next: MainWindowDestination) => {
     localRevision.current += 1;
     setDestination(next);
+    setToolRequest(null);
   }, []);
-  return { destination, navigate, error, isReady };
+  return { destination, toolRequest, navigate, error, isReady };
 }

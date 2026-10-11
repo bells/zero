@@ -23,3 +23,5 @@ pub mod status_bar_highlights;
 
 #[cfg(target_os = "macos")]
 pub mod status_bar_tooltips;
+
+pub mod desktop_entries;

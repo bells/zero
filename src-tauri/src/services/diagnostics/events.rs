@@ -48,6 +48,7 @@ pub fn native_catalog(plugin: Option<&str>, phase: &str) -> bool {
     let allowed = match plugin {
         None => &[
             "bootstrap",
+            "desktop-entries",
             "migration",
             "window",
             "shortcut",

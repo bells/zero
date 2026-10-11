@@ -435,7 +435,14 @@ export function MainWindowApp() {
   usePluginMessages(setMessage);
   const runAction = (action: () => Promise<void>) => runShellAction(action, setMessage, t);
   const statusBar = useStatusBar(pluginHost.records);
-  const { destination, navigate, error: navigationError, isReady } = useMainNavigation();
+  const { destination, toolRequest, navigate, error: navigationError, isReady } = useMainNavigation();
+  const appliedToolRevision = useRef(-1);
+  useEffect(() => {
+    if (!toolRequest || pluginHost.isLoading || toolRequest.revision <= appliedToolRevision.current) return;
+    const target = visiblePlugins.find((plugin) => plugin.id === toolRequest.pluginId);
+    appliedToolRevision.current = toolRequest.revision;
+    if (target?.enabled) setSelectedPlugin(target.id);
+  }, [toolRequest, visiblePlugins, setSelectedPlugin, pluginHost.isLoading]);
   const settingsOpen = destination === "preferences";
   const [settingsVisited, setSettingsVisited] = useState(false);
   const [toolsVisited, setToolsVisited] = useState(false);

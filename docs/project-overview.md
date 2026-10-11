@@ -1,5 +1,7 @@
 # Zero 项目全景与维护地图
 
+2026-10-11 Launch/搜索入口增量：默认 macOS Option + Space、Windows Ctrl + Alt + Space；Launch 重复标签已移除。已打包 release 启动时为五工具生成系统应用搜索入口，并通过单实例保留导航目标。前端/Rust 和 Windows 交叉编译通过；macOS debug 冷启动及 Snap/File 入口转发已验证，物理全局快捷键、实际搜索索引及 Windows 设备仍待验证。详见[本次证据](../openspec/changes/refine-launch-and-system-search/evidence/verification-2026-10-11.md)。
+
 2026-10-09 设置/高亮增量：main 内完整设置视图已接入，分类和搜索复用原设置中心；“返回工具”保留已访问工具子树，隐藏时暂停展示轮询。兼容 IPC 通过最新目标/revision 快照交接，不再创建独立 preferences 窗口。macOS 已接入组合按钮 cell mask 与局部背景绘制，高亮跟随稳定工具 ID，主 Ø 覆盖整组；实际系统栏按压/菜单视觉与 Windows 仍有未完成项。提交前完整 Rust 串行复测通过，先前进程超时记录保留。源码、自动检查和本机设置交互的独立证据见[补充验收记录](../openspec/changes/refine-tray-and-workspace-navigation/evidence/verification-supplement-2026-10-09.md)。此前数字不覆盖此增量。
 
 2026-10-09 导航增量：托盘采用 52px 单行图标导航与独立内容滚动；main 侧栏支持 192px/64px 展开收起、偏好保存与 800px 自动紧凑，工作区由插件保留唯一可见标题。原生 host 接入 tray generation/失焦延后重查与 dialog guard，macOS 接入组合单元 AppKit tooltip rect。最终前端 339 项、Rust 沙箱外串行 325 项通过（2 ignored）；真实外部失焦、OS hover、触控板/多屏和 Windows 等门禁仍未完成，见[导航验收记录](../openspec/changes/refine-tray-and-workspace-navigation/evidence/verification-2026-10-09.md)。旧基线证据保留日期语义。
@@ -74,7 +76,7 @@ Tauri 窗口 label
 | Launch (`zero.launch`) | `src/plugins/quickLauncher/`、`services/quick_launcher/` | 中英文/拼音模糊搜索、图标、成功使用记录、启动/聚焦/系统设置；macOS 应用包、Windows Start Menu；Linux/mobile 不支持 |
 | File (`zero.file`) | `src/plugins/file/`、`services/file/`、`plugins/engine_assets.rs` | PDF→DOCX 内置 macOS/Windows 路径；DOCX→PDF 内置 macOS 11+ 路径；Windows 后者无内置 exporter，可选外部兼容 provider 独立存在 |
 
-默认快捷键为 Snap `CommandOrControl+Shift+A` 和 Launch `CommandOrControl+Shift+Space`；全局快捷键与工具可见性在设置中管理。manifest 的平台声明可能比实际原生能力宽，应查询真实 capability/provider 状态。
+默认快捷键为 Snap `CommandOrControl+Shift+A` 和 Launch：macOS `Alt+Space`（Option + Space），Windows `Control+Alt+Space`；全局快捷键与工具可见性在设置中管理。manifest 的平台声明可能比实际原生能力宽，应查询真实 capability/provider 状态。
 
 ## IPC、数据与兼容性
 

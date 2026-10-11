@@ -8,7 +8,7 @@ Zero is a tray-first desktop utility collection built with Tauri 2, React, and T
 - Global screenshot shortcut: `CommandOrControl+Shift+A`.
 - Zero Awake to keep the screen and system awake.
 - Zero Paper with Bing daily wallpaper history, cache-first loading, save-to-Downloads, and one-click desktop apply.
-- Zero Launch for fuzzy application/system-setting search, app launch/focus, and a reusable `CommandOrControl+Shift+Space` window on macOS and Windows.
+- Zero Launch for fuzzy application/system-setting search, app launch/focus, and a reusable Option + Space (macOS) / Ctrl + Alt + Space (Windows) window on macOS and Windows.
 - Separate tray, main, preferences, and about windows, with login autostart and configurable global shortcuts.
 - Tool visibility preferences so users can choose which plugins appear in the main tool list.
 - Language preference with system default, Chinese, and English.
@@ -131,7 +131,7 @@ This bundled plugin uses the existing `webview` runtime and React renderer. It i
 
 ## Zero Launch
 
-`zero.launch` is the fourth bundled tool. The main plugin panel and the floating `launcher` window share one React view and one Rust-owned index. Press `CommandOrControl+Shift+Space`, type an English/Chinese name, full pinyin, initials, acronym, or bundled alias such as `wx`/`ps`, then use `ArrowUp`/`ArrowDown` and `Enter`. `Escape` or loss of focus hides only the floating window.
+`zero.launch` is the fourth bundled tool. The main plugin panel and the floating `launcher` window share one React view and one Rust-owned index. Press Option + Space (macOS) / Ctrl + Alt + Space (Windows), type an English/Chinese name, full pinyin, initials, acronym, or bundled alias such as `wx`/`ps`, then use `ArrowUp`/`ArrowDown` and `Enter`. Press the same Launch shortcut again, `Escape`, or move focus away to hide only the floating window; Zero keeps running.
 
 Rust scans macOS application bundles in `/Applications`, `~/Applications`, `/System/Applications`, and `/System/Applications/Utilities`; Windows scans machine/user Start Menu Programs `.lnk` and `.exe` entries. Running applications are focused when the OS provides a reliable identity; otherwise the validated indexed entry is launched. Common system settings are host-maintained catalog records mapped privately to `x-apple.systempreferences:` or `ms-settings:` destinations. Linux and mobile return explicit unsupported state in this release.
 
@@ -201,3 +201,12 @@ cargo test --release --test quick_launcher_benchmark -- --ignored --nocapture
 - `node_modules`, frontend build output, and Rust/Tauri build output are intentionally ignored.
 - The login autostart preference uses the official Tauri autostart plugin.
 - Zero Snap's macOS editor implements selection, annotations, geometry controls, copy/save, and pin. Real multi-display, clipboard, window lifecycle, and packaged-app evidence must be tracked separately from automated checks.
+
+
+### Desktop application search
+
+After the packaged release app starts, it creates **Zero Snap**, **Zero Awake**, **Zero Paper**, **Zero Launch**, and **Zero File** entries in `~/Applications/Zero Tools/` on macOS and the current user's `Start Menu/Programs/Zero Tools/` on Windows. Zero itself remains the installed `Zero.app` / installer Start Menu entry. Open any tool entry to launch or activate the same Zero instance and select that tool in the main window. Hidden or disabled tools are not enabled automatically.
+
+Alfred, Spotlight, Raycast, and Windows Search use their own index and search scope; allow time for indexing and include the user Applications folder in the launcher's search scope. These are standard application entries, with no Alfred workflow or paid feature required. Moving Zero requires opening it once to update entry paths. Quit and uninstall Zero, then remove only its owned `Zero Tools` folder to remove these entries.
+
+Raw development builds do not install persistent entries. Packaged macOS debug smoke can set `ZERO_DESKTOP_ENTRIES_TEST_ROOT` to an isolated temporary Applications directory. Generated wrappers forward to Zero; they are not independent signed distribution packages.

@@ -37,7 +37,7 @@ export const quickLauncherMessages = {
     "launcher.errorFocus": "系统未允许切换窗口，可重试或重新启动应用",
     "launcher.errorSetting": "无法打开该系统设置",
     "launcher.errorGeneric": "Zero Launch 操作失败",
-    "launcher.shortcutConflict": "快捷键 ⌘/Ctrl+Shift+Space 已被占用，面板仍可使用",
+    "launcher.shortcutConflict": "Launch 快捷键已被占用，面板仍可使用",
   },
   "en-US": {
     "plugin.title": "Zero Launch",
@@ -71,7 +71,7 @@ export const quickLauncherMessages = {
     "launcher.errorFocus": "The system did not allow window focus. Retry or relaunch the app.",
     "launcher.errorSetting": "This system setting could not be opened",
     "launcher.errorGeneric": "Zero Launch operation failed",
-    "launcher.shortcutConflict": "⌘/Ctrl+Shift+Space is already in use; the panel remains available",
+    "launcher.shortcutConflict": "The Launch shortcut is already in use; the panel remains available",
   },
 } as const satisfies LocalizedMessages;
 

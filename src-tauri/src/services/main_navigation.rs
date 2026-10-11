@@ -17,6 +17,8 @@ pub enum MainWindowDestination {
 pub struct MainWindowNavigationRequest {
     pub destination: MainWindowDestination,
     pub revision: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plugin_id: Option<String>,
 }
 
 #[derive(Default)]
@@ -24,12 +26,21 @@ pub struct MainNavigationState(Mutex<MainWindowNavigationRequest>);
 
 impl MainNavigationState {
     pub fn request(&self, destination: MainWindowDestination) -> Result<(), String> {
+        self.request_tool(destination, None)
+    }
+
+    pub fn request_tool(
+        &self,
+        destination: MainWindowDestination,
+        plugin_id: Option<String>,
+    ) -> Result<(), String> {
         let mut current = self.0.lock().map_err(|_| "main navigation lock poisoned")?;
         current.revision = current
             .revision
             .checked_add(1)
             .ok_or("main navigation revision exhausted")?;
         current.destination = destination;
+        current.plugin_id = plugin_id;
         Ok(())
     }
 
@@ -88,6 +99,20 @@ mod tests {
             serde_json::to_value(state.snapshot().unwrap()).unwrap(),
             serde_json::json!({"destination":"preferences","revision":3})
         );
+    }
+
+    #[test]
+    fn tool_target_survives_initialization_and_normal_navigation_clears_it() {
+        let state = MainNavigationState::default();
+        state
+            .request_tool(MainWindowDestination::Tools, Some("zero.snap".into()))
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(state.snapshot().unwrap()).unwrap(),
+            serde_json::json!({"destination":"tools", "revision":1, "pluginId":"zero.snap"})
+        );
+        state.request(MainWindowDestination::Preferences).unwrap();
+        assert!(state.snapshot().unwrap().plugin_id.is_none());
     }
 
     #[test]

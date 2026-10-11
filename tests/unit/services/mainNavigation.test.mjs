@@ -16,3 +16,12 @@ test("invalid navigation never changes the current destination", () => {
     assert.equal(acceptMainNavigation(current, incoming), current);
   }
 });
+
+
+test("a retained tool target survives a late snapshot and a later tool replaces it", () => {
+  const snap = { destination: "tools", revision: 2, pluginId: "zero.snap" };
+  assert.equal(acceptMainNavigation(snap, { destination: "tools", revision: 1 }), snap);
+  const file = { destination: "tools", revision: 3, pluginId: "zero.file" };
+  assert.equal(acceptMainNavigation(snap, file), file);
+  assert.equal(acceptMainNavigation(file, { destination: "tools", revision: 4, pluginId: 42 }), file);
+});
