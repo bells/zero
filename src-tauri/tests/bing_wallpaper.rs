@@ -1,5 +1,5 @@
 use std::fs;
-use std::future::poll_fn;
+use std::future::{poll_fn, Future};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -14,6 +14,7 @@ use serde_json::json;
 use zero_lib::plugins::contracts::{
     NativeResourceError, NetworkFetchRequest, NetworkFetchResponse,
 };
+use zero_lib::services::bing_wallpaper::wallpaper::validate_plugin_image;
 use zero_lib::services::bing_wallpaper::WallpaperSetter;
 use zero_lib::services::bing_wallpaper::{
     merge_wallpaper_items, parse_bing_archive, BingFetchFuture, BingWallpaperFetcher,
@@ -159,6 +160,7 @@ fn fixture(name: &str) -> String {
 
 fn item(id: &str, start_date: &str, cached: bool) -> BingWallpaperItem {
     BingWallpaperItem {
+        display_date: None,
         id: id.into(),
         start_date: start_date.into(),
         title: format!("Title {id}"),
@@ -485,6 +487,72 @@ fn corrupt_preview_derivative_is_rebuilt_without_replacing_full_resolution_cache
         fs::read(root.path().join(&wallpaper.cache_file_name)).unwrap(),
         full_image_before
     );
+}
+
+#[test]
+fn cached_derivative_does_not_decode_or_require_the_original_for_presentation() {
+    let root = TestDir::new("preview-fast-cache");
+    let wallpaper = item("fast", "20260715", true);
+    write_cached_state(root.path(), &wallpaper);
+    let state = BingWallpaperState::new(root.path());
+    let first = tauri::async_runtime::block_on(state.preview("fast")).unwrap();
+    state.release_preview(&first.token);
+    fs::write(
+        root.path().join(&wallpaper.cache_file_name),
+        b"corrupt original",
+    )
+    .unwrap();
+    let warm = tauri::async_runtime::block_on(state.preview("fast")).unwrap();
+    assert!(state.read_preview_bytes(&warm.token).is_ok());
+    assert!(validate_plugin_image(root.path(), &wallpaper.cache_file_name).is_err());
+}
+
+#[test]
+fn cached_preview_remains_available_while_metadata_refresh_holds_the_batch_lock() {
+    let root = TestDir::new("preview-during-refresh");
+    let wallpaper = item("fast", "20260715", true);
+    write_cached_state(root.path(), &wallpaper);
+    let mut fetcher = FixtureFetcher::successful(fixture("bing_wallpaper_success.json"));
+    fetcher.yield_metadata_once = true;
+    let state = BingWallpaperState::with_fetcher(root.path(), Arc::new(fetcher));
+    tauri::async_runtime::block_on(async {
+        let first = state.preview("fast").await.unwrap();
+        state.release_preview(&first.token);
+        let refresh = state.refresh();
+        tokio::pin!(refresh);
+        poll_fn(|context| {
+            assert!(refresh.as_mut().poll(context).is_pending());
+            Poll::Ready(())
+        })
+        .await;
+        let preview =
+            tokio::time::timeout(std::time::Duration::from_secs(2), state.preview("fast"))
+                .await
+                .expect("cached preview must not wait for refresh")
+                .unwrap();
+        assert!(state.read_preview_bytes(&preview.token).is_ok());
+    });
+}
+
+#[test]
+fn display_date_uses_bing_utc_start_in_china_market_with_legacy_fallback() {
+    for (full, expected) in [
+        ("202610101600", Some("20261011")),
+        ("202612311600", Some("20270101")),
+        ("202402281600", Some("20240229")),
+        ("202610100000", Some("20261010")),
+        ("202602301600", None),
+        ("invalid", None),
+    ] {
+        let json = json!({"images": [{"startdate": "20261010", "fullstartdate": full,
+            "url": "/th?id=OHR.DateTest", "hsh": "date-test"}]})
+        .to_string();
+        let items = parse_bing_archive(&json).unwrap();
+        assert_eq!(items[0].start_date, "20261010");
+        assert_eq!(items[0].display_date.as_deref(), expected);
+    }
+    let legacy = parse_bing_archive(&fixture("bing_wallpaper_success.json")).unwrap();
+    assert_eq!(legacy[0].display_date, None);
 }
 
 #[test]

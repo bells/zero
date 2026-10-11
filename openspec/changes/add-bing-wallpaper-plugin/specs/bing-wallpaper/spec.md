@@ -12,11 +12,11 @@ The system SHALL register the Bing wallpaper tool as an enabled bundled plugin w
 - **THEN** the shell persists that preference through the existing plugin host without affecting screenshot, caffeine, preferences, or about surfaces
 
 ### Requirement: Cached wallpaper content is shown before remote refresh
-The system SHALL load valid metadata and images from `~/.zero/data/wallpaper/` before attempting a remote refresh, and SHALL refresh Bing data asynchronously after activation without clearing usable cached content.
+The system SHALL load valid metadata and images from `~/.zero/data/wallpaper/` before attempting a remote refresh, and SHALL refresh Bing data asynchronously after activation without clearing usable cached content. Activations in the same WebView MAY reuse a successful refresh for up to five minutes within the same China market day; explicit retry SHALL bypass this reuse, and failed or stale refreshes SHALL remain retryable.
 
 #### Scenario: Plugin activates with valid cache
 - **WHEN** the plugin activates and the cache contains valid wallpaper entries
-- **THEN** the system displays the cached entries immediately and starts a background refresh
+- **THEN** the system displays the cached entries immediately and starts a background refresh unless a recent successful refresh is reusable
 
 #### Scenario: Plugin activates without cache
 - **WHEN** the plugin activates and no valid cached entry exists
@@ -78,6 +78,17 @@ The system SHALL show a primary title or location-style description and a second
 #### Scenario: Metadata fields are missing
 - **WHEN** neither a usable title nor copyright description is available
 - **THEN** the card shows localized fallback text and remains operable
+
+### Requirement: Wallpaper source and market publication date are explicit
+The card SHALL place Bing as the image source beside the wallpaper date. For the zh-CN feed, Rust SHALL derive an optional camelCase `displayDate` from valid UTC `fullstartdate` using China Standard Time, retain the original `startDate` and cache identity, and fall back to `startDate` when publication time is absent or invalid.
+
+#### Scenario: China publication crosses a UTC date boundary
+- **WHEN** Bing returns `startdate=20261010` and `fullstartdate=202610101600`
+- **THEN** the card displays `2026-10-11` beside Bing, and the original source date remains `20261010`
+
+#### Scenario: Existing cache has no publication date
+- **WHEN** a persisted item lacks `displayDate`
+- **THEN** it remains readable using its original date until refreshed metadata supplies the market publication date
 
 ### Requirement: Users can apply a cached Bing image as desktop wallpaper
 The system SHALL allow the user to apply the selected image through an explicit apply action or by activating the wallpaper thumbnail, and MUST perform the system change only through the Rust wallpaper service.

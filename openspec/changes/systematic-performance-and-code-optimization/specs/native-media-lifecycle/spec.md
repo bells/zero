@@ -52,6 +52,21 @@ Zero Paper SHALL render UI previews from cached, bounded-dimension derivatives o
 - **WHEN** a new preview replaces the current preview
 - **THEN** the prior object URL/token is revoked or released and late completion from the older selection cannot restore it
 
+### Requirement: Paper cached previews bypass repeated full-resolution work
+Zero Paper SHALL reuse validated disk derivatives without waiting for the network refresh batch or decoding the full-resolution original. Each WebView MAY retain encoded preview Blobs across panel remounts for five minutes, bounded to ten entries, two MiB per entry and eight MiB total with least-recently-used eviction. Concurrent reads of the same wallpaper SHALL be coalesced, native leases SHALL be released after reading, and visible owners SHALL revoke object URLs on replacement, hide, or unmount.
+
+#### Scenario: User returns to a recently viewed wallpaper
+- **WHEN** the encoded preview is still in the bounded WebView cache
+- **THEN** the panel creates its owned URL without repeating native preview generation or byte transfer
+
+#### Scenario: Metadata refresh is slow
+- **WHEN** a valid disk derivative exists and a remote refresh holds the batch lock
+- **THEN** the native service serves the derivative without waiting for that refresh
+
+#### Scenario: Encoded cache expires or reaches a limit
+- **WHEN** an entry expires or another preview exceeds the entry or byte budget
+- **THEN** expired or least-recently-used encoded entries are discarded and the disk cache remains the fallback
+
 ### Requirement: Small media caches remain explicitly bounded
 Launcher icons and other intentionally small inline media SHALL have documented per-item byte limits, total count or byte limits, eviction behavior, and bounded concurrent loading even when Base64 is retained for the first round.
 

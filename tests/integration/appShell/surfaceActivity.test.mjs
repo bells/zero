@@ -50,13 +50,14 @@ test("frontend hide and close actions use host-owned lifecycle commands", () => 
 test("Paper preview work follows activity and revokes opaque preview resources", () => {
   const hook = fs.readFileSync("src/plugins/bingWallpaper/useBingWallpaper.ts", "utf8");
   const contracts = fs.readFileSync("src/plugins/bingWallpaper/contracts.ts", "utf8");
+  const cache = fs.readFileSync("src/plugins/bingWallpaper/bingWallpaperCache.ts", "utf8");
   const rust = fs.readFileSync("src-tauri/src/services/bing_wallpaper/mod.rs", "utf8");
 
   assert.match(hook, /useSurfaceActivity\(\)/);
   assert.match(hook, /shouldStartBingWallpaperPresentation\(activity\)/);
   assert.match(hook, /URL\.createObjectURL/);
   assert.match(hook, /URL\.revokeObjectURL/);
-  assert.match(hook, /service\.releasePreview/);
+  assert.match(cache, /service\.releasePreview/);
   assert.match(contracts, /token: string/);
   assert.match(contracts, /byteLength: number/);
   assert.doesNotMatch(contracts, /dataUrl: string/);

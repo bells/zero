@@ -67,6 +67,8 @@ impl BingWallpaperFetcher for SystemBingWallpaperFetcher {
 pub struct BingWallpaperItem {
     pub id: String,
     pub start_date: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_date: Option<String>,
     pub title: String,
     pub attribution: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -188,6 +190,7 @@ struct BingArchiveResponse {
 struct BingArchiveImage {
     #[serde(default)]
     startdate: String,
+    fullstartdate: Option<String>,
     title: Option<String>,
     copyright: Option<String>,
     copyrightlink: Option<String>,
@@ -449,9 +452,34 @@ impl BingWallpaperState {
         let mut diagnostic =
             crate::services::diagnostics::Operation::new(Some("zero.paper"), "preview");
         let result = (async {
-            let item = self.ensure_cached(wallpaper_id).await?;
-            let generation_lock = self.preview_generation_lock(&item.id)?;
+            let generation_lock = self.preview_generation_lock(wallpaper_id)?;
             let _generation_guard = generation_lock.lock().await;
+            // Atomic derivatives are sufficient for presentation; apply/save validate the original.
+            // Avoid queuing cached previews behind the refresh batch or decoding the original again.
+            let root = self.root.clone();
+            let id = wallpaper_id.to_owned();
+            let cached_derivative = tauri::async_runtime::spawn_blocking(move || {
+                let index = load_cache_index(&root).ok()?;
+                let item = index.items.iter().find(|item| item.id == id)?;
+                let name = preview_file_name(&item.cache_file_name).ok()?;
+                let path = super::native_resources::resolve_plugin_file(&root, &name).ok()?;
+                let mut derivative = validate_preview_derivative(&path).ok()?;
+                // Match the state root's spelling (e.g. /tmp vs /private/tmp) for lease identity.
+                derivative.path = root.join(name);
+                Some(derivative)
+            })
+            .await
+            .map_err(|_| {
+                error(
+                    "preview.worker",
+                    "The wallpaper preview worker stopped unexpectedly.",
+                    true,
+                )
+            })?;
+            if let Some(derivative) = cached_derivative {
+                return self.issue_preview_lease(wallpaper_id, derivative);
+            }
+            let item = self.ensure_cached(wallpaper_id).await?;
             let _cache_guard = self.refresh_lock.lock().await;
             let mut index = load_cache_index(&self.root)?;
             let position = index
@@ -1039,6 +1067,7 @@ pub fn parse_bing_archive(json: &str) -> Result<Vec<BingWallpaperItem>, BingWall
         items.push(BingWallpaperItem {
             id,
             start_date,
+            display_date: image.fullstartdate.as_deref().and_then(bing_market_date),
             title,
             attribution,
             copyright_url: normalized_optional_bing_url(image.copyrightlink.as_deref()),
@@ -1093,6 +1122,32 @@ pub fn merge_wallpaper_items(
     });
     merged.truncate(MAX_HISTORY_ITEMS);
     merged
+}
+
+fn bing_market_date(full_start_date: &str) -> Option<String> {
+    use time::{Date, Month, PrimitiveDateTime, Time, UtcOffset};
+    if full_start_date.len() != 12 || !full_start_date.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    let year = full_start_date[..4].parse().ok()?;
+    let month = Month::try_from(full_start_date[4..6].parse::<u8>().ok()?).ok()?;
+    let day = full_start_date[6..8].parse().ok()?;
+    let hour = full_start_date[8..10].parse().ok()?;
+    let minute = full_start_date[10..12].parse().ok()?;
+    // fullstartdate is UTC; zh-CN's publication day is China Standard Time.
+    let date = PrimitiveDateTime::new(
+        Date::from_calendar_date(year, month, day).ok()?,
+        Time::from_hms(hour, minute, 0).ok()?,
+    )
+    .assume_utc()
+    .to_offset(UtcOffset::from_hms(8, 0, 0).ok()?)
+    .date();
+    Some(format!(
+        "{:04}{:02}{:02}",
+        date.year(),
+        date.month() as u8,
+        date.day()
+    ))
 }
 
 pub fn default_cache_root() -> PathBuf {

@@ -1721,6 +1721,12 @@ input:focus-visible {
   font-weight: 800;
 }
 
+.wallpaper-meta-topline .wallpaper-source {
+  background: transparent;
+  color: #716346;
+  text-transform: uppercase;
+}
+
 .wallpaper-meta > strong {
   display: -webkit-box;
   overflow: hidden;

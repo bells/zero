@@ -17,7 +17,6 @@ export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
     <section className="plugin-panel bing-wallpaper-panel" aria-busy={wallpaper.isLoading}>
       <div className="wallpaper-header">
         <div>
-          <span className="eyebrow">Bing</span>
           <h2>{t("wallpaper.title")}</h2>
         </div>
         <div className="wallpaper-actions" aria-label={t("wallpaper.actions")}>
@@ -93,7 +92,8 @@ export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
 
           <div className="wallpaper-meta">
             <div className="wallpaper-meta-topline">
-              <span>{formatBingDate(selected.startDate)}</span>
+              <span title={t("wallpaper.dateHint")}>{formatBingDate(selected.displayDate ?? selected.startDate)}</span>
+              <span className="wallpaper-source" aria-label={t("wallpaper.source")}>Bing</span>
               {wallpaper.isRefreshing ? <span>{t("wallpaper.refreshing")}</span> : null}
               {wallpaper.snapshot?.stale ? <span>{t("wallpaper.stale")}</span> : null}
             </div>

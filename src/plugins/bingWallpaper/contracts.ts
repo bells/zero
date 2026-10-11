@@ -1,6 +1,7 @@
 export interface BingWallpaperItem {
   id: string;
   startDate: string;
+  displayDate?: string;
   title: string;
   attribution: string;
   copyrightUrl?: string;
