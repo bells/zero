@@ -25,6 +25,7 @@ Read this file, [the project overview](docs/project-overview.md), and [project m
 ## Product and UI
 
 - Keep the tray compact and predictable; use the standalone main window for richer tool content and its preferences view, with a separate about window.
+- Every plugin's status-bar/tray page should stay concise and focused on quick actions. Its main-window page may use richer controls and visualizations, filling the available workspace instead of inheriting the tray's compact width.
 - Preserve tool navigation, current tool content, and system actions as distinct areas. Use familiar controls, visible focus, keyboard access, Chinese/English labels, and practical click targets.
 - Consider responsive layouts and future touch use without claiming mobile runtime support.
 

@@ -63,13 +63,13 @@ test("Zero uses one shared solid top-narrow duck-egg with a negative 45 degree s
   assert.doesNotMatch(appSource, /<(?:circle|ellipse)\b/);
 });
 
-test("Awake is steam-free and active state adds only the bounded liquid-level mark", () => {
+test("Awake is steam-free and active state fills the cup body without moving its outer geometry", () => {
   const base = fs.readFileSync(path.join(ICON_DIR, "zero-awake.svg"), "utf8");
   const active = fs.readFileSync(
     path.join(ICON_DIR, "zero-awake-active.svg"),
     "utf8",
   );
-  const withoutStateMark = active.replace(/\s*<path d="M6\.5 10h7"\/>/, "");
+  const withoutStateMark = active.replace(/\s*<path d="M5 9h10v4a5 5 0 0 1-10 0V9Z" fill="currentColor" stroke="none"\/>/, "");
 
   for (const source of [base, active]) {
     assert.doesNotMatch(source, /M10 7c-2-2 2-2 0-5/);
@@ -77,7 +77,7 @@ test("Awake is steam-free and active state adds only the bounded liquid-level ma
     assert.match(source, /<path d="M16 8h1\.5a3 3 0 0 1 0 6H16"\/>/);
     assert.match(source, /<path d="M3 20h17"\/>/);
   }
-  assert.match(active, /<path d="M6\.5 10h7"\/>/);
+  assert.match(active, /fill="currentColor" stroke="none"/);
   assert.equal(normalizeSvg(withoutStateMark), normalizeSvg(base));
 });
 

@@ -178,7 +178,10 @@ export function validateIconSystem(root = PROJECT_ROOT) {
         }
       }
     }
-    const withoutStateMark = awakeActive.replace(/\s*<path d="M6\.5 10h7"\/>/, "");
+    if (!awakeActive.includes('<path d="M5 9h10v4a5 5 0 0 1-10 0V9Z" fill="currentColor" stroke="none"/>')) {
+      issues.push("zero-awake-active.svg: missing bounded filled cup body");
+    }
+    const withoutStateMark = awakeActive.replace(/\s*<path d="M5 9h10v4a5 5 0 0 1-10 0V9Z" fill="currentColor" stroke="none"\/>/, "");
     if (normalizeSvg(withoutStateMark) !== normalizeSvg(awake)) {
       issues.push("zero-awake-active.svg: base geometry differs from zero-awake.svg");
     }

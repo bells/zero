@@ -29,6 +29,7 @@ Calm, capable, compact. The product should feel like a well-kept desktop control
 
 - Keep the tray panel fast: status-bar entry points should remain lightweight and predictable.
 - Give the main window room to grow: plugins need a real home with navigation, summaries, and future categories.
+- Apply this surface distinction to every plugin: keep status-bar/tray tool pages concise; let main-window tool pages use the available space for fuller controls and useful visualizations. Shared behavior does not require identical layouts or tray-sized main content.
 - Separate system surfaces: preferences, about, update, and quit controls should be clear, stable, and not compete with plugin work.
 - Preserve native expectations: window size, focus, taskbar behavior, and platform capabilities are part of the UX.
 - Prefer earned density: compact information is good when hierarchy and click targets stay readable.

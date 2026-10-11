@@ -296,6 +296,7 @@ pub fn run() {
             commands::plugins::set_plugin_enabled,
             commands::plugins::restore_bundled_plugins,
             commands::status_bar::get_status_bar_settings,
+            commands::status_bar::set_status_bar_language,
             commands::status_bar::update_status_bar_settings,
             commands::status_bar::get_status_bar_items,
             commands::status_bar::run_status_bar_item_action,

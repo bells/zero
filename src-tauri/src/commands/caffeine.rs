@@ -1,7 +1,5 @@
-use std::time::SystemTime;
-
-use crate::services::caffeine::{CaffeineExpiry, CaffeineSnapshot, CaffeineState};
-use tauri::Manager;
+use crate::services::caffeine::{CaffeineSnapshot, CaffeineState};
+use crate::services::caffeine_runtime::{self, AwakeRequest};
 
 #[tauri::command]
 pub fn get_caffeine_state(
@@ -16,58 +14,12 @@ pub async fn toggle_keep_awake(
     enabled: bool,
     duration_minutes: Option<u64>,
 ) -> Result<CaffeineSnapshot, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
-            .run(crate::brand::ZERO_AWAKE_PLUGIN_ID, || {
-                if enabled && !crate::plugin_is_enabled(&app, crate::brand::ZERO_AWAKE_PLUGIN_ID) {
-                    return Err("Zero Awake 已停用".into());
-                }
-                let transition = app
-                    .state::<CaffeineState>()
-                    .set_enabled(enabled, duration_minutes)?;
-                if let Some(expiry) = transition.expiry {
-                    schedule_expiry(app.clone(), expiry);
-                }
-                #[cfg(target_os = "macos")]
-                if let Some(generation) = app.state::<CaffeineState>().diagnostic_generation() {
-                    let observer_app = app.clone();
-                    tauri::async_runtime::spawn(async move {
-                        loop {
-                            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                            if !observer_app
-                                .state::<CaffeineState>()
-                                .observe_owned_backend(generation)
-                            {
-                                break;
-                            }
-                        }
-                    });
-                }
-                let _ = crate::services::status_bar::refresh_status_bar(&app);
-                Ok(transition.snapshot)
-            })
-    })
+    caffeine_runtime::execute(
+        app,
+        AwakeRequest::Set {
+            enabled,
+            duration: duration_minutes,
+        },
+    )
     .await
-    .map_err(|_| "防休眠状态任务异常结束".to_string())?
-}
-
-pub fn schedule_expiry(app: tauri::AppHandle, expiry: CaffeineExpiry) {
-    let task_app = app.clone();
-    let task = tauri::async_runtime::spawn(async move {
-        if let Ok(delay) = expiry.expires_at.duration_since(SystemTime::now()) {
-            tokio::time::sleep(delay).await;
-        }
-        let _ = tauri::async_runtime::spawn_blocking(move || {
-            let state = task_app.state::<CaffeineState>();
-            if state
-                .expire_if_current(expiry.generation, SystemTime::now())
-                .unwrap_or(false)
-            {
-                let _ = crate::services::status_bar::refresh_status_bar(&task_app);
-            }
-        })
-        .await;
-    });
-    app.state::<CaffeineState>()
-        .install_expiry_task(expiry.generation, task);
 }

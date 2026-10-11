@@ -4,7 +4,7 @@ const isEnabled = () => invoke<boolean>("get_autostart");
 const enable = () => invoke<void>("set_autostart", { enabled: true });
 const disable = () => invoke<void>("set_autostart", { enabled: false });
 import type { PluginId } from "../pluginHost/pluginTypes";
-import type { TranslationKey } from "./i18n";
+import { resolveLanguage, type TranslationKey } from "./i18n";
 import {
   AppPreferences,
   LanguagePreference,
@@ -28,6 +28,12 @@ export function usePreferences(pluginIds: PluginId[]) {
   const [isAutostartBusy, setIsAutostartBusy] = useState(false);
   const [messageKey, setMessageKey] = useState<TranslationKey>("prefs.message.ready");
   const [messageDetail, setMessageDetail] = useState<string | null>(null);
+
+  useEffect(() => {
+    void invoke<void>("set_status_bar_language", {
+      language: resolveLanguage(preferences.language, navigator.language),
+    }).catch((error: unknown) => setMessageDetail(String(error)));
+  }, [preferences.language]);
 
   useEffect(() => {
     try {

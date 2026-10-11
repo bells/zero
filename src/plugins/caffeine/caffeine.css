@@ -1,0 +1,57 @@
+.caffeine-panel { justify-content: flex-start; gap: 16px; overflow: visible; box-shadow: none; }
+.awake-body { min-width: 0; }
+.awake-dial { display: none; }
+.awake-dial, .awake-dial-core { box-sizing: border-box; }
+.awake-content { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.caffeine-panel .panel-heading { align-items: center; }
+.caffeine-panel .status-pill { flex-shrink: 0; color: #35443b; }
+.caffeine-panel .status-pill.active { color: #126b34; }
+.awake-timing { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin: 0; padding: 12px 0; border-block: 1px solid #c7d1ca; }
+.awake-timing div { min-width: 0; }
+.awake-timing dt, .awake-duration legend { color: #43554a; font-size: 12px; font-weight: 600; line-height: 1.5; }
+.awake-timing dd { margin: 3px 0 0; color: #1f3227; font-size: 17px; line-height: 1.3; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.awake-remaining { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; }
+.awake-remaining dd { margin: 0; }
+.awake-duration { min-width: 0; margin: 0; padding: 0; border: 0; }
+.awake-duration legend { margin-bottom: 8px; padding: 0; }
+.awake-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.awake-preset { min-height: 36px; padding: 5px 2px; border: 1px solid #b9c6be; border-radius: 6px; background: #f2f6f3; color: #304a3b; font: 600 11px/1.3 system-ui, sans-serif; }
+.awake-preset:hover:not(:disabled) { background: #e0eae3; }
+.awake-preset.selected { border: 2px solid #3e6951; padding: 4px 1px; background: #dcebe0; color: #173c27; }
+.awake-preset:active:not(:disabled) { background: #c8dfcf; }
+.awake-preset:focus-visible, .awake-actions button:focus-visible, .awake-error button:focus-visible { outline: 2px solid #166b3b; outline-offset: 2px; }
+.awake-preset:disabled, .awake-preset[aria-disabled="true"], .awake-actions button[aria-disabled="true"] { opacity: .55; cursor: wait; }
+.awake-actions { position: sticky; bottom: 0; padding-top: 4px; background: #f1f5ef; border-radius: 6px; }
+.awake-actions .primary-action { width: 100%; min-height: 44px; }
+.awake-error { display: flex; align-items: start; gap: 8px; font-size: 12px; line-height: 1.5; color: #8b2529; overflow-wrap: anywhere; }
+.awake-error span { flex: 1; }
+.awake-error button { min-height: 36px; padding: 4px 8px; border: 1px solid #b97477; border-radius: 6px; color: #8b2529; background: #fff; font: inherit; flex-shrink: 0; }
+.tray-plugin-content > .caffeine-panel { flex: 0 0 auto; padding: 8px; }
+.tray-plugin-content > .caffeine-panel,
+.tray-plugin-content .awake-content { gap: 6px; }
+.tray-plugin-content .awake-timing { padding-block: 6px; row-gap: 4px; }
+.main-window-shell .main-workspace > .caffeine-panel { width: 100%; flex: 1 1 0; padding: 20px; gap: 20px; overflow: auto; container-type: inline-size; }
+.main-window-shell .caffeine-panel .awake-body { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: 24px; min-height: 260px; flex: 1 0 auto; }
+.main-window-shell .caffeine-panel .awake-content { gap: 20px; }
+.main-window-shell .caffeine-panel .awake-dial { display: grid; place-items: center; width: min(100%, 260px); aspect-ratio: 1; margin: 0 auto; border-radius: 50%; padding: 14px; background: conic-gradient(#d1d7da, #f0d279, #d1d7da); }
+.main-window-shell .caffeine-panel .awake-dial.active { background: conic-gradient(#f2b84f, #53e085, #f2b84f); }
+.awake-dial-core { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; border: 10px solid rgba(255, 255, 255, .68); border-radius: 50%; background: #f2f6f3; }
+.awake-dial dt { color: #43554a; font-size: 13px; font-weight: 600; }
+.awake-dial dd { margin: 0; color: #1f3227; font-size: 32px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.main-window-shell .caffeine-panel .awake-elapsed { display: none; }
+.main-window-shell .caffeine-panel .awake-timing { grid-template-columns: 1fr; }
+.main-window-shell .caffeine-panel .awake-presets { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.main-window-shell .caffeine-panel .awake-preset { min-height: 44px; font-size: 12px; }
+.main-window-shell .caffeine-panel .awake-actions { flex: 0 0 auto; }
+@media (max-height: 560px) {
+  .main-window-shell .caffeine-panel .awake-body { min-height: 200px; }
+  .main-window-shell .caffeine-panel .awake-dial { width: min(100%, 200px); }
+}
+@container (max-width: 460px) {
+  .main-window-shell .caffeine-panel .awake-body { grid-template-columns: 1fr; gap: 16px; }
+  .main-window-shell .caffeine-panel .awake-dial { width: 160px; padding: 10px; }
+  .main-window-shell .caffeine-panel .awake-content { gap: 12px; }
+  .main-window-shell .caffeine-panel .awake-presets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (pointer: coarse) { .awake-preset { min-height: 44px; } }
+@media (max-width: 340px) { .awake-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

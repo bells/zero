@@ -29,6 +29,7 @@ const MACOS_STATUS_ITEM_CELL_SIZE: u32 = 22;
 pub const PRIMARY_STATUS_ITEM_COLLAPSE_MENU_ID: &str = "zero.status-bar.toggle-tool-items";
 pub const PRIMARY_STATUS_ITEM_QUIT_MENU_ID: &str = "zero.status-bar.quit";
 pub const TOOL_STATUS_ITEM_QUIT_MENU_ID_PREFIX: &str = "zero.status-bar.tool.quit:";
+pub const AWAKE_STATUS_ITEM_ID: &str = "zero.awake.status";
 pub const STATUS_BAR_SETTINGS_UPDATED_EVENT: &str = "status-bar-settings-updated";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -86,6 +87,8 @@ pub enum PrimaryStatusBarMenuAction {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolStatusBarMenuAction {
     Quit,
+    AwakeDuration(Option<u64>),
+    ExitAwake,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,6 +112,7 @@ pub struct StatusBarState {
     settings: Mutex<StatusBarSettings>,
     settings_path: Mutex<Option<PathBuf>>,
     last_primary_toggle_at: Mutex<Option<std::time::Instant>>,
+    language: Mutex<Option<String>>,
 }
 
 impl Default for StatusBarState {
@@ -117,6 +121,7 @@ impl Default for StatusBarState {
             settings: Mutex::new(StatusBarSettings::default()),
             settings_path: Mutex::new(None),
             last_primary_toggle_at: Mutex::new(None),
+            language: Mutex::new(None),
         }
     }
 }
@@ -167,13 +172,11 @@ impl StatusBarState {
         records: &[PluginRecord],
         input: UpdateStatusBarSettingsInput,
     ) -> Result<StatusBarSettings, String> {
-        let mut settings = self
+        let mut current = self
             .settings
             .lock()
-            .map_err(|_| "status bar settings lock is poisoned".to_string())?
-            .clone()
-            .apply(input)
-            .normalized_for_records(records);
+            .map_err(|_| "status bar settings lock is poisoned".to_string())?;
+        let mut settings = current.clone().apply(input).normalized_for_records(records);
 
         let path = self
             .settings_path
@@ -185,10 +188,6 @@ impl StatusBarState {
             save_status_bar_settings(&path, &settings)?;
         }
 
-        let mut current = self
-            .settings
-            .lock()
-            .map_err(|_| "status bar settings lock is poisoned".to_string())?;
         std::mem::swap(&mut *current, &mut settings);
         Ok(current.clone())
     }
@@ -428,12 +427,40 @@ pub fn update_status_bar_settings(
     app: &tauri::AppHandle,
     input: UpdateStatusBarSettingsInput,
 ) -> Result<StatusBarSettings, String> {
+    let settings = persist_status_bar_settings(app, input)?;
+    let _ = refresh_status_bar(app)?;
+    Ok(settings)
+}
+
+pub fn persist_status_bar_settings(
+    app: &tauri::AppHandle,
+    input: UpdateStatusBarSettingsInput,
+) -> Result<StatusBarSettings, String> {
     let records = plugin_records(app)?;
     ensure_status_bar_settings(app, &records)?;
     let settings = app.state::<StatusBarState>().update(&records, input)?;
-    let _ = refresh_status_bar(app)?;
     let _ = app.emit(STATUS_BAR_SETTINGS_UPDATED_EVENT, settings.clone());
     Ok(settings)
+}
+
+pub fn status_bar_language<R: Runtime>(app: &tauri::AppHandle<R>) -> String {
+    app.state::<StatusBarState>()
+        .language
+        .lock()
+        .ok()
+        .and_then(|language| language.clone())
+        .unwrap_or_else(crate::services::quick_launcher::system_language)
+}
+
+pub fn set_status_bar_language(app: &tauri::AppHandle, language: String) -> Result<(), String> {
+    if !matches!(language.as_str(), "zh-CN" | "en-US") {
+        return Err("unsupported status bar language".into());
+    }
+    *app.state::<StatusBarState>()
+        .language
+        .lock()
+        .map_err(|_| "status bar language lock poisoned")? = Some(language);
+    Ok(())
 }
 
 pub fn toggle_status_bar_plugin_items(app: &tauri::AppHandle) -> Result<StatusBarSettings, String> {
@@ -515,7 +542,71 @@ pub fn tool_status_bar_menu_action(
     menu_id: &str,
     item_id: &str,
 ) -> Option<ToolStatusBarMenuAction> {
-    (menu_id == tool_status_bar_quit_menu_id(item_id)).then_some(ToolStatusBarMenuAction::Quit)
+    if menu_id == tool_status_bar_quit_menu_id(item_id) {
+        return Some(ToolStatusBarMenuAction::Quit);
+    }
+    if item_id != AWAKE_STATUS_ITEM_ID {
+        return None;
+    }
+    if menu_id == "zero.awake.exit" {
+        return Some(ToolStatusBarMenuAction::ExitAwake);
+    }
+    let value = menu_id.strip_prefix("zero.awake.duration:")?;
+    let duration = if value == "none" {
+        None
+    } else {
+        let minutes = value.parse::<u64>().ok()?;
+        if !crate::services::caffeine::is_allowed_duration_minutes(Some(minutes)) {
+            return None;
+        }
+        Some(minutes)
+    };
+    Some(ToolStatusBarMenuAction::AwakeDuration(duration))
+}
+
+pub fn awake_duration_menu_label(duration: Option<u64>, language: &str) -> String {
+    match (duration, language.starts_with("zh")) {
+        (None, true) => "无期限".into(),
+        (None, false) => "No limit".into(),
+        (Some(minutes), true) if minutes >= 60 => format!("{} 小时", minutes / 60),
+        (Some(minutes), false) if minutes >= 60 => format!(
+            "{} {}",
+            minutes / 60,
+            if minutes == 60 { "hour" } else { "hours" }
+        ),
+        (Some(minutes), true) => format!("{minutes} 分钟"),
+        (Some(minutes), false) => format!("{minutes} minutes"),
+    }
+}
+
+#[cfg(any(target_os = "macos", test))]
+struct AwakeDurationMenuEntry {
+    id: String,
+    label: String,
+    checked: bool,
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn awake_duration_menu_entries(
+    enabled: bool,
+    current_duration: Option<u64>,
+    language: &str,
+) -> Vec<AwakeDurationMenuEntry> {
+    std::iter::once(None)
+        .chain(
+            crate::services::caffeine::ALLOWED_DURATION_MINUTES
+                .into_iter()
+                .map(Some),
+        )
+        .map(|duration| AwakeDurationMenuEntry {
+            id: format!(
+                "zero.awake.duration:{}",
+                duration.map_or("none".into(), |m| m.to_string())
+            ),
+            label: awake_duration_menu_label(duration, language),
+            checked: enabled && current_duration == duration,
+        })
+        .collect()
 }
 
 pub fn handle_status_bar_action(
@@ -1038,7 +1129,7 @@ fn primary_status_bar_menu<R: Runtime>(
     app: &tauri::AppHandle<R>,
     plugin_items_collapsed: bool,
 ) -> Result<tauri::menu::Menu<R>, String> {
-    let language = crate::services::quick_launcher::system_language();
+    let language = status_bar_language(app);
     MenuBuilder::new(app)
         .text(
             PRIMARY_STATUS_ITEM_COLLAPSE_MENU_ID,
@@ -1057,8 +1148,37 @@ fn tool_status_bar_menu<R: Runtime>(
     app: &tauri::AppHandle<R>,
     item_id: &str,
 ) -> Result<tauri::menu::Menu<R>, String> {
-    let language = crate::services::quick_launcher::system_language();
-    MenuBuilder::new(app)
+    let language = status_bar_language(app);
+    let mut builder = MenuBuilder::new(app);
+    if item_id == AWAKE_STATUS_ITEM_ID {
+        let snapshot = app.state::<CaffeineState>().snapshot()?;
+        for entry in
+            awake_duration_menu_entries(snapshot.enabled, snapshot.duration_minutes, &language)
+        {
+            let check = tauri::menu::CheckMenuItem::with_id(
+                app,
+                entry.id,
+                entry.label,
+                true,
+                entry.checked,
+                None::<&str>,
+            )
+            .map_err(|e| e.to_string())?;
+            builder = builder.item(&check);
+        }
+        builder = builder
+            .separator()
+            .text(
+                "zero.awake.exit",
+                if language.starts_with("zh") {
+                    "退出 Awake"
+                } else {
+                    "Exit Awake"
+                },
+            )
+            .separator();
+    }
+    builder
         .text(
             tool_status_bar_quit_menu_id(item_id),
             status_bar_quit_menu_label(&language),
@@ -1129,6 +1249,24 @@ fn sync_primary_status_item(
                 Some(PrimaryStatusBarMenuAction::Quit) => {
                     crate::commands::app::quit_app(app.clone());
                 }
+                None if tool_status_bar_menu_action(event.id().as_ref(), AWAKE_STATUS_ITEM_ID)
+                    .is_some_and(|action| !matches!(action, ToolStatusBarMenuAction::Quit)) =>
+                {
+                    use super::caffeine_runtime::{dispatch_native, AwakeRequest};
+                    match tool_status_bar_menu_action(event.id().as_ref(), AWAKE_STATUS_ITEM_ID) {
+                        Some(ToolStatusBarMenuAction::AwakeDuration(duration)) => dispatch_native(
+                            app.clone(),
+                            AwakeRequest::Set {
+                                enabled: true,
+                                duration,
+                            },
+                        ),
+                        Some(ToolStatusBarMenuAction::ExitAwake) => {
+                            dispatch_native(app.clone(), AwakeRequest::Exit)
+                        }
+                        _ => {}
+                    }
+                }
                 None if event
                     .id()
                     .as_ref()
@@ -1194,15 +1332,7 @@ fn apply_native_status_item_length<R: Runtime>(
 }
 
 fn toggle_caffeine_from_status_bar(app: tauri::AppHandle) -> Result<(), String> {
-    let state = app.state::<CaffeineState>();
-    let current = state.snapshot()?;
-    let transition = state.set_enabled(!current.enabled, None)?;
-
-    if let Some(expiry) = transition.expiry {
-        crate::commands::caffeine::schedule_expiry(app.clone(), expiry);
-    }
-
-    let _ = refresh_status_bar(&app)?;
+    super::caffeine_runtime::dispatch_native(app, super::caffeine_runtime::AwakeRequest::Toggle);
     Ok(())
 }
 
@@ -1329,6 +1459,106 @@ mod tests {
     use std::cell::{Cell, RefCell};
 
     use super::*;
+
+    #[test]
+    fn awake_duration_menu_order_and_checkmarks_follow_the_session() {
+        let entries = awake_duration_menu_entries(true, Some(10), "zh-CN");
+        assert_eq!(
+            entries.iter().map(|e| e.label.as_str()).collect::<Vec<_>>(),
+            [
+                "无期限",
+                "5 分钟",
+                "10 分钟",
+                "15 分钟",
+                "30 分钟",
+                "1 小时",
+                "2 小时",
+                "5 小时"
+            ]
+        );
+        assert_eq!(
+            entries
+                .iter()
+                .filter(|e| e.checked)
+                .map(|e| e.id.as_str())
+                .collect::<Vec<_>>(),
+            ["zero.awake.duration:10"]
+        );
+        assert!(awake_duration_menu_entries(false, Some(10), "en-US")
+            .iter()
+            .all(|e| !e.checked));
+        let unlimited = awake_duration_menu_entries(true, None, "en-US");
+        assert_eq!(unlimited[0].label, "No limit");
+        assert!(unlimited[0].checked);
+        assert!(unlimited[1..].iter().all(|e| !e.checked));
+    }
+
+    #[test]
+    fn awake_menu_actions_are_scoped_and_whitelisted() {
+        assert_eq!(
+            tool_status_bar_menu_action("zero.awake.exit", AWAKE_STATUS_ITEM_ID),
+            Some(ToolStatusBarMenuAction::ExitAwake)
+        );
+        assert_eq!(
+            tool_status_bar_menu_action("zero.awake.duration:none", AWAKE_STATUS_ITEM_ID),
+            Some(ToolStatusBarMenuAction::AwakeDuration(None))
+        );
+        for minutes in crate::services::caffeine::ALLOWED_DURATION_MINUTES {
+            let id = format!("zero.awake.duration:{minutes}");
+            assert_eq!(
+                tool_status_bar_menu_action(&id, AWAKE_STATUS_ITEM_ID),
+                Some(ToolStatusBarMenuAction::AwakeDuration(Some(minutes)))
+            );
+            assert_eq!(tool_status_bar_menu_action(&id, "zero.paper.status"), None);
+        }
+        for id in [
+            "zero.awake.duration:0",
+            "zero.awake.duration:45",
+            "zero.awake.duration:-5",
+            "zero.awake.duration:invalid",
+        ] {
+            assert_eq!(tool_status_bar_menu_action(id, AWAKE_STATUS_ITEM_ID), None);
+        }
+        assert_eq!(
+            tool_status_bar_menu_action(
+                &tool_status_bar_quit_menu_id("zero.paper.status"),
+                "zero.paper.status"
+            ),
+            Some(ToolStatusBarMenuAction::Quit)
+        );
+        assert_eq!(awake_duration_menu_label(Some(120), "zh-CN"), "2 小时");
+        assert_eq!(awake_duration_menu_label(Some(60), "en-US"), "1 hour");
+    }
+
+    #[test]
+    fn awake_visibility_patch_preserves_neighbors_and_does_not_start_a_session() {
+        let previous = StatusBarSettings {
+            visible_plugin_items: HashMap::from([
+                (ZERO_AWAKE_PLUGIN_ID.into(), true),
+                (ZERO_PAPER_PLUGIN_ID.into(), false),
+            ]),
+            ..Default::default()
+        };
+        let hidden = previous.apply(UpdateStatusBarSettingsInput {
+            enabled: None,
+            show_plugin_items_on_launch: None,
+            plugin_items_collapsed: None,
+            visible_plugin_items: Some(HashMap::from([(ZERO_AWAKE_PLUGIN_ID.into(), false)])),
+        });
+        let bytes = serde_json::to_vec(&hidden).unwrap();
+        let restarted: StatusBarSettings = serde_json::from_slice(&bytes).unwrap();
+        assert!(!restarted.visible_plugin_items[ZERO_AWAKE_PLUGIN_ID]);
+        assert!(!restarted.visible_plugin_items[ZERO_PAPER_PLUGIN_ID]);
+        let state = CaffeineState::default();
+        let restored = restarted.apply(UpdateStatusBarSettingsInput {
+            enabled: None,
+            show_plugin_items_on_launch: None,
+            plugin_items_collapsed: None,
+            visible_plugin_items: Some(HashMap::from([(ZERO_AWAKE_PLUGIN_ID.into(), true)])),
+        });
+        assert!(restored.visible_plugin_items[ZERO_AWAKE_PLUGIN_ID]);
+        assert!(!state.snapshot().unwrap().enabled);
+    }
 
     fn decoded_status_bar_icon(icon: &StatusBarIconId) -> image::RgbaImage {
         image::load_from_memory(status_bar_icon_png_bytes(icon))

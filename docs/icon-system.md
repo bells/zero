@@ -12,7 +12,7 @@ Zero uses a Modern Terminal Minimalist icon language: monochrome geometry, decis
 | Zero Awake | `src/assets/icons/zero-awake.svg` | An enlarged steam-free coffee cup, handle, and saucer: caffeine and persistent wakefulness. |
 | Zero Paper | `src/assets/icons/zero-paper.svg` | A framed mountain and sun: a daily wallpaper as a view into a landscape. |
 
-`zero-awake-active.svg` is a state derivative, not a sixth identity. It adds one liquid-level stroke while retaining the steam-free base cup's outer geometry.
+`zero-awake-active.svg` is a state derivative, not a sixth identity. It adds a bounded filled cup body while retaining the steam-free base cup's outer geometry.
 
 ## Geometry
 
@@ -49,7 +49,11 @@ After generation, review the contact sheet at 1× and 2×, then verify the real 
 
 - macOS dark and light appearances: verified in a real Tauri session with all five Zero family status items visible, unclipped, and rendered with the system-selected template foreground.
 - React fallback action row: verified with Windows-shaped host data in a real browser render. The glyph mask inherits its parent foreground through `color: inherit` and `background-color: currentColor`; both dark-on-light and light-on-dark foregrounds were checked.
-- macOS Zero Awake menu-bar interaction: verified through the real `SystemUIServer` status item. Direct on/off clicks changed only the bounded liquid-level state, with no clipping, cell movement, or hit-target regression.
+- macOS Zero Awake menu-bar interaction: verified through the real `SystemUIServer` status item. Direct on/off clicks changed only the bounded liquid-level state of the previous icon, with no clipping, cell movement, or hit-target regression.
 - macOS Zero Awake timed expiry: verified with a real five-minute session. The active cup returned to the inactive cup automatically at expiry while retaining the same outer bounds and status-item position.
 - Revised solid Zero egg: source, generated-asset, and light/dark contact-sheet review passed at 16px, 18px, 22px, 24px, 128px, and 512px. Fresh Dock, main-window, and `SystemUIServer` review of this final asymmetric refinement is delegated to the user.
 - Windows runtime rendering remains unrun; generated Windows assets, React fallback masks, and cross-platform builds are covered by automated checks only.
+
+## Awake filled-state update (2026-10-09)
+
+`refine-awake-controls-and-status-menu` replaces the previous active liquid-level line with a filled cup interior. The empty outline, handle, saucer, view box, template color, and native hit bounds remain shared. The earlier menu-bar checks above describe the previous artwork; automated checks and new native evidence are recorded separately in that change. Other Zero identities retain their existing geometry.

@@ -9,6 +9,16 @@ use crate::services::status_bar::{
 };
 
 #[tauri::command]
+pub fn set_status_bar_language(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    language: String,
+) -> Result<(), String> {
+    crate::services::main_navigation::ensure_shell_caller(window.label())?;
+    crate::services::status_bar::set_status_bar_language(&app, language)
+}
+
+#[tauri::command]
 pub async fn get_status_bar_settings(app: tauri::AppHandle) -> Result<StatusBarSettings, String> {
     run_status_bar_worker(app, |app| {
         let records = app

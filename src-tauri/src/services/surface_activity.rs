@@ -108,6 +108,15 @@ pub fn close_current_surface(window: tauri::WebviewWindow) -> Result<(), String>
     close_surface(&window).map_err(|error| format!("failed to close surface: {error}"))
 }
 
+pub async fn show_error_dialog(title: &str, message: &str) {
+    rfd::AsyncMessageDialog::new()
+        .set_title(title)
+        .set_description(message)
+        .set_level(rfd::MessageLevel::Error)
+        .show()
+        .await;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

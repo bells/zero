@@ -9,6 +9,30 @@ use serde::Serialize;
 
 pub const ALLOWED_DURATION_MINUTES: [u64; 7] = [5, 10, 15, 30, 60, 120, 300];
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CaffeineAction {
+    Enable,
+    Disable,
+    Toggle,
+    Exit,
+    Expiry,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CaffeineErrorCode {
+    OperationFailed,
+    HideFailed,
+    DisplayFailed,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CaffeineActionError {
+    pub action: CaffeineAction,
+    pub code: CaffeineErrorCode,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct CaffeineSnapshot {
     pub enabled: bool,
@@ -16,6 +40,7 @@ pub struct CaffeineSnapshot {
     pub duration_minutes: Option<u64>,
     pub expires_at_ms: Option<u64>,
     pub message: String,
+    pub action_error: Option<CaffeineActionError>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -36,6 +61,7 @@ struct CaffeineSession {
     duration_minutes: Option<u64>,
     expires_at: Option<SystemTime>,
     generation: u64,
+    action_error: Option<CaffeineActionError>,
 }
 
 impl CaffeineSession {
@@ -50,6 +76,7 @@ impl CaffeineSession {
 
         self.generation = self.generation.saturating_add(1);
         self.enabled = true;
+        self.action_error = None;
         self.started_at = Some(started_at);
         self.duration_minutes = duration_minutes;
         self.expires_at = expires_at_for(started_at, duration_minutes)?;
@@ -60,6 +87,7 @@ impl CaffeineSession {
     fn disable(&mut self) {
         self.generation = self.generation.saturating_add(1);
         self.enabled = false;
+        self.action_error = None;
         self.started_at = None;
         self.duration_minutes = None;
         self.expires_at = None;
@@ -93,6 +121,7 @@ impl CaffeineSession {
             } else {
                 "咖啡因模式已关闭".into()
             },
+            action_error: self.action_error.clone(),
         }
     }
 
@@ -191,6 +220,12 @@ impl CaffeineState {
         Ok(session.snapshot())
     }
 
+    pub fn record_action_error(&self, action: CaffeineAction, code: CaffeineErrorCode) {
+        if let Ok(mut session) = self.session.lock() {
+            session.action_error = Some(CaffeineActionError { action, code });
+        }
+    }
+
     pub fn set_enabled(
         &self,
         enabled: bool,
@@ -279,6 +314,23 @@ impl CaffeineState {
         result?;
         Ok(session.expire_if_current(generation, now))
     }
+
+    pub fn expiry_delay_if_current(
+        &self,
+        generation: u64,
+        now: SystemTime,
+    ) -> Result<Option<Duration>, String> {
+        let session = self.session.lock().map_err(|e| e.to_string())?;
+        if !session.enabled || session.generation != generation {
+            return Ok(None);
+        }
+        Ok(session.expires_at.and_then(|deadline| {
+            deadline
+                .duration_since(now)
+                .ok()
+                .filter(|delay| !delay.is_zero())
+        }))
+    }
 }
 
 impl Drop for CaffeineState {
@@ -339,9 +391,16 @@ fn apply_platform_awake(state: &CaffeineState, enabled: bool) -> Result<(), Stri
                     .map_err(|e| format!("启动 caffeinate 失败: {e}"))?;
                 *process = Some(child);
             }
-        } else if let Some(mut child) = process.take() {
-            let _ = child.kill();
-            let _ = child.wait();
+        } else if let Some(child) = process.as_mut() {
+            if child.try_wait().map_err(|e| e.to_string())?.is_none() {
+                child
+                    .kill()
+                    .map_err(|e| format!("停止 caffeinate 失败: {e}"))?;
+                child
+                    .wait()
+                    .map_err(|e| format!("等待 caffeinate 退出失败: {e}"))?;
+            }
+            *process = None;
         }
 
         Ok(())
@@ -374,6 +433,9 @@ fn apply_platform_awake(state: &CaffeineState, enabled: bool) -> Result<(), Stri
                 crate::services::diagnostics::contracts::Outcome::Succeeded
             },
         );
+        if failed {
+            return Err("Windows 防休眠状态设置失败".into());
+        }
     }
 
     Ok(())
@@ -388,6 +450,57 @@ fn apply_platform_awake(_state: &CaffeineState, _enabled: bool) -> Result<(), St
 mod tests {
     use super::*;
     use std::time::Duration;
+
+    #[test]
+    fn early_expiry_wake_keeps_a_delay_but_stale_or_due_sessions_do_not() {
+        let state = CaffeineState::new();
+        let start = UNIX_EPOCH + Duration::from_secs(1000);
+        state
+            .session
+            .lock()
+            .unwrap()
+            .enable_at(start, Some(5))
+            .unwrap();
+        let expiry = state.session.lock().unwrap().expiry().unwrap();
+        let early = expiry.expires_at - Duration::from_micros(500);
+        assert_eq!(
+            state
+                .expiry_delay_if_current(expiry.generation, early)
+                .unwrap(),
+            Some(Duration::from_micros(500))
+        );
+        assert_eq!(
+            state
+                .expiry_delay_if_current(expiry.generation, expiry.expires_at)
+                .unwrap(),
+            None
+        );
+        assert_eq!(
+            state
+                .expiry_delay_if_current(expiry.generation + 1, early)
+                .unwrap(),
+            None
+        );
+        state.session.lock().unwrap().disable();
+        assert_eq!(
+            state
+                .expiry_delay_if_current(expiry.generation, early)
+                .unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn action_error_contract_uses_explicit_wire_names_and_preserves_session() {
+        let state = CaffeineState::new();
+        state.record_action_error(CaffeineAction::Exit, CaffeineErrorCode::HideFailed);
+        let snapshot = state.snapshot().unwrap();
+        assert!(!snapshot.enabled);
+        assert_eq!(
+            serde_json::to_value(snapshot).unwrap()["action_error"],
+            serde_json::json!({"action":"exit", "code":"hide_failed"})
+        );
+    }
 
     #[cfg(target_os = "macos")]
     #[test]
