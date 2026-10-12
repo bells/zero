@@ -1,0 +1,6 @@
+---
+import { asset } from '../content/site';
+interface Props { name?: string; class?: string }
+const { name = 'zero', class: className = '' } = Astro.props;
+---
+<span class:list={['icon', className]} style={`--icon: url('${asset(`brand/${name}.svg`)}')`} aria-hidden="true"></span>

@@ -1,0 +1,45 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { packagesFor } from '../content/catalog';
+import { catalog, copy, links, type Locale } from '../content/site';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const c = copy[locale];
+const d = c.download;
+const signingLabels = { unsigned: d.unsigned, 'ad-hoc': d.adHoc, signed: d.signed, notarized: d.notarized };
+---
+<Layout locale={locale} page="download" title={`${c.nav.download} — Zero`}>
+  <section class="download-hero container"><p class="eyebrow">{d.eyebrow}</p><h1 class="line-breaks">{d.title}</h1><p>{d.intro}</p></section>
+  <section class="download-section container" aria-label={c.nav.download} data-download>
+    <div class="download-controls">
+      <fieldset><legend>{d.platform}</legend><label><input type="radio" name="platform" value="macos" checked />macOS</label><label><input type="radio" name="platform" value="windows" />Windows</label></fieldset>
+      <fieldset><legend>{d.configuration}</legend><label><input type="radio" name="profile" value="standard" checked />{d.standard}</label><label><input type="radio" name="profile" value="core" />{d.core}</label></fieldset>
+    </div>
+    <p class="selection-note">{d.explicit}</p>
+    <div class="configuration-summary"><p><strong>standard</strong> — {d.standardText}</p><p><strong>core</strong> — {d.coreText}</p><p>{d.file}</p></div>
+    <div class="package-groups">
+      {(['macos', 'windows'] as const).flatMap((platform) => (['standard', 'core'] as const).map((profile) => {
+        const packages = packagesFor(catalog, platform, profile);
+        return <section class="package-group" data-package-platform={platform} data-package-profile={profile}>
+          <h2 class="package-heading">{platform === 'macos' ? 'macOS' : 'Windows'} <span class="mono">/ {profile}</span></h2>
+          {packages.length === 0 ? <div class="unavailable-state"><span class="status-dot" aria-hidden="true"></span><div><h3>{d.unavailableTitle}</h3><p>{d.unavailableText}</p><div class="download-actions"><a class="button primary" href={links.trial}>{d.trial} ↗</a><a class="text-link" href={links.releases}>{d.releases} ↗</a></div></div></div> : packages.map((entry) => <article class="package-entry">
+            <h3>Zero {entry.version} · {entry.channel}</h3><p>{entry.architecture === 'aarch64' ? 'Apple Silicon' : platform === 'macos' ? 'Intel' : 'x64'} · {entry.format.toUpperCase()} · {(entry.bytes / 1048576).toFixed(2)} MiB</p><p>{signingLabels[entry.signing]}</p><a class="button primary" href={entry.url}>{d.package} ↗</a><p class="checksum">{d.checksum}: <code>{entry.sha256}</code></p><p>{d.verified}: {entry.verifiedAt}</p>
+          </article>)}
+        </section>;
+      }))}
+    </div>
+    <div class="install-note"><h2>{d.condition}</h2><p>{d.note}</p><p class="mono">{d.formats}</p></div>
+    <p class="catalog-date">{d.verified}: <time datetime={catalog.verifiedAt}>{catalog.verifiedAt}</time></p>
+  </section>
+  <script>
+    for (const section of document.querySelectorAll<HTMLElement>('[data-download]')) {
+      const sync = () => {
+        const platform = section.querySelector<HTMLInputElement>('input[name="platform"]:checked')?.value;
+        const profile = section.querySelector<HTMLInputElement>('input[name="profile"]:checked')?.value;
+        section.querySelectorAll<HTMLElement>('[data-package-platform]').forEach((group) => { group.hidden = group.dataset.packagePlatform !== platform || group.dataset.packageProfile !== profile; });
+      };
+      section.querySelectorAll('input').forEach((input) => input.addEventListener('change', sync));
+      sync();
+    }
+  </script>
+</Layout>

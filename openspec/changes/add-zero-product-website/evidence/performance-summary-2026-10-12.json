@@ -1,0 +1,70 @@
+{
+  "capturedAt": "2026-10-12T13:05:20.018Z",
+  "node": "v24.20.0",
+  "browserVersion": "154.0.8037.99",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "protocol": "Local production preview; Lighthouse mobile simulated throttling, 390x844, DPR 1; Lighthouse resets storage per route; transfer budget uses uncompressed response bodies conservatively; JS gzip includes inline and external executable scripts",
+  "lighthouse": "13.5.0",
+  "lockfilePresent": true,
+  "measurements": [
+    {
+      "route": "/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 134187,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 135822,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 113582,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 113852,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    }
+  ],
+  "reports": [
+    {
+      "route": "/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1579.2181500000002,
+      "cls": 0
+    },
+    {
+      "route": "/en/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1579.28625,
+      "cls": 0
+    },
+    {
+      "route": "/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1503.3359999999998,
+      "cls": 0
+    },
+    {
+      "route": "/en/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1501.7292000000002,
+      "cls": 0
+    }
+  ]
+}

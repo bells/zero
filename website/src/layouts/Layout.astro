@@ -1,0 +1,84 @@
+---
+import '../styles/site.css';
+import '@fontsource/ibm-plex-sans/latin-400.css';
+import '@fontsource/ibm-plex-sans/latin-500.css';
+import '@fontsource/ibm-plex-sans/latin-600.css';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import Icon from '../components/Icon.astro';
+import { copy, links, path, asset, type Locale } from '../content/site';
+interface Props { locale: Locale; page?: string; title?: string }
+const { locale, page = '', title } = Astro.props;
+const c = copy[locale];
+const canonical = new URL(path(locale, page), 'https://www.usezero.cn').href;
+const preview = import.meta.env.SITE_PREVIEW;
+const other = locale === 'zh' ? 'en' : 'zh';
+const description = page === 'download' ? c.download.intro : c.description;
+const social = new URL(asset('social.png'), 'https://www.usezero.cn').href;
+---
+<!doctype html>
+<html lang={locale === 'zh' ? 'zh-CN' : 'en'}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title || c.title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f7f7f2" />
+    <meta name="robots" content={preview ? 'noindex, nofollow' : 'index, follow'} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="zh-CN" href={new URL(path('zh', page), canonical).href} />
+    <link rel="alternate" hreflang="en" href={new URL(path('en', page), canonical).href} />
+    <link rel="alternate" hreflang="x-default" href={new URL(path('zh', page), canonical).href} />
+    <link rel="icon" type="image/svg+xml" href={asset('brand/zero.svg')} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title || c.title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={social} />
+    <meta property="og:image:alt" content="Zero — Close at hand. Room to work." />
+    <meta property="og:locale" content={locale === 'zh' ? 'zh_CN' : 'en_US'} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json" set:html={JSON.stringify({ '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Zero', applicationCategory: 'UtilitiesApplication', operatingSystem: 'macOS, Windows', url: 'https://www.usezero.cn/', description: c.description, codeRepository: links.github }).replace(/</g, '\\u003c')}></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">{c.skip}</a>
+    <header class="site-header container">
+      <a class="wordmark" href={path(locale)} aria-label="Zero"><Icon /><span>Zero</span></a>
+      <nav class="desktop-nav" aria-label={locale === 'zh' ? '主要导航' : 'Main navigation'}>
+        <a href={path(locale, '', 'tools')}>{c.nav.tools}</a>
+        <a href={path(locale, '', 'workflow')}>{c.nav.workflow}</a>
+        <a class:list={['nav-get', { current: page === 'download' }]} href={path(locale, 'download')}>{c.nav.download}<span aria-hidden="true">↗</span></a>
+      </nav>
+      <div class="header-right">
+        <a class="github-link" href={links.github}>GitHub <span aria-hidden="true">↗</span></a>
+        <a class="language-link" data-language href={path(other, page)} lang={other === 'zh' ? 'zh-CN' : 'en'} aria-label={locale === 'zh' ? 'Switch to English' : '切换为中文'}>{locale === 'zh' ? 'EN' : '中'}</a>
+        <details class="mobile-nav">
+          <summary aria-label={locale === 'zh' ? '导航菜单' : 'Navigation menu'}><span aria-hidden="true">☰</span></summary>
+          <nav aria-label={locale === 'zh' ? '移动导航' : 'Mobile navigation'}>
+            <a href={path(locale, '', 'tools')}>{c.nav.tools}</a>
+            <a href={path(locale, '', 'workflow')}>{c.nav.workflow}</a>
+            <a href={path(locale, 'download')}>{c.nav.download}</a>
+          </nav>
+        </details>
+      </div>
+    </header>
+    <main id="content" tabindex="-1"><slot /></main>
+    <footer class="site-footer container">
+      <div><a class="wordmark" href={path(locale)}><Icon /><span>Zero</span></a><p>{c.footer.note}</p></div>
+      <nav aria-label={locale === 'zh' ? '项目链接' : 'Project links'}>
+        <a href={links.github}>GitHub ↗</a><a href={links.trial}>{c.footer.docs} ↗</a><a href={links.developer}>{c.footer.developer} ↗</a><a href={links.issues}>{c.footer.issues} ↗</a>
+      </nav>
+      <span class="footer-line">© 2026 Zero</span>
+    </footer>
+    <script>
+      for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-language]')) {
+        const update = () => { link.hash = window.location.hash; };
+        update();
+        window.addEventListener('hashchange', update);
+      }
+      for (const menu of document.querySelectorAll<HTMLDetailsElement>('.mobile-nav')) {
+        menu.addEventListener('keydown', (event) => { if (event.key === 'Escape') { menu.open = false; menu.querySelector('summary')?.focus(); } });
+        menu.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => { menu.open = false; }));
+      }
+    </script>
+  </body>
+</html>

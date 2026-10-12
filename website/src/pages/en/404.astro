@@ -1,0 +1,5 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { copy, path } from '../../content/site';
+---
+<Layout locale="en" page="404" title="404 — Zero"><section class="not-found container"><p class="eyebrow">404 / ZERO</p><h1>{copy.en.notFound.title}</h1><p>{copy.en.notFound.text}</p><a class="button primary" href={path('en')}>{copy.en.notFound.back} ↗</a></section></Layout>

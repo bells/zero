@@ -1,0 +1,46 @@
+{
+  "recordedAt": "2026-10-12T12:59:06.065Z",
+  "findings": [],
+  "forbiddenEagerImports": [],
+  "entries": [
+    {
+      "key": "index.html",
+      "file": "assets/index-dP4J-ua_.js",
+      "staticAssets": [
+        {
+          "key": "index.html",
+          "file": "assets/index-dP4J-ua_.js",
+          "bytes": 282451,
+          "gzipBytes": 86996
+        }
+      ],
+      "dynamicImports": [
+        "src/plugins/bingWallpaper/BingWallpaperPanel.tsx",
+        "src/plugins/bingWallpaper/PaperApp.tsx",
+        "src/plugins/caffeine/CaffeinePanel.tsx",
+        "src/plugins/file/FilePanel.tsx",
+        "src/plugins/quickLauncher/QuickLauncherPanel.tsx",
+        "src/plugins/quickLauncher/QuickLauncherApp.tsx",
+        "src/plugins/screenshot/ScreenshotPanel.tsx",
+        "src/plugins/screenshot/capture/CaptureApp.tsx",
+        "src/plugins/screenshot/capture/PinApp.tsx",
+        "src/plugins/file/engine/FileEngineApp.tsx",
+        "src/App.tsx"
+      ],
+      "staticBytes": 282451,
+      "staticGzipBytes": 86996
+    }
+  ],
+  "largestChunk": {
+    "key": "src/plugins/file/engine/pdfToDocx.ts",
+    "file": "assets/pdfToDocx-DTwyNtOD.js",
+    "bytes": 800861,
+    "gzipBytes": 235668
+  },
+  "websiteInDesktopGraph": false,
+  "tests": {
+    "passed": 362,
+    "failed": 0
+  },
+  "build": "passed on serial retry; initial concurrent run collided with File asset preparation"
+}

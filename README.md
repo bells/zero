@@ -85,6 +85,8 @@ pnpm tauri build
 
 ## Project Structure
 
+The independent product website lives in `website/`. Start it with `pnpm --dir website install --frozen-lockfile` and `pnpm --dir website dev`; build static output with `pnpm --dir website build`. See [website maintenance](docs/website.md) for bilingual content, verified release catalogs, browser checks and preview settings.
+
 ```text
 src/
   main.tsx                        Lazy routing by Tauri window label

@@ -1,0 +1,31 @@
+---
+import Icon from './Icon.astro';
+import { copy, type Locale } from '../content/site';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const c = copy[locale];
+---
+<section id="tools" class="tools-section container section-space" aria-labelledby="tools-title">
+  <div class="section-heading"><p class="eyebrow">{c.tools.eyebrow}</p><div class="heading-columns"><h2 id="tools-title" class="line-breaks">{c.tools.title}</h2><p>{c.tools.intro}</p></div></div>
+  <div class="tool-switcher" role="group" aria-label={c.tools.select}>
+    {c.tools.items.map((tool, index) => <a href={`#${tool.name.toLowerCase()}`} data-tool-choice={tool.id} class:list={['tool-choice', { selected: index === 0 }]} aria-current={index === 0 ? 'true' : undefined}><Icon name={tool.icon} /><span>{tool.name}</span><span class="tool-choice-number">0{index + 1}</span></a>)}
+  </div>
+  <div class="tool-rows">
+    {c.tools.items.map((tool, index) => <article id={tool.name.toLowerCase()} class:list={['tool-row', { selected: index === 0 }]} data-tool-row={tool.id}>
+      <div class="tool-row-name"><span class="mono index">0{index + 1}</span><Icon name={tool.icon} /><h3>Zero {tool.name}</h3></div>
+      <div class="tool-row-detail"><h4>{tool.action}</h4><p>{tool.description}</p><p class="platform-note">{tool.platform}</p></div>
+      <div class="tool-scenario"><span class="scenario-arrow" aria-hidden="true">↗</span><p>{tool.scenario}</p></div>
+    </article>)}
+  </div>
+</section>
+<script>
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-tool-choice]')) {
+    link.addEventListener('click', () => {
+      document.querySelectorAll('[data-tool-choice]').forEach((item) => {
+        item.classList.toggle('selected', item === link);
+        if (item === link) item.setAttribute('aria-current', 'true'); else item.removeAttribute('aria-current');
+      });
+      document.querySelectorAll<HTMLElement>('[data-tool-row]').forEach((item) => item.classList.toggle('selected', item.dataset.toolRow === link.dataset.toolChoice));
+    });
+  }
+</script>

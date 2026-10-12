@@ -1,0 +1,41 @@
+---
+import { Image } from 'astro:assets';
+import Icon from './Icon.astro';
+import { copy, type Locale } from '../content/site';
+import mainZh from '../assets/main-zh.png';
+import mainEn from '../assets/main-en.png';
+import trayZh from '../assets/tray-zh.png';
+import trayEn from '../assets/tray-en.png';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const c = copy[locale];
+---
+<div class="preview" data-preview data-mode="full">
+  <div class="preview-top"><span class="preview-indicator"></span><span>ZERO / WORKSPACE</span><span class="preview-system">macOS</span></div>
+  <div class="preview-images">
+    <div class="image-window main-shot">
+      <Image src={locale === 'zh' ? mainZh : mainEn} alt={c.workflow.altMain} width={800} format="webp" quality={88} loading="eager" fetchpriority="high" widths={[480, 800, 1200]} sizes="(max-width: 600px) 85vw, (max-width: 980px) 70vw, 620px" />
+    </div>
+    <div class="image-window tray-shot">
+      <Image src={locale === 'zh' ? trayZh : trayEn} alt={c.workflow.altTray} width={240} format="webp" quality={88} loading="eager" widths={[160, 240, 400]} sizes="(max-width: 600px) 24vw, 190px" />
+    </div>
+    <div class="preview-connection" aria-hidden="true"><span></span><Icon name="zero-awake" /></div>
+  </div>
+  <div class="preview-bottom">
+    <div class="mode-controls" role="group" aria-label={c.nav.workflow}>
+      <button type="button" data-mode="quick" aria-pressed="false">{c.workflow.quick}</button>
+      <button type="button" data-mode="full" aria-pressed="true">{c.workflow.full}</button>
+    </div>
+    <span class="preview-label">{c.hero.preview}</span>
+  </div>
+</div>
+<script>
+  for (const preview of document.querySelectorAll<HTMLElement>('[data-preview]')) {
+    for (const button of preview.querySelectorAll<HTMLButtonElement>('button[data-mode]')) {
+      button.addEventListener('click', () => {
+        preview.dataset.mode = button.dataset.mode;
+        preview.querySelectorAll('button[data-mode]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+      });
+    }
+  }
+</script>

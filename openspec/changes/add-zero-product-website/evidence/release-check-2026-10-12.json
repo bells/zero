@@ -1,0 +1,28 @@
+{
+  "checkedAt": "2026-10-12T12:58:04.647Z",
+  "source": "https://api.github.com/repos/bells/zero/releases",
+  "publicReleaseCount": 0,
+  "catalogPackages": 0,
+  "checkedLinks": [
+    {
+      "url": "https://github.com/bells/zero",
+      "status": 200
+    },
+    {
+      "url": "https://github.com/bells/zero/releases",
+      "status": 200
+    },
+    {
+      "url": "https://github.com/bells/zero/blob/main/docs/packaging.md",
+      "status": 200
+    },
+    {
+      "url": "https://github.com/bells/zero/blob/main/docs/plugins/developer-guide.md",
+      "status": 200
+    },
+    {
+      "url": "https://github.com/bells/zero/issues",
+      "status": 200
+    }
+  ]
+}

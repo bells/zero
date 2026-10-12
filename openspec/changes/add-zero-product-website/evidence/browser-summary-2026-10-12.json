@@ -1,0 +1,35 @@
+{
+  "stats": {
+    "startTime": "2026-10-12T13:04:02.688Z",
+    "duration": 8768.013,
+    "expected": 13,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "errors": [],
+  "routes": [
+    "/",
+    "/en/",
+    "/download/",
+    "/en/download/"
+  ],
+  "viewports": [
+    1440,
+    768,
+    390,
+    320
+  ],
+  "browser": "Chrome 154.0.8037.99",
+  "coverage": [
+    "axe WCAG AA",
+    "keyboard",
+    "language route and anchor",
+    "no JavaScript",
+    "reduced motion",
+    "720px reflow equivalent to 1440px at 200% zoom",
+    "no automatic downloads",
+    "trial/stable and partial catalog fixtures",
+    "base path preview and noindex"
+  ]
+}

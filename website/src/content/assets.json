@@ -1,0 +1,46 @@
+[
+  {
+    "file": "main-zh.png",
+    "source": "openspec/changes/refine-awake-controls-and-status-menu/evidence/main-zh-dial-inactive-2026-10-11.png",
+    "platform": "macos",
+    "version": "0.1.0",
+    "profile": "full-debug",
+    "capturedAt": "2026-10-11",
+    "sha256": "5e12e0e66268d302af7a58fdf9dd01bc2c48ce1222a12e02b41472945ff0a377",
+    "evidence": "openspec/changes/refine-awake-controls-and-status-menu/evidence/layout-verification-2026-10-11.md",
+    "privacyReview": "Only inactive Awake interface and tool names; no private user content."
+  },
+  {
+    "file": "main-en.png",
+    "source": "openspec/changes/refine-awake-controls-and-status-menu/evidence/main-en-dial-inactive-2026-10-11.png",
+    "platform": "macos",
+    "version": "0.1.0",
+    "profile": "full-debug",
+    "capturedAt": "2026-10-11",
+    "sha256": "fc90226b64eafc6488ca9a936773592b6d10d6bd68141444bbda9061ff7599ce",
+    "evidence": "openspec/changes/refine-awake-controls-and-status-menu/evidence/layout-verification-2026-10-11.md",
+    "privacyReview": "Only inactive Awake interface and tool names; no private user content."
+  },
+  {
+    "file": "tray-zh.png",
+    "source": "openspec/changes/refine-awake-controls-and-status-menu/evidence/tray-zh-compact-inactive-2026-10-11.png",
+    "platform": "macos",
+    "version": "0.1.0",
+    "profile": "full-debug",
+    "capturedAt": "2026-10-11",
+    "sha256": "7323531ef858eabdec2395a0a2d95190999716b188ab0c23c6487cab1594dd43",
+    "evidence": "openspec/changes/refine-awake-controls-and-status-menu/evidence/layout-verification-2026-10-11.md",
+    "privacyReview": "Only inactive Awake interface and tool names; no private user content."
+  },
+  {
+    "file": "tray-en.png",
+    "source": "openspec/changes/refine-awake-controls-and-status-menu/evidence/tray-en-compact-inactive-2026-10-11.png",
+    "platform": "macos",
+    "version": "0.1.0",
+    "profile": "full-debug",
+    "capturedAt": "2026-10-11",
+    "sha256": "cafdbd43bee9b155404889156e228426407b52e41e3f5a00b19d97107d38081d",
+    "evidence": "openspec/changes/refine-awake-controls-and-status-menu/evidence/layout-verification-2026-10-11.md",
+    "privacyReview": "Only inactive Awake interface and tool names; no private user content."
+  }
+]
