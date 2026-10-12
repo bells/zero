@@ -5,12 +5,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 
 const origin = process.env.WEBSITE_ORIGIN || 'http://127.0.0.1:4321';
+const routes = ['/', '/en/', '/download/', '/en/download/', '/tools/snap/', '/guide/install/', '/en/guide/install/', '/en/faq/'];
 await mkdir('output/performance', { recursive: true });
 const browser = await chromium.launch({ channel: process.env.WEBSITE_BROWSER_CHANNEL || undefined });
 const browserVersion = browser.version();
 const measurements = [];
 try {
-  for (const route of ['/', '/en/', '/download/', '/en/download/']) {
+  for (const route of routes) {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
     const resources = [];
     page.on('response', (response) => resources.push(response));
@@ -34,7 +35,7 @@ try {
 const chrome = await launch({ chromeFlags: ['--headless', '--disable-extensions'], logLevel: 'silent' });
 const reports = [];
 try {
-  for (const route of ['/', '/en/', '/download/', '/en/download/']) {
+  for (const route of routes) {
     const result = await lighthouse(`${origin}${route}`, { port: chrome.port, output: 'json', logLevel: 'error', onlyCategories: ['performance', 'accessibility'], formFactor: 'mobile', screenEmulation: { mobile: true, width: 390, height: 844, deviceScaleFactor: 1, disabled: false } });
     if (!result) throw new Error(`No Lighthouse report for ${route}`);
     const lhr = result.lhr;

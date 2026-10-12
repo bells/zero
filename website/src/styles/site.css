@@ -292,3 +292,41 @@
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 }
+@layer components {
+  .document { padding-block: 60px 92px; }
+  .document-header { max-width: 940px; padding-bottom: 48px; border-bottom: 1px solid var(--line); }
+  .document-breadcrumb { display: flex; gap: 12px; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  .document-breadcrumb a { display: inline-flex; align-items: center; min-height: 44px; }
+  .document h1 { font-size: clamp(34px, 4.2vw, 56px); line-height: 1.2; }
+  .document-intro { max-width: 740px; color: var(--muted); margin-top: 24px; font-size: 18px; }
+  .document-date { margin-top: 20px; color: var(--muted); font-size: 12px; }
+  .document-layout { display: grid; grid-template-columns: 220px minmax(0, 740px); gap: 70px; padding-block: 48px; }
+  .document-toc { align-self: start; position: sticky; top: 28px; }
+  .document-toc .eyebrow { margin-bottom: 12px; }
+  .document-toc a { display: flex; align-items: center; min-height: 44px; padding-block: 8px; color: var(--muted); font-size: 14px; }
+  .document a:hover { color: var(--accent); }
+  .document-body section { margin-bottom: 44px; scroll-margin-top: 32px; }
+  .document-body h2, .document-related h2 { font-size: 25px; margin-bottom: 20px; }
+  .document-body p + p { margin-top: 16px; }
+  .document-body p, .document-body li { overflow-wrap: anywhere; }
+  .document-body ol, .document-body ul { padding-left: 24px; margin-block: 16px 0; }
+  .document-body li { padding-left: 6px; margin-top: 14px; }
+  .document-sources { border-top: 1px solid var(--line); padding-top: 28px; }
+  .document-sources a { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; display: inline-flex; align-items: center; min-height: 44px; }
+  .document-actions { display: flex; flex-wrap: wrap; gap: 24px; }
+  .document-related { border-top: 1px solid var(--line); padding-top: 36px; }
+  .document-related a { display: flex; gap: 24px; justify-content: space-between; align-items: center; min-height: 56px; padding-block: 12px; border-bottom: 1px solid var(--line); }
+  .document-related a span { color: var(--accent); }
+}
+@layer responsive {
+  @media (max-width: 900px) { .document-layout { grid-template-columns: 180px minmax(0, 1fr); gap: 36px; } }
+  @media (max-width: 700px) {
+    .document { padding-block: 30px 60px; }
+    .document-header { padding-bottom: 28px; }
+    .document-layout { grid-template-columns: 1fr; gap: 30px; padding-block: 30px; }
+    .document-toc { position: static; border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+    .document-intro { font-size: 16px; }
+    .document-body h2, .document-related h2 { font-size: 23px; }
+    .document-body section { margin-bottom: 32px; }
+  }
+}

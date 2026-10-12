@@ -1,6 +1,7 @@
 ---
 import Icon from './Icon.astro';
-import { copy, type Locale } from '../content/site';
+import { copy, path, type Locale } from '../content/site';
+import { resourceLabels } from '../content/documentation';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const c = copy[locale];
@@ -13,7 +14,7 @@ const c = copy[locale];
   <div class="tool-rows">
     {c.tools.items.map((tool, index) => <article id={tool.name.toLowerCase()} class:list={['tool-row', { selected: index === 0 }]} data-tool-row={tool.id}>
       <div class="tool-row-name"><span class="mono index">0{index + 1}</span><Icon name={tool.icon} /><h3>Zero {tool.name}</h3></div>
-      <div class="tool-row-detail"><h4>{tool.action}</h4><p>{tool.description}</p><p class="platform-note">{tool.platform}</p></div>
+      <div class="tool-row-detail"><h4>{tool.action}</h4><p>{tool.description}</p><p class="platform-note">{tool.platform}</p><a class="text-link" href={path(locale, `tools/${tool.name.toLowerCase()}`)}>{tool.name} {resourceLabels[locale].details} →</a></div>
       <div class="tool-scenario"><span class="scenario-arrow" aria-hidden="true">↗</span><p>{tool.scenario}</p></div>
     </article>)}
   </div>

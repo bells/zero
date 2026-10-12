@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { catalog, copy } from '../src/content/site.ts';
+import { documents } from '../src/content/documentation.ts';
 
 export function assertEquivalentKeys(left, right, label = 'copy') {
   if (Array.isArray(left)) {
@@ -19,6 +20,13 @@ export function assertEquivalentKeys(left, right, label = 'copy') {
 }
 export async function checkContent() {
   assertEquivalentKeys(copy.zh, copy.en);
+  assertEquivalentKeys(documents('zh'), documents('en'), 'documents');
+  assert.deepEqual(documents('zh').map((item) => item.page), documents('en').map((item) => item.page));
+  for (const locale of ['zh', 'en']) {
+    for (const document of documents(locale)) {
+      assert.equal(new Set(document.sections.map((section) => section.id)).size, document.sections.length, `${document.page}: duplicate section anchors`);
+    }
+  }
   assert.deepEqual(copy.zh.tools.items.map((tool) => tool.id), copy.en.tools.items.map((tool) => tool.id));
   for (const name of ['zero', 'zero-snap', 'zero-launch', 'zero-awake', 'zero-paper']) {
     const original = await readFile(new URL(`../../src/assets/icons/${name}.svg`, import.meta.url));

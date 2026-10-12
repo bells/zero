@@ -25,22 +25,34 @@ try {
   for (const entry of ['src', 'public', 'astro.config.mjs', 'tsconfig.json', 'package.json']) await cp(`${root}${entry}`, `${workspace}/${entry}`, { recursive: true });
   await symlink(`${root}node_modules`, `${workspace}/node_modules`, 'dir');
   await writeFile(`${workspace}/src/content/releases.json`, JSON.stringify(fixture));
-  execFileSync(process.execPath, [`${root}node_modules/astro/bin/astro.mjs`, 'build'], { cwd: workspace, env: { ...process.env, SITE_BASE: '/', SITE_PREVIEW: '0' }, stdio: 'pipe' });
+  execFileSync(process.execPath, [`${root}node_modules/astro/bin/astro.mjs`, 'build'], { cwd: workspace, env: { ...process.env, SITE_BASE: '/', SITE_PREVIEW: '0', VERCEL_ENV: 'production' }, stdio: 'pipe' });
   await cp(`${workspace}/dist`, new URL('catalog/', output), { recursive: true });
   const html = await readFile(`${workspace}/dist/download/index.html`, 'utf8');
+  assert.match(html, /content="index, follow"/, 'SITE_PREVIEW=0 must stay indexable');
+  assert.ok(html.includes('application/ld+json'), 'Production fixture must include its entity graph');
   assert.equal((html.match(/class="package-entry"/g) || []).length, 3);
   assert.ok(html.includes('Apple Silicon') && html.includes('Intel') && html.includes('trial') && html.includes('stable'));
   await writeFile(`${workspace}/src/content/releases.json`, await readFile(`${root}src/content/releases.json`));
   execFileSync(process.execPath, [`${root}node_modules/astro/bin/astro.mjs`, 'build'], { cwd: workspace, env: { ...process.env, SITE_BASE: '/zero-preview/', SITE_PREVIEW: '1' }, stdio: 'pipe' });
   await cp(`${workspace}/dist`, new URL('preview/', output), { recursive: true });
-  for (const route of ['', 'en/', 'download/', 'en/download/']) {
+  for (const route of ['', 'en/', 'download/', 'en/download/', 'tools/snap/', 'en/tools/snap/', 'guide/install/', 'en/guide/install/', 'faq/', 'en/faq/']) {
     const page = await readFile(`${workspace}/dist/${route}index.html`, 'utf8');
     assert.match(page, /content="noindex, nofollow"/);
     assert.ok(page.includes(`https://www.usezero.cn/zero-preview/${route}`));
     assert.ok(page.includes('/zero-preview/brand/zero.svg'));
     assert.equal(/(?:src|href)="\/(?!zero-preview\/)/.test(page), false, `Unprefixed resource on ${route}`);
+    assert.equal(page.includes('application/ld+json'), false, `Preview entity graph on ${route}`);
+  }
+  for (const file of ['llms.txt', 'llms-full.txt']) {
+    const text = await readFile(`${workspace}/dist/${file}`, 'utf8');
+    assert.match(text, /Discovery index is disabled/);
+    assert.equal(text.includes('https://www.usezero.cn'), false);
   }
   assert.match(await readFile(`${workspace}/dist/robots.txt`, 'utf8'), /Disallow: \//);
   assert.ok((await readFile(`${workspace}/dist/sitemap-0.xml`, 'utf8')).includes('https://www.usezero.cn/zero-preview/en/download/'));
+  execFileSync(process.execPath, [`${root}node_modules/astro/bin/astro.mjs`, 'build'], { cwd: workspace, env: { ...process.env, SITE_BASE: '/', SITE_PREVIEW: '0', VERCEL_ENV: 'preview' }, stdio: 'pipe' });
+  assert.match(await readFile(`${workspace}/dist/index.html`, 'utf8'), /content="noindex, nofollow"/, 'Vercel preview must opt out of indexing automatically');
+  assert.match(await readFile(`${workspace}/dist/robots.txt`, 'utf8'), /Disallow: \//);
+  assert.match(await readFile(`${workspace}/dist/llms.txt`, 'utf8'), /Discovery index is disabled/);
   console.log('Isolated catalog fixtures and noindex/base-path builds passed. Fictional test packages remain in ignored output only.');
 } finally { await rm(workspace, { recursive: true, force: true }); }

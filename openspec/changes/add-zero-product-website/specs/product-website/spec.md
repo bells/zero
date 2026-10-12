@@ -4,6 +4,27 @@
 
 ## ADDED Requirements
 
+### Requirement: Search and AI discovery content
+The website SHALL provide equivalent Chinese and English tool pages, an installation guide and FAQ with factual platform/release limitations, maintained review dates, sources and static internal links. Search titles MUST identify the product or page purpose. JSON-LD MUST consistently identify the website, software and current page, using codeRepository only on SoftwareSourceCode. Public AI text indexes SHALL derive from the same content and catalog, with valid canonical references; previews MUST not advertise an indexable production text index.
+
+#### Scenario: A crawler reads a tool or guide without JavaScript
+- **WHEN** a crawler requests a tool, installation or FAQ page
+- **THEN** it receives its full content, localized metadata and equivalent language links
+- **AND** the page explains current delivery boundaries and links to maintained source information
+
+#### Scenario: An AI reader requests the public text index
+- **WHEN** the reader requests llms.txt or llms-full.txt
+- **THEN** product facts and canonical references match the current website content and release catalog
+- **AND** unpublished packages, File and public third-party runtime are not falsely described as delivered
+
+### Requirement: Error pages excluded from discovery
+Error pages SHALL declare noindex and SHALL omit product structured data and canonical/alternate discovery links. The supported Vercel deployment configuration MUST avoid serving the direct English error route as an indexable successful document; missing routes MUST retain an HTTP 404 status.
+
+#### Scenario: A crawler requests a missing or explicit error route
+- **WHEN** a crawler requests a missing route or an explicit error route on the configured host
+- **THEN** the host responds with an HTTP 404 and noindex error content
+- **AND** error routes are absent from the sitemap
+
 ### Requirement: Product identity and multiple surfaces
 The website SHALL introduce Zero as a desktop toolbox with quick status-bar or tray actions, a full main-window workspace, and task-specific surfaces. It MUST use the existing Zero brand mark and show the relationship between quick access and complete workflows.
 

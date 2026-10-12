@@ -1,5 +1,11 @@
 ## Context
 
+2026-10-12 搜索/AI 增量设计（用户已授权一并实施）：沿用独立 Astro 静态站与现有视觉。共享 Layout 负责搜索标题与实体图；文档内容集中在 typed content 模块，由一对双语 catch-all 静态路由生成五工具页、安装指南与 FAQ。首页保留视觉口号，但 title 明确产品类别；每个文档有唯一标题、description、稳定 section anchor、核对日期与来源。`llms.txt`/`llms-full.txt` 由同一内容与发行目录生成，不重复维护事实。已有 sitemap integration 自动加入文档与双语对应；排除错误页与文本索引。
+
+错误页使用 noindex，不输出 canonical、hreflang 或软件实体；Vercel 配置将英文 404 的直接路径送入带 noindex 的真实 404 响应，其他未命中路由由静态宿主返回 404。保留现有合法页面。AI 文件仅为补充发现入口，不承诺 AI 引用或排名。结构化数据将 codeRepository 放在 SoftwareSourceCode，而非 SoftwareApplication；不伪造评分、价格、公开下载或软件发行版本。
+
+实施顺序：先加入生成产物回归并确认旧输出失败，再实现 metadata/文档/文本索引/托管配置，之后构建并检查所有静态链接与实体，浏览器检查无 JS、双语路径和响应式/axe，最后记录性能和外部账号边界。Search Console/Bing 的账号验证与 sitemap 提交依赖实际可访问账号；部署、提交和推送仍单独授权。
+
 动机与范围见 [proposal.md](proposal.md)。本次核对日期为 2026-10-11，工作区起始无未提交修改。仓库没有产品站；应用关于页在 `src-tauri/src/commands/diagnostics.rs` 指向 `https://www.usezero.cn/` 与 `https://github.com/bells/zero`。这些是现有链接约定，不代表域名已配置或网站已上线。
 
 `PRODUCT.md` 定义 Zero 为 calm、capable、compact 的桌面工具箱；`docs/icon-system.md` 定义现有黑白 Ø 几何。官网继承品牌资源，但面向产品理解和安装，不复用桌面壳或托盘尺寸。

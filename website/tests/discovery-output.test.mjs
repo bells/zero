@@ -1,0 +1,110 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile, access } from 'node:fs/promises';
+
+const origin = 'https://www.usezero.cn';
+const docs = ['tools/snap', 'tools/launch', 'tools/awake', 'tools/paper', 'tools/file', 'guide/install', 'faq'];
+const routes = ['', 'download', ...docs].flatMap((page) => [page ? `/${page}/` : '/', `/en/${page ? `${page}/` : ''}`]);
+const output = new URL('../dist/', import.meta.url);
+const htmlFor = (route) => readFile(new URL(`${route.slice(1)}index.html`, output), 'utf8');
+const graphFor = (html) => JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)?.[1] || 'null');
+
+test('all public pages have useful, unique titles and reciprocal language metadata', async () => {
+  const titles = new Set();
+  for (const route of routes) {
+    const html = await htmlFor(route);
+    const title = html.match(/<title>(.*?)<\/title>/s)?.[1];
+    assert.ok(title?.includes('Zero'), `${route}: product identity`);
+    assert.ok(!titles.has(title), `${route}: duplicate title`);
+    titles.add(title);
+    assert.ok(html.includes(`rel="canonical" href="${origin}${route}"`), route);
+    const equivalent = route.startsWith('/en/') ? route.slice(3) : `/en${route}`;
+    assert.ok(html.includes(`href="${origin}${equivalent}"`), `${route}: alternate language`);
+    assert.match(html, /content="index, follow"/);
+  }
+  assert.match(await htmlFor('/'), /<title>.*macOS.*Windows.*桌面工具箱/);
+  assert.match(await htmlFor('/en/'), /<title>.*[Dd]esktop toolbox/);
+});
+
+test('JSON-LD connects each page to stable software, website and source entities', async () => {
+  for (const route of routes) {
+    const graph = graphFor(await htmlFor(route));
+    assert.ok(Array.isArray(graph?.['@graph']), `${route}: entity graph missing`);
+    const nodes = graph['@graph'];
+    const software = nodes.find((node) => node['@type'] === 'SoftwareApplication');
+    assert.equal(software['@id'], `${origin}/#software`);
+    assert.equal(software.codeRepository, undefined);
+    assert.equal(software.offers, undefined);
+    assert.equal(software.aggregateRating, undefined);
+    const source = nodes.find((node) => node['@type'] === 'SoftwareSourceCode');
+    assert.equal(source.codeRepository, 'https://github.com/bells/zero');
+    const page = nodes.find((node) => node['@type'] === 'WebPage');
+    assert.equal(page.url, `${origin}${route}`);
+    assert.equal(page.inLanguage, route.startsWith('/en/') ? 'en' : 'zh-CN');
+    assert.equal(page.about['@id'], software['@id']);
+    assert.equal(page.isPartOf['@id'], `${origin}/#website`);
+  }
+});
+
+test('error HTML is excluded from indexing and product identity markup', async () => {
+  for (const file of ['404.html', 'en/404/index.html']) {
+    const html = await readFile(new URL(file, output), 'utf8');
+    assert.match(html, /content="noindex, nofollow"/);
+    assert.doesNotMatch(html, /rel="canonical"|hreflang=|application\/ld\+json/);
+  }
+});
+
+test('sitemap lists all factual pages and omits error and text-index routes', async () => {
+  const xml = await readFile(new URL('sitemap-0.xml', output), 'utf8');
+  const urls = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => match[1]);
+  assert.deepEqual(urls.sort(), routes.map((route) => `${origin}${route}`).sort());
+  assert.doesNotMatch(xml, /404|llms/);
+});
+
+test('AI text indexes identify current facts and link only to existing canonical pages', async () => {
+  for (const file of ['llms.txt', 'llms-full.txt']) {
+    const body = await readFile(new URL(file, output), 'utf8');
+    assert.match(body, /^# Zero/m);
+    assert.match(body, /standard/);
+    assert.match(body, /File/);
+    assert.match(body, /2026-10-12/);
+    assert.match(body, /尚无公开|no public release/i);
+    for (const match of body.matchAll(/\]\((https:\/\/www\.usezero\.cn\/[^)]+)\)/g)) {
+      const url = new URL(match[1]);
+      await access(new URL(url.pathname.slice(1) + (url.pathname.endsWith('/') ? 'index.html' : ''), output));
+    }
+  }
+});
+
+test('all static internal page links and anchors resolve without client JavaScript', async () => {
+  for (const route of routes) {
+    const html = await htmlFor(route);
+    for (const match of html.matchAll(/<a\b[^>]*href="([^" ]+)"/g)) {
+      const href = match[1];
+      if (!href.startsWith('/') && !href.startsWith('#')) continue;
+      const target = new URL(href, `${origin}${route}`);
+      const file = target.pathname.endsWith('/') ? `${target.pathname.slice(1)}index.html` : target.pathname.slice(1);
+      const content = await readFile(new URL(file, output), 'utf8');
+      if (target.hash) assert.ok(content.includes(`id="${target.hash.slice(1)}"`), `${route}: missing ${href}`);
+    }
+  }
+});
+
+test('Vercel error routes precede filesystem matching and target generated error HTML', async () => {
+  const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+  const boundary = config.routes.findIndex((route) => route.handle === 'filesystem');
+  const errorPaths = ['/404', '/404/', '/404.html', '/en/404', '/en/404/', '/en/404.html', '/en/404/index.html'];
+  for (const pathname of errorPaths) {
+    const route = config.routes.slice(0, boundary).find((entry) => entry.src && new RegExp(entry.src).test(pathname));
+    assert.ok(route, `${pathname}: direct error must precede filesystem`);
+    assert.equal(route.status, 404);
+    assert.equal(route.headers['X-Robots-Tag'], 'noindex, nofollow');
+    await access(new URL(route.dest.slice(1), output));
+  }
+  for (const pathname of ['/missing/', '/en/missing/']) {
+    const route = config.routes.slice(boundary + 1).find((entry) => new RegExp(entry.src).test(pathname));
+    assert.equal(route.status, 404);
+    await access(new URL(route.dest.slice(1), output));
+    assert.equal(route.dest.startsWith('/en/'), pathname.startsWith('/en/'));
+  }
+});

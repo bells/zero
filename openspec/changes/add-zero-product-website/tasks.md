@@ -34,3 +34,14 @@
 - [x] 6.1 运行网站 check/build 及必要的 Playwright/axe 流程，覆盖双语导航、包选择、错误清单、无 JS、reduced motion、键盘、长英文、200% 缩放和 320/390/768/1440px；保存可复现结果和页面截图，人工审阅主视觉与实际链接。
 - [x] 6.2 运行根 `pnpm test`、`pnpm build` 与 `node scripts/performance/build-graph.mjs --check --output /tmp/zero-website-desktop-build-graph.json`，检查桌面模块/输出未混入网站资源；不改原有历史 evidence 或 File 审批，不重复把官网检查当桌面设备验收。
 - [x] 6.3 运行 `openspec validate --all --strict` 和 `git diff --check`，记录实际实现、浏览器/性能结果及仍未就绪的平台和发行事项；交付本地预览与更新指引，维持部署、DNS、推送、发布、spec sync 和归档为独立授权范围。
+
+## 7. 搜索与 AI 可发现性（2026-10-12 增量）
+
+- [x] 7.1 为双语首页/下载页设置明确产品类别的搜索标题；建立共享软件、网站、页面与源码实体，404/preview 不输出产品结构化数据。
+- [x] 7.2 增加双语 Snap/Launch/Awake/Paper/File 说明、安装指南与 FAQ；沿用现有视觉、静态内容与发行事实，补内链、来源、核对日期及语言对应。
+- [x] 7.3 从共享内容生成 llms.txt 与 llms-full.txt；包括产品/平台/发行边界、可引用链接和信息日期；preview 不暴露生产发现索引。
+- [x] 7.4 增加 Vercel 静态配置，直接错误页 noindex、英文错误页避免返回正常 200；保持其他合法路由，记录托管状态与 HTML metadata 的证据区别。
+- [x] 7.5 增加生成产物检查及浏览器回归，覆盖新双语页面、无 JS、语言切换、sitemap、JSON-LD、AI 文件和 preview/base path；运行网站 check/test/build/browser/performance 与 OpenSpec/差异检查。
+- [x] 7.6 更新官网维护和项目地图，记录本次验证及 Search Console/Bing 域名验证、sitemap 提交和生产部署状态；不将本地验证当作已收录或线上已更新。
+
+本轮代码与本地验收已完成，见 `evidence/discovery-verification-2026-10-12.md`。用户明确先完成官网代码；生产部署、托管 HTTP 404 验证及搜索平台验证/提交仍待后续执行。

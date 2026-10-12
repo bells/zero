@@ -1,0 +1,9 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Document from '../../components/Document.astro';
+import { documents, type ProductDocument } from '../../content/documentation';
+export const getStaticPaths: GetStaticPaths = () => documents('en').map((document) => ({ params: { page: document.page }, props: { document } }));
+interface Props { document: ProductDocument }
+const { document } = Astro.props;
+---
+<Document locale="en" document={document} />

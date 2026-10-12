@@ -1,0 +1,26 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { copy, path, type Locale } from '../content/site';
+import { documentLinks, resourceLabels, reviewedAt, type ProductDocument } from '../content/documentation';
+interface Props { locale: Locale; document: ProductDocument }
+const { locale, document } = Astro.props;
+const labels = resourceLabels[locale];
+---
+<Layout locale={locale} page={document.page} title={`${document.title} — Zero`} description={document.description}>
+  <article class="document container">
+    <header class="document-header">
+      <nav aria-label={locale === 'zh' ? '页面路径' : 'Page path'} class="document-breadcrumb"><a href={path(locale)}>{labels.home}</a><span aria-hidden="true">/</span><span>{document.page.startsWith('tools/') ? copy[locale].nav.tools : document.page === 'faq' ? labels.faq : labels.guide}</span></nav>
+      <h1>{document.title}</h1><p class="document-intro">{document.description}</p>
+      <p class="document-date">{labels.reviewed} <time datetime={reviewedAt}>{reviewedAt}</time></p>
+    </header>
+    <div class="document-layout">
+      <nav class="document-toc" aria-label={labels.contents}><p class="eyebrow">{labels.contents}</p>{document.sections.map((section) => <a href={`#${section.id}`}>{section.heading}</a>)}</nav>
+      <div class="document-body">
+        {document.sections.map((section) => <section id={section.id}><h2>{section.heading}</h2>{section.paragraphs.map((paragraph) => <p>{paragraph}</p>)}{section.steps && <ol>{section.steps.map((step) => <li>{step}</li>)}</ol>}</section>)}
+        <section class="document-sources"><h2>{labels.sources}</h2><ul>{document.sources.map((source) => <li><a href={source.url}>{source.title} ↗</a></li>)}</ul></section>
+        <div class="document-actions"><a class="button primary" href={path(locale, 'download')}>{copy[locale].nav.download} ↗</a><a class="text-link" href={path(locale, 'guide/install')}>{labels.guide} →</a></div>
+      </div>
+    </div>
+    <nav class="document-related" aria-label={labels.related}><h2>{labels.related}</h2>{documentLinks(locale).filter((item) => item.page !== document.page).map((item) => <a href={item.href}>{item.title}<span aria-hidden="true">→</span></a>)}</nav>
+  </article>
+</Layout>

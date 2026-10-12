@@ -11,6 +11,7 @@ export const links = {
   issues: 'https://github.com/bells/zero/issues',
 };
 export const base = import.meta.env?.BASE_URL || '/';
+export const isPreview = import.meta.env?.SITE_PREVIEW === true || import.meta.env?.SITE_PREVIEW === '1' || import.meta.env?.VERCEL_ENV === 'preview';
 export function path(locale: Locale, page = '', hash = '') {
   return `${base}${locale === 'en' ? 'en/' : ''}${page ? `${page}/` : ''}${hash ? `#${hash}` : ''}`;
 }
@@ -43,7 +44,7 @@ export interface SiteCopy {
 
 export const copy: Record<Locale, SiteCopy> = {
   zh: {
-    title: 'Zero — 随手调用，展开做事', description: 'Zero 桌面工具箱：从状态栏的快速操作，到完整的工具工作区。截图、启动、防休眠与桌面壁纸，各就其位。', skip: '跳到主要内容',
+    title: 'Zero — macOS / Windows 开源桌面工具箱', description: 'Zero 是 macOS / Windows 开源桌面工具箱，集成截图标注、应用启动、防休眠与 Bing 壁纸。从状态栏快速操作，到完整工具工作区。', skip: '跳到主要内容',
     nav: { tools: '工具', workflow: '使用方式', download: '获取 Zero' },
     hero: { eyebrow: '你的桌面，少一点打断', first: '随手调用。', second: '展开做事。', intro: '截图、启动、防休眠、换壁纸。\n常用工具收在一处，需要时展开。', secondary: '看看工具', note: 'macOS / Windows · 开源桌面工具箱', preview: 'macOS 开发界面展示' },
     acquisition: { available: '下载 Zero', unavailable: '查看试用方式', releaseAnswer: '可在下载页选择已公开的平台、架构和工具配置。请先核对版本、安装条件与校验值。' },
@@ -63,7 +64,7 @@ export const copy: Record<Locale, SiteCopy> = {
     notFound: { title: '这条路还没铺好。', text: '回到首页，找到你需要的工具与试用信息。', back: '回到首页' },
   },
   en: {
-    title: 'Zero — Close at hand. Room to work.', description: 'A desktop toolbox with quick tray actions and a full workspace. Capture, launch, stay awake and refresh your wallpaper.', skip: 'Skip to content',
+    title: 'Zero — Open-source desktop toolbox for macOS and Windows', description: 'Zero is an open-source desktop toolbox for macOS and Windows: screenshots, app launch, keep-awake controls and Bing wallpapers, with quick tray actions and a full workspace.', skip: 'Skip to content',
     nav: { tools: 'Tools', workflow: 'How it works', download: 'Get Zero' },
     hero: { eyebrow: 'A little less interruption', first: 'Close at hand.', second: 'Room to work.', intro: 'Capture. Launch. Stay awake. Change the view.\nEveryday tools, together when you need them.', secondary: 'Explore the tools', note: 'macOS / Windows · Open-source desktop toolbox', preview: 'macOS development interface preview' },
     acquisition: { available: 'Download Zero', unavailable: 'Explore the trial', releaseAnswer: 'Choose an available platform, architecture and tool configuration on the download page. Check its version, installation conditions and checksum before installing.' },

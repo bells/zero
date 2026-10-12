@@ -1,6 +1,65 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { mkdir, readFile } from 'node:fs/promises';
+import { documents } from '../../src/content/documentation';
+
+for (const locale of ['zh', 'en'] as const) {
+  for (const productDocument of documents(locale)) {
+    const route = `/${locale === 'en' ? 'en/' : ''}${productDocument.page}/`;
+    test(`${route} has readable static guidance and accessible layout`, async ({ page, browser }) => {
+      const failures: string[] = [];
+      page.on('pageerror', (error) => failures.push(error.message));
+      page.on('console', (message) => { if (message.type() === 'error') failures.push(message.text()); });
+      await page.goto(route);
+      await expect(page).toHaveTitle(`${productDocument.title} — Zero`);
+      await expect(page.locator('h1')).toHaveText(productDocument.title);
+      await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', productDocument.description);
+      const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+      expect(result.violations).toEqual([]);
+      for (const width of [1440, 720, 390, 320]) {
+        await page.setViewportSize({ width, height: 844 });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+        if (productDocument.page === 'guide/install' && (width === 1440 || width === 390)) {
+          await mkdir('output/screenshots', { recursive: true });
+          await page.screenshot({ path: `output/screenshots/install-${locale}-${width}.png` });
+        }
+      }
+      const context = await browser.newContext({ javaScriptEnabled: false });
+      const staticPage = await context.newPage();
+      await staticPage.goto(`http://127.0.0.1:4321${route}`);
+      await expect(staticPage.locator('.document-body section')).toHaveCount(productDocument.sections.length + 1);
+      await expect(staticPage.locator('.document-date time')).toHaveAttribute('datetime', '2026-10-12');
+      await context.close();
+      expect(failures).toEqual([]);
+    });
+  }
+}
+
+test('tool explanation, contents anchor and language switch retain equivalent guidance', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Snap 使用说明 →', exact: true }).click();
+  await expect(page).toHaveURL(/\/tools\/snap\/$/);
+  await page.getByRole('navigation', { name: '本页内容' }).getByRole('link', { name: '平台与当前边界' }).click();
+  await page.getByRole('link', { name: 'Switch to English', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/tools\/snap\/#boundaries$/);
+  await expect(page.locator('#boundaries')).toContainText('Windows opens the system screenshot tool');
+  await page.getByRole('link', { name: 'Installation guide →', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/guide\/install\/$/);
+  await page.getByRole('navigation', { name: 'Project links' }).getByRole('link', { name: 'FAQ', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/faq\/$/);
+});
+
+test('slow web fonts do not move the English hero after first render', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route('**/*.woff2', async (route) => { await new Promise((resolve) => setTimeout(resolve, 1000)); await route.continue(); });
+  await page.goto('/en/', { waitUntil: 'domcontentloaded' });
+  const before = await page.locator('.hero-preview').boundingBox();
+  await page.evaluate(() => document.fonts.ready);
+  const after = await page.locator('.hero-preview').boundingBox();
+  expect(before).not.toBeNull();
+  expect(after).not.toBeNull();
+  expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);
+});
 
 for (const route of ['/', '/en/', '/download/', '/en/download/']) {
   test(`${route} is accessible, responsive and local`, async ({ page }) => {
@@ -111,7 +170,12 @@ test('production metadata and missing pages provide usable routes', async ({ pag
   await expect(page.locator('link[hreflang="zh-CN"]')).toHaveAttribute('href', 'https://www.usezero.cn/download/');
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index, follow');
   await page.goto('/404.html');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
+  await expect(page.locator('link[rel="canonical"], link[hreflang], script[type="application/ld+json"]')).toHaveCount(0);
   await expect(page.getByRole('link', { name: '回到首页', exact: false })).toHaveAttribute('href', '/');
+  await page.goto('/en/404/');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
+  await expect(page.locator('link[rel="canonical"], link[hreflang], script[type="application/ld+json"]')).toHaveCount(0);
 });
 
 test('isolated public-package fixtures preserve architecture, trial and missing-platform states', async ({ page }) => {

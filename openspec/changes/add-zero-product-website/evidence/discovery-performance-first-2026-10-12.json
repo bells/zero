@@ -1,0 +1,126 @@
+{
+  "capturedAt": "2026-10-12T14:38:43.038Z",
+  "node": "v24.20.0",
+  "browserVersion": "154.0.8037.99",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "protocol": "Local production preview; Lighthouse mobile simulated throttling, 390x844, DPR 1; Lighthouse resets storage per route; transfer budget uses uncompressed response bodies conservatively; JS gzip includes inline and external executable scripts",
+  "lighthouse": "13.5.0",
+  "lockfilePresent": true,
+  "measurements": [
+    {
+      "route": "/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 138403,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 140239,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 117536,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 117946,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/snap/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 115485,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/guide/install/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 116998,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/guide/install/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117514,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/faq/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117303,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    }
+  ],
+  "reports": [
+    {
+      "route": "/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1655.16615,
+      "cls": 0
+    },
+    {
+      "route": "/en/",
+      "performance": 96,
+      "accessibility": 100,
+      "lcpMs": 1577.2930499999998,
+      "cls": 0.1127390094675503
+    },
+    {
+      "route": "/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1503.3324000000002,
+      "cls": 0
+    },
+    {
+      "route": "/en/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1505.8098,
+      "cls": 0
+    },
+    {
+      "route": "/tools/snap/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1503.4796999999999,
+      "cls": 0.02965659286344416
+    },
+    {
+      "route": "/guide/install/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1504.27935,
+      "cls": 0
+    },
+    {
+      "route": "/en/guide/install/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1503.16965,
+      "cls": 0.00008598470384762247
+    },
+    {
+      "route": "/en/faq/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1502.05545,
+      "cls": 0.00008598470384762247
+    }
+  ]
+}

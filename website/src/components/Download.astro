@@ -1,14 +1,15 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { packagesFor } from '../content/catalog';
-import { catalog, copy, links, type Locale } from '../content/site';
+import { catalog, copy, links, path, type Locale } from '../content/site';
+import { resourceLabels } from '../content/documentation';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const c = copy[locale];
 const d = c.download;
 const signingLabels = { unsigned: d.unsigned, 'ad-hoc': d.adHoc, signed: d.signed, notarized: d.notarized };
 ---
-<Layout locale={locale} page="download" title={`${c.nav.download} — Zero`}>
+<Layout locale={locale} page="download" title={locale === 'zh' ? 'Zero 下载与试用 — macOS / Windows 桌面工具箱' : 'Zero downloads and trials — macOS / Windows desktop toolbox'}>
   <section class="download-hero container"><p class="eyebrow">{d.eyebrow}</p><h1 class="line-breaks">{d.title}</h1><p>{d.intro}</p></section>
   <section class="download-section container" aria-label={c.nav.download} data-download>
     <div class="download-controls">
@@ -28,7 +29,7 @@ const signingLabels = { unsigned: d.unsigned, 'ad-hoc': d.adHoc, signed: d.signe
         </section>;
       }))}
     </div>
-    <div class="install-note"><h2>{d.condition}</h2><p>{d.note}</p><p class="mono">{d.formats}</p></div>
+    <div class="install-note"><h2>{d.condition}</h2><p>{d.note}</p><p class="mono">{d.formats}</p><a class="text-link" href={path(locale, 'guide/install')}>{resourceLabels[locale].guide} →</a></div>
     <p class="catalog-date">{d.verified}: <time datetime={catalog.verifiedAt}>{catalog.verifiedAt}</time></p>
   </section>
   <script>

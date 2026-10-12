@@ -1,0 +1,16 @@
+{
+  "stats": {
+    "startTime": "2026-10-12T14:55:02.549Z",
+    "duration": 21155.347,
+    "expected": 29,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "testFiles": [
+    {
+      "file": "site.spec.ts",
+      "tests": 29
+    }
+  ]
+}

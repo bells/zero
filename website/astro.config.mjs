@@ -9,7 +9,10 @@ export default defineConfig({
   output: 'static',
   integrations: [sitemap({
     i18n: { defaultLocale: 'zh', locales: { zh: 'zh-CN', en: 'en' } },
-    filter: (page) => !page.includes('/404'),
+    filter: (page) => !page.includes('/404') && !/\/llms(?:-full)?\.txt\/?$/.test(page),
   })],
-  vite: { define: { 'import.meta.env.SITE_PREVIEW': JSON.stringify(process.env.SITE_PREVIEW === '1') } },
+  vite: { define: {
+    'import.meta.env.SITE_PREVIEW': JSON.stringify(process.env.SITE_PREVIEW === '1' || process.env.VERCEL_ENV === 'preview'),
+    'import.meta.env.VERCEL_ENV': JSON.stringify(process.env.VERCEL_ENV || ''),
+  } },
 });
