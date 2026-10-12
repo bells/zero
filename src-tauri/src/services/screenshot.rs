@@ -33,7 +33,9 @@ mod capture_targets;
 mod display;
 mod lifecycle;
 pub mod snap_ocr;
-use display::{CaptureDisplaySnapshot, DisplayFrame};
+use display::CaptureDisplaySnapshot;
+#[cfg(target_os = "macos")]
+use display::DisplayFrame;
 
 const CAPTURE_WINDOW_LABEL: &str = "capture";
 const TRAY_WINDOW_LABEL: &str = "tray";
@@ -1631,6 +1633,7 @@ fn capture_fullscreen_png(
     Ok((metadata.len(), width, height))
 }
 
+#[cfg(target_os = "macos")]
 fn open_capture_window(
     app: &tauri::AppHandle,
     session_id: &str,
