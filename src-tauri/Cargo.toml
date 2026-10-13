@@ -15,6 +15,26 @@ rust-version = "1.89"
 name = "zero_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[[test]]
+name = "bing_wallpaper"
+required-features = ["bundled-tools"]
+
+[[test]]
+name = "quick_launcher_benchmark"
+required-features = ["bundled-tools"]
+
+[[test]]
+name = "file_conversion"
+required-features = ["file-tool"]
+
+[[test]]
+name = "file_process_integration"
+required-features = ["file-tool"]
+
+[[test]]
+name = "plugin_registry"
+required-features = ["bundled-tools", "file-tool"]
+
 [features]
 default = ["bundled-tools", "file-tool"]
 bundled-tools = ["dep:wallpaper", "dep:nucleo-matcher", "dep:pinyin", "dep:notify", "dep:xcap", "dep:objc2-vision"]

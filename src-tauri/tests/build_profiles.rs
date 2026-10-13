@@ -34,6 +34,52 @@ fn clean_profile_seeds_only_compiled_tools() {
 }
 
 #[test]
+fn repeated_saves_commit_revisions_without_leaving_staging_files() {
+    let root = root();
+    let registry = PluginRegistry::load_or_seed(&root).unwrap();
+    let initial_revision = registry.revision();
+    for offset in 1..=3 {
+        registry.save().unwrap();
+        let reloaded = PluginRegistry::load_or_seed(&root).unwrap();
+        assert!(!reloaded.startup_write_performed());
+        assert_eq!(reloaded.revision(), initial_revision + offset);
+        assert_eq!(reloaded.records(), registry.records());
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(windows)]
+#[test]
+fn locked_registry_save_preserves_committed_state_and_recovers_after_unlock() {
+    use std::os::windows::fs::OpenOptionsExt;
+
+    let root = root();
+    let registry = PluginRegistry::load_or_seed(&root).unwrap();
+    let path = root.join("registry.json");
+    let committed = fs::read(&path).unwrap();
+    let revision = registry.revision();
+    let lock = fs::OpenOptions::new()
+        .read(true)
+        .share_mode(0)
+        .open(&path)
+        .unwrap();
+
+    assert!(registry.save().is_err());
+    assert_eq!(registry.revision(), revision);
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    drop(lock);
+    assert_eq!(fs::read(&path).unwrap(), committed);
+
+    registry.save().unwrap();
+    let reloaded = PluginRegistry::load_or_seed(&root).unwrap();
+    assert_eq!(reloaded.revision(), revision + 1);
+    assert_eq!(reloaded.records(), registry.records());
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn switching_profiles_preserves_excluded_records_and_disabled_state_on_disk() {
     let root = root();
     let records: Vec<PluginRecord> = [

@@ -254,6 +254,8 @@ impl PluginRegistry {
                 file.sync_all().map_err(|error| {
                     format!("failed to sync plugin registry staging file: {error}")
                 })?;
+                // ReplaceFileW opens the staging file without sharing with our writer.
+                drop(file);
                 atomic_replace_file(&temporary, &target).map_err(|error| {
                     format!("failed to atomically replace plugin registry: {error}")
                 })?;
@@ -1069,6 +1071,7 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[cfg(feature = "file-tool")]
     #[test]
     fn active_version_lease_blocks_uninstall_and_inactive_cleanup() {
         let root = unique_root();
@@ -1103,6 +1106,7 @@ mod tests {
         assert!(root.join(format!("zero.file/{active_version}")).exists());
     }
 
+    #[cfg(feature = "file-tool")]
     #[test]
     fn approved_signed_zero_file_engine_is_ready_and_other_plugins_cannot_impersonate_it() {
         let root = unique_root();

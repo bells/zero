@@ -1690,6 +1690,7 @@ mod tests {
             .collect()
     }
 
+    #[cfg(feature = "file-tool")]
     #[test]
     fn bundled_entries_require_declarations_even_with_old_visible_preferences() {
         use super::*;

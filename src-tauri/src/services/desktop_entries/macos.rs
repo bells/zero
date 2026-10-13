@@ -94,7 +94,14 @@ mod tests {
     fn entry_installation_is_idempotent_and_updates_host_path() {
         let root = test_root();
         install(&root, Path::new("/Applications/Zero.app")).unwrap();
-        let entry = root.join("Zero Tools/Zero Snap.app/Contents/MacOS/ZeroTool");
+        let Some((_, title)) = TOOLS.first() else {
+            assert!(std::fs::read_dir(root.join("Zero Tools"))
+                .unwrap()
+                .all(|entry| !entry.unwrap().file_type().unwrap().is_dir()));
+            std::fs::remove_dir_all(root).unwrap();
+            return;
+        };
+        let entry = root.join(format!("Zero Tools/{title}.app/Contents/MacOS/ZeroTool"));
         let modified = std::fs::metadata(&entry).unwrap().modified().unwrap();
         install(&root, Path::new("/Applications/Zero.app")).unwrap();
         assert_eq!(
