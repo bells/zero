@@ -1,5 +1,7 @@
 # Zero 项目全景与维护地图
 
+2026-10-14 官网在线工具增量：独立 `website/` 增加双语 `/tools/` 目录及时间戳、JSON、Base64/URL 工具，保留原五工具说明 URL。纯 TS 计算层与浏览器 UI/worker 分离，输入只在当前页本地处理，增强 JSON 编辑按需加载。后续桌面离线插件已纳入方向，当前不构成桌面交付承诺。验收结果见[本次记录](../openspec/changes/usezero-web-tools-extension/evidence/implementation.md)，维护入口见[官网指南](website.md)。当前工作区实现与本地检查不代表生产部署或搜索收录。
+
 2026-10-12 官网搜索/AI 增量：独立 `website/` Astro 站已增加双语五工具说明、安装指南与 FAQ，共 18 个可索引页面；搜索标题、共享实体图、sitemap 与同源生成的 llms 索引已补齐。错误 HTML noindex，`website/vercel.json` 提供本地化 404 路由；Vercel Preview 自动 noindex，显式 `SITE_PREVIEW=0` 保持生产索引。字体迟到导致英文首页偏移已修复。官网原版已部署至 www.usezero.cn，但本轮源码未提交/部署；Search Console/Bing 验证由用户留待后续。验收与托管边界见[增量记录](../openspec/changes/add-zero-product-website/evidence/discovery-verification-2026-10-12.md)，维护入口见[官网指南](website.md)。下述桌面证据不覆盖官网，官网检查也不替代原生/发行验收。
 
 2026-10-11 Snap/OCR 增量：Snap 左/右键改为与 Awake 共用宿主机制的原生菜单，废弃 `snap-menu` WebView；截图会话合并重复启动，并将指定显示器捕获、overlay 与窗口候选绑定到同一快照。选区内部可用手掌光标平移。新增 macOS Vision 共享离线 OCR，Snap 结果在 main 中编辑并显式复制，File 无文字扫描页逐页识别后生成可编辑 DOCX。File 候选为 `1.2.0`、run 协议为 `2`，仍未批准。合成混合 PDF 的真实 macOS debug 转换及 TextEdit 修改/保存/重开已验证；TextEdit 重写了分页结构，不构成版式保真证明。原生菜单视觉、双屏/混合 DPI、完整 Snap OCR 交互、Windows 和签名包仍待验收，详见[本次记录](../openspec/changes/enhance-snap-and-share-offline-ocr/evidence/verification.md)。下述旧日期基线不覆盖此增量。

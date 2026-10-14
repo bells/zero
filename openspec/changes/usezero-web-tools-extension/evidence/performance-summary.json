@@ -1,0 +1,244 @@
+{
+  "capturedAt": "2026-10-14T13:10:30.538Z",
+  "node": "v24.20.0",
+  "browserVersion": "155.0.8059.40",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "protocol": "Local production preview; Lighthouse mobile simulated throttling, 390x844, DPR 1; Lighthouse resets storage per route; transfer budget uses uncompressed response bodies conservatively; JS gzip includes inline and external executable scripts",
+  "lighthouse": "13.5.0",
+  "lockfilePresent": true,
+  "measurements": [
+    {
+      "route": "/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 138477,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 140317,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 117610,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 118024,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/snap/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 115559,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/guide/install/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117094,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/guide/install/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117614,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/faq/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117381,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/",
+      "initialJsGzip": 6545,
+      "firstViewportBytes": 138885,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/timestamp/",
+      "initialJsGzip": 8680,
+      "firstViewportBytes": 145296,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/json/",
+      "initialJsGzip": 8831,
+      "firstViewportBytes": 144533,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/base64/",
+      "initialJsGzip": 8831,
+      "firstViewportBytes": 144909,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/",
+      "initialJsGzip": 6545,
+      "firstViewportBytes": 139129,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/timestamp/",
+      "initialJsGzip": 8680,
+      "firstViewportBytes": 145637,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/json/",
+      "initialJsGzip": 8831,
+      "firstViewportBytes": 144815,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/base64/",
+      "initialJsGzip": 8831,
+      "firstViewportBytes": 145130,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    }
+  ],
+  "reports": [
+    {
+      "route": "/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1730.3836500000002,
+      "cls": 0
+    },
+    {
+      "route": "/en/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1654.4218499999997,
+      "cls": 0
+    },
+    {
+      "route": "/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1501.8825000000002,
+      "cls": 0
+    },
+    {
+      "route": "/en/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1426.9519500000001,
+      "cls": 0
+    },
+    {
+      "route": "/tools/snap/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1426.7313,
+      "cls": 0
+    },
+    {
+      "route": "/guide/install/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1502.18055,
+      "cls": 0
+    },
+    {
+      "route": "/en/guide/install/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1427.2390500000001,
+      "cls": 0
+    },
+    {
+      "route": "/en/faq/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1502.3810999999998,
+      "cls": 0
+    },
+    {
+      "route": "/tools/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1504.0782000000002,
+      "cls": 0
+    },
+    {
+      "route": "/tools/timestamp/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1652.7714,
+      "cls": 0
+    },
+    {
+      "route": "/tools/json/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1653.50955,
+      "cls": 0
+    },
+    {
+      "route": "/tools/base64/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1653.1212000000003,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1506.0159,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/timestamp/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1653.1812,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/json/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1652.8319999999999,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/base64/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1652.96475,
+      "cls": 0
+    }
+  ],
+  "enhanced": {
+    "editorReadyMs": 118,
+    "editorScriptGzip": 109765,
+    "jsonInputBytes": 1048576,
+    "maximumJsonMs": 158
+  }
+}

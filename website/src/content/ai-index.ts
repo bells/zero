@@ -1,3 +1,4 @@
+import { webTools, webReviewedAt } from './web-tools.ts';
 import { asset, catalog, copy, links } from './site.ts';
 import { documents, reviewedAt } from './documentation.ts';
 import { canonicalUrl, siteOrigin } from './seo.ts';
@@ -33,6 +34,14 @@ export function aiIndex(full = false) {
       }
     }
     lines.push('');
+  }
+  lines.push('## Browser tools', '', `Web tools reviewed: ${webReviewedAt}.`, '', 'Local browser computation; no content uploads. A desktop offline plugin is planned, not currently delivered.', '');
+  for (const locale of ['zh', 'en'] as const) {
+    lines.push(`[${locale === 'zh' ? '在线工具' : 'Web tools'}](${canonicalUrl(locale, 'tools')})`, '');
+    for (const tool of webTools[locale]) {
+      lines.push(`- [${tool.title}](${canonicalUrl(locale, `tools/${tool.slug}`)}): ${tool.description}`);
+      if (full) lines.push('', ...tool.notes, '', ...tool.faq.flatMap((item) => [item.question, item.answer]), '');
+    }
   }
   lines.push('## Project sources', '', `[Source repository](${links.github})`, `[Trial packaging notes](${links.trial})`, `[Public releases](${links.releases})`, `[Developer guide](${links.developer})`, '');
   if (!full) lines.push(`[Full text documentation](${new URL(asset('llms-full.txt'), siteOrigin).href})`, '');

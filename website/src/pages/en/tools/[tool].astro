@@ -1,0 +1,8 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Page from '../../../components/webTools/Page.astro';
+import { webToolSlugs, type WebTool } from '../../../content/web-tools';
+export const getStaticPaths: GetStaticPaths = () => webToolSlugs.map((tool) => ({ params: { tool }, props: { tool } }));
+interface Props { tool: WebTool }
+---
+<Page locale="en" tool={Astro.props.tool} />

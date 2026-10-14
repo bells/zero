@@ -4,7 +4,9 @@
   "type": "module",
   "version": "0.1.0",
   "packageManager": "pnpm@10.33.0",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "predev": "node scripts/prepare-social.mjs",
     "dev": "astro dev --host 127.0.0.1 --port 4321 --ignore-lock",
@@ -12,7 +14,7 @@
     "prebuild": "node scripts/prepare-social.mjs",
     "build": "astro build",
     "preview": "astro preview --host 127.0.0.1 --port 4321 --ignore-lock",
-    "test": "node --test tests/catalog.test.mjs",
+    "test": "node --test tests/catalog.test.mjs tests/web-tools.test.mjs",
     "test:seo": "node --test tests/discovery-output.test.mjs",
     "pretest:browser": "pnpm verify:fixtures",
     "test:browser": "playwright test",
@@ -22,9 +24,18 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/lang-json": "6.0.2",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/lint": "6.9.7",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.14",
     "@fontsource/ibm-plex-mono": "5.3.0",
     "@fontsource/ibm-plex-sans": "5.3.0",
+    "@lezer/highlight": "1.2.5",
     "astro": "7.3.8",
+    "image-meta": "0.3.0",
+    "jsonc-parser": "3.3.1",
     "sharp": "0.35.5",
     "zod": "4.6.5"
   },

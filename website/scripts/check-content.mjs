@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { catalog, copy } from '../src/content/site.ts';
+import { webTools, webCopy, webToolSlugs } from '../src/content/web-tools.ts';
 import { documents } from '../src/content/documentation.ts';
 
 export function assertEquivalentKeys(left, right, label = 'copy') {
@@ -20,6 +21,11 @@ export function assertEquivalentKeys(left, right, label = 'copy') {
 }
 export async function checkContent() {
   assertEquivalentKeys(copy.zh, copy.en);
+  assertEquivalentKeys(webCopy.zh, webCopy.en, 'webCopy');
+  assertEquivalentKeys(webTools.zh, webTools.en, 'webTools');
+  assert.deepEqual(webTools.zh.map((item) => item.slug), [...webToolSlugs]);
+  assert.deepEqual(webTools.en.map((item) => item.slug), [...webToolSlugs]);
+  for (const item of webTools.zh) assert.ok(!documents('zh').some((doc) => doc.page === `tools/${item.slug}`), 'web/desktop slug collision');
   assertEquivalentKeys(documents('zh'), documents('en'), 'documents');
   assert.deepEqual(documents('zh').map((item) => item.page), documents('en').map((item) => item.page));
   for (const locale of ['zh', 'en']) {

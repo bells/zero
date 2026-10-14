@@ -40,7 +40,7 @@ pnpm --dir website test:browser
 - `website/src/styles/site.css`：浅画布、石墨文字、冷青强调、深演示区与响应式样式。
 - `website/src/styles/fonts.css`：继续使用 Fontsource 的 IBM Plex 文件，采用 optional 显示与正文/标题预加载，慢网保留系统回退字体，避免字体迟到后改变布局。
 
-`test:seo` 读取最新 `dist/`，须先 build；检查唯一标题、双语 metadata、JSON-LD 关联、18 页 sitemap、静态内链/锚点、AI 索引和 Vercel 404 配置目标。CI 已在 build 后运行它。内容核对日期只在实际复核内容时更新，不以每次构建时间冒充内容更新。
+`test:seo` 读取最新 `dist/`，须先 build；检查唯一标题、双语 metadata、JSON-LD 关联、完整 sitemap 页面集合（在线工具接入后为 26 页）、静态内链/锚点、AI 索引和 Vercel 404 配置目标。CI 已在 build 后运行它。内容核对日期只在实际复核内容时更新，不以每次构建时间冒充内容更新。
 
 截图复用 2026-10-11 的 macOS v0.1.0 full debug 验收素材。截图含开发版 File 目录；网站旁注明 standard 不含 File。替换图片时使用安全样例并更新来源与摘要，不展示私人文件、路径、剪贴板、屏幕内容或凭据。此记录不代表新的 Windows/原生设备验收。
 
@@ -108,3 +108,18 @@ SITE_BASE=/zero/ SITE_PREVIEW=1 pnpm --dir website build
 2. 验证后提交 `https://www.usezero.cn/sitemap-index.xml`，检查首页、下载和代表说明页的 URL inspection / Page indexing。
 3. 在 Bing Webmaster Tools 验证站点，也可从已验证的 Search Console 导入，再提交同一 sitemap。
 4. 重新部署本轮源码后，确认 18 页 sitemap、AI 文件、英文/未知路径的 404 与 production index / preview noindex；观察抓取和收录报告。通过本地测试不代表已被搜索引擎收录。
+
+## 在线工具箱（2026-10-14）
+
+新增 `/tools/` 和 `/en/tools/` 目录及 `timestamp/`、`json/`、`base64/` 三个交互工具，共增加 8 个可索引页面（全站 26 页，另有两个 noindex 错误 HTML）。已有 `/tools/{snap,launch,awake,paper,file}/` 桌面说明页保持原路径。主导航区分桌面工具与在线工具。
+
+- `src/content/web-tools.ts` 维护中英 metadata、说明、示例、FAQ 和工具清单。目录/各工具静态预渲染，SEO 与 AI 索引从相同内容生成；在线 WebApplication 与桌面 SoftwareApplication 分开描述。
+- `src/lib/web-tools/` 是不依赖 DOM/Astro/Tauri 的纯 TS 计算、契约和任务管理。后续桌面离线插件可评估复用此层；当前没有桌面插件交付或 PWA 首次离线访问能力。
+- `src/scripts/web-tools/` 接入原生控件、主题、搜索与 worker。CodeMirror 6 仅在点击“启用增强编辑”后加载；`jsonc-parser` 严格模式保留源数字/重复键；`image-meta` 在完整图片解码前读取类型与尺寸，预览仅接受 PNG/JPEG/WebP。
+- 工具输入/结果/文件/搜索词只保留在当前页，不上传、不放进 URL/站点存储/日志；主题是唯一存储例外，键为 `zero.web-tools.theme`。Clipboard/下载均须明确操作。清空/离页释放工具状态和 Blob URL；浏览器自身恢复机制不属于安全擦除保证。
+- 时间输入限制 256 字符；文本/JSON 输入 1 MiB UTF-8，输出 8 MiB，JSON 深度 128；图片原始/解码 5 MiB、编码输入 7 MiB、1600 万像素。处理超过 5 秒会中止，允许取消/重试，过期结果不得恢复复制或导出。
+- 依赖升级在网站子目录完成，继续使用独立锁文件。MIT 运行时依赖与传递依赖的许可文本位于 `public/licenses/web-tools.txt`，升级时核对并同步对应版本；维护选择和验收来源见 `openspec/changes/usezero-web-tools-extension/evidence/implementation.md`。
+
+`pnpm --dir website test` 包含纯逻辑/任务测试，`test:browser` 包含新工具交互、浅深 axe、合成私有标记不出网/不落盘、旧页面回归、preview/base path。`verify:performance` 覆盖原有代表页及双语在线目录/三工具；增强编辑和大输入另行记录，初始预算不包含由用户明确触发的增强包。检查输出在忽略的 `website/output/`，不是线上或桌面设备证明。
+
+在线 CTA 只跳转到受发行清单控制的下载/试用页，不直接猜测平台包。桌面离线插件是后续规划；当前仍须明确其尚未内置，不能写成已支持桌面快捷调用这些工具。
