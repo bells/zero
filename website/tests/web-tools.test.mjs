@@ -8,8 +8,24 @@ import { inspectImage, transformImage } from '../src/lib/web-tools/image.ts';
 import { limits } from '../src/lib/web-tools/contracts.ts';
 import { JobRunner } from '../src/lib/web-tools/job-runner.ts';
 import { execute } from '../src/lib/web-tools/execute.ts';
+import { webTools } from '../src/content/web-tools.ts';
+import { compareText } from '../src/lib/web-tools/text-diff.ts';
 const value = (result) => { assert.equal(result.ok, true, JSON.stringify(result)); return result.value; };
 const fails = (result, code) => { assert.equal(result.ok, false); assert.equal(result.error.code, code); };
+test('published bilingual input/output examples match actual tool computation', () => {
+  for (const locale of ['zh', 'en']) {
+    const examples = (slug) => webTools[locale].find((tool) => tool.slug === slug).guide.examples;
+    for (const [index, sample] of examples('json').entries()) assert.equal(value(transformJson(sample.input, index === 0 ? 'format' : 'compact')), sample.output);
+    for (const sample of examples('timestamp')) {
+      assert.equal(sample.input.split('\n').map((line) => new Date(value(parseTimestamp(line)).milliseconds).toISOString()).join('\n'), sample.output);
+    }
+    for (const [index, sample] of examples('base64').entries()) assert.equal(value(transformText(sample.input, index === 0 ? 'base64-encode' : 'url-encode')), sample.output);
+    const sample = examples('diff')[0];
+    const [before, after] = sample.input.split('\n').map((line) => line.split(locale === 'zh' ? '：' : ': ')[1]);
+    const diff = value(compareText(before, after));
+    assert.equal(diff.rows.map((row) => `${row.kind === 'deleted' ? '-' : '+'} ${row.text}`).join('\n'), sample.output);
+  }
+});
 test('timestamp units, epoch, signed values and strict range', () => {
   assert.equal(value(parseTimestamp('1700000000')).milliseconds, 1700000000000);
   assert.equal(value(parseTimestamp('1700000000000')).milliseconds, 1700000000000);

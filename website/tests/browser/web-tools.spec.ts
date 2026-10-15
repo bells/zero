@@ -35,7 +35,12 @@ for (const locale of ['zh', 'en'] as const) {
       await staticPage.goto(`http://127.0.0.1:4321${route}`);
       await expect(staticPage.locator('noscript .wt-notice')).toBeVisible();
       await expect(staticPage.locator('noscript .wt-notice')).toContainText('JavaScript');
-      await expect(staticPage.locator('.wt-guidance')).toBeVisible();
+      if (slug) {
+        await expect(staticPage.locator('.wt-guidance[aria-labelledby="usage"]')).toBeVisible();
+        await expect(staticPage.locator('.wt-guidance[aria-labelledby="agent-usage"]')).toBeVisible();
+      } else {
+        await expect(staticPage.locator('.wt-guidance')).toBeVisible();
+      }
       await expect(staticPage.locator('.wt-cta')).toContainText(locale === 'zh' ? '尚未内置桌面版' : 'not currently built into');
       await expect(staticPage.locator('.wt-tabs a')).toHaveCount(5);
       await context.close();

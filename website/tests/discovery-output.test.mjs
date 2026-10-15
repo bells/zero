@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, access } from 'node:fs/promises';
+import { readFile, access, readdir } from 'node:fs/promises';
+import { webTools } from '../src/content/web-tools.ts';
 
 const origin = 'https://www.usezero.cn';
 const docs = ['tools', 'tools/timestamp', 'tools/json', 'tools/base64', 'tools/diff', 'tools/snap', 'tools/launch', 'tools/awake', 'tools/paper', 'tools/file', 'guide/install', 'faq'];
@@ -55,6 +56,39 @@ test('error HTML is excluded from indexing and product identity markup', async (
     const html = await readFile(new URL(file, output), 'utf8');
     assert.match(html, /content="noindex, nofollow"/);
     assert.doesNotMatch(html, /rel="canonical"|hreflang=|application\/ld\+json/);
+  }
+});
+
+test('web tool discovery includes searchable capabilities and shared executable guidance', async () => {
+  const full = await readFile(new URL('llms-full.txt', output), 'utf8');
+  for (const locale of ['zh', 'en']) {
+    const prefix = locale === 'en' ? '/en' : '';
+    const directory = await htmlFor(`${prefix}/tools/`);
+    assert.match(directory.match(/<meta name="description" content="([^"]*)"/)?.[1] || '', /JSON.*Base64/);
+    for (const tool of webTools[locale]) {
+      assert.ok(tool.guide, `${locale}/${tool.slug}: shared guide missing`);
+      const html = await htmlFor(`${prefix}/tools/${tool.slug}/`);
+      assert.ok(html.includes(`<title>${tool.guide.searchTitle} | Zero</title>`));
+      for (const anchor of ['usage', 'steps', 'examples', 'agent-usage']) assert.ok(html.includes(`id="${anchor}"`));
+      for (const step of tool.guide.steps) assert.ok(full.includes(step), `${tool.slug}: step absent from AI index`);
+      for (const example of tool.guide.examples) {
+        assert.ok(full.includes(example.input), `${tool.slug}: input example absent from AI index`);
+        assert.ok(full.includes(example.output), `${tool.slug}: output example absent from AI index`);
+      }
+      assert.ok(full.includes(tool.guide.agent.input));
+      assert.ok(full.includes(tool.guide.agent.output));
+      const app = graphFor(html)['@graph'].find((node) => node['@type'] === 'WebApplication');
+      assert.deepEqual(app.featureList, tool.guide.agent.actions);
+    }
+  }
+});
+
+test('static tool guides stay out of browser executable assets', async () => {
+  const directory = new URL('_astro/', output);
+  for (const file of await readdir(directory)) {
+    if (!file.endsWith('.js')) continue;
+    const script = await readFile(new URL(file, directory), 'utf8');
+    for (const tool of webTools.en) assert.ok(!script.includes(tool.guide.searchTitle), `${file}: static guide was bundled as executable code`);
   }
 });
 

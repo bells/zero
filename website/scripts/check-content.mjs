@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { catalog, copy } from '../src/content/site.ts';
 import { webTools, webCopy, webToolSlugs } from '../src/content/web-tools.ts';
+import { guideCopy } from '../src/content/web-tool-guides.ts';
 import { documents } from '../src/content/documentation.ts';
 
 export function assertEquivalentKeys(left, right, label = 'copy') {
@@ -22,6 +23,7 @@ export function assertEquivalentKeys(left, right, label = 'copy') {
 export async function checkContent() {
   assertEquivalentKeys(copy.zh, copy.en);
   assertEquivalentKeys(webCopy.zh, webCopy.en, 'webCopy');
+  assertEquivalentKeys(guideCopy.zh, guideCopy.en, 'guideCopy');
   assertEquivalentKeys(webTools.zh, webTools.en, 'webTools');
   assert.deepEqual(webTools.zh.map((item) => item.slug), [...webToolSlugs]);
   assert.deepEqual(webTools.en.map((item) => item.slug), [...webToolSlugs]);

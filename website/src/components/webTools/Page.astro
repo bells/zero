@@ -3,18 +3,20 @@ import TimestampWorkspace from './TimestampWorkspace.astro';
 import DiffWorkspace from './DiffWorkspace.astro';
 import Layout from '../../layouts/Layout.astro';
 import { webCopy, webTools, webReviewedAt, type WebTool } from '../../content/web-tools';
+import { guideCopy } from '../../content/web-tool-guides';
 import { catalog, copy, path, type Locale } from '../../content/site';
 import { toolSlugs } from '../../content/documentation';
 import '../../styles/web-tools.css';
 interface Props { locale: Locale; tool?: WebTool }
 const { locale, tool } = Astro.props;
 const c = webCopy[locale];
+const g = guideCopy[locale];
 const details = webTools[locale].find((entry) => entry.slug === tool);
 const page = tool ? `tools/${tool}` : 'tools';
 const title = details?.title ?? c.directory;
 const available = catalog.packages.some((entry) => entry.profile === 'standard');
 ---
-<Layout locale={locale} page={page} title={`${title} | Zero`} description={details?.description ?? c.intro} webTools>
+<Layout locale={locale} page={page} title={`${details?.guide.searchTitle ?? g.directoryTitle} | Zero`} description={details?.description ?? g.description} webTools>
   <div class="wt container" data-web-tools data-locale={locale} data-tool={tool ?? 'directory'}>
     <div class="wt-bar">
       <nav class="wt-tabs" aria-label={c.directory}>
@@ -26,7 +28,7 @@ const available = catalog.packages.some((entry) => entry.profile === 'standard')
         <button type="button" data-open-search>{c.search}<kbd>{c.searchKeys}</kbd></button>
       </div>
     </div>
-    <header class="wt-heading"><p class="wt-local">{c.local}</p><h1>{title}</h1><p>{details?.description ?? c.intro}</p></header>
+    <header class="wt-heading"><p class="wt-local">{c.local}</p><h1>{title}</h1><p>{details?.description ?? g.description}</p></header>
     <noscript><p class="wt-notice">{c.nojs}</p></noscript>
     {!tool ? <>
       <div class="wt-directory">{webTools[locale].map((entry) => <a href={path(locale, `tools/${entry.slug}`)} class="wt-directory-row"><span class="wt-tool-symbol" aria-hidden="true">{{ timestamp: '↔', json: '{ }', base64: 'A/', diff: '±' }[entry.slug]}</span><div><h2>{entry.title}</h2><p>{entry.description}</p><code>{entry.example}</code></div><span aria-hidden="true">↗</span></a>)}</div>
@@ -48,7 +50,24 @@ const available = catalog.packages.some((entry) => entry.profile === 'standard')
         <p class="wt-status" role="status" aria-live="polite" data-status>{c.ready}</p>
         <div data-manual-copy hidden><label for="manual-copy">{c.copyFailed}</label><textarea id="manual-copy" data-manual-value readonly></textarea></div>
       </fieldset>
-      <section class="wt-guidance" aria-labelledby="usage"><h2 id="usage">{c.guide}</h2><p class="wt-example"><strong>{c.example}</strong><code>{details?.example}</code></p><ul>{details?.notes.map((note) => <li>{note}</li>)}</ul><p>{c.privacy}</p></section>
+      {details && <>
+        <section class="wt-guidance" aria-labelledby="usage">
+          <h2 id="usage">{c.guide}</h2>
+          <h3 id="steps">{g.steps}</h3>
+          <ol>{details.guide.steps.map((step) => <li>{step}</li>)}</ol>
+          <h3 id="examples">{g.examples}</h3>
+          {details.guide.examples.map((example) => <figure class="wt-example">
+            <figcaption>{example.name}</figcaption>
+            <dl><dt>{g.input}</dt><dd><pre><code>{example.input}</code></pre></dd><dt>{g.output}</dt><dd><pre><code>{example.output}</code></pre></dd></dl>
+          </figure>)}
+          <h3>{g.limits}</h3><ul>{details.notes.map((note) => <li>{note}</li>)}</ul><p>{c.privacy}</p>
+        </section>
+        <section class="wt-guidance" aria-labelledby="agent-usage">
+          <h2 id="agent-usage">{g.agent}</h2><p>{g.runtime}</p>
+          <dl class="wt-agent"><dt>{g.agentInput}</dt><dd>{details.guide.agent.input}</dd><dt>{g.agentOutput}</dt><dd>{details.guide.agent.output}</dd></dl>
+          <h3>{g.actions}</h3><ul>{details.guide.agent.actions.map((action) => <li>{action}</li>)}</ul><p>{g.execution}</p>
+        </section>
+      </>}
       <section class="wt-faq"><h2>{c.faq}</h2>{details?.faq.map((item) => <details><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>
     </>}
     <p class="wt-reviewed">{c.reviewed}: <time datetime={webReviewedAt}>{webReviewedAt}</time></p>

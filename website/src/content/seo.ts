@@ -24,7 +24,7 @@ export function structuredData(locale: Locale, page: string, title: string, desc
         featureList: copy[locale].tools.items.map((tool) => `${tool.name}: ${tool.description} ${tool.platform}`),
       },
       { '@type': 'SoftwareSourceCode', '@id': sourceId, name: 'Zero source code', codeRepository: links.github, targetProduct: { '@id': softwareId } },
-      ...(webTool ? [{ '@type': 'WebApplication', '@id': toolId, name: webTool.title, url: canonicalUrl(locale, page), applicationCategory: 'UtilitiesApplication', operatingSystem: 'Any', browserRequirements: 'JavaScript', description, inLanguage: locale === 'zh' ? 'zh-CN' : 'en' }] : []),
+      ...(webTool ? [{ '@type': 'WebApplication', '@id': toolId, name: webTool.title, url: canonicalUrl(locale, page), applicationCategory: 'UtilitiesApplication', operatingSystem: 'Any', browserRequirements: 'JavaScript', description, featureList: webTool.guide.agent.actions, inLanguage: locale === 'zh' ? 'zh-CN' : 'en' }] : []),
       ...(directory ? [{ '@type': 'ItemList', '@id': `${canonicalUrl(locale, page)}#list`, itemListElement: webTools[locale].map((tool, index) => ({ '@type': 'ListItem', position: index + 1, url: canonicalUrl(locale, `tools/${tool.slug}`), name: tool.title })) }] : []),
       {
         '@type': directory ? 'CollectionPage' : 'WebPage', '@id': `${canonicalUrl(locale, page)}#webpage`, url: canonicalUrl(locale, page),

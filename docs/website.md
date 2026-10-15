@@ -113,7 +113,8 @@ SITE_BASE=/zero/ SITE_PREVIEW=1 pnpm --dir website build
 
 新增 `/tools/` 和 `/en/tools/` 目录及 `timestamp/`、`json/`、`base64/` 三个交互工具，共增加 8 个可索引页面（全站 26 页，另有两个 noindex 错误 HTML）。已有 `/tools/{snap,launch,awake,paper,file}/` 桌面说明页保持原路径。主导航区分桌面工具与在线工具。
 
-- `src/content/web-tools.ts` 维护中英 metadata、说明、示例、FAQ 和工具清单。目录/各工具静态预渲染，SEO 与 AI 索引从相同内容生成；在线 WebApplication 与桌面 SoftwareApplication 分开描述。
+- `src/content/web-tools.ts` 维护中英说明、FAQ 和工具清单，并组合 `src/content/web-tool-guides.ts` 中的搜索标题、步骤、输入/输出示例及浏览器 Agent 说明。新增工具时两语言都须补齐指南；示例应使用合成数据，并通过实际计算逻辑核对。导航名称保持简短，搜索标题单独描述能力。
+- 目录描述列出四工具；工具说明提供 `#usage`、`#steps`、`#examples` 和 `#agent-usage` 静态锚点。页面和 `llms-full.txt` 共享步骤、保留换行的示例、输入/输出方法、动作、限额和本地处理边界，WebApplication 的 `featureList` 使用同一动作清单。Agent 说明针对真实浏览器控件，不代表新增 HTTP API 或 MCP。纯静态指南不进入浏览器可执行脚本。
 - `src/lib/web-tools/` 是不依赖 DOM/Astro/Tauri 的纯 TS 计算、契约和任务管理。后续桌面离线插件可评估复用此层；当前没有桌面插件交付或 PWA 首次离线访问能力。
 - `src/scripts/web-tools/` 接入原生控件、主题、搜索与 worker。CodeMirror 6 仅在点击“启用增强编辑”后加载；`jsonc-parser` 严格模式保留源数字/重复键；`image-meta` 在完整图片解码前读取类型与尺寸，预览仅接受 PNG/JPEG/WebP。
 - 工具输入/结果/文件/搜索词只保留在当前页，不上传、不放进 URL/站点存储/日志；主题是唯一存储例外，键为 `zero.web-tools.theme`。Clipboard/下载均须明确操作。清空/离页释放工具状态和 Blob URL；浏览器自身恢复机制不属于安全擦除保证。

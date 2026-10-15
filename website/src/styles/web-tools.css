@@ -66,9 +66,18 @@
 .wt-guidance h2, .wt-faq h2 { margin-bottom: 16px; }
 .wt-guidance ul { padding-left: 22px; color: var(--muted); }
 .wt-guidance li { margin-bottom: 8px; }
+.wt-guidance ol { padding-left: 24px; }
+.wt-guidance h3 { margin-block: 24px 12px; font-size: 16px; }
 .wt-guidance > p:last-child { margin-top: 20px; font-size: 13px; color: var(--muted); }
 .wt-example { padding: 16px; background: var(--wt-soft); }
 .wt-example code { display: block; margin-top: 8px; font: 13px/1.7 var(--mono); overflow-wrap: anywhere; }
+.wt-example { margin: 16px 0; }
+.wt-example figcaption { font-weight: 500; margin-bottom: 12px; }
+.wt-example dt { margin-top: 12px; font-size: 12px; color: var(--muted); }
+.wt-example dd, .wt-agent dd { margin: 0; }
+.wt-example pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.wt-agent dt { margin-top: 16px; font-weight: 500; }
+.wt-agent dd { margin-top: 6px; color: var(--muted); }
 .wt-faq { max-width: 78ch; margin-block: 40px; }
 .wt-faq details { border-top: 1px solid var(--line); }
 .wt-faq summary { min-height: 44px; padding: 14px 0; cursor: pointer; }

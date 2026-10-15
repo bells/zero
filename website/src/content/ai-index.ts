@@ -1,4 +1,5 @@
-import { webTools, webReviewedAt } from './web-tools.ts';
+import { webTools, webReviewedAt, webCopy } from './web-tools.ts';
+import { guideCopy } from './web-tool-guides.ts';
 import { asset, catalog, copy, links } from './site.ts';
 import { documents, reviewedAt } from './documentation.ts';
 import { canonicalUrl, siteOrigin } from './seo.ts';
@@ -37,10 +38,18 @@ export function aiIndex(full = false) {
   }
   lines.push('## Browser tools', '', `Web tools reviewed: ${webReviewedAt}.`, '', 'Local browser computation; no content uploads. A desktop offline plugin is planned, not currently delivered.', '');
   for (const locale of ['zh', 'en'] as const) {
+    const guidance = guideCopy[locale];
     lines.push(`[${locale === 'zh' ? '在线工具' : 'Web tools'}](${canonicalUrl(locale, 'tools')})`, '');
     for (const tool of webTools[locale]) {
       lines.push(`- [${tool.title}](${canonicalUrl(locale, `tools/${tool.slug}`)}): ${tool.description}`);
-      if (full) lines.push('', ...tool.notes, '', ...tool.faq.flatMap((item) => [item.question, item.answer]), '');
+      if (full) {
+        lines.push('', `### ${tool.guide.searchTitle}`, '', `${guidance.entry}: ${canonicalUrl(locale, `tools/${tool.slug}`)}`, '',
+          `#### ${guidance.steps}`, '', ...tool.guide.steps.map((step, index) => `${index + 1}. ${step}`), '', `#### ${guidance.examples}`, '');
+        for (const example of tool.guide.examples) lines.push(`##### ${example.name}`, '', guidance.input, '```text', example.input, '```', '', guidance.output, '```text', example.output, '```', '');
+        lines.push(`#### ${guidance.agent}`, '', guidance.runtime, '', guidance.agentInput, tool.guide.agent.input, '', guidance.agentOutput, tool.guide.agent.output, '',
+          guidance.actions, ...tool.guide.agent.actions.map((action) => `- ${action}`), '', guidance.execution, '', `#### ${guidance.limits}`, '',
+          ...tool.notes, '', webCopy[locale].privacy, '', ...tool.faq.flatMap((item) => [item.question, item.answer]), '');
+      }
     }
   }
   lines.push('## Project sources', '', `[Source repository](${links.github})`, `[Trial packaging notes](${links.trial})`, `[Public releases](${links.releases})`, `[Developer guide](${links.developer})`, '');

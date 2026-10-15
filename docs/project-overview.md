@@ -1,5 +1,7 @@
 # Zero 项目全景与维护地图
 
+2026-10-15 官网发现增量：四个在线工具补齐双语能力搜索标题、明确的目录描述、步骤和输入/输出示例，以及基于真实控件标签的浏览器 Agent 说明。HTML、WebApplication featureList 与 AI 全文索引从共享指南生成，索引页数仍为 28；不增加远程计算接口或改变桌面交付。实现/验证见[增量记录](../openspec/changes/extend-web-tools-batch-and-diff/evidence/discovery-2026-10-15.md)，部署仍独立执行。
+
 2026-10-15 官网工具增量：时间戳页增加逐行批量转换、原行号/错误保留与完整 JSON 导出；新增双语文本/UTF-8 文件对比，提供本地 worker、行级/行内高亮、并排/统一视图、差异导航及有界长行展示。目录/搜索为四工具，全站 28 个索引页面。维护入口见[官网指南](website.md)，验收及实际边界见[本次记录](../openspec/changes/extend-web-tools-batch-and-diff/evidence/implementation.md)。不涉及桌面功能或发布；工作区完成不代表生产部署。
 
 2026-10-14 官网在线工具增量：独立 `website/` 增加双语 `/tools/` 目录及时间戳、JSON、Base64/URL 工具，保留原五工具说明 URL。纯 TS 计算层与浏览器 UI/worker 分离，输入只在当前页本地处理，增强 JSON 编辑按需加载。后续桌面离线插件已纳入方向，当前不构成桌面交付承诺。验收结果见[本次记录](../openspec/changes/usezero-web-tools-extension/evidence/implementation.md)，维护入口见[官网指南](website.md)。当前工作区实现与本地检查不代表生产部署或搜索收录。
