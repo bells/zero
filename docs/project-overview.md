@@ -1,5 +1,7 @@
 # Zero 项目全景与维护地图
 
+2026-10-15 官网工具增量：时间戳页增加逐行批量转换、原行号/错误保留与完整 JSON 导出；新增双语文本/UTF-8 文件对比，提供本地 worker、行级/行内高亮、并排/统一视图、差异导航及有界长行展示。目录/搜索为四工具，全站 28 个索引页面。维护入口见[官网指南](website.md)，验收及实际边界见[本次记录](../openspec/changes/extend-web-tools-batch-and-diff/evidence/implementation.md)。不涉及桌面功能或发布；工作区完成不代表生产部署。
+
 2026-10-14 官网在线工具增量：独立 `website/` 增加双语 `/tools/` 目录及时间戳、JSON、Base64/URL 工具，保留原五工具说明 URL。纯 TS 计算层与浏览器 UI/worker 分离，输入只在当前页本地处理，增强 JSON 编辑按需加载。后续桌面离线插件已纳入方向，当前不构成桌面交付承诺。验收结果见[本次记录](../openspec/changes/usezero-web-tools-extension/evidence/implementation.md)，维护入口见[官网指南](website.md)。当前工作区实现与本地检查不代表生产部署或搜索收录。
 
 2026-10-12 官网搜索/AI 增量：独立 `website/` Astro 站已增加双语五工具说明、安装指南与 FAQ，共 18 个可索引页面；搜索标题、共享实体图、sitemap 与同源生成的 llms 索引已补齐。错误 HTML noindex，`website/vercel.json` 提供本地化 404 路由；Vercel Preview 自动 noindex，显式 `SITE_PREVIEW=0` 保持生产索引。字体迟到导致英文首页偏移已修复。官网原版已部署至 www.usezero.cn，但本轮源码未提交/部署；Search Console/Bing 验证由用户留待后续。验收与托管边界见[增量记录](../openspec/changes/add-zero-product-website/evidence/discovery-verification-2026-10-12.md)，维护入口见[官网指南](website.md)。下述桌面证据不覆盖官网，官网检查也不替代原生/发行验收。

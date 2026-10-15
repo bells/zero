@@ -1,0 +1,257 @@
+.diff-tool,.diff-result,.diff-document {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.diff-sources {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 20px;
+}
+
+.diff-source {
+  min-width: 0;
+}
+
+.diff-source-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.diff-origin {
+  min-height: 24px;
+  font: 12px var(--mono);
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  padding-block: 6px;
+}
+
+.wt .diff-source textarea {
+  min-height: 240px;
+  white-space: pre;
+  overflow: auto;
+}
+
+.diff-cursor {
+  display: block;
+  font: 12px var(--mono);
+  padding-top: 8px;
+  color: var(--muted);
+}
+
+.diff-note,.diff-scope {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.diff-note {
+  margin-block: 12px;
+}
+
+.diff-scope {
+  margin-top: 24px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.diff-scope p {
+  margin-bottom: 10px;
+}
+
+.diff-scope a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.diff-result {
+  margin-top: 28px;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+
+.diff-result>h2 {
+  margin-bottom: 12px;
+}
+
+.diff-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-block: 16px;
+}
+
+.diff-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diff-toolbar output {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.diff-document {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  outline-offset: 3px;
+}
+
+.diff-pane {
+  min-width: 0;
+  max-width: 100%;
+  max-height: 600px;
+  overflow: auto;
+  background: var(--paper);
+  overscroll-behavior: contain;
+}
+
+.diff-pane-title {
+  position: sticky;
+  left: 0;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--line);
+  background: var(--wt-soft);
+}
+
+.diff-split {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+}
+
+.diff-split>.diff-pane+ .diff-pane {
+  border-left: 1px solid var(--line);
+}
+
+.diff-line {
+  display: flex;
+  align-items: baseline;
+  min-height: 26px;
+  width: max-content;
+  min-width: 100%;
+  font: 13px/26px var(--mono);
+  white-space: pre;
+}
+
+.diff-gutter {
+  display: inline-block;
+  flex: none;
+  min-width: 5.5ch;
+  padding-inline: 6px;
+  text-align: right;
+  color: var(--muted);
+  user-select: none;
+}
+
+.diff-marker {
+  display: inline-block;
+  min-width: 2ch;
+  text-align: center;
+  flex: none;
+}
+
+.diff-text {
+  display: block;
+  padding-right: 12px;
+}
+
+.diff-added {
+  background: #e5f2e7;
+  color: #174b2c;
+}
+
+.diff-deleted {
+  background: #fae9e8;
+  color: #702b27;
+}
+
+.diff-added .diff-highlight {
+  background: #b9dfbf;
+}
+
+.diff-deleted .diff-highlight {
+  background: #edbeba;
+}
+
+.diff-highlight {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.diff-placeholder {
+  background: var(--wt-soft);
+}
+
+.diff-line-note {
+  margin-inline: 12px;
+  font: 12px var(--mono);
+  color: inherit;
+}
+
+.diff-fold {
+  padding: 4px 8px;
+  background: var(--wt-soft);
+  min-height: 52px;
+}
+
+.diff-fold button {
+  white-space: normal;
+  text-align: left;
+  max-width: 100%;
+}
+
+.diff-document:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.web-tools-page[data-theme-resolved='dark'] .diff-added {
+  background: #203e2d;
+  color: #c6efd3;
+}
+
+.web-tools-page[data-theme-resolved='dark'] .diff-deleted {
+  background: #482c2d;
+  color: #ffd0ca;
+}
+
+.web-tools-page[data-theme-resolved='dark'] .diff-added .diff-highlight {
+  background: #305b40;
+}
+
+.web-tools-page[data-theme-resolved='dark'] .diff-deleted .diff-highlight {
+  background: #713e3e;
+}
+
+@media(max-width:720px) {
+  .diff-sources {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .wt .diff-source textarea {
+    min-height: 180px;
+  }
+  .diff-toolbar {
+    gap: 8px;
+  }
+  .diff-gutter {
+    min-width: 4ch;
+    padding-inline: 3px;
+  }
+  .diff-line {
+    font-size: 12px;
+  }
+  .diff-toolbar label {
+    flex-wrap: wrap;
+  }
+  .diff-split {
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  }
+}

@@ -40,7 +40,7 @@ pnpm --dir website test:browser
 - `website/src/styles/site.css`：浅画布、石墨文字、冷青强调、深演示区与响应式样式。
 - `website/src/styles/fonts.css`：继续使用 Fontsource 的 IBM Plex 文件，采用 optional 显示与正文/标题预加载，慢网保留系统回退字体，避免字体迟到后改变布局。
 
-`test:seo` 读取最新 `dist/`，须先 build；检查唯一标题、双语 metadata、JSON-LD 关联、完整 sitemap 页面集合（在线工具接入后为 26 页）、静态内链/锚点、AI 索引和 Vercel 404 配置目标。CI 已在 build 后运行它。内容核对日期只在实际复核内容时更新，不以每次构建时间冒充内容更新。
+`test:seo` 读取最新 `dist/`，须先 build；检查唯一标题、双语 metadata、JSON-LD 关联、完整 sitemap 页面集合（当前四工具增量为 28 页）、静态内链/锚点、AI 索引和 Vercel 404 配置目标。CI 已在 build 后运行它。内容核对日期只在实际复核内容时更新，不以每次构建时间冒充内容更新。
 
 截图复用 2026-10-11 的 macOS v0.1.0 full debug 验收素材。截图含开发版 File 目录；网站旁注明 standard 不含 File。替换图片时使用安全样例并更新来源与摘要，不展示私人文件、路径、剪贴板、屏幕内容或凭据。此记录不代表新的 Windows/原生设备验收。
 
@@ -123,3 +123,15 @@ SITE_BASE=/zero/ SITE_PREVIEW=1 pnpm --dir website build
 `pnpm --dir website test` 包含纯逻辑/任务测试，`test:browser` 包含新工具交互、浅深 axe、合成私有标记不出网/不落盘、旧页面回归、preview/base path。`verify:performance` 覆盖原有代表页及双语在线目录/三工具；增强编辑和大输入另行记录，初始预算不包含由用户明确触发的增强包。检查输出在忽略的 `website/output/`，不是线上或桌面设备证明。
 
 在线 CTA 只跳转到受发行清单控制的下载/试用页，不直接猜测平台包。桌面离线插件是后续规划；当前仍须明确其尚未内置，不能写成已支持桌面快捷调用这些工具。
+
+## 批量时间戳与文本对比（2026-10-15）
+
+本次增量在原时间戳页内提供单条/批量模式，并增加 `/tools/diff/`、`/en/tools/diff/`。当前目录/搜索为四个在线工具，索引页面由 26 增至 28，另有两个 noindex 错误 HTML。此前日期的三工具/26 页记录保留其历史语义；本地工作区验证不表示已部署。
+
+- `components/webTools/TimestampWorkspace.astro` 和 `scripts/web-tools/timestamp-batch.ts` 负责模式、分页及导出；`lib/web-tools/timestamp-batch.ts` 复用原严格解析。批量最多 1,000 个物理行、总计 1 MiB UTF-8、每行 256 字符；LF/CRLF/CR 分行，空白行跳过，原行号/原文及失败原因保留。每页最多 100 行，完整结果复制/下载为版本化 JSON，不提供 CSV/TSV。改变输入/设置或模式后须重新执行。
+- `components/webTools/DiffWorkspace.astro` 与 `scripts/web-tools/diff*.ts` 负责双侧输入、文件读取、结果导航和展示；`lib/web-tools/text-diff*.ts` 提供纯 TS 验证、比较模型和有界展示窗口。`diff@9.0.0` 仅在主动比较后由独立 worker 加载，BSD-3-Clause 许可见 `public/licenses/text-diff.txt`；[选型依据](../openspec/changes/extend-web-tools-batch-and-diff/evidence/dependency.md)记录了官方来源与核验时间。
+- 文件限 UTF-8 纯文本（可带 BOM）；其他编码、NUL 和常见二进制签名拒绝，不按扩展名猜测有效性。支持代码、JSON、Markdown、CSV 等纯文本，不解析图片、PDF、Word、Excel 或文件夹。每侧最多 1 MiB、20,000 行，合计 2 MiB；仅统一 CRLF/CR 到 LF，保留其他空白、大小写、Unicode 和终止换行差异。
+- 对比支持并排/统一视图、增删行数、差异块导航和行内高亮；≤720px 首次加载默认统一。单行超过 4,096 码点或行内累计超过 100,000 码点则提示并退回整行高亮。默认三行上下文，折叠/分页/长行分段可访问完整结果，一次最多挂载 400 文本行及 200 KiB 源文。
+- 新旧任务使用显式操作联合和泛型 runner，保留旧处理器契约；新功能使用专用 worker。读取与处理 5 秒超时、可取消，过期结果/晚到读取不得覆盖新内容；所有序列化结果最多 8 MiB。输入、文件名和结果不进入网络、URL、console、站点存储；主题 enum 仍是唯一持久化例外。
+
+网站检查继续在 `website/` 独立运行，完整浏览器/SEO/性能入口已包括新页面，子路径 fixture 包含新 worker。当前验收、实测数据和边界见[本次记录](../openspec/changes/extend-web-tools-batch-and-diff/evidence/implementation.md)。本次不触及桌面源码、发行清单、原生运行、DNS 或搜索平台登记。

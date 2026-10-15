@@ -1,0 +1,29 @@
+---
+import { diffCopy } from '../../scripts/web-tools/diff-copy';
+import '../../styles/diff.css';
+interface Props { locale: 'zh' | 'en' }
+const { locale } = Astro.props;
+const c = diffCopy[locale];
+---
+<div class="diff-tool" data-diff>
+  <div class="diff-sources">
+    {(['before', 'after'] as const).map(side => <section class="diff-source">
+      <div class="diff-source-heading"><label for={`diff-${side}`}>{c[side]}</label><button type="button" data-diff-open={side}>{c.open}</button></div>
+      <input type="file" data-diff-file={side} aria-label={`${c.open}: ${c[side]}`} hidden />
+      <p class="diff-origin" data-diff-origin={side}></p>
+      <textarea id={`diff-${side}`} data-diff-source={side} aria-describedby="diff-semantics diff-line-help" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+      <output class="diff-cursor" data-diff-cursor={side}>{c.cursor(1, 1)}</output>
+    </section>)}
+  </div>
+  <p id="diff-line-help" class="diff-note">{c.numbers}</p>
+  <div class="wt-actions"><button class="wt-primary" type="button" data-diff-compare>{c.compare}</button><button type="button" data-diff-example>{c.example}</button><button type="button" data-diff-swap>{c.swap}</button><button type="button" data-diff-clear>{c.clear}</button><button type="button" data-diff-cancel hidden>{c.cancel}</button></div>
+  <div class="diff-result" data-diff-result hidden>
+    <h2>{c.result}</h2>
+    <p data-diff-summary></p><p class="diff-note" data-diff-inline hidden>{c.partial}</p><p data-diff-newline hidden>{c.newline}</p>
+    <div class="diff-toolbar"><label>{c.view}<select data-diff-view><option value="unified">{c.unified}</option><option value="split">{c.split}</option></select></label><button type="button" data-diff-previous>{c.previous}</button><output role="status" aria-live="polite" data-diff-position></output><button type="button" data-diff-next>{c.next}</button></div>
+    <p class="diff-note">{c.context}</p>
+    <div class="diff-document" data-diff-document tabindex="-1" aria-label={c.result}></div>
+    <div class="diff-toolbar"><button type="button" data-diff-page-previous>{c.previousPage}</button><output data-diff-section></output><button type="button" data-diff-page-next>{c.nextPage}</button></div>
+  </div>
+  <div class="diff-scope"><p id="diff-semantics">{c.sourceNote}</p><p>{c.scope}</p><p>{c.bounds}</p><p>{c.privacy}</p><a href={`${import.meta.env.BASE_URL}licenses/text-diff.txt`}>{locale === 'zh' ? '文本比较开源许可' : 'Text comparison license'}</a></div>
+</div>

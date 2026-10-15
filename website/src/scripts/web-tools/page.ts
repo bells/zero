@@ -30,7 +30,11 @@ if (root) {
   document.addEventListener('keydown', shortcut);
   root.querySelectorAll<HTMLElement>('[data-enhance-only]').forEach((item) => { item.hidden = false; });
   const initialize = async () => {
-    if (root.dataset.tool === 'timestamp') (await import('./time')).initTimestamp(ui);
+    if (root.dataset.tool === 'timestamp') {
+      (await import('./time')).initTimestamp(ui);
+      (await import('./timestamp-batch')).initTimestampBatch(ui);
+    }
+    else if (root.dataset.tool === 'diff') (await import('./diff')).initDiff(ui);
     else if (root.dataset.tool === 'json' || root.dataset.tool === 'base64') (await import('./processor')).initProcessor(ui, root.dataset.tool);
     const fieldset = root.querySelector<HTMLFieldSetElement>('[data-interactive]'); if (fieldset) fieldset.disabled = false;
     root.dataset.ready = 'true';

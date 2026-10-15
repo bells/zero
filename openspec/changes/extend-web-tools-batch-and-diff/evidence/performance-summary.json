@@ -1,0 +1,280 @@
+{
+  "capturedAt": "2026-10-15T13:33:24.109Z",
+  "node": "v24.20.0",
+  "browserVersion": "155.0.8059.79",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "protocol": "Local production preview; Lighthouse mobile simulated throttling, 390x844, DPR 1; Lighthouse resets storage per route; transfer budget uses uncompressed response bodies conservatively; JS gzip includes inline and external executable scripts",
+  "lighthouse": "13.5.0",
+  "lockfilePresent": true,
+  "measurements": [
+    {
+      "route": "/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 138477,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 140317,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 117610,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 118024,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/snap/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 115559,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/guide/install/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117094,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/guide/install/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117614,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/faq/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117381,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/",
+      "initialJsGzip": 6891,
+      "firstViewportBytes": 145136,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/timestamp/",
+      "initialJsGzip": 11850,
+      "firstViewportBytes": 159558,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/json/",
+      "initialJsGzip": 9335,
+      "firstViewportBytes": 150392,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/base64/",
+      "initialJsGzip": 9335,
+      "firstViewportBytes": 150768,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/diff/",
+      "initialJsGzip": 14103,
+      "firstViewportBytes": 164670,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/",
+      "initialJsGzip": 6891,
+      "firstViewportBytes": 145455,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/timestamp/",
+      "initialJsGzip": 11850,
+      "firstViewportBytes": 160082,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/json/",
+      "initialJsGzip": 9335,
+      "firstViewportBytes": 150717,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/base64/",
+      "initialJsGzip": 9335,
+      "firstViewportBytes": 151032,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/diff/",
+      "initialJsGzip": 14103,
+      "firstViewportBytes": 165108,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    }
+  ],
+  "reports": [
+    {
+      "route": "/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1729.1316000000002,
+      "cls": 0
+    },
+    {
+      "route": "/en/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1578.8883,
+      "cls": 0
+    },
+    {
+      "route": "/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1503.8712,
+      "cls": 0
+    },
+    {
+      "route": "/en/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1427.22795,
+      "cls": 0
+    },
+    {
+      "route": "/tools/snap/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1502.14635,
+      "cls": 0
+    },
+    {
+      "route": "/guide/install/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1501.9206000000001,
+      "cls": 0
+    },
+    {
+      "route": "/en/guide/install/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1502.88015,
+      "cls": 0
+    },
+    {
+      "route": "/en/faq/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1426.9753500000002,
+      "cls": 0
+    },
+    {
+      "route": "/tools/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1503.87045,
+      "cls": 0.04913600625806663
+    },
+    {
+      "route": "/tools/timestamp/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1653.1785,
+      "cls": 0
+    },
+    {
+      "route": "/tools/json/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1652.6200500000002,
+      "cls": 0
+    },
+    {
+      "route": "/tools/base64/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1652.45265,
+      "cls": 0
+    },
+    {
+      "route": "/tools/diff/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1653.3710999999998,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1503.5542500000001,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/timestamp/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1652.7414,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/json/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1652.7301499999999,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/base64/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1654.43325,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/diff/",
+      "performance": 98,
+      "accessibility": 100,
+      "lcpMs": 1354.40715,
+      "cls": 0.09119480996867513
+    }
+  ],
+  "enhanced": {
+    "editorReadyMs": 116,
+    "editorScriptGzip": 109765,
+    "jsonInputBytes": 1048576,
+    "maximumJsonMs": 158,
+    "batch1000Ms": 143,
+    "diffLongLineMs": 122,
+    "diffAlgorithmGzip": 4047,
+    "diffAlgorithmMeasurement": "Observed executable URLs; worker bodies unavailable through page response are reread from the same local preview URL.",
+    "diffStressInput": "20,000 lines per side seeded with DOM value + input event after native automation fill timed out; actual keyboard, compare, cancel and search actions follow.",
+    "diffEditMs": 202,
+    "diffCancelMs": 40,
+    "diffNavigationMs": 140
+  }
+}

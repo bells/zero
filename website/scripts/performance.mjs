@@ -5,7 +5,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 
 const origin = process.env.WEBSITE_ORIGIN || 'http://127.0.0.1:4321';
-const routes = ['/', '/en/', '/download/', '/en/download/', '/tools/snap/', '/guide/install/', '/en/guide/install/', '/en/faq/', ...['', 'en/'].flatMap((locale) => ['tools/', 'tools/timestamp/', 'tools/json/', 'tools/base64/'].map((route) => `/${locale}${route}`))];
+const routes = ['/', '/en/', '/download/', '/en/download/', '/tools/snap/', '/guide/install/', '/en/guide/install/', '/en/faq/', ...['', 'en/'].flatMap((locale) => ['tools/', 'tools/timestamp/', 'tools/json/', 'tools/base64/', 'tools/diff/'].map((route) => `/${locale}${route}`))];
 await mkdir('output/performance', { recursive: true });
 const browser = await chromium.launch({ channel: process.env.WEBSITE_BROWSER_CHANNEL || undefined });
 const browserVersion = browser.version();
@@ -58,6 +58,55 @@ try {
   await stressPage.locator('[data-clear]').click();
   if (await stressPage.locator('[data-output]').inputValue() !== '') throw new Error('Clear retained maximum-size output');
   await stressPage.close();
+  const batchPage = await browser.newPage();
+  await batchPage.goto(`${origin}/en/tools/timestamp/`);
+  await batchPage.locator('[data-time-mode="batch"]').click();
+  await batchPage.locator('[data-batch-source]').fill(Array(1000).fill('1700000000').join('\n'));
+  const batchStart = Date.now(); await batchPage.locator('[data-batch-run]').click();
+  await batchPage.locator('[data-batch-download]:enabled').waitFor();
+  enhanced.batch1000Ms = Date.now() - batchStart;
+  if (await batchPage.locator('[data-batch-rows] tr').count() !== 100) throw new Error('Batch rendering exceeded page size');
+  await batchPage.close();
+  const diffPage = await browser.newPage();
+  await diffPage.goto(`${origin}/en/tools/diff/`);
+  await diffPage.locator('[data-web-tools][data-ready="true"]').waitFor();
+  const algorithmResponses = []; diffPage.on('response', response => { if (response.request().resourceType() === 'script') algorithmResponses.push(response); });
+  await diffPage.locator('[data-diff-source="before"]').fill('a'.repeat(10000));
+  await diffPage.locator('[data-diff-source="after"]').fill('b'.repeat(10000));
+  const diffStart = Date.now(); await diffPage.locator('[data-diff-compare]').click();
+  await diffPage.locator('[data-diff-result]:visible').waitFor();
+  enhanced.diffLongLineMs = Date.now() - diffStart;
+  enhanced.diffAlgorithmGzip = 0;
+  enhanced.diffAlgorithmMeasurement = 'Observed executable URLs; worker bodies unavailable through page response are reread from the same local preview URL.';
+  for (const response of algorithmResponses) {
+    let body;
+    try { body = await response.body(); }
+    catch {
+      if (new URL(response.url()).origin !== new URL(origin).origin) throw new Error('Unexpected external algorithm resource');
+      const resource = await diffPage.request.get(response.url());
+      if (!resource.ok()) throw new Error(`Cannot measure algorithm resource: ${response.url()}`);
+      body = await resource.body();
+    }
+    enhanced.diffAlgorithmGzip += gzipSync(body).length;
+  }
+  if (!await diffPage.locator('[data-diff-inline]').isVisible()) throw new Error('Long lines did not report inline fallback');
+  // Native automation paste stalls on this many lines; seed the bulk fixture, then probe real keyboard interaction.
+  await diffPage.evaluate(({ before, after }) => {
+    for (const [side, value] of Object.entries({ before, after })) {
+      const input = document.querySelector(`[data-diff-source="${side}"]`);
+      input.value = value; input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }, { before: Array.from({length:20000},(_,i)=>'before-'+i).join('\n'), after: Array.from({length:20000},(_,i)=>'after-'+i).join('\n') });
+  enhanced.diffStressInput = '20,000 lines per side seeded with DOM value + input event after native automation fill timed out; actual keyboard, compare, cancel and search actions follow.';
+  const editStart = Date.now(); await diffPage.locator('[data-diff-source="before"]').focus(); await diffPage.keyboard.press('End'); await diffPage.keyboard.type('x'); enhanced.diffEditMs = Date.now() - editStart;
+  await diffPage.locator('[data-diff-compare]').click();
+  const cancelStart=Date.now(); await diffPage.locator('[data-diff-cancel]').click();
+  await diffPage.locator('[data-diff-compare]:enabled').waitFor(); enhanced.diffCancelMs=Date.now()-cancelStart;
+  if (await diffPage.locator('[data-diff-result]').isVisible()) throw new Error('Cancelled comparison retained results');
+  const navigationStart=Date.now(); await diffPage.locator('[data-open-search]').click(); await diffPage.keyboard.press('Escape'); enhanced.diffNavigationMs=Date.now()-navigationStart;
+  if (enhanced.diffCancelMs > 1000 || enhanced.diffNavigationMs > 1000) throw new Error('Heavy comparison blocked cancellation/navigation');
+  await diffPage.close();
+
 } finally { await browser.close(); }
 const chrome = await launch({ chromeFlags: ['--headless', '--disable-extensions'], logLevel: 'silent' });
 const reports = [];

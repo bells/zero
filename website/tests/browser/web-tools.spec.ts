@@ -5,7 +5,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 const ready = async (page: Page, route: string) => { await page.goto(route); await expect(page.locator('[data-web-tools]')).toHaveAttribute('data-ready', 'true'); };
 for (const locale of ['zh', 'en'] as const) {
   const prefix = locale === 'zh' ? '' : 'en/';
-  for (const slug of ['', 'timestamp', 'json', 'base64']) {
+  for (const slug of ['', 'timestamp', 'json', 'base64', 'diff']) {
     test(`${locale} web ${slug || 'directory'}: rendered, accessible, responsive and no-script guidance`, async ({ page, browser }) => {
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
@@ -37,7 +37,7 @@ for (const locale of ['zh', 'en'] as const) {
       await expect(staticPage.locator('noscript .wt-notice')).toContainText('JavaScript');
       await expect(staticPage.locator('.wt-guidance')).toBeVisible();
       await expect(staticPage.locator('.wt-cta')).toContainText(locale === 'zh' ? '尚未内置桌面版' : 'not currently built into');
-      await expect(staticPage.locator('.wt-tabs a')).toHaveCount(4);
+      await expect(staticPage.locator('.wt-tabs a')).toHaveCount(5);
       await context.close();
       expect(errors).toEqual([]);
     });

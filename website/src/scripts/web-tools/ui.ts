@@ -12,13 +12,14 @@ export function createUI(root: HTMLElement, locale: Locale) {
   const statusElement = root.querySelector<HTMLElement>('[data-status]');
   const status = (message: string, error = false) => { if (statusElement) { statusElement.textContent = message; statusElement.dataset.error = String(error); } };
   const error = (value: ToolError) => status(errorMessage(value, locale), true);
-  const copy = async (text: string) => {
+  const copy = async (text: string, current: () => boolean = () => true) => {
     const fallback = root.querySelector<HTMLElement>('[data-manual-copy]');
     if (fallback) fallback.hidden = true;
     try {
       if (!navigator.clipboard?.writeText) throw new Error('unavailable');
-      await navigator.clipboard.writeText(text); status(c.copied);
+      await navigator.clipboard.writeText(text); if (current()) status(c.copied);
     } catch {
+      if (!current()) return;
       status(c.copyFailed, true);
       if (fallback) { fallback.hidden = false; const field = element<HTMLTextAreaElement>(fallback, 'textarea'); field.value = text; field.focus(); field.select(); }
     }

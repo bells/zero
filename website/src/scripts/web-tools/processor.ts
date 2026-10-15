@@ -1,5 +1,5 @@
 import { JobRunner } from '../../lib/web-tools/job-runner';
-import { limits, textFits, type Job, type JobValue, type Operation } from '../../lib/web-tools/contracts';
+import { limits, textFits, type ProcessorJob, type JobValue, type Operation } from '../../lib/web-tools/contracts';
 import type { EditorHandle } from './editor';
 import { element, type UI } from './ui';
 export function initProcessor(ui: UI, tool: 'json' | 'base64') {
@@ -40,7 +40,7 @@ export function initProcessor(ui: UI, tool: 'json' | 'base64') {
   const perform = async (operation: Operation) => {
     invalidate(); const current = revision;
     deadline = setTimeout(() => { invalidate(); ui.error({ code: 'timeout' }); }, 5000);
-    let input: Job['input'] = source.value; let mime: string | undefined;
+    let input: ProcessorJob['input'] = source.value; let mime: string | undefined;
     const selected = file?.files?.[0];
     if (mode?.value === 'image' && operation === 'image-encode' && selected) {
       if (selected.size > limits.image) { busy(false); ui.error({ code: 'limit' }); return; }

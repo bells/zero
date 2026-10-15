@@ -36,7 +36,7 @@ export function parseTimestamp(input: string, unit: Unit = 'auto', timezone: 'UT
   const milliseconds = date.getTime() - offsetMinutes * 60_000;
   return { ok: true, value: { milliseconds, interpretation: offset ? 'offset' : timezone } };
 }
-export function timestampRows(milliseconds: number, now: number, locale: 'zh' | 'en') {
+export function timestampRows(milliseconds: number, now: number, locale: 'zh' | 'en'): [string, string, string, string, string, string] {
   const iso = new Date(milliseconds).toISOString();
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US-u-ca-gregory', { timeZone: 'Etc/GMT-8', era: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3, hourCycle: 'h23' }).formatToParts(new Date(milliseconds)).map((part) => [part.type, part.value]));
   const year = parts.era === 'BC' ? 1 - Number(parts.year) : Number(parts.year);

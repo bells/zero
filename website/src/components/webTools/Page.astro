@@ -1,4 +1,6 @@
 ---
+import TimestampWorkspace from './TimestampWorkspace.astro';
+import DiffWorkspace from './DiffWorkspace.astro';
 import Layout from '../../layouts/Layout.astro';
 import { webCopy, webTools, webReviewedAt, type WebTool } from '../../content/web-tools';
 import { catalog, copy, path, type Locale } from '../../content/site';
@@ -27,22 +29,14 @@ const available = catalog.packages.some((entry) => entry.profile === 'standard')
     <header class="wt-heading"><p class="wt-local">{c.local}</p><h1>{title}</h1><p>{details?.description ?? c.intro}</p></header>
     <noscript><p class="wt-notice">{c.nojs}</p></noscript>
     {!tool ? <>
-      <div class="wt-directory">{webTools[locale].map((entry, index) => <a href={path(locale, `tools/${entry.slug}`)} class="wt-directory-row"><span class="wt-tool-symbol" aria-hidden="true">{['↔', '{ }', 'A/'][index]}</span><div><h2>{entry.title}</h2><p>{entry.description}</p><code>{entry.example}</code></div><span aria-hidden="true">↗</span></a>)}</div>
+      <div class="wt-directory">{webTools[locale].map((entry) => <a href={path(locale, `tools/${entry.slug}`)} class="wt-directory-row"><span class="wt-tool-symbol" aria-hidden="true">{{ timestamp: '↔', json: '{ }', base64: 'A/', diff: '±' }[entry.slug]}</span><div><h2>{entry.title}</h2><p>{entry.description}</p><code>{entry.example}</code></div><span aria-hidden="true">↗</span></a>)}</div>
       <section class="wt-guidance"><h2>{c.desktop}</h2><nav class="wt-desktop-links" aria-label={c.desktop}>{toolSlugs.map((slug) => <a href={path(locale, `tools/${slug}`)}>Zero {slug.charAt(0).toUpperCase() + slug.slice(1)} ↗</a>)}</nav><p>{c.directoryLimits}</p><p>{c.privacy}</p></section>
       <section class="wt-faq"><h2>{c.faq}</h2>{c.directoryFaq.map((item) => <details><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>
     </> : <>
       <fieldset class="wt-workspace" data-interactive disabled aria-label={title}>
         {tool === 'timestamp' ? <>
-          <section class="wt-clock" aria-label={c.clock}>
-            <div><h2>{c.clock}</h2><p>{c.clockNote}</p><button type="button" data-pause aria-pressed="false">{c.pause}</button></div>
-            <div class="wt-clock-values">{(['seconds', 'milliseconds'] as const).map((unit) => <div><span>{c[unit]}</span><output aria-live="off" data-clock={unit}>—</output><button type="button" data-copy-clock={unit} aria-label={`${c.copy} ${c[unit]}`}>{locale === 'zh' ? '复制' : 'Copy'}</button></div>)}</div>
-          </section>
-          <div class="wt-time-form"><label for="timestamp-input">{c.dateInput}</label><input id="timestamp-input" data-source type="text" maxlength="256" placeholder="1700000000 / 2026-10-14 20:24:00" autocomplete="off" spellcheck="false" />
-            <div class="wt-controls"><label>{c.unit}<select data-unit><option value="auto">{c.auto}</option><option value="seconds">{c.seconds}</option><option value="milliseconds">{c.milliseconds}</option></select></label><label>{c.zone}<select data-zone><option value="UTC+08:00">UTC+08:00</option><option value="UTC">UTC</option></select></label><button type="button" data-clear>{c.clear}</button></div>
-          </div>
-          <p data-interpretation class="wt-adopted"></p>
-          <div class="wt-results" data-time-results hidden>{[c.seconds, c.milliseconds, c.beijing, 'UTC', 'ISO 8601', c.relative].map((label, index) => <div class="wt-result-row"><span>{label}</span><output aria-live="off" data-row={index}></output><button type="button" data-copy-row={index} aria-label={`${c.copy} ${label}`}>{locale === 'zh' ? '复制' : 'Copy'}</button></div>)}</div>
-        </> : <>
+          <TimestampWorkspace locale={locale} />
+        </> : tool === 'diff' ? <DiffWorkspace locale={locale} /> : <>
           {tool === 'base64' && <div class="wt-codec-controls"><label>{c.mode}<select data-mode><option value="text">{c.text}</option><option value="url">{c.url}</option><option value="image">{c.image}</option></select></label><label data-file-label hidden>{c.file}<input type="file" data-file accept="image/png,image/jpeg,image/webp" /></label></div>}
           <div class="wt-editor-columns"><div class="wt-editor-pane"><div class="wt-pane-label"><label for="tool-input">{c.source}</label>{tool === 'json' && <button type="button" data-editor-enable>{c.enhance}</button>}</div><textarea id="tool-input" data-source spellcheck="false" autocomplete="off" placeholder={details?.example}></textarea><div data-editor-host hidden></div></div><div class="wt-editor-pane"><label for="tool-output">{c.output}</label><textarea id="tool-output" data-output readonly spellcheck="false" placeholder={c.ready}></textarea></div></div>
           <div class="wt-actions">

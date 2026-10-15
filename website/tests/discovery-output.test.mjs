@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 
 const origin = 'https://www.usezero.cn';
-const docs = ['tools', 'tools/timestamp', 'tools/json', 'tools/base64', 'tools/snap', 'tools/launch', 'tools/awake', 'tools/paper', 'tools/file', 'guide/install', 'faq'];
+const docs = ['tools', 'tools/timestamp', 'tools/json', 'tools/base64', 'tools/diff', 'tools/snap', 'tools/launch', 'tools/awake', 'tools/paper', 'tools/file', 'guide/install', 'faq'];
 const routes = ['', 'download', ...docs].flatMap((page) => [page ? `/${page}/` : '/', `/en/${page ? `${page}/` : ''}`]);
 const output = new URL('../dist/', import.meta.url);
 const htmlFor = (route) => readFile(new URL(`${route.slice(1)}index.html`, output), 'utf8');
@@ -41,11 +41,11 @@ test('JSON-LD connects each page to stable software, website and source entities
     const page = nodes.find((node) => node['@type'] === 'WebPage' || node['@type'] === 'CollectionPage');
     assert.equal(page.url, `${origin}${route}`);
     assert.equal(page.inLanguage, route.startsWith('/en/') ? 'en' : 'zh-CN');
-    const web = /\/tools\/(timestamp|json|base64)\//.test(route);
+    const web = /\/tools\/(timestamp|json|base64|diff)\//.test(route);
     const directory = /\/tools\/$/.test(route);
     assert.equal(page.about['@id'], web ? `${origin}${route}#tool` : directory ? `${origin}${route}#list` : software['@id']);
     if (web) assert.equal(nodes.find((node) => node['@type'] === 'WebApplication').browserRequirements, 'JavaScript');
-    if (directory) assert.equal(nodes.find((node) => node['@type'] === 'ItemList').itemListElement.length, 3);
+    if (directory) assert.equal(nodes.find((node) => node['@type'] === 'ItemList').itemListElement.length, 4);
     assert.equal(page.isPartOf['@id'], `${origin}/#website`);
   }
 });

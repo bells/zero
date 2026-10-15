@@ -41,6 +41,9 @@ importers:
       astro:
         specifier: 7.3.8
         version: 7.3.8(@types/node@26.6.5)(yaml@2.9.1)
+      diff:
+        specifier: 9.0.0
+        version: 9.0.0
       image-meta:
         specifier: 0.3.0
         version: 0.3.0

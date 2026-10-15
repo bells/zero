@@ -35,7 +35,7 @@ try {
   await writeFile(`${workspace}/src/content/releases.json`, await readFile(`${root}src/content/releases.json`));
   execFileSync(process.execPath, [`${root}node_modules/astro/bin/astro.mjs`, 'build'], { cwd: workspace, env: { ...process.env, SITE_BASE: '/zero-preview/', SITE_PREVIEW: '1' }, stdio: 'pipe' });
   await cp(`${workspace}/dist`, new URL('preview/', output), { recursive: true });
-  for (const route of ['', 'en/', 'download/', 'en/download/', 'tools/snap/', 'en/tools/snap/', 'guide/install/', 'en/guide/install/', 'faq/', 'en/faq/', 'tools/', 'en/tools/', 'tools/timestamp/', 'en/tools/timestamp/', 'tools/json/', 'en/tools/json/', 'tools/base64/', 'en/tools/base64/']) {
+  for (const route of ['', 'en/', 'download/', 'en/download/', 'tools/snap/', 'en/tools/snap/', 'guide/install/', 'en/guide/install/', 'faq/', 'en/faq/', 'tools/', 'en/tools/', 'tools/timestamp/', 'en/tools/timestamp/', 'tools/json/', 'en/tools/json/', 'tools/base64/', 'en/tools/base64/', 'tools/diff/', 'en/tools/diff/']) {
     const page = await readFile(`${workspace}/dist/${route}index.html`, 'utf8');
     assert.match(page, /content="noindex, nofollow"/);
     assert.ok(page.includes(`https://www.usezero.cn/zero-preview/${route}`));

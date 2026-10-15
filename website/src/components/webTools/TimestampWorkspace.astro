@@ -1,0 +1,28 @@
+---
+import { webCopy } from '../../content/web-tools';
+import { batchCopy } from '../../content/timestamp-batch-copy';
+import type { Locale } from '../../content/site';
+import '../../styles/timestamp-batch.css';
+interface Props { locale: Locale }
+const {locale}=Astro.props;
+const c=webCopy[locale]; const b=batchCopy[locale];
+---
+          <section class="wt-clock" aria-label={c.clock}>
+            <div><h2>{c.clock}</h2><p>{c.clockNote}</p><button type="button" data-pause aria-pressed="false">{c.pause}</button></div>
+            <div class="wt-clock-values">{(['seconds', 'milliseconds'] as const).map((unit) => <div><span>{c[unit]}</span><output aria-live="off" data-clock={unit}>—</output><button type="button" data-copy-clock={unit} aria-label={`${c.copy} ${c[unit]}`}>{locale === 'zh' ? '复制' : 'Copy'}</button></div>)}</div>
+          </section>
+
+<div class="wt-time-modes" role="group" aria-label={b.mode}><button type="button" data-time-mode="single" aria-pressed="true">{b.single}</button><button type="button" data-time-mode="batch" aria-pressed="false">{b.batch}</button></div>
+<div data-single-panel>          <div class="wt-time-form"><label for="timestamp-input">{c.dateInput}</label><input id="timestamp-input" data-source type="text" maxlength="256" placeholder="1700000000 / 2026-10-14 20:24:00" autocomplete="off" spellcheck="false" />
+            <div class="wt-controls"><label>{c.unit}<select data-unit><option value="auto">{c.auto}</option><option value="seconds">{c.seconds}</option><option value="milliseconds">{c.milliseconds}</option></select></label><label>{c.zone}<select data-zone><option value="UTC+08:00">UTC+08:00</option><option value="UTC">UTC</option></select></label><button type="button" data-clear>{c.clear}</button></div>
+          </div>
+          <p data-interpretation class="wt-adopted"></p>
+          <div class="wt-results" data-time-results hidden>{[c.seconds, c.milliseconds, c.beijing, 'UTC', 'ISO 8601', c.relative].map((label, index) => <div class="wt-result-row"><span>{label}</span><output aria-live="off" data-row={index}></output><button type="button" data-copy-row={index} aria-label={`${c.copy} ${label}`}>{locale === 'zh' ? '复制' : 'Copy'}</button></div>)}</div>
+</div>
+<section data-batch-panel hidden aria-label={b.batch}>
+<label for="batch-source">{b.source}</label><p id="batch-hint" class="wt-batch-hint">{b.hint}</p>
+<textarea id="batch-source" data-batch-source aria-describedby="batch-hint" spellcheck="false" autocomplete="off" placeholder={'1700000000\n1700000000000\n2026-10-15 08:00:00'}></textarea>
+<div class="wt-controls"><label>{c.unit}<select data-batch-unit><option value="auto">{c.auto}</option><option value="seconds">{c.seconds}</option><option value="milliseconds">{c.milliseconds}</option></select></label><label>{c.zone}<select data-batch-zone><option value="UTC+08:00">UTC+08:00</option><option value="UTC">UTC</option></select></label></div>
+<div class="wt-actions"><button type="button" class="wt-primary" data-batch-run>{b.run}</button><button type="button" data-batch-example>{b.example}</button><button type="button" data-batch-copy disabled>{b.copy}</button><button type="button" data-batch-download disabled>{b.download}</button><button type="button" data-batch-clear>{b.clear}</button><button type="button" data-batch-cancel hidden>{b.cancel}</button></div>
+<section data-batch-result hidden aria-label={b.results}><p data-batch-summary class="wt-batch-summary"></p><div class="wt-batch-table" tabindex="0" role="region" aria-label={b.results}><table><thead><tr><th scope="col">{b.line}</th><th scope="col">{b.original}</th><th scope="col">{b.result}</th></tr></thead><tbody data-batch-rows></tbody></table></div><div class="wt-batch-pagination"><button type="button" data-batch-previous>{b.previous}</button><output data-batch-page></output><button type="button" data-batch-next>{b.next}</button></div></section>
+</section>
