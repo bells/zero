@@ -1,0 +1,24 @@
+{
+  "checkedOn": "2026-10-17",
+  "package": "@waline/vercel",
+  "version": "1.43.4",
+  "publishedAt": "2026-09-29T15:49:12.922Z",
+  "registryLicense": "MIT",
+  "packageJsonLicense": "MIT",
+  "shippedLicenseText": "GNU GENERAL PUBLIC LICENSE Version 2, June 1991",
+  "corePackage": "@waline/core@0.1.0",
+  "corePackageJsonLicense": "MIT",
+  "coreShippedLicenseText": "GNU GENERAL PUBLIC LICENSE Version 2, June 1991",
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || ^24.0.0"
+  },
+  "testedNode": "v24.20.0",
+  "officialTag": "@waline/vercel@1.43.4",
+  "officialTagCommit": "c4b0f1ebb9a7970d36493d4c3580f3f43e098fa5",
+  "tarball": "https://registry.npmjs.org/@waline/vercel/-/vercel-1.43.4.tgz",
+  "integrity": "sha512-g6qblq8i5H0ByDbsYRdPcsvauXicXfiLYhxIynwHpuYuawM1QuxAGkttQQgCOi+u960JFjbsQOmRzA0XHJfydw==",
+  "licenseSha256": "010728bac3f86aa3c028f766a28f4ec2da4289335571dc9756e5a7d595de59bc",
+  "qualification": "local_adaptation_passed_hosted_qualification_pending_retention_gate_open",
+  "adoptedLicense": "GPL-2.0-only",
+  "upstreamMetadataConflictResolved": false
+}

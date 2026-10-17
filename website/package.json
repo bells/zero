@@ -14,7 +14,7 @@
     "prebuild": "node scripts/prepare-social.mjs",
     "build": "astro build",
     "preview": "astro preview --host 127.0.0.1 --port 4321 --ignore-lock",
-    "test": "node --test tests/catalog.test.mjs tests/web-tools.test.mjs tests/timestamp-batch.test.mjs tests/text-diff*.test.mjs",
+    "test": "node --test tests/catalog.test.mjs tests/web-tools.test.mjs tests/timestamp-batch.test.mjs tests/text-diff*.test.mjs tests/feedback.test.mjs",
     "test:seo": "node --test tests/discovery-output.test.mjs",
     "pretest:browser": "pnpm verify:fixtures",
     "test:browser": "playwright test",

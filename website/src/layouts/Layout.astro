@@ -7,8 +7,8 @@ import Icon from '../components/Icon.astro';
 import { copy, links, path, asset, isPreview, type Locale } from '../content/site';
 import { resourceLabels } from '../content/documentation';
 import { canonicalUrl, siteOrigin, structuredData } from '../content/seo';
-interface Props { locale: Locale; page?: string; title?: string; description?: string; webTools?: boolean }
-const { locale, page = '', title, description: customDescription, webTools = false } = Astro.props;
+interface Props { locale: Locale; page?: string; title?: string; description?: string; webTools?: boolean; frameOrigin?: string }
+const { locale, page = '', title, description: customDescription, webTools = false, frameOrigin } = Astro.props;
 const c = copy[locale];
 const labels = resourceLabels[locale];
 const canonical = canonicalUrl(locale, page);
@@ -23,6 +23,7 @@ const pageTitle = title || c.title;
 <html lang={locale === 'zh' ? 'zh-CN' : 'en'}>
   <head>
     <meta charset="UTF-8" />
+    {webTools && <meta http-equiv="Content-Security-Policy" content={`frame-src ${frameOrigin || "'none'"}`} />}
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="baidu-site-verification" content="codeva-po7u4eahFI" />
     <link rel="preload" href={bodyFont} as="font" type="font/woff2" crossorigin="anonymous" />

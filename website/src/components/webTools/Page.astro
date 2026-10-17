@@ -1,4 +1,7 @@
 ---
+import Feedback from './Feedback.astro';
+import { getFeedbackConfiguration } from '../../lib/feedback/config';
+import { siteOrigin } from '../../content/seo';
 import TimestampWorkspace from './TimestampWorkspace.astro';
 import DiffWorkspace from './DiffWorkspace.astro';
 import Layout from '../../layouts/Layout.astro';
@@ -14,9 +17,10 @@ const g = guideCopy[locale];
 const details = webTools[locale].find((entry) => entry.slug === tool);
 const page = tool ? `tools/${tool}` : 'tools';
 const title = details?.title ?? c.directory;
+const feedback = getFeedbackConfiguration({ ...process.env, SITE_PREVIEW: import.meta.env.SITE_PREVIEW, VERCEL_ENV: import.meta.env.VERCEL_ENV }, siteOrigin);
 const available = catalog.packages.some((entry) => entry.profile === 'standard');
 ---
-<Layout locale={locale} page={page} title={`${details?.guide.searchTitle ?? g.directoryTitle} | Zero`} description={details?.description ?? g.description} webTools>
+<Layout locale={locale} page={page} title={`${details?.guide.searchTitle ?? g.directoryTitle} | Zero`} description={details?.description ?? g.description} webTools frameOrigin={feedback?.origin}>
   <div class="wt container" data-web-tools data-locale={locale} data-tool={tool ?? 'directory'}>
     <div class="wt-bar">
       <nav class="wt-tabs" aria-label={c.directory}>
@@ -70,6 +74,7 @@ const available = catalog.packages.some((entry) => entry.profile === 'standard')
       </>}
       <section class="wt-faq"><h2>{c.faq}</h2>{details?.faq.map((item) => <details><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>
     </>}
+    <Feedback locale={locale} thread={page} origin={feedback?.origin} />
     <p class="wt-reviewed">{c.reviewed}: <time datetime={webReviewedAt}>{webReviewedAt}</time></p>
     <aside class="wt-cta"><div><h2>{c.cta}</h2><p>{c.ctaText}</p><p class="wt-future">{c.future}</p></div><a class="wt-download" href={path(locale, 'download')}>{available ? copy[locale].acquisition.available : copy[locale].acquisition.unavailable} ↗</a></aside>
     <dialog class="wt-search" data-search-dialog aria-labelledby="search-title"><div class="wt-search-top"><h2 id="search-title">{c.search}</h2><button type="button" data-close-search aria-label={c.close}>×</button></div><label for="tool-search">{c.searchHint}</label><input type="search" id="tool-search" data-search-input autocomplete="off" /><nav aria-label={c.search} data-search-results>{webTools[locale].map((entry) => <a href={path(locale, `tools/${entry.slug}`)} data-search-name={`${entry.slug} ${entry.title} ${entry.description}`}>{entry.title}<span>{entry.description}</span></a>)}</nav><p data-search-empty hidden>{c.empty}</p></dialog>

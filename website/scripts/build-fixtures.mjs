@@ -54,5 +54,16 @@ try {
   assert.match(await readFile(`${workspace}/dist/index.html`, 'utf8'), /content="noindex, nofollow"/, 'Vercel preview must opt out of indexing automatically');
   assert.match(await readFile(`${workspace}/dist/robots.txt`, 'utf8'), /Disallow: \//);
   assert.match(await readFile(`${workspace}/dist/llms.txt`, 'utf8'), /Discovery index is disabled/);
+  execFileSync(process.execPath, [`${root}node_modules/astro/bin/astro.mjs`, 'build'], { cwd: workspace, env: { ...process.env, SITE_BASE: '/feedback-review/', SITE_PREVIEW: '1', VERCEL_ENV: 'preview', PUBLIC_FEEDBACK_ENABLED: '1', PUBLIC_FEEDBACK_ORIGIN: 'https://production-feedback.example.invalid', PUBLIC_FEEDBACK_PREVIEW_ORIGIN: 'http://127.0.0.1:4323', FEEDBACK_ALLOWED_ORIGINS: 'http://127.0.0.1:4323', FEEDBACK_LOCAL_TEST: '1' }, stdio: 'pipe' });
+  await cp(`${workspace}/dist`, new URL('feedback/', output), { recursive: true });
+  for (const prefix of ['', 'en/']) for (const tool of ['', 'timestamp/', 'json/', 'base64/', 'diff/']) {
+    const page = await readFile(`${workspace}/dist/${prefix}tools/${tool}index.html`, 'utf8');
+    assert.ok(page.includes(`data-thread="tools${tool ? `/${tool.slice(0,-1)}` : ''}"`));
+    assert.ok(page.includes('data-origin="http://127.0.0.1:4323"'));
+    assert.ok(page.includes('frame-src http://127.0.0.1:4323'));
+    assert.equal(page.includes('<iframe'), false, 'Frames must only be created after activation');
+    assert.equal(page.includes('production-feedback.example.invalid'), false);
+  }
+  for (const slug of ['snap','awake','paper','launch','file']) assert.equal((await readFile(`${workspace}/dist/tools/${slug}/index.html`, 'utf8')).includes('data-feedback='),false);
   console.log('Isolated catalog fixtures and noindex/base-path builds passed. Fictional test packages remain in ignored output only.');
 } finally { await rm(workspace, { recursive: true, force: true }); }

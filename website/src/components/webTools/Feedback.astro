@@ -1,0 +1,21 @@
+---
+import { links,type Locale } from '../../content/site';
+interface Props { locale:Locale; thread:string; origin?:string }
+const {locale,thread,origin}=Astro.props;
+const zh=locale==='zh';
+const title=zh?'反馈与建议':'Feedback and suggestions';
+const c=zh?{intro:thread==='tools'?'遇到问题、有改进建议，或想要新工具？':'为当前工具留下问题或改进建议。',privacy:'工具输入仍在本地处理。只有你在反馈区主动填写的内容才会上传到独立服务，审核后可能公开；邮箱仅站长可见。',open:'展开反馈',close:'关闭反馈',retry:'重试加载',disabled:'免登录反馈尚未启用。你仍可前往 GitHub Issues（需要 GitHub 账号）。',nojs:'反馈需要 JavaScript。工具说明和 GitHub 支持入口仍可使用。',loading:'正在加载独立反馈页面…',error:'反馈暂时无法加载。可重试或关闭，工具内容仍保留。',support:'GitHub Issues'}:{intro:thread==='tools'?'Have a problem, an improvement or a new-tool idea?':'Leave a problem or suggestion for this tool.',privacy:'Tool inputs stay local. Only text you explicitly enter in feedback is sent to a separate service and may become public after review. Email stays private to the maintainer.',open:'Open feedback',close:'Close feedback',retry:'Retry loading',disabled:'Account-free feedback is not enabled yet. You can still use GitHub Issues (a GitHub account is required).',nojs:'Feedback requires JavaScript. Tool guidance and GitHub support remain available.',loading:'Loading the separate feedback page…',error:'Feedback could not load. Retry or close it; your tool content is preserved.',support:'GitHub Issues'};
+---
+<section class="wt-feedback" aria-labelledby="feedback-title" data-feedback data-origin={origin} data-thread={thread} data-feedback-locale={locale} data-loading={c.loading} data-failure={c.error}>
+  <h2 id="feedback-title">{title}</h2><p>{c.intro}</p><p>{c.privacy}</p>
+  {origin ? <>
+    <button type="button" data-feedback-open aria-expanded="false" aria-controls="feedback-region" hidden>{c.open}</button>
+    <div id="feedback-region" data-feedback-region hidden><div class="wt-actions"><button type="button" data-feedback-close>{c.close}</button><button type="button" data-feedback-retry hidden>{c.retry}</button></div><p role="status" aria-live="polite" data-feedback-status></p><div data-feedback-host></div></div>
+    <noscript><p>{c.nojs}</p></noscript>
+  </> : <p>{c.disabled}</p>}
+  <a href={links.issues}>{c.support} ↗</a>
+</section>
+<style>
+.wt-feedback{margin-block:40px;border-top:1px solid var(--line);padding-top:24px}.wt-feedback>p{max-width:75ch;color:var(--muted);margin-block:12px;font-size:14px}.wt-feedback>a{display:inline-flex;min-height:44px;align-items:center;margin-top:8px}.wt-feedback :global(iframe){display:block;width:100%;height:420px;border:1px solid var(--line);margin-top:16px;background:var(--wt-surface)}
+</style>
+<script>import '../../scripts/web-tools/feedback';</script>

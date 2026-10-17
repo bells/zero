@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist/client",
+  "functions": {
+    "api/index.ts": { "includeFiles": "dist/client/*.html", "maxDuration": 15 }
+  },
+  "routes": [
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/(.*)", "dest": "/api/index" }
+  ]
+}

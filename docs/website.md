@@ -136,3 +136,27 @@ SITE_BASE=/zero/ SITE_PREVIEW=1 pnpm --dir website build
 - 新旧任务使用显式操作联合和泛型 runner，保留旧处理器契约；新功能使用专用 worker。读取与处理 5 秒超时、可取消，过期结果/晚到读取不得覆盖新内容；所有序列化结果最多 8 MiB。输入、文件名和结果不进入网络、URL、console、站点存储；主题 enum 仍是唯一持久化例外。
 
 网站检查继续在 `website/` 独立运行，完整浏览器/SEO/性能入口已包括新页面，子路径 fixture 包含新 worker。当前验收、实测数据和边界见[本次记录](../openspec/changes/extend-web-tools-batch-and-diff/evidence/implementation.md)。本次不触及桌面源码、发行清单、原生运行、DNS 或搜索平台登记。
+
+## 按需反馈（2026-10-17，本地实现，默认禁用）
+
+双语在线目录及 timestamp/json/base64/diff 共十页接入 `components/webTools/Feedback.astro`，线程分别固定为 `tools`、`tools/timestamp`、`tools/json`、`tools/base64`、`tools/diff`。线程不含 locale/base，旧桌面说明路由不接入。共享 `Page.astro` 只提供入口，主站不运行 Waline 或管理后台代码。
+
+`src/lib/feedback/config.ts` 校验启用配置，`src/scripts/web-tools/feedback.ts` 在点击后创建异源 iframe；激活前不预连接或请求反馈服务。iframe 只传 allowlist 线程和语言，禁用 referrer、弹窗、顶层导航、下载、剪贴板和设备权限。父页只接受精确 origin、对应 contentWindow、严格字段和 240–1600px 高度范围的 ready/resize/error；12 秒未就绪可显式重试/关闭，工具状态保留。服务的请求超时为 8 秒，不自动重发未知结果。
+
+官网构建环境：
+
+| 变量 | 含义 |
+| --- | --- |
+| `PUBLIC_FEEDBACK_ENABLED` | 仅 `1` 启用，缺省关闭 |
+| `PUBLIC_FEEDBACK_ORIGIN` | 已验收的独立 HTTPS 生产 origin，无路径/凭据/查询串 |
+| `PUBLIC_FEEDBACK_PREVIEW_ORIGIN` | 独立预览 origin；预览不回退到生产，规范化后与生产相同也拒绝 |
+| `FEEDBACK_ALLOWED_ORIGINS` | 逗号分隔的明确 origin 白名单；须包含实际选用地址 |
+| `FEEDBACK_LOCAL_TEST` | 仅本地 fixture 使用 `1` 允许 loopback HTTP，生产不能使用 |
+
+缺失、非法、同主站来源或不在白名单时只显示准确的不可用信息和 GitHub 支持链接；不会显示能提交的假表单。所有配置只提供地址/开关，不得放入数据库或管理员秘密。`Layout.astro` 为在线工具输出限制 frame-src 的 CSP；反馈服务另行通过 HTTP 头限制 frame-ancestors。配置改变后需要重建，预览还须使用隔离数据库、管理员和服务端秘密。
+
+这是独立运维服务，非全托管评论产品。访客只需正文，昵称/邮箱可选；全量待审，邮箱仅站长可见，正文按纯文字公开，站长身份由认证角色决定。没有自动邮件、头像、外部反垃圾、附件或投票。工具输入/结果/文件/搜索仍本地处理，不自动附入反馈；主动填写的反馈上传到独立服务。云商可能保留连接元数据，不承诺网络匿名、自动回复或反馈自动到期。
+
+服务维护、受控管理员初始化、审核/升级、配额巡检、暂停、私密导出与隔离恢复、删除及实际保留边界见 [feedback/README.md](../feedback/README.md)。来源摘要有逻辑过期和请求时清理/CLI，但尚无托管周期清理，不能声称空闲时物理保留不超过 24 小时。启用前必须验证周期清理、账号资格/零新增费用、区域、日志/备份到期、函数/导出上限、部署及 Chrome/Safari 实际行为；当前不启用服务或创建云资源。
+
+`pnpm --dir website verify:fixtures` 额外生成 `/feedback-review/` 隔离预览，使用 4323 本地反馈服务。`feedback/` Chrome suite 运行两个真实本地 HTTP 来源；原生接口负向矩阵、待审/审核/回复、存储受阻、私密标记、故障与幂等重试的证据与模拟故障范围见[本次验收](../openspec/changes/add-web-tools-feedback/evidence/implementation.md)。主站完整 SEO/浏览器/性能检查仍独立执行，点击后的反馈资源另计，不混入“未点击零反馈连接”的初始预算。
