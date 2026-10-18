@@ -1076,43 +1076,60 @@ fn show_grouped_status_item_menu(
     let item = grouped_status_item_target(app, cursor_x, rect)?;
     let settings = ensure_status_bar_settings(app, &plugin_records(app)?)?;
     let snap = item.plugin_name.as_deref() == Some(ZERO_SNAP_PLUGIN_ID);
-    #[cfg(feature = "bundled-tools")]
-    if snap {
-        crate::services::screenshot::capture_menu_display(app);
-    }
-    let menu = if item.id == PRIMARY_STATUS_ITEM_ID {
-        primary_status_bar_menu(app, settings.plugin_items_collapsed)?
-    } else {
-        tool_status_bar_menu(app, &item.id)?
-    };
+    let result = (|| {
+        #[cfg(feature = "bundled-tools")]
+        if snap {
+            crate::services::screenshot::capture_menu_display(app);
+        }
+        let menu = if item.id == PRIMARY_STATUS_ITEM_ID {
+            primary_status_bar_menu(app, settings.plugin_items_collapsed)?
+        } else {
+            tool_status_bar_menu(app, &item.id)?
+        };
 
-    tray.set_menu(Some(menu))
-        .map_err(|error| format!("failed to update grouped status bar menu: {error}"))?;
-    if snap {
-        let items = status_bar_items(app)?;
-        let index = grouped_status_item_ids(&items, settings.plugin_items_collapsed)
-            .iter()
-            .position(|id| id == &item.id)
-            .ok_or("Snap cell unavailable")?;
-        tray.with_inner_tray_icon(move |inner| {
-            let mtm = objc2_foundation::MainThreadMarker::new()
-                .ok_or("menu requires native main thread")?;
-            let status = inner.ns_status_item().ok_or("status item unavailable")?;
-            let button = status.button(mtm).ok_or("status button unavailable")?;
-            let menu = status.menu(mtm).ok_or("native menu unavailable")?;
-            let point = objc2_foundation::NSPoint::new(
-                index as f64 * MACOS_STATUS_ITEM_CELL_SIZE as f64,
-                0.0,
-            );
-            menu.popUpMenuPositioningItem_atLocation_inView(None, point, Some(&button));
-            Ok::<_, String>(())
-        })
-        .map_err(|error| error.to_string())??;
-    } else {
-        tray.with_inner_tray_icon(|inner| inner.show_menu())
-            .map_err(|error| format!("failed to show grouped status bar menu: {error}"))?;
-    }
-    Ok(())
+        tray.set_menu(Some(menu))
+            .map_err(|error| format!("failed to update grouped status bar menu: {error}"))?;
+        if snap {
+            let items = status_bar_items(app)?;
+            let index = grouped_status_item_ids(&items, settings.plugin_items_collapsed)
+                .iter()
+                .position(|id| id == &item.id)
+                .ok_or("Snap cell unavailable")?;
+            tray.with_inner_tray_icon(move |inner| {
+                let mtm = objc2_foundation::MainThreadMarker::new()
+                    .ok_or("menu requires native main thread")?;
+                let status = inner.ns_status_item().ok_or("status item unavailable")?;
+                let button = status.button(mtm).ok_or("status button unavailable")?;
+                let menu = status.menu(mtm).ok_or("native menu unavailable")?;
+                let point = objc2_foundation::NSPoint::new(
+                    index as f64 * MACOS_STATUS_ITEM_CELL_SIZE as f64,
+                    0.0,
+                );
+                menu.popUpMenuPositioningItem_atLocation_inView(None, point, Some(&button));
+                Ok::<_, String>(())
+            })
+            .map_err(|error| error.to_string())??;
+        } else {
+            tray.with_inner_tray_icon(|inner| inner.show_menu())
+                .map_err(|error| format!("failed to show grouped status bar menu: {error}"))?;
+        }
+        Ok(())
+    })();
+    let cleanup = configure_grouped_status_item_clicks(tray);
+    result.and(cleanup)
+}
+
+#[cfg(target_os = "macos")]
+fn configure_grouped_status_item_clicks<R: Runtime>(tray: &TrayIcon<R>) -> Result<(), String> {
+    tray.with_inner_tray_icon(|inner| {
+        inner.set_show_menu_on_right_click(false);
+        let status = inner.ns_status_item().ok_or("status item unavailable")?;
+        // AppKit can track an attached menu before the tray-icon child receives mouse events.
+        // Keep the menu in tray-icon and attach it only while explicitly presenting it.
+        status.setMenu(None);
+        Ok::<_, String>(())
+    })
+    .map_err(|error| error.to_string())?
 }
 
 #[cfg(target_os = "macos")]
@@ -1209,6 +1226,7 @@ fn apply_existing_status_bar_layout(
         primary
             .set_menu(Some(primary_status_bar_menu(app, plugin_items_collapsed)?))
             .map_err(|error| format!("failed to update primary status bar menu: {error}"))?;
+        configure_grouped_status_item_clicks(&primary)?;
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -1475,8 +1493,7 @@ fn sync_primary_status_item(
             &tray,
             grouped_status_item_ids(items, plugin_items_collapsed),
         )?;
-        tray.with_inner_tray_icon(|inner| inner.set_show_menu_on_right_click(false))
-            .map_err(|error| format!("failed to configure grouped status bar menu: {error}"))?;
+        configure_grouped_status_item_clicks(&tray)?;
     }
 
     Ok(())
