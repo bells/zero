@@ -24,6 +24,24 @@ const available = catalog.packages.some((entry) => entry.profile === 'standard')
 ---
 <Layout locale={locale} page={page} title={`${details?.guide.searchTitle ?? g.directoryTitle} | Zero`} description={details?.description ?? g.description} webTools frameOrigin={feedback?.origin}>
   <div class="wt container" data-web-tools data-locale={locale} data-tool={tool ?? 'directory'}>
+    {!tool ? <>
+      <header class="wt-bar wt-directory-bar">
+        <div class="wt-directory-navigation">
+          <h1>{c.directory}</h1>
+          <div class="wt-category-controls" role="group" aria-label={locale === 'zh' ? '工具分类' : 'Tool category'} data-enhance-only hidden>
+            {(['all', ...webCategories] as const).map((category) => <button type="button" data-category={category} aria-pressed={category === 'all' ? 'true' : 'false'}>{categories[category]}</button>)}
+          </div>
+        </div>
+        <div class="wt-directory-settings" data-enhance-only hidden>
+          <div class="wt-directory-search">
+            <input type="search" data-directory-search aria-label={locale === 'zh' ? '在当前分类搜索' : 'Search current category'} placeholder={c.search} autocomplete="off" />
+            <button type="button" data-open-search aria-label={locale === 'zh' ? '搜索全部工具' : 'Search all tools'} title={c.searchKeys}><kbd>{c.searchKeys}</kbd></button>
+          </div>
+          <select data-theme aria-label={c.theme}><option value="system">{c.system}</option><option value="light">{c.light}</option><option value="dark">{c.dark}</option></select>
+        </div>
+      </header>
+      <p class="wt-local wt-directory-local">{c.local}</p>
+    </> : <>
     <div class="wt-bar">
       <nav class="wt-tabs" aria-label={c.directory}>
         <a href={path(locale, 'tools')} aria-current={!tool ? 'page' : undefined}>{c.directory}</a>
@@ -35,11 +53,15 @@ const available = catalog.packages.some((entry) => entry.profile === 'standard')
       </div>
     </div>
     <header class="wt-heading"><p class="wt-local">{c.local}</p><h1>{title}</h1><p>{details?.description ?? g.description}</p></header>
+    </>}
     <noscript><p class="wt-notice">{c.nojs}</p></noscript>
     {!tool ? <>
-      <div class="wt-directory-controls" data-enhance-only hidden><div class="wt-category-controls" role="group" aria-label={locale === 'zh' ? '工具分类' : 'Tool category'}>{(['all', ...webCategories] as const).map((category) => <button type="button" data-category={category} aria-pressed={category === 'all' ? 'true' : 'false'}>{categories[category]}</button>)}</div><label>{locale === 'zh' ? '在当前分类搜索' : 'Search current category'}<input type="search" data-directory-search autocomplete="off" /></label></div>
       <p data-directory-empty hidden>{locale === 'zh' ? '当前分类没有匹配工具。' : 'No tools match in this category.'} <button type="button" data-category-recover>{locale === 'zh' ? '搜索全部分类' : 'Search all categories'}</button></p>
-      <div class="wt-directory">{webTools[locale].map((entry) => <a href={path(locale, `tools/${entry.slug}`)} class="wt-directory-row" data-directory-category={entry.category} data-directory-name={`${entry.slug} ${entry.title} ${entry.description}`}><span class="wt-tool-symbol" aria-hidden="true">{{ timestamp: '↔', json: '{ }', base64: 'A/', diff: '±', 'image-converter': '⇄', 'image-watermark': '©', 'image-compressor': '↓' }[entry.slug]}</span><div><h2>{entry.title}</h2><small>{categories[entry.category]}</small><p>{entry.description}</p><code>{entry.example}</code></div><span aria-hidden="true">↗</span></a>)}</div>
+      <div class="wt-directory">{webTools[locale].map((entry) => <a href={path(locale, `tools/${entry.slug}`)} class="wt-directory-row" data-directory-category={entry.category} data-directory-name={`${entry.slug} ${entry.title} ${entry.description}`}>
+        <div class="wt-card-heading"><span class="wt-tool-symbol" aria-hidden="true">{{ timestamp: '↔', json: '{ }', base64: 'A/', diff: '±', 'image-converter': '⇄', 'image-watermark': '©', 'image-compressor': '↓' }[entry.slug]}</span><h2>{entry.title}</h2><small>{categories[entry.category]}</small></div>
+        <p>{entry.description}</p>
+        <div class="wt-card-footer"><code>{entry.example}</code><span aria-hidden="true">↗</span></div>
+      </a>)}</div>
       <section class="wt-guidance"><h2>{c.desktop}</h2><nav class="wt-desktop-links" aria-label={c.desktop}>{toolSlugs.map((slug) => <a href={path(locale, `tools/${slug}`)}>Zero {slug.charAt(0).toUpperCase() + slug.slice(1)} ↗</a>)}</nav><p>{c.directoryLimits}</p><p>{c.privacy}</p></section>
       <section class="wt-faq"><h2>{c.faq}</h2>{c.directoryFaq.map((item) => <details><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>
     </> : <>

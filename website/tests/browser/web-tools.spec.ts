@@ -42,7 +42,7 @@ for (const locale of ['zh', 'en'] as const) {
         await expect(staticPage.locator('.wt-guidance')).toBeVisible();
       }
       await expect(staticPage.locator('.wt-cta')).toContainText(locale === 'zh' ? '尚未内置桌面版' : 'not currently built into');
-      await expect(staticPage.locator('.wt-tabs a')).toHaveCount(8);
+      await expect(staticPage.locator(slug ? '.wt-tabs a' : '.wt-directory a')).toHaveCount(slug ? 8 : 7);
       await context.close();
       expect(errors).toEqual([]);
     });
