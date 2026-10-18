@@ -6,3 +6,6 @@ playwright-report/
 output/
 .env*
 public/social.png
+
+public/image-codecs/
+public/.image-codecs-*/

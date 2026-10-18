@@ -1,0 +1,696 @@
+{
+  "browser": {
+    "stats": {
+      "startTime": "2026-10-18T08:44:47.623Z",
+      "duration": 110303.098,
+      "expected": 104,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "checks": [
+      {
+        "title": "production HEIC replacement module loads only on demand and produces a real JPEG",
+        "file": "image-delivery.spec.ts",
+        "status": "expected",
+        "durationMs": 2410
+      },
+      {
+        "title": "subpath production image worker and separate HEIC module resolve below the base",
+        "file": "image-delivery.spec.ts",
+        "status": "expected",
+        "durationMs": 1145
+      },
+      {
+        "title": "image files/settings never enter feedback URL or requests and failed feedback leaves outputs usable",
+        "file": "image-delivery.spec.ts",
+        "status": "expected",
+        "durationMs": 452
+      },
+      {
+        "title": "ZIP cancel, timeout and worker failure preserve individual outputs and allow recovery",
+        "file": "image-delivery.spec.ts",
+        "status": "expected",
+        "durationMs": 706
+      },
+      {
+        "title": "per-item timeout terminates held work and retry can produce a real result",
+        "file": "image-delivery.spec.ts",
+        "status": "expected",
+        "durationMs": 502
+      },
+      {
+        "title": "zh image-converter: real local processing and correctly named output",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 440
+      },
+      {
+        "title": "zh image-watermark: real local processing and correctly named output",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 453
+      },
+      {
+        "title": "zh image-compressor: real local processing and correctly named output",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 452
+      },
+      {
+        "title": "en image-converter: real local processing and correctly named output",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 457
+      },
+      {
+        "title": "en image-watermark: real local processing and correctly named output",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 470
+      },
+      {
+        "title": "en image-compressor: real local processing and correctly named output",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 445
+      },
+      {
+        "title": "PNG alpha + EXIF identity stays pixel exact, strips capture metadata, and ZIP round-trips both collision-safe entries",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 505
+      },
+      {
+        "title": "JPEG EXIF orientation normalizes once and max edge never upscales",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 583
+      },
+      {
+        "title": "JPEG quality changes actual encoding and chosen background flattens alpha",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 587
+      },
+      {
+        "title": "mixed failures retain successful results, retry only failures, cancel and rerun recover",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 778
+      },
+      {
+        "title": "PNG orientations 3, 6 and 8 preserve every RGBA byte while rotating exactly once",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 597
+      },
+      {
+        "title": "16-bit PNG EXIF6 rotates without quantizing low sample bits or alpha",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 447
+      },
+      {
+        "title": "all nine anchors place actual opaque watermark pixels in their selected thirds",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1615
+      },
+      {
+        "title": "actual tiled watermarks render on extreme aspect ratios and mixed system text; empty text recovers",
+        "file": "image-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1762
+      },
+      {
+        "title": "explicit selected-source preview is bounded before processing and edits refresh only that thumbnail",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 1368
+      },
+      {
+        "title": "rapid source and result previews cannot resurrect after clear or page lifecycle cleanup",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 670
+      },
+      {
+        "title": "editing parameters during a slow byte import preserves selected files and uses the current settings",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 402
+      },
+      {
+        "title": "320px and 200% text size: light image controls stay within the viewport",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 317
+      },
+      {
+        "title": "320px and 200% text size: dark image controls stay within the viewport",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 335
+      },
+      {
+        "title": "file count and byte caps reject imports before a pixel worker starts; large dimensions fail without codec fetch",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 1547
+      },
+      {
+        "title": "preserved PNG hides quality and selected source preview never creates batch download results",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 437
+      },
+      {
+        "title": "overlimit replacement preserves an already successful batch and its existing download URL",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 1570
+      },
+      {
+        "title": "cancelling a slow second item retains the first success; new settings invalidate it",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 456
+      },
+      {
+        "title": "a pending replacement import disables old-batch dispatch and releases every worker after accepting new sources",
+        "file": "image-workspace.spec.ts",
+        "status": "expected",
+        "durationMs": 540
+      },
+      {
+        "title": "/tools/snap/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 846
+      },
+      {
+        "title": "/tools/launch/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 794
+      },
+      {
+        "title": "/tools/awake/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 839
+      },
+      {
+        "title": "/tools/paper/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 912
+      },
+      {
+        "title": "/tools/file/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 956
+      },
+      {
+        "title": "/guide/install/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 940
+      },
+      {
+        "title": "/faq/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 823
+      },
+      {
+        "title": "/en/tools/snap/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 828
+      },
+      {
+        "title": "/en/tools/launch/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 1046
+      },
+      {
+        "title": "/en/tools/awake/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 833
+      },
+      {
+        "title": "/en/tools/paper/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 825
+      },
+      {
+        "title": "/en/tools/file/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 815
+      },
+      {
+        "title": "/en/guide/install/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 894
+      },
+      {
+        "title": "/en/faq/ has readable static guidance and accessible layout",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 825
+      },
+      {
+        "title": "tool explanation, contents anchor and language switch retain equivalent guidance",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 559
+      },
+      {
+        "title": "slow web fonts do not move the English hero after first render",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 1256
+      },
+      {
+        "title": "/ is accessible, responsive and local",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 1174
+      },
+      {
+        "title": "/en/ is accessible, responsive and local",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 1183
+      },
+      {
+        "title": "/download/ is accessible, responsive and local",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 885
+      },
+      {
+        "title": "/en/download/ is accessible, responsive and local",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 843
+      },
+      {
+        "title": "language switching retains the tools anchor and download route",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 407
+      },
+      {
+        "title": "preview, tool selection and FAQ work with the keyboard",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 372
+      },
+      {
+        "title": "download platform changes hide incompatible groups and never auto-download",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 312
+      },
+      {
+        "title": "without scripts both languages expose all package information and native details",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 386
+      },
+      {
+        "title": "reduced motion and 200 percent reflow keep controls usable",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 326
+      },
+      {
+        "title": "mobile navigation and touch targets remain usable",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 338
+      },
+      {
+        "title": "production metadata and missing pages provide usable routes",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 347
+      },
+      {
+        "title": "isolated public-package fixtures preserve architecture, trial and missing-platform states",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 612
+      },
+      {
+        "title": "noindex preview under a base path loads resources and preserves language routes",
+        "file": "site.spec.ts",
+        "status": "expected",
+        "durationMs": 479
+      },
+      {
+        "title": "en text comparison is readable, keyboard accessible and bounded at narrow widths",
+        "file": "text-diff.spec.ts",
+        "status": "expected",
+        "durationMs": 1199
+      },
+      {
+        "title": "zh text comparison is readable, keyboard accessible and bounded at narrow widths",
+        "file": "text-diff.spec.ts",
+        "status": "expected",
+        "durationMs": 1211
+      },
+      {
+        "title": "strict file reads retain prior text on failure and edits invalidate comparison and filename",
+        "file": "text-diff.spec.ts",
+        "status": "expected",
+        "durationMs": 439
+      },
+      {
+        "title": "distant differences, folded equal sections and very long lines remain fully navigable within DOM budgets",
+        "file": "text-diff.spec.ts",
+        "status": "expected",
+        "durationMs": 2811
+      },
+      {
+        "title": "late reads and worker completions cannot restore edited or cleared state",
+        "file": "text-diff.spec.ts",
+        "status": "expected",
+        "durationMs": 624
+      },
+      {
+        "title": "synthetic private contents stay out of requests, storage, logs and URLs and release on clear",
+        "file": "text-diff.spec.ts",
+        "status": "expected",
+        "durationMs": 501
+      },
+      {
+        "title": "initial display and difference navigation reveal targets after oversized context while context stays inspectable",
+        "file": "text-diff.spec.ts",
+        "status": "expected",
+        "durationMs": 834
+      },
+      {
+        "title": "batch preserves failed rows, exports all pages and invalidates after changes",
+        "file": "timestamp-batch.spec.ts",
+        "status": "expected",
+        "durationMs": 673
+      },
+      {
+        "title": "batch has responsive bilingual accessible controls and stable strict settings",
+        "file": "timestamp-batch.spec.ts",
+        "status": "expected",
+        "durationMs": 2527
+      },
+      {
+        "title": "batch timeout, cancel and clear reject late results and preserve source",
+        "file": "timestamp-batch.spec.ts",
+        "status": "expected",
+        "durationMs": 5757
+      },
+      {
+        "title": "batch content stays local and clear or page exit releases actual workers and export URLs",
+        "file": "timestamp-batch.spec.ts",
+        "status": "expected",
+        "durationMs": 436
+      },
+      {
+        "title": "zh discovery guidance is static, readable and usable by a browser agent",
+        "file": "web-tools-discovery.spec.ts",
+        "status": "expected",
+        "durationMs": 1099
+      },
+      {
+        "title": "en discovery guidance is static, readable and usable by a browser agent",
+        "file": "web-tools-discovery.spec.ts",
+        "status": "expected",
+        "durationMs": 1237
+      },
+      {
+        "title": "zh category-local query stays in memory and all-search covers seven tools",
+        "file": "web-tools-discovery.spec.ts",
+        "status": "expected",
+        "durationMs": 645
+      },
+      {
+        "title": "en category-local query stays in memory and all-search covers seven tools",
+        "file": "web-tools-discovery.spec.ts",
+        "status": "expected",
+        "durationMs": 673
+      },
+      {
+        "title": "grouped tool navigation and directory retain touch targets at 200% zoom",
+        "file": "web-tools-discovery.spec.ts",
+        "status": "expected",
+        "durationMs": 281
+      },
+      {
+        "title": "both new workers compute below a preview base and localized search includes seven tools",
+        "file": "web-tools-extension.spec.ts",
+        "status": "expected",
+        "durationMs": 670
+      },
+      {
+        "title": "comparison defaults to unified on a narrow fresh load and reading can time out and retry",
+        "file": "web-tools-extension.spec.ts",
+        "status": "expected",
+        "durationMs": 5741
+      },
+      {
+        "title": "zh web directory: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1435
+      },
+      {
+        "title": "zh web timestamp: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1550
+      },
+      {
+        "title": "zh web json: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1485
+      },
+      {
+        "title": "zh web base64: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1493
+      },
+      {
+        "title": "zh web diff: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1497
+      },
+      {
+        "title": "zh web image-converter: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1531
+      },
+      {
+        "title": "zh web image-watermark: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1608
+      },
+      {
+        "title": "zh web image-compressor: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1619
+      },
+      {
+        "title": "en web directory: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1475
+      },
+      {
+        "title": "en web timestamp: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1544
+      },
+      {
+        "title": "en web json: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1474
+      },
+      {
+        "title": "en web base64: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1577
+      },
+      {
+        "title": "en web diff: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1688
+      },
+      {
+        "title": "en web image-converter: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1467
+      },
+      {
+        "title": "en web image-watermark: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1520
+      },
+      {
+        "title": "en web image-compressor: rendered, accessible, responsive and no-script guidance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1470
+      },
+      {
+        "title": "tools search supports keyboard, empty state, focus restore and no shortcut outside tools",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 579
+      },
+      {
+        "title": "live timestamp freezes copy values and explicit interpretation is correct",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 399
+      },
+      {
+        "title": "JSON preserves source, diagnoses errors, enhances folding and offers honest clipboard fallback",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 1108
+      },
+      {
+        "title": "JSON enhancement failure leaves basic editing and operations available",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 422
+      },
+      {
+        "title": "Unicode text and URL components round trip without rendering markup",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 568
+      },
+      {
+        "title": "local images preview, round trip and release Blob URLs on clear or mode switch",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 575
+      },
+      {
+        "title": "synthetic private marker never enters network, site storage, URL or console",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 440
+      },
+      {
+        "title": "blocked preference storage falls back to system appearance",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 251
+      },
+      {
+        "title": "worker timeout and cancellation do not leave stale copyable results",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 5711
+      },
+      {
+        "title": "tool under preview base path keeps scripts, language route and noindex working",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 419
+      },
+      {
+        "title": "CTA follows catalog availability and never invents a platform download",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 314
+      },
+      {
+        "title": "worker construction failure keeps the original input and enables retry",
+        "file": "web-tools.spec.ts",
+        "status": "expected",
+        "durationMs": 308
+      }
+    ]
+  },
+  "unit": {
+    "passed": 61,
+    "failed": 0
+  },
+  "seo": {
+    "passed": 9,
+    "failed": 0,
+    "indexedPages": 34,
+    "htmlPages": 36
+  },
+  "feedbackContracts": {
+    "passed": 2,
+    "failed": 0
+  },
+  "typecheck": {
+    "errors": 0,
+    "warnings": 0,
+    "hints": 0
+  },
+  "sourceRebuild": {
+    "htmlPages": 36,
+    "path": "website/output/image-source-proof",
+    "log": "website/output/final-validation/source-rebuild.log"
+  },
+  "heicModule": {
+    "sha256": "5c7b2c8ce7a3a9161c7ed5dd33fdd43ed4fb26b972cd331f03a4163b14ceb3ca",
+    "bytes": 3340062,
+    "runtimeReplacementPermitted": true
+  },
+  "links": {
+    "checkedAt": "2026-10-18T08:45:45.183Z",
+    "source": "https://api.github.com/repos/bells/zero/releases",
+    "publicReleaseCount": 0,
+    "catalogPackages": 0,
+    "checkedLinks": [
+      {
+        "url": "https://github.com/bells/zero",
+        "status": 200
+      },
+      {
+        "url": "https://github.com/bells/zero/releases",
+        "status": 200
+      },
+      {
+        "url": "https://github.com/bells/zero/blob/main/docs/packaging.md",
+        "status": 200
+      },
+      {
+        "url": "https://github.com/bells/zero/blob/main/docs/plugins/developer-guide.md",
+        "status": 200
+      },
+      {
+        "url": "https://github.com/bells/zero/issues",
+        "status": 200
+      }
+    ]
+  },
+  "scope": "Local functional/automated acceptance only. Device/resource acceptance remains open; no commit/push/deployment/sync/archive."
+}

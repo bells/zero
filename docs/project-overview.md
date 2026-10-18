@@ -1,5 +1,7 @@
 # Zero 项目全景与维护地图
 
+2026-10-18 官网图片增量：双语在线工具扩为七项，目录提供开发/图片分类与分类内搜索，全工具搜索继续覆盖七项；新增本地批量转换、水印和压缩工作台。共享纯 TS 队列、可终止顺序 Worker、有界选中项预览、真实格式导出与成功项 ZIP 已接入；PNG 元数据清理兼顾透明像素和 16 位方向样本，HEIC 解码器保持独立可替换资源并附完整来源/许可材料。当前限额是可执行的保守候选，48MP 提前拒绝；Safari、相机原片及手机进程内存仍是未完成验收。入口、构建材料与范围见[官网指南](website.md)和[本次实施记录](../openspec/changes/add-web-image-tools-and-categories/evidence/implementation-2026-10-18.md)。本轮不涉及桌面功能、同步、归档或部署；本地提交另经用户授权执行。
+
 2026-10-17 官网反馈增量：新增独立 GPL v2 `feedback/` 服务，以固定 Waline core 复用认证/审核/导出；官网目录及四工具的十个双语页面仅在主动点击后加载异源 iframe。匿名纯文本全量待审，站长审核/回复、私密导出与隔离恢复已有本地合成数据验收；工具计算层不依赖服务。入口默认关闭，空闲时来源摘要物理清理期限、云端套餐/费用/保留/部署、Safari 仍待独立验收。维护见[反馈 README](../feedback/README.md)及[官网指南](website.md)，证据见[本次记录](../openspec/changes/add-web-tools-feedback/evidence/implementation.md)。没有提交、推送、部署或更改桌面功能。
 
 2026-10-15 官网发现增量：四个在线工具补齐双语能力搜索标题、明确的目录描述、步骤和输入/输出示例，以及基于真实控件标签的浏览器 Agent 说明。HTML、WebApplication featureList 与 AI 全文索引从共享指南生成，索引页数仍为 28；不增加远程计算接口或改变桌面交付。实现/验证见[增量记录](../openspec/changes/extend-web-tools-batch-and-diff/evidence/discovery-2026-10-15.md)，部署仍独立执行。

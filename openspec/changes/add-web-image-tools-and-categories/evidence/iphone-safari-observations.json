@@ -1,0 +1,389 @@
+{
+  "recordedAt": "2026-10-17T12:21:41Z",
+  "device": {
+    "model": "iPhone 17 Pro",
+    "osVersion": "iOS 27.0.1",
+    "deviceSource": "Previously supplied user screenshot; only model and OS retained",
+    "browser": "Safari, as instructed in the test question",
+    "browserVersion": null
+  },
+  "evidenceType": "direct user report, not instrumented device capture",
+  "observations": [
+    {
+      "operation": "decode synthetic 12MP HEIC with export disabled",
+      "input": "synthetic-12mp.heic",
+      "cameraOriginal": false,
+      "expectedPixels": 12192768,
+      "result": "user-reported normal completion",
+      "userReply": "正常完成",
+      "decodeMs": null,
+      "elapsedMs": null,
+      "decodedDimensionsObserved": null,
+      "memoryPeakBytes": null,
+      "reclamationObserved": null
+    },
+    {
+      "recordedAt": "2026-10-17T12:30:25Z",
+      "operation": "decode synthetic 12MP HEIC with no export fields present",
+      "evidenceType": "user-pasted lab JSON from ongoing iPhone Safari test",
+      "input": "synthetic-12mp.heic, inferred from test context and dimensions",
+      "cameraOriginal": false,
+      "runOrdinal": null,
+      "result": "heic",
+      "decodeMs": 13254,
+      "elapsedMs": 13254,
+      "width": 4032,
+      "height": 3024,
+      "pixels": 12192768,
+      "primary": true,
+      "imageCount": 1,
+      "rgbaBytes": 48771072,
+      "samples": [
+        [
+          240,
+          30,
+          91,
+          255
+        ],
+        [
+          25,
+          29,
+          136,
+          255
+        ],
+        [
+          25,
+          220,
+          42,
+          255
+        ],
+        [
+          239,
+          220,
+          204,
+          255
+        ]
+      ],
+      "encodeMs": null,
+      "zipMs": null,
+      "memoryPeakBytes": null,
+      "notes": "Run ordinal was not included. RGBA byte count is one pixel buffer, not measured peak memory. No download, repeat-run, cancellation or export outcome inferred."
+    },
+    {
+      "recordedAt": "2026-10-17T12:32:46Z",
+      "operation": "synthetic 12MP HEIC decode, full-size JPEG encode and store-mode ZIP generation",
+      "evidenceType": "user-pasted lab JSON plus explicit JPEG download/open confirmation",
+      "input": "synthetic-12mp.heic, inferred from test context and matching dimensions/pixel samples",
+      "cameraOriginal": false,
+      "runOrdinal": null,
+      "result": "heic",
+      "decodeMs": 16005,
+      "jpeg": {
+        "bytes": 176763,
+        "type": "image/jpeg"
+      },
+      "zip": {
+        "bytes": 176901,
+        "type": "application/zip"
+      },
+      "encodeMs": 18867,
+      "zipMs": 32,
+      "width": 4032,
+      "height": 3024,
+      "pixels": 12192768,
+      "primary": true,
+      "imageCount": 1,
+      "rgbaBytes": 48771072,
+      "samples": [
+        [
+          240,
+          30,
+          91,
+          255
+        ],
+        [
+          25,
+          29,
+          136,
+          255
+        ],
+        [
+          25,
+          220,
+          42,
+          255
+        ],
+        [
+          239,
+          220,
+          204,
+          255
+        ]
+      ],
+      "elapsedMs": 51621,
+      "unattributedElapsedMs": 16717,
+      "timingNotes": "Elapsed includes work outside decodeMs/encodeMs/zipMs (including lazy module imports); this 16717 ms remainder has not been independently profiled. End-to-end host startup/fetch and process peak memory are not established by these fields.",
+      "jpegDownloaded": true,
+      "jpegOpened": true,
+      "userReply": "jpeg能下载，并能打开",
+      "zipDownloaded": null,
+      "zipExtracted": null,
+      "zipEntryOpened": null,
+      "visualOrientationConfirmed": null,
+      "savedToPhotosConfirmed": null,
+      "memoryPeakBytes": null,
+      "reclamationObserved": null
+    },
+    {
+      "recordedAt": "2026-10-17T12:37:02Z",
+      "operation": "download ZIP, extract and open contained JPEG from the preceding synthetic 12MP export",
+      "evidenceType": "direct user reply to the explicit ZIP download/extract/open instruction",
+      "userReply": "也是能打开的",
+      "zipDownloaded": true,
+      "zipExtracted": true,
+      "zipEntryOpened": true,
+      "interpretation": "Contextual confirmation of the requested ZIP download/extract/contained-JPEG-open workflow; exact system UI and save location were not separately described.",
+      "archiveBytesIndependentlyComparedOnDevice": false,
+      "savedToPhotosConfirmed": null,
+      "notes": "Experimental lab Blob downloads, not final production workbench acceptance. No memory, orientation/color or 48MP outcome inferred."
+    },
+    {
+      "recordedAt": "2026-10-17T12:40:18Z",
+      "operation": "manual cancellation during synthetic 12MP HEIC decode, then repeat processing",
+      "evidenceType": "direct user reply to cancel-after-about-2-seconds and rerun instruction",
+      "userReply": "取消及时，重新处理正常",
+      "cancelResponsiveness": "user-reported timely",
+      "cancelLatencyMs": null,
+      "cancelledCodeObserved": null,
+      "freshProcessingAfterCancel": "user-reported normal completion",
+      "memoryPeakBytes": null,
+      "reclamationObserved": null,
+      "notes": "No measured cancellation latency or physical memory reclamation inferred. Exact UI error code and rerun timing were not supplied."
+    },
+    {
+      "recordedAt": "2026-10-17T12:43:48Z",
+      "operation": "single synthetic 48MP HEIC decode with JPEG/ZIP export disabled, as instructed",
+      "input": "synthetic-48mp.heic, inferred from immediately preceding test instruction",
+      "cameraOriginal": false,
+      "evidenceType": "user-pasted error JSON from ongoing iPhone Safari test",
+      "result": {
+        "kind": "error",
+        "code": "timeout"
+      },
+      "configuredTimeoutMs": 60000,
+      "actualWallElapsedMs": null,
+      "decodeMs": null,
+      "decodedOutput": null,
+      "memoryPeakBytes": null,
+      "reclamationObserved": null,
+      "recoveryAfterTimeout": null,
+      "notes": "Configured host timer terminates worker on timeout. No successful 48MP output, exact measured elapsed time, OOM, page reload, root cause or memory-reclamation outcome is inferred. Current candidate did not complete within the configured deadline; this is not a universal 48MP support conclusion."
+    },
+    {
+      "recordedAt": "2026-10-17T12:45:35Z",
+      "operation": "fresh synthetic 12MP HEIC decode after 48MP timeout, without page refresh and with encoding disabled, as instructed",
+      "evidenceType": "direct user report",
+      "userReply": "能正常处理",
+      "result": "user-reported normal completion after timeout",
+      "refreshedPage": false,
+      "decodeMs": null,
+      "elapsedMs": null,
+      "memoryPeakBytes": null,
+      "reclamationObserved": null,
+      "notes": "Confirms application processing recovery after the timeout; no precise timing or physical memory-reclamation measurement supplied."
+    },
+    {
+      "recordedAt": "2026-10-17T12:50:09Z",
+      "operation": "synthetic HEIC primary irot rotation, decode only",
+      "input": "heic-rotate-1.heic, identified by requested order and matching rotated samples",
+      "cameraOriginal": false,
+      "evidenceType": "user-pasted lab JSON; dimension and pixel-sample comparison performed locally",
+      "quarterTurnsCCW": 1,
+      "result": {
+        "kind": "heic",
+        "decodeMs": 13568,
+        "width": 3024,
+        "height": 4032,
+        "pixels": 12192768,
+        "primary": true,
+        "imageCount": 1,
+        "rgbaBytes": 48771072,
+        "samples": [
+          [
+            25,
+            29,
+            136,
+            255
+          ],
+          [
+            25,
+            220,
+            42,
+            255
+          ],
+          [
+            239,
+            220,
+            204,
+            255
+          ],
+          [
+            240,
+            30,
+            91,
+            255
+          ]
+        ],
+        "elapsedMs": 13568
+      },
+      "comparison": {
+        "baselineDecodeMs": 13254,
+        "samplesOrder": "TL, TR, BR, BL",
+        "allFourSamplesExactlyMatchExpectedRotation": true,
+        "maxChannelDifference": 0,
+        "orientedDimensionsCorrect": true
+      },
+      "visualPreviewConfirmed": null,
+      "cameraColorOrHDRConfirmed": null,
+      "memoryPeakBytes": null,
+      "notes": "Synthetic container rotation verified in decoded pixel samples. No camera-original, mirrored orientation, color/HDR fidelity or memory acceptance inferred."
+    },
+    {
+      "recordedAt": "2026-10-17T12:50:09Z",
+      "operation": "synthetic HEIC primary irot rotation, decode only",
+      "input": "heic-rotate-2.heic, identified by requested order and matching rotated samples",
+      "cameraOriginal": false,
+      "evidenceType": "user-pasted lab JSON; dimension and pixel-sample comparison performed locally",
+      "quarterTurnsCCW": 2,
+      "result": {
+        "kind": "heic",
+        "decodeMs": 14343,
+        "width": 4032,
+        "height": 3024,
+        "pixels": 12192768,
+        "primary": true,
+        "imageCount": 1,
+        "rgbaBytes": 48771072,
+        "samples": [
+          [
+            25,
+            220,
+            42,
+            255
+          ],
+          [
+            239,
+            220,
+            204,
+            255
+          ],
+          [
+            240,
+            30,
+            91,
+            255
+          ],
+          [
+            25,
+            29,
+            136,
+            255
+          ]
+        ],
+        "elapsedMs": 14343
+      },
+      "comparison": {
+        "baselineDecodeMs": 13254,
+        "samplesOrder": "TL, TR, BR, BL",
+        "allFourSamplesExactlyMatchExpectedRotation": true,
+        "maxChannelDifference": 0,
+        "orientedDimensionsCorrect": true
+      },
+      "visualPreviewConfirmed": null,
+      "cameraColorOrHDRConfirmed": null,
+      "memoryPeakBytes": null,
+      "notes": "Synthetic container rotation verified in decoded pixel samples. No camera-original, mirrored orientation, color/HDR fidelity or memory acceptance inferred."
+    },
+    {
+      "recordedAt": "2026-10-17T12:50:09Z",
+      "operation": "synthetic HEIC primary irot rotation, decode only",
+      "input": "heic-rotate-3.heic, identified by requested order and matching rotated samples",
+      "cameraOriginal": false,
+      "evidenceType": "user-pasted lab JSON; dimension and pixel-sample comparison performed locally",
+      "quarterTurnsCCW": 3,
+      "result": {
+        "kind": "heic",
+        "decodeMs": 13891,
+        "width": 3024,
+        "height": 4032,
+        "pixels": 12192768,
+        "primary": true,
+        "imageCount": 1,
+        "rgbaBytes": 48771072,
+        "samples": [
+          [
+            239,
+            220,
+            204,
+            255
+          ],
+          [
+            240,
+            30,
+            91,
+            255
+          ],
+          [
+            25,
+            29,
+            136,
+            255
+          ],
+          [
+            25,
+            220,
+            42,
+            255
+          ]
+        ],
+        "elapsedMs": 13891
+      },
+      "comparison": {
+        "baselineDecodeMs": 13254,
+        "samplesOrder": "TL, TR, BR, BL",
+        "allFourSamplesExactlyMatchExpectedRotation": true,
+        "maxChannelDifference": 0,
+        "orientedDimensionsCorrect": true
+      },
+      "visualPreviewConfirmed": null,
+      "cameraColorOrHDRConfirmed": null,
+      "memoryPeakBytes": null,
+      "notes": "Synthetic container rotation verified in decoded pixel samples. No camera-original, mirrored orientation, color/HDR fidelity or memory acceptance inferred."
+    }
+  ],
+  "pending": [
+    "matched first/subsequent timing matrix and longer result-retention overhead",
+    "camera-original orientation/color/HDR and alpha; synthetic HEIC irot 90/180/270 pixel checks passed",
+    "instrumented cancellation/timeout memory reclamation",
+    "48MP completion not demonstrated; observed timeout recorded; final policy pending",
+    "raw camera HEIC versus picker conversion",
+    "Safari version and instrumented process memory",
+    "final workbench download regression after implementation"
+  ],
+  "taskCompletion": {
+    "1.5": false,
+    "1.6": false,
+    "7.3": false,
+    "9.3": false
+  },
+  "deferredChecks": [
+    {
+      "recordedAt": "2026-10-17T13:27:23Z",
+      "check": "local raw camera-original 12MP HEIC decode",
+      "status": "deferred at user request",
+      "userReply": "这一步要不先略过吧",
+      "result": null,
+      "notes": "Only this manual camera-original test is deferred. No successful camera-original decode or equivalence with picker-converted JPEG is inferred. Acceptance requirements and task checkboxes remain unchanged."
+    }
+  ]
+}

@@ -1,6 +1,18 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "node_modules", "output", "test-results"],
-  "compilerOptions": { "noUncheckedIndexedAccess": true, "allowImportingTsExtensions": true }
+  "include": [
+    ".astro/types.d.ts",
+    "**/*"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "output",
+    "test-results",
+    "public/image-codecs"
+  ],
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
+    "allowImportingTsExtensions": true
+  }
 }

@@ -8,8 +8,21 @@ export interface WebToolGuide {
   agent: { input: string; output: string; actions: string[] };
 }
 
+function imageGuide(locale: Locale, operation: 'convert' | 'watermark' | 'compress'): WebToolGuide {
+  const zh = locale === 'zh';
+  const title = { convert: zh ? '在线图片格式转换：HEIC、JPEG、PNG 与 WebP' : 'Online image converter: HEIC, JPEG, PNG and WebP', watermark: zh ? '在线图片文字水印：单处九宫格与平铺' : 'Online image text watermark: nine anchors and tiles', compress: zh ? '在线图片压缩：JPEG、WebP 与 PNG 无损优化' : 'Online image compression: JPEG, WebP and lossless PNG optimization' }[operation];
+  return {
+    searchTitle: title,
+    steps: zh ? ['选择本地图片，查看队列中的格式、尺寸和限制提示。', '选择输出格式、质量或可选最长边；水印页填写文字并选择单处或平铺。', '显式点击处理，等待每项状态结束；检查预览和真实体积，再分别下载或打包当前成功结果。'] : ['Choose local images and inspect formats, dimensions and limit notices in the queue.', 'Choose format, quality or optional longest edge; on the watermark page enter text and choose single or tiled placement.', 'Explicitly start processing and wait for each status. Inspect previews and actual bytes, then download individual or ZIP current successful results.'],
+    examples: [{ name: zh ? '演示说明（非真实照片处理结果）' : 'Illustrative scenario (not a measured photo result)', input: operation === 'watermark' ? 'PNG · 800 × 600 · Zero' : operation === 'convert' ? 'HEIC · 800 × 600' : 'JPEG · 800 × 600 · quality 75', output: operation === 'watermark' ? 'PNG · 800 × 600 · Zero (watermark)' : operation === 'convert' ? 'JPEG · 800 × 600' : zh ? 'JPEG · 800 × 600；体积以实际输出为准' : 'JPEG · 800 × 600; byte size depends on actual output' }],
+    agent: { input: zh ? '使用选择图片控件导入本地文件；使用有标签的格式、质量、最长边和水印设置。不要把文件名、照片或水印写入 URL。' : 'Import local files with Choose images. Use labeled format, quality, longest-edge and watermark controls. Never put filenames, photos or watermark text in URLs.', output: zh ? '从逐项状态、尺寸、实际源与结果字节和预览读取结果；仅下载当前设置的成功结果。失败项可重试，取消不等于清空。' : 'Read per-item status, dimensions, actual source/result bytes and previews. Download only successes for current settings. Failed items can be retried; cancellation differs from clearing.', actions: zh ? ['显式处理、重试失败项或取消整批', '预览并分别下载或 ZIP 打包当前成功结果', '清空队列与结果；保留原图仍含原元数据'] : ['Explicitly process, retry failures or cancel the batch', 'Preview and download current successes individually or as ZIP', 'Clear queue and results; Keep original retains original metadata'] },
+  };
+}
 export const webToolGuides: Record<Locale, Record<WebTool, WebToolGuide>> = {
   zh: {
+    'image-converter': /* @__PURE__ */ imageGuide('zh', 'convert'),
+    'image-watermark': /* @__PURE__ */ imageGuide('zh', 'watermark'),
+    'image-compressor': /* @__PURE__ */ imageGuide('zh', 'compress'),
     timestamp: {
       searchTitle: '在线时间戳转换工具：Unix 秒、毫秒与批量转换',
       steps: ['在单条模式输入 Unix 时间戳或日期，选择单位和无时区日期的解释时区。', '单条输入会自动转换；批量模式每行输入一个值，再点击“批量转换”。', '读取秒、毫秒、北京时间、UTC 和 ISO 结果；批量可复制或下载完整 JSON，失败行也会保留。'],
@@ -61,6 +74,9 @@ export const webToolGuides: Record<Locale, Record<WebTool, WebToolGuide>> = {
     },
   },
   en: {
+    'image-converter': /* @__PURE__ */ imageGuide('en', 'convert'),
+    'image-watermark': /* @__PURE__ */ imageGuide('en', 'watermark'),
+    'image-compressor': /* @__PURE__ */ imageGuide('en', 'compress'),
     timestamp: {
       searchTitle: 'Online Unix timestamp converter: seconds, milliseconds and batches',
       steps: ['In single mode, enter a Unix timestamp or date, then select its unit and the timezone for unzoned dates.', 'Single values convert automatically. For a batch, enter one value per line and click Convert batch.', 'Read seconds, milliseconds, Beijing time, UTC and ISO results. Copy or download complete batch JSON, including failed rows.'],
@@ -115,8 +131,8 @@ export const webToolGuides: Record<Locale, Record<WebTool, WebToolGuide>> = {
 
 export const guideCopy = {
   zh: {
-    directoryTitle: '在线开发者工具：JSON、时间戳、Base64 与文本对比',
-    description: '免费在线 JSON 格式化与校验、时间戳批量转换、Base64 / URL 编解码、文本与 UTF-8 文件对比。浏览器本地处理，无需上传内容。',
+    directoryTitle: '在线开发与图片工具：JSON、时间戳、Base64、对比与图片处理',
+    description: '免费在线 JSON 格式化与校验、时间戳批量转换、Base64 / URL 编解码、文本与 UTF-8 文件对比，以及图片转换、水印和压缩。浏览器本地处理，无需上传内容。',
     steps: '操作步骤', examples: '输入与输出示例', input: '示例输入', output: '预期输出', limits: '格式与限制',
     agent: '浏览器 Agent 使用说明', actions: '支持的操作', agentInput: '输入方式', agentOutput: '读取结果',
     runtime: '这是浏览器交互工具，不是 HTTP 计算 API。计算需要 JavaScript，首次页面和按需资源加载需要网络。',
@@ -124,8 +140,8 @@ export const guideCopy = {
     entry: '工具入口',
   },
   en: {
-    directoryTitle: 'Online developer tools: JSON, timestamps, Base64 and text diff',
-    description: 'Free online JSON formatting and validation, batch timestamp conversion, Base64 / URL encoding and text or UTF-8 file comparison. Local browser processing without content uploads.',
+    directoryTitle: 'Online developer and image tools: JSON, timestamps, Base64, diff and images',
+    description: 'Free online JSON formatting and validation, batch timestamp conversion, Base64 / URL encoding and text or UTF-8 file comparison, plus image conversion, watermarks and compression. Local browser processing without content uploads.',
     steps: 'How to use', examples: 'Input and output examples', input: 'Example input', output: 'Expected output', limits: 'Formats and limits',
     agent: 'Browser agent usage', actions: 'Supported operations', agentInput: 'Input method', agentOutput: 'Reading results',
     runtime: 'These are interactive browser tools, not HTTP computation APIs. Computation requires JavaScript; initial page and on-demand asset loading need a network.',

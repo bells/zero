@@ -1,3 +1,4 @@
+import { parseCategory, type CategoryFilter } from '../../lib/web-tools/categories';
 import { createUI, element } from './ui';
 const root = document.querySelector<HTMLElement>('[data-web-tools]');
 if (root) {
@@ -9,6 +10,27 @@ if (root) {
   try { const saved = localStorage.getItem('zero.web-tools.theme'); if (saved && ['system', 'light', 'dark'].includes(saved)) theme.value = saved; } catch { /* Storage is optional. */ }
   theme.addEventListener('change', () => { try { localStorage.setItem('zero.web-tools.theme', theme.value); } catch { /* Follow the current page selection without storage. */ } applyTheme(); });
   media.addEventListener('change', applyTheme); applyTheme();
+  let category: CategoryFilter = parseCategory(new URL(location.href).searchParams.get('category'));
+  const categoryButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-category]')];
+  const directorySearch = root.querySelector<HTMLInputElement>('[data-directory-search]');
+  const rows = [...root.querySelectorAll<HTMLAnchorElement>('[data-directory-category]')];
+  const updateDirectory = () => {
+    const term = directorySearch?.value.trim().toLocaleLowerCase() ?? '';
+    for (const row of rows) row.hidden = (category !== 'all' && row.dataset.directoryCategory !== category) || !row.dataset.directoryName?.toLocaleLowerCase().includes(term);
+    categoryButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.category === category)));
+    const empty = root.querySelector<HTMLElement>('[data-directory-empty]');
+    if (empty) empty.hidden = rows.some((row) => !row.hidden);
+    // Rebuild from the static language URL, copying only the allowed category enum.
+    document.querySelectorAll<HTMLAnchorElement>('[data-language]').forEach((link) => {
+      const url = new URL(link.href); url.search = ''; url.hash = '';
+      if (category !== 'all') url.searchParams.set('category', category);
+      link.href = url.href;
+    });
+  };
+  categoryButtons.forEach((button) => button.addEventListener('click', () => { category = parseCategory(button.dataset.category ?? null); updateDirectory(); }));
+  directorySearch?.addEventListener('input', updateDirectory);
+  root.querySelector('[data-category-recover]')?.addEventListener('click', () => { category = 'all'; updateDirectory(); directorySearch?.focus(); });
+  updateDirectory();
   const dialog = element<HTMLDialogElement>(root, '[data-search-dialog]');
   const search = element<HTMLInputElement>(root, '[data-search-input]');
   const opener = element<HTMLButtonElement>(root, '[data-open-search]');
@@ -34,13 +56,14 @@ if (root) {
       (await import('./time')).initTimestamp(ui);
       (await import('./timestamp-batch')).initTimestampBatch(ui);
     }
+    else if (root.dataset.tool?.startsWith('image-')) await import('./image-workspace').then((module) => module.initImageWorkspace(root, locale));
     else if (root.dataset.tool === 'diff') (await import('./diff')).initDiff(ui);
     else if (root.dataset.tool === 'json' || root.dataset.tool === 'base64') (await import('./processor')).initProcessor(ui, root.dataset.tool);
     const fieldset = root.querySelector<HTMLFieldSetElement>('[data-interactive]'); if (fieldset) fieldset.disabled = false;
     root.dataset.ready = 'true';
   };
   void initialize().catch(() => ui.error({ code: 'worker' }));
-  window.addEventListener('pagehide', () => { document.removeEventListener('keydown', shortcut); media.removeEventListener('change', applyTheme); search.value = ''; }, { once: true });
+  window.addEventListener('pagehide', () => { document.removeEventListener('keydown', shortcut); media.removeEventListener('change', applyTheme); search.value = ''; if (directorySearch) directorySearch.value = ''; }, { once: true });
   // Pages restored from the browser cache must not retain tool content or detached listeners.
   window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });
 }

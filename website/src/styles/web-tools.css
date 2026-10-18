@@ -113,3 +113,28 @@
 .wt-directory-row code { display: block; margin-top: 10px; font: 12px/1.7 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
 .wt-directory-row > div { min-width: 0; }
 .wt-reviewed { color: var(--muted); font-size: 12px; margin-top: 28px; }
+
+/* Grouped navigation scales with the catalog; directory controls are enhancement-only. */
+.wt-tabs { flex-wrap: wrap; align-items: flex-start; }
+.wt-nav-group { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+.wt-nav-group > span { padding: .2rem .65rem; font-size: .72rem; color: var(--muted); }
+.wt-nav-group > div { display: flex; flex-wrap: wrap; gap: .2rem; }
+.wt .wt-tabs a { min-height: 44px; display: inline-flex; align-items: center; white-space: normal; }
+.wt-directory-controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-block: 1.5rem; }
+.wt-directory-controls[hidden], .wt-directory-row[hidden] { display: none; }
+.wt-directory-controls label { display: grid; gap: .5rem; flex: 1 1 15rem; min-width: 0; }
+.wt-category-controls { display: flex; flex-wrap: wrap; gap: .4rem; }
+.wt-category-controls button, [data-category-recover] { min-height: 44px; }
+.wt-category-controls button[aria-pressed="true"] { border-color: currentColor; background: var(--wt-soft); font-weight: 600; }
+.wt-directory-row small { display: block; font-size: .75rem; color: var(--muted); margin-block: .25rem; }
+.wt-directory-row > div { min-width: 0; overflow-wrap: anywhere; }
+.wt-directory-row code { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .wt-bar { align-items: stretch; }
+  .wt .wt-tabs { width: 100%; overflow: visible; }
+  .wt-nav-group { width: 100%; }
+  .wt-settings { flex-wrap: wrap; }
+  .wt-directory-controls { align-items: stretch; }
+}
+
+.wt-directory-controls input { width: 100%; min-width: 0; min-height: 44px; padding: .6rem; }

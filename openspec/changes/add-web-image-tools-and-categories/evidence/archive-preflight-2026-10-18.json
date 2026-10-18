@@ -1,0 +1,682 @@
+{
+  "date": "2026-10-17T23:48:33.289Z",
+  "browser": "155.0.8059.80",
+  "device": "desktop automated Chrome; no iPhone or Safari evidence",
+  "host": {
+    "platform": "darwin",
+    "release": "27.0.0",
+    "cpu": "Apple M2",
+    "memoryBytes": 17179869184
+  },
+  "codec": {
+    "kind": "codecs",
+    "pngExact": true,
+    "zipExact": true,
+    "jpegSizes": [
+      769,
+      4410
+    ],
+    "webpSizes": [
+      688,
+      2132
+    ],
+    "formats": [
+      "jpeg",
+      "webp",
+      "png"
+    ],
+    "pngSizes": [
+      5602,
+      252
+    ],
+    "elapsedMs": 80.19999999995343
+  },
+  "archive": {
+    "kind": "archive",
+    "inputBytes": 2097152,
+    "zip": {
+      "bytes": 2097386,
+      "type": "application/zip"
+    },
+    "zipMs": 6,
+    "verifyMs": 14.300000000046566,
+    "roundTrip": true
+  },
+  "archiveRefused": {
+    "kind": "error",
+    "code": "archive-experiment-limit"
+  },
+  "heic": [
+    {
+      "fixture": "synthetic-12mp.heic",
+      "run": 1,
+      "kind": "heic",
+      "decodeMs": 635.7999999999302,
+      "width": 4032,
+      "height": 3024,
+      "pixels": 12192768,
+      "primary": true,
+      "imageCount": 1,
+      "rgbaBytes": 48771072,
+      "samples": [
+        [
+          240,
+          30,
+          91,
+          255
+        ],
+        [
+          25,
+          29,
+          136,
+          255
+        ],
+        [
+          25,
+          220,
+          42,
+          255
+        ],
+        [
+          239,
+          220,
+          204,
+          255
+        ]
+      ],
+      "elapsedMs": 635.7999999999302
+    },
+    {
+      "fixture": "synthetic-12mp.heic",
+      "run": 2,
+      "kind": "heic",
+      "decodeMs": 549.6999999999534,
+      "width": 4032,
+      "height": 3024,
+      "pixels": 12192768,
+      "primary": true,
+      "imageCount": 1,
+      "rgbaBytes": 48771072,
+      "samples": [
+        [
+          240,
+          30,
+          91,
+          255
+        ],
+        [
+          25,
+          29,
+          136,
+          255
+        ],
+        [
+          25,
+          220,
+          42,
+          255
+        ],
+        [
+          239,
+          220,
+          204,
+          255
+        ]
+      ],
+      "elapsedMs": 549.6999999999534
+    },
+    {
+      "fixture": "synthetic-48mp.heic",
+      "run": 1,
+      "kind": "heic",
+      "decodeMs": 1498.3999999999069,
+      "width": 8064,
+      "height": 6048,
+      "pixels": 48771072,
+      "primary": true,
+      "imageCount": 1,
+      "rgbaBytes": 195084288,
+      "samples": [
+        [
+          240,
+          30,
+          91,
+          255
+        ],
+        [
+          23,
+          30,
+          136,
+          255
+        ],
+        [
+          25,
+          220,
+          42,
+          255
+        ],
+        [
+          241,
+          219,
+          204,
+          255
+        ]
+      ],
+      "elapsedMs": 1498.3999999999069
+    },
+    {
+      "fixture": "synthetic-48mp.heic",
+      "run": 2,
+      "kind": "heic",
+      "decodeMs": 1456.7999999999302,
+      "width": 8064,
+      "height": 6048,
+      "pixels": 48771072,
+      "primary": true,
+      "imageCount": 1,
+      "rgbaBytes": 195084288,
+      "samples": [
+        [
+          240,
+          30,
+          91,
+          255
+        ],
+        [
+          23,
+          30,
+          136,
+          255
+        ],
+        [
+          25,
+          220,
+          42,
+          255
+        ],
+        [
+          241,
+          219,
+          204,
+          255
+        ]
+      ],
+      "elapsedMs": 1456.9000000000233
+    }
+  ],
+  "orientation": [
+    {
+      "turn": 1,
+      "kind": "heic",
+      "decodeMs": 578.7000000000698,
+      "width": 3024,
+      "height": 4032,
+      "pixels": 12192768,
+      "primary": true,
+      "imageCount": 1,
+      "rgbaBytes": 48771072,
+      "samples": [
+        [
+          25,
+          29,
+          136,
+          255
+        ],
+        [
+          25,
+          220,
+          42,
+          255
+        ],
+        [
+          239,
+          220,
+          204,
+          255
+        ],
+        [
+          240,
+          30,
+          91,
+          255
+        ]
+      ],
+      "elapsedMs": 578.7000000000698
+    },
+    {
+      "turn": 2,
+      "kind": "heic",
+      "decodeMs": 576.5,
+      "width": 4032,
+      "height": 3024,
+      "pixels": 12192768,
+      "primary": true,
+      "imageCount": 1,
+      "rgbaBytes": 48771072,
+      "samples": [
+        [
+          25,
+          220,
+          42,
+          255
+        ],
+        [
+          239,
+          220,
+          204,
+          255
+        ],
+        [
+          240,
+          30,
+          91,
+          255
+        ],
+        [
+          25,
+          29,
+          136,
+          255
+        ]
+      ],
+      "elapsedMs": 576.5
+    },
+    {
+      "turn": 3,
+      "kind": "heic",
+      "decodeMs": 598.1999999999534,
+      "width": 3024,
+      "height": 4032,
+      "pixels": 12192768,
+      "primary": true,
+      "imageCount": 1,
+      "rgbaBytes": 48771072,
+      "samples": [
+        [
+          239,
+          220,
+          204,
+          255
+        ],
+        [
+          240,
+          30,
+          91,
+          255
+        ],
+        [
+          25,
+          29,
+          136,
+          255
+        ],
+        [
+          25,
+          220,
+          42,
+          255
+        ]
+      ],
+      "elapsedMs": 598.1999999999534
+    }
+  ],
+  "malformed": {
+    "kind": "error",
+    "code": "codec"
+  },
+  "disguised": {
+    "kind": "error",
+    "code": "invalid-heic"
+  },
+  "refused": {
+    "kind": "error",
+    "code": "limit-before-codec"
+  },
+  "underreported": {
+    "kind": "error",
+    "code": "codec"
+  },
+  "cancel": {
+    "terminated": true,
+    "lateResults": 0,
+    "elapsedMs": 306.30000000004657
+  },
+  "timedOut": {
+    "kind": "error",
+    "code": "timeout"
+  },
+  "errors": [],
+  "requests": [
+    "http://127.0.0.1:4325/image-lab/",
+    "http://127.0.0.1:4325/image-lab/assets/index-DVMB8qjH.js",
+    "http://127.0.0.1:4325/image-lab/assets/index-DXHJGl0H.css",
+    "http://127.0.0.1:4325/image-lab/assets/icon-DkwjwJOk.svg",
+    "http://127.0.0.1:4325/image-lab/assets/worker-Q_lR6aCX.js",
+    "http://127.0.0.1:4325/image-lab/alpha.png",
+    "http://127.0.0.1:4325/image-lab/assets/encode-DbJtSp0k.js",
+    "http://127.0.0.1:4325/image-lab/assets/encode-BEctnjE9.js",
+    "http://127.0.0.1:4325/image-lab/assets/decode-BRQpnIMQ.js",
+    "http://127.0.0.1:4325/image-lab/assets/optimise-CyLdVgCl.js",
+    "http://127.0.0.1:4325/image-lab/assets/browser-Ca_cyhLF.js",
+    "http://127.0.0.1:4325/image-lab/assets/esm-mZAPAzZp.js",
+    "http://127.0.0.1:4325/image-lab/assets/squoosh_png_bg-DAY7U9NW.wasm",
+    "http://127.0.0.1:4325/image-lab/assets/squoosh_oxipng-D4XdXjp4.js",
+    "http://127.0.0.1:4325/image-lab/assets/squoosh_oxipng_bg-OFMN1KwG.wasm",
+    "http://127.0.0.1:4325/image-lab/assets/mozjpeg_enc-DO-zoExo.wasm",
+    "http://127.0.0.1:4325/image-lab/assets/webp_enc_simd-m-_dxlTT.js",
+    "http://127.0.0.1:4325/image-lab/assets/webp_enc_simd-CFvKQ_80.wasm",
+    "http://127.0.0.1:4325/image-lab/synthetic-12mp.heic",
+    "http://127.0.0.1:4325/image-lab/assets/dist-CemnsEJD.js",
+    "http://127.0.0.1:4325/image-lab/assets/libheif-without-unsafe-eval-DuPmiwEd.js",
+    "http://127.0.0.1:4325/image-lab/synthetic-48mp.heic",
+    "http://127.0.0.1:4325/image-lab/heic-rotate-1.heic",
+    "http://127.0.0.1:4325/image-lab/heic-rotate-2.heic",
+    "http://127.0.0.1:4325/image-lab/heic-rotate-3.heic",
+    "http://127.0.0.1:4325/image-lab/damaged.heic",
+    "http://127.0.0.1:4325/image-lab/png-disguised.jpg",
+    "http://127.0.0.1:4325/image-lab/underreported.heic"
+  ],
+  "fixtureManifest": {
+    "personalData": false,
+    "generator": "website/experiments/image-codecs/generate-fixtures.mjs",
+    "sharp": "0.35.5",
+    "files": [
+      {
+        "name": "quadrants.jpg",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "jpeg"
+        ],
+        "width": 96,
+        "height": 64,
+        "expected": "static",
+        "bytes": 1606,
+        "sha256": "f4722769329849629c9d43e312eaf264c87b0fcf70aa1d735a0684cbe4db0d8c",
+        "signature": "ffd8ffdb004300060405060504060605"
+      },
+      {
+        "name": "quadrants.webp",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "webp"
+        ],
+        "width": 96,
+        "height": 64,
+        "expected": "static",
+        "bytes": 142,
+        "sha256": "eabd1a435615c809b0f99b37d8ca932525dc3d5ff7250548b57b079321bab4f1",
+        "signature": "5249464686000000574542505650384c"
+      },
+      {
+        "name": "quadrants.png",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "png"
+        ],
+        "width": 96,
+        "height": 64,
+        "expected": "static",
+        "bytes": 3092,
+        "sha256": "78cd278a90edc0f0dc3beb9cb4f7c92fbd66adf9e8ffa1d5cf1d864ec2bc5e52",
+        "signature": "89504e470d0a1a0a0000000d49484452"
+      },
+      {
+        "name": "alpha.png",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "png",
+          "alpha"
+        ],
+        "width": 96,
+        "height": 64,
+        "expected": "preserve RGBA including hidden RGB at alpha=0",
+        "bytes": 5602,
+        "sha256": "00a0f1fb0c93d8965d8b30bc2db8bf10eb4d5090513012c9d28dec385119fa28",
+        "signature": "89504e470d0a1a0a0000000d49484452"
+      },
+      {
+        "name": "alpha.rgba",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "pixel-reference"
+        ],
+        "expected": "exact decoded alpha.png pixels",
+        "bytes": 24576,
+        "sha256": "8abdfebe16893c8a1f400dc634d7f99d47748aeb86fa024384175cdba054fca1",
+        "signature": "f01e0000f01e1140f01e2280f01e33ff"
+      },
+      {
+        "name": "orientation-1.jpg",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "jpeg",
+          "orientation",
+          "gps",
+          "device"
+        ],
+        "width": 96,
+        "height": 64,
+        "orientation": 1,
+        "expected": "apply EXIF 1 once; remove source metadata",
+        "bytes": 2470,
+        "sha256": "ef457c6d1bc0389709399991084a071de657623c7f5c67ff56f94bb970523f49",
+        "signature": "ffd8ffe1016c45786966000049492a00"
+      },
+      {
+        "name": "orientation-3.jpg",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "jpeg",
+          "orientation",
+          "gps",
+          "device"
+        ],
+        "width": 96,
+        "height": 64,
+        "orientation": 3,
+        "expected": "apply EXIF 3 once; remove source metadata",
+        "bytes": 2470,
+        "sha256": "7d864121dfaf42dfd71cbac5235fd772ac9c3a53cb9bc958c7e6282bdad66843",
+        "signature": "ffd8ffe1016c45786966000049492a00"
+      },
+      {
+        "name": "orientation-6.jpg",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "jpeg",
+          "orientation",
+          "gps",
+          "device"
+        ],
+        "width": 96,
+        "height": 64,
+        "orientation": 6,
+        "expected": "apply EXIF 6 once; remove source metadata",
+        "bytes": 2470,
+        "sha256": "62d9dbceb809dbd2e338d78f9fd21a181f88d6854770b5980d8ea825e73093e1",
+        "signature": "ffd8ffe1016c45786966000049492a00"
+      },
+      {
+        "name": "orientation-8.jpg",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "jpeg",
+          "orientation",
+          "gps",
+          "device"
+        ],
+        "width": 96,
+        "height": 64,
+        "orientation": 8,
+        "expected": "apply EXIF 8 once; remove source metadata",
+        "bytes": 2470,
+        "sha256": "c45b38dbe602328339e6286022b18a95337eeb2c3d3410cf6bf9f3c904373e71",
+        "signature": "ffd8ffe1016c45786966000049492a00"
+      },
+      {
+        "name": "metadata.png",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "png",
+          "gps",
+          "device",
+          "xmp"
+        ],
+        "width": 96,
+        "height": 64,
+        "expected": "remove eXIf and XMP; preserve RGBA",
+        "bytes": 3659,
+        "sha256": "e0c137d6981cfc3c293038a6be7141321f682a06cc441c32c684656b3a9d0eea",
+        "signature": "89504e470d0a1a0a0000000d49484452"
+      },
+      {
+        "name": "damaged.jpg",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "damaged"
+        ],
+        "expected": "invalid",
+        "bytes": 7,
+        "sha256": "768d7e2f38bf1452169e295ca46b36d55083df012db1fd54b3cea01af93f7b62",
+        "signature": "ffd8ffe1003200"
+      },
+      {
+        "name": "png-disguised.jpg",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "disguised"
+        ],
+        "width": 96,
+        "height": 64,
+        "expected": "identify PNG from bytes, not JPEG extension",
+        "bytes": 3092,
+        "sha256": "78cd278a90edc0f0dc3beb9cb4f7c92fbd66adf9e8ffa1d5cf1d864ec2bc5e52",
+        "signature": "89504e470d0a1a0a0000000d49484452"
+      },
+      {
+        "name": "animated.webp",
+        "source": "synthetic: generated colored quadrants; no camera or personal input",
+        "tags": [
+          "webp",
+          "animation"
+        ],
+        "width": 96,
+        "height": 64,
+        "expected": "unsupported animation",
+        "bytes": 2798,
+        "sha256": "3dc1fcbd2377c1170e6102472567c11dff95a6f3584284e4663140aa4243fbc4",
+        "signature": "52494646e60a00005745425056503858"
+      },
+      {
+        "name": "synthetic-12mp.heic",
+        "source": "synthetic: Apple ImageIO sips HEIC encode on darwin 25.6.0; generated quadrants, original HEIC bytes, no picker",
+        "tags": [
+          "heic-12mp"
+        ],
+        "width": 4032,
+        "height": 3024,
+        "cameraOriginal": false,
+        "expected": "decode primary at original dimensions, or explicitly reject by measured policy",
+        "bytes": 230438,
+        "sha256": "dff22106bef6c258c2c799134066532b556ccc3e4d93a77dd1d8b7e79d04dec5",
+        "signature": "00000020667479706865696300000000"
+      },
+      {
+        "name": "synthetic-48mp.heic",
+        "source": "synthetic: Apple ImageIO sips HEIC encode on darwin 25.6.0; generated quadrants, original HEIC bytes, no picker",
+        "tags": [
+          "heic-48mp"
+        ],
+        "width": 8064,
+        "height": 6048,
+        "cameraOriginal": false,
+        "expected": "decode primary at original dimensions, or explicitly reject by measured policy",
+        "bytes": 647722,
+        "sha256": "6abc50941295903dc63b7ff1b8dfe4c953cbfd9fb0f7c33b90608566b1726432",
+        "signature": "00000020667479706865696300000000"
+      },
+      {
+        "name": "heic-rotate-1.heic",
+        "source": "synthetic: Apple ImageIO encoded quadrants; associated primary irot changed without reencoding",
+        "cameraOriginal": false,
+        "tags": [
+          "heic-orientation"
+        ],
+        "quarterTurnsCCW": 1,
+        "width": 3024,
+        "height": 4032,
+        "expected": "apply associated irot exactly once; rotated quadrant samples match baseline",
+        "bytes": 230438,
+        "sha256": "05469a2db75eb869b4eee724cecdd6f96e35e5db19195cb0b4420343aae46a0f",
+        "signature": "00000020667479706865696300000000"
+      },
+      {
+        "name": "heic-rotate-2.heic",
+        "source": "synthetic: Apple ImageIO encoded quadrants; associated primary irot changed without reencoding",
+        "cameraOriginal": false,
+        "tags": [
+          "heic-orientation"
+        ],
+        "quarterTurnsCCW": 2,
+        "width": 4032,
+        "height": 3024,
+        "expected": "apply associated irot exactly once; rotated quadrant samples match baseline",
+        "bytes": 230438,
+        "sha256": "705bf63ee358b694f756bf5ce32f6e76806e2459d76018f7b695346cbaa2dc87",
+        "signature": "00000020667479706865696300000000"
+      },
+      {
+        "name": "heic-rotate-3.heic",
+        "source": "synthetic: Apple ImageIO encoded quadrants; associated primary irot changed without reencoding",
+        "cameraOriginal": false,
+        "tags": [
+          "heic-orientation"
+        ],
+        "quarterTurnsCCW": 3,
+        "width": 3024,
+        "height": 4032,
+        "expected": "apply associated irot exactly once; rotated quadrant samples match baseline",
+        "bytes": 230438,
+        "sha256": "f545c43163e1cd45785775ae019640fb3fe14df7421a8920b5c64129534606b9",
+        "signature": "00000020667479706865696300000000"
+      },
+      {
+        "name": "underreported.heic",
+        "source": "synthetic: Apple ImageIO HEIC; ispe properties deliberately underreport encoded grid dimensions",
+        "cameraOriginal": false,
+        "tags": [
+          "heic-adversarial"
+        ],
+        "width": 4032,
+        "height": 3024,
+        "probedWidth": 96,
+        "probedHeight": 64,
+        "expected": "both header readers underreport; candidate decode must fail, never output success; internal allocation not bounded by ispe",
+        "bytes": 230438,
+        "sha256": "c0dfd30a01481053746af3816bd79ef4d50b824d64bbc5e1187fc74c4c1f0d87",
+        "signature": "00000020667479706865696300000000"
+      },
+      {
+        "name": "damaged.heic",
+        "source": "synthetic: Apple ImageIO encoded quadrants; associated primary irot changed without reencoding",
+        "cameraOriginal": false,
+        "tags": [
+          "damaged",
+          "heic-invalid"
+        ],
+        "expected": "reject malformed HEIC without output",
+        "bytes": 128,
+        "sha256": "1fc1f18c4f334eda66e451e18cdb3bde6e96adc5691eea0358d295b6e2901064",
+        "signature": "00000020667479706865696300000000"
+      }
+    ]
+  },
+  "memory": "Not measured: timings and RGBA byte count are not process peak memory or release limits.",
+  "replacement": {
+    "bytes": 3340062,
+    "sha256": "5c7b2c8ce7a3a9161c7ed5dd33fdd43ed4fb26b972cd331f03a4163b14ceb3ca",
+    "module": "libheif-without-unsafe-eval-DuPmiwEd.js",
+    "hostUnchanged": true,
+    "method": "replace standalone library module without rebuilding host/worker"
+  }
+}

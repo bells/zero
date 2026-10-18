@@ -1,0 +1,380 @@
+{
+  "releaseApproved": false,
+  "downloaded": [
+    {
+      "id": "heic-to-1.6.6",
+      "repository": "hoppergee/heic-to",
+      "ref": "4045b8d7607e326c2b479cc424c7a60519b42dae",
+      "url": "https://codeload.github.com/hoppergee/heic-to/tar.gz/4045b8d7607e326c2b479cc424c7a60519b42dae",
+      "bytes": 6282641,
+      "sha256": "13445ce6c93aeaeb7280e3794731081b7c8866e1b5a39bc63b900cf68444e09d",
+      "notices": [
+        {
+          "member": "heic-to-4045b8d7607e326c2b479cc424c7a60519b42dae/LICENSE",
+          "file": "heic-to-1.6.6--612292b330af.txt",
+          "bytes": 8177,
+          "sha256": "dbd7222d8026e5d6ca6991d1e6a205de927f300840433c2e90a60644a9980c75"
+        }
+      ]
+    },
+    {
+      "id": "libheif-1.23.6",
+      "repository": "strukturag/libheif",
+      "ref": "v1.23.6",
+      "url": "https://codeload.github.com/strukturag/libheif/tar.gz/v1.23.6",
+      "bytes": 2311710,
+      "sha256": "c9a00b0452f5c16d72ef71e5e40c0e90fbe2ad37148d27a1b2f9bb21546f5f03",
+      "notices": [
+        {
+          "member": "libheif-1.23.6/COPYING",
+          "file": "libheif-1.23.6--4b37add6766d.txt",
+          "bytes": 44366,
+          "sha256": "fa81ce652315b013359d6e8e4744335f31a50c7c192907176d3632f78a3b4596"
+        },
+        {
+          "member": "libheif-1.23.6/examples/COPYING",
+          "file": "libheif-1.23.6--00cefeac12e5.txt",
+          "bytes": 1066,
+          "sha256": "278ee9bbb13ecb080a131c68927bd589a6a56fd5449ce25e8e594c858864830d"
+        }
+      ]
+    },
+    {
+      "id": "libde265-1.0.16",
+      "repository": "strukturag/libde265",
+      "ref": "v1.0.16",
+      "url": "https://github.com/strukturag/libde265/releases/download/v1.0.16/libde265-1.0.16.tar.gz",
+      "bytes": 835657,
+      "sha256": "b92beb6b53c346db9a8fae968d686ab706240099cdd5aff87777362d668b0de7",
+      "notices": [
+        {
+          "member": "libde265-1.0.16/COPYING",
+          "file": "libde265-1.0.16--37f3cf8d17e2.txt",
+          "bytes": 44339,
+          "sha256": "02cc1585a20677992e0ba578fa692635dc193735f2691dc81de924b51c4e8020"
+        },
+        {
+          "member": "libde265-1.0.16/dec265/COPYING",
+          "file": "libde265-1.0.16--fc47b3554f07.txt",
+          "bytes": 1094,
+          "sha256": "687871f725037b40b35ad0b8f5c79263616dfe7b48f72619cec3d84f2d02409a"
+        },
+        {
+          "member": "libde265-1.0.16/sherlock265/COPYING",
+          "file": "libde265-1.0.16--a106a8875873.txt",
+          "bytes": 1094,
+          "sha256": "687871f725037b40b35ad0b8f5c79263616dfe7b48f72619cec3d84f2d02409a"
+        },
+        {
+          "member": "libde265-1.0.16/libde265/COPYING",
+          "file": "libde265-1.0.16--d2277ab1049c.txt",
+          "bytes": 7651,
+          "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+        },
+        {
+          "member": "libde265-1.0.16/enc265/COPYING",
+          "file": "libde265-1.0.16--dc24acd5838c.txt",
+          "bytes": 1094,
+          "sha256": "687871f725037b40b35ad0b8f5c79263616dfe7b48f72619cec3d84f2d02409a"
+        }
+      ]
+    },
+    {
+      "id": "jsquash-jpeg-1.6.0",
+      "repository": "jamsinclair/jSquash",
+      "ref": "1f62015f53e28bd18b2d7c8a3ca3326577efc445",
+      "url": "https://codeload.github.com/jamsinclair/jSquash/tar.gz/1f62015f53e28bd18b2d7c8a3ca3326577efc445",
+      "bytes": 5598771,
+      "sha256": "844fd8ed8e6b2b39921616684ef12a0a13a4001d5862c171a8777c006d9efbb9",
+      "notices": [
+        {
+          "member": "jSquash-1f62015f53e28bd18b2d7c8a3ca3326577efc445/LICENSE",
+          "file": "jsquash-jpeg-1.6.0--512e94593a05.txt",
+          "bytes": 11343,
+          "sha256": "8c3690b09c168f196446cf5904332023bbc15eb92b6a7cee470ac829e6a65d20"
+        },
+        {
+          "member": "jSquash-1f62015f53e28bd18b2d7c8a3ca3326577efc445/packages/jpeg/codec/LICENSE.codec.md",
+          "file": "jsquash-jpeg-1.6.0--2cce3db3c12e.txt",
+          "bytes": 5208,
+          "sha256": "8213556ea36ce3a0f2883db06238463e2452fdad68e3d2e2e4ace2189477a37e"
+        },
+        {
+          "member": "jSquash-1f62015f53e28bd18b2d7c8a3ca3326577efc445/packages/oxipng/codec/LICENSE.codec.md",
+          "file": "jsquash-jpeg-1.6.0--531a36da885e.txt",
+          "bytes": 1078,
+          "sha256": "fbd251bd50b001db93e2cb942e71a85a3befe6ddef659709e09d762d4e2c2a5a"
+        },
+        {
+          "member": "jSquash-1f62015f53e28bd18b2d7c8a3ca3326577efc445/packages/png/codec/LICENSE.codec.md",
+          "file": "jsquash-jpeg-1.6.0--b88cd673d534.txt",
+          "bytes": 1495,
+          "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42"
+        },
+        {
+          "member": "jSquash-1f62015f53e28bd18b2d7c8a3ca3326577efc445/packages/qoi/codec/LICENSE.codec.md",
+          "file": "jsquash-jpeg-1.6.0--a2984f05492b.txt",
+          "bytes": 1075,
+          "sha256": "0caf25d92ae0e7e12107e144a86782ccaad37ddaa3ee51e86e193c7db9ed1487"
+        },
+        {
+          "member": "jSquash-1f62015f53e28bd18b2d7c8a3ca3326577efc445/packages/resize/lib/hqx/LICENSE.codec.md",
+          "file": "jsquash-jpeg-1.6.0--bf0e1edfa9cc.txt",
+          "bytes": 11356,
+          "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+        },
+        {
+          "member": "jSquash-1f62015f53e28bd18b2d7c8a3ca3326577efc445/packages/resize/lib/magic-kernel/LICENSE.codec.md",
+          "file": "jsquash-jpeg-1.6.0--59b12495474b.txt",
+          "bytes": 1075,
+          "sha256": "21e492c2fb8be34abe00c1b5c4b15139e061ddfaa236adc4c0d4ff70ccd329b2"
+        },
+        {
+          "member": "jSquash-1f62015f53e28bd18b2d7c8a3ca3326577efc445/packages/resize/lib/resize/LICENSE.codec.md",
+          "file": "jsquash-jpeg-1.6.0--7921e2ebccc7.txt",
+          "bytes": 1082,
+          "sha256": "373fec335329f8e4c9c8839871606e6ed5bfaa513a4dea2ebee4b7a418853320"
+        },
+        {
+          "member": "jSquash-1f62015f53e28bd18b2d7c8a3ca3326577efc445/packages/webp/codec/LICENSE.codec.md",
+          "file": "jsquash-jpeg-1.6.0--fbd1654f557a.txt",
+          "bytes": 1495,
+          "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42"
+        }
+      ]
+    },
+    {
+      "id": "jsquash-webp-1.5.0",
+      "repository": "jamsinclair/jSquash",
+      "ref": "8bcd212da8c2be7c9c223e8f222eb3d9574a713b",
+      "url": "https://codeload.github.com/jamsinclair/jSquash/tar.gz/8bcd212da8c2be7c9c223e8f222eb3d9574a713b",
+      "bytes": 5598971,
+      "sha256": "20989df3108d771cc068c3996eb1133ee6379e91d03693be718a50e3dbafb760",
+      "notices": [
+        {
+          "member": "jSquash-8bcd212da8c2be7c9c223e8f222eb3d9574a713b/LICENSE",
+          "file": "jsquash-webp-1.5.0--b19b5d5964a1.txt",
+          "bytes": 11343,
+          "sha256": "8c3690b09c168f196446cf5904332023bbc15eb92b6a7cee470ac829e6a65d20"
+        },
+        {
+          "member": "jSquash-8bcd212da8c2be7c9c223e8f222eb3d9574a713b/packages/jpeg/codec/LICENSE.codec.md",
+          "file": "jsquash-webp-1.5.0--bdf99f3fefa0.txt",
+          "bytes": 5208,
+          "sha256": "8213556ea36ce3a0f2883db06238463e2452fdad68e3d2e2e4ace2189477a37e"
+        },
+        {
+          "member": "jSquash-8bcd212da8c2be7c9c223e8f222eb3d9574a713b/packages/oxipng/codec/LICENSE.codec.md",
+          "file": "jsquash-webp-1.5.0--39def9700fa1.txt",
+          "bytes": 1078,
+          "sha256": "fbd251bd50b001db93e2cb942e71a85a3befe6ddef659709e09d762d4e2c2a5a"
+        },
+        {
+          "member": "jSquash-8bcd212da8c2be7c9c223e8f222eb3d9574a713b/packages/png/codec/LICENSE.codec.md",
+          "file": "jsquash-webp-1.5.0--38140de5271f.txt",
+          "bytes": 1495,
+          "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42"
+        },
+        {
+          "member": "jSquash-8bcd212da8c2be7c9c223e8f222eb3d9574a713b/packages/qoi/codec/LICENSE.codec.md",
+          "file": "jsquash-webp-1.5.0--efadeb342e6c.txt",
+          "bytes": 1075,
+          "sha256": "0caf25d92ae0e7e12107e144a86782ccaad37ddaa3ee51e86e193c7db9ed1487"
+        },
+        {
+          "member": "jSquash-8bcd212da8c2be7c9c223e8f222eb3d9574a713b/packages/resize/lib/hqx/LICENSE.codec.md",
+          "file": "jsquash-webp-1.5.0--6f7288b250ed.txt",
+          "bytes": 11356,
+          "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+        },
+        {
+          "member": "jSquash-8bcd212da8c2be7c9c223e8f222eb3d9574a713b/packages/resize/lib/magic-kernel/LICENSE.codec.md",
+          "file": "jsquash-webp-1.5.0--a98b2800b794.txt",
+          "bytes": 1075,
+          "sha256": "21e492c2fb8be34abe00c1b5c4b15139e061ddfaa236adc4c0d4ff70ccd329b2"
+        },
+        {
+          "member": "jSquash-8bcd212da8c2be7c9c223e8f222eb3d9574a713b/packages/resize/lib/resize/LICENSE.codec.md",
+          "file": "jsquash-webp-1.5.0--6c9af69d558e.txt",
+          "bytes": 1082,
+          "sha256": "373fec335329f8e4c9c8839871606e6ed5bfaa513a4dea2ebee4b7a418853320"
+        },
+        {
+          "member": "jSquash-8bcd212da8c2be7c9c223e8f222eb3d9574a713b/packages/webp/codec/LICENSE.codec.md",
+          "file": "jsquash-webp-1.5.0--ca439ca997fb.txt",
+          "bytes": 1495,
+          "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42"
+        }
+      ]
+    },
+    {
+      "id": "jsquash-png-3.1.1",
+      "repository": "jamsinclair/jSquash",
+      "ref": "b7fa9ac9ec02f224847ad23d19d115f9e296a368",
+      "url": "https://codeload.github.com/jamsinclair/jSquash/tar.gz/b7fa9ac9ec02f224847ad23d19d115f9e296a368",
+      "bytes": 5601777,
+      "sha256": "23cde4113fc391d85a6fa2a9573fbd714813d033df4c985b986056a0e99b318d",
+      "notices": [
+        {
+          "member": "jSquash-b7fa9ac9ec02f224847ad23d19d115f9e296a368/LICENSE",
+          "file": "jsquash-png-3.1.1--bcfcf9d6dde1.txt",
+          "bytes": 11343,
+          "sha256": "8c3690b09c168f196446cf5904332023bbc15eb92b6a7cee470ac829e6a65d20"
+        },
+        {
+          "member": "jSquash-b7fa9ac9ec02f224847ad23d19d115f9e296a368/packages/jpeg/codec/LICENSE.codec.md",
+          "file": "jsquash-png-3.1.1--336bd5ed1cda.txt",
+          "bytes": 5208,
+          "sha256": "8213556ea36ce3a0f2883db06238463e2452fdad68e3d2e2e4ace2189477a37e"
+        },
+        {
+          "member": "jSquash-b7fa9ac9ec02f224847ad23d19d115f9e296a368/packages/oxipng/codec/LICENSE.codec.md",
+          "file": "jsquash-png-3.1.1--95fba41eed15.txt",
+          "bytes": 1078,
+          "sha256": "fbd251bd50b001db93e2cb942e71a85a3befe6ddef659709e09d762d4e2c2a5a"
+        },
+        {
+          "member": "jSquash-b7fa9ac9ec02f224847ad23d19d115f9e296a368/packages/png/codec/LICENSE.codec.md",
+          "file": "jsquash-png-3.1.1--9a1bdd1ccbe3.txt",
+          "bytes": 1495,
+          "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42"
+        },
+        {
+          "member": "jSquash-b7fa9ac9ec02f224847ad23d19d115f9e296a368/packages/qoi/codec/LICENSE.codec.md",
+          "file": "jsquash-png-3.1.1--d3e4a3b54ced.txt",
+          "bytes": 1075,
+          "sha256": "0caf25d92ae0e7e12107e144a86782ccaad37ddaa3ee51e86e193c7db9ed1487"
+        },
+        {
+          "member": "jSquash-b7fa9ac9ec02f224847ad23d19d115f9e296a368/packages/resize/lib/hqx/LICENSE.codec.md",
+          "file": "jsquash-png-3.1.1--48af6ef53948.txt",
+          "bytes": 11356,
+          "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+        },
+        {
+          "member": "jSquash-b7fa9ac9ec02f224847ad23d19d115f9e296a368/packages/resize/lib/magic-kernel/LICENSE.codec.md",
+          "file": "jsquash-png-3.1.1--bfa32bf15cd3.txt",
+          "bytes": 1075,
+          "sha256": "21e492c2fb8be34abe00c1b5c4b15139e061ddfaa236adc4c0d4ff70ccd329b2"
+        },
+        {
+          "member": "jSquash-b7fa9ac9ec02f224847ad23d19d115f9e296a368/packages/resize/lib/resize/LICENSE.codec.md",
+          "file": "jsquash-png-3.1.1--3eb35319a9f0.txt",
+          "bytes": 1082,
+          "sha256": "373fec335329f8e4c9c8839871606e6ed5bfaa513a4dea2ebee4b7a418853320"
+        },
+        {
+          "member": "jSquash-b7fa9ac9ec02f224847ad23d19d115f9e296a368/packages/webp/codec/LICENSE.codec.md",
+          "file": "jsquash-png-3.1.1--6fb444b83cfc.txt",
+          "bytes": 1495,
+          "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42"
+        }
+      ]
+    },
+    {
+      "id": "jsquash-oxipng-2.3.0",
+      "repository": "jamsinclair/jSquash",
+      "ref": "68a7201e5b4d9703bf65670fb0284d16536dd145",
+      "url": "https://codeload.github.com/jamsinclair/jSquash/tar.gz/68a7201e5b4d9703bf65670fb0284d16536dd145",
+      "bytes": 5257724,
+      "sha256": "9982db46f7fb20389b113d1173cd09e2b4e543073fe7b65778f95d4a548163a1",
+      "notices": [
+        {
+          "member": "jSquash-68a7201e5b4d9703bf65670fb0284d16536dd145/LICENSE",
+          "file": "jsquash-oxipng-2.3.0--47b8ab037eb3.txt",
+          "bytes": 11343,
+          "sha256": "8c3690b09c168f196446cf5904332023bbc15eb92b6a7cee470ac829e6a65d20"
+        },
+        {
+          "member": "jSquash-68a7201e5b4d9703bf65670fb0284d16536dd145/packages/jpeg/codec/LICENSE.codec.md",
+          "file": "jsquash-oxipng-2.3.0--08c81833381a.txt",
+          "bytes": 5208,
+          "sha256": "8213556ea36ce3a0f2883db06238463e2452fdad68e3d2e2e4ace2189477a37e"
+        },
+        {
+          "member": "jSquash-68a7201e5b4d9703bf65670fb0284d16536dd145/packages/oxipng/codec/LICENSE.codec.md",
+          "file": "jsquash-oxipng-2.3.0--38be2cd3d7d9.txt",
+          "bytes": 1078,
+          "sha256": "fbd251bd50b001db93e2cb942e71a85a3befe6ddef659709e09d762d4e2c2a5a"
+        },
+        {
+          "member": "jSquash-68a7201e5b4d9703bf65670fb0284d16536dd145/packages/png/codec/LICENSE.codec.md",
+          "file": "jsquash-oxipng-2.3.0--1552b0db388a.txt",
+          "bytes": 1495,
+          "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42"
+        },
+        {
+          "member": "jSquash-68a7201e5b4d9703bf65670fb0284d16536dd145/packages/resize/lib/hqx/LICENSE.codec.md",
+          "file": "jsquash-oxipng-2.3.0--7ac9713ac640.txt",
+          "bytes": 11356,
+          "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+        },
+        {
+          "member": "jSquash-68a7201e5b4d9703bf65670fb0284d16536dd145/packages/resize/lib/resize/LICENSE.codec.md",
+          "file": "jsquash-oxipng-2.3.0--a53ea1d690f1.txt",
+          "bytes": 1082,
+          "sha256": "373fec335329f8e4c9c8839871606e6ed5bfaa513a4dea2ebee4b7a418853320"
+        },
+        {
+          "member": "jSquash-68a7201e5b4d9703bf65670fb0284d16536dd145/packages/webp/codec/LICENSE.codec.md",
+          "file": "jsquash-oxipng-2.3.0--5d8a5bcbb359.txt",
+          "bytes": 1495,
+          "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42"
+        }
+      ]
+    },
+    {
+      "id": "mozjpeg-3.3.1",
+      "repository": "mozilla/mozjpeg",
+      "ref": "v3.3.1",
+      "url": "https://codeload.github.com/mozilla/mozjpeg/tar.gz/v3.3.1",
+      "bytes": 1250929,
+      "sha256": "aebbea60ea038a84a2d1ed3de38fdbca34027e2e54ee2b7d08a97578be72599d",
+      "notices": [
+        {
+          "member": "mozjpeg-3.3.1/LICENSE.md",
+          "file": "mozjpeg-3.3.1--391f9c52568d.txt",
+          "bytes": 5343,
+          "sha256": "5c08657eda60b7946a913ee22ac73603335a468a6aa95204506a1586a8d677ee"
+        },
+        {
+          "member": "mozjpeg-3.3.1/README.ijg",
+          "file": "mozjpeg-3.3.1--8cb491d14238.txt",
+          "bytes": 13668,
+          "sha256": "53a3e3c299e08856964f4c5986e242c3695837b73c64625092f70c774e8af5d2"
+        }
+      ]
+    },
+    {
+      "id": "libwebp-d2e245e",
+      "repository": "webmproject/libwebp",
+      "ref": "d2e245ea9e959a5a79e1db0ed2085206947e98f2",
+      "url": "https://codeload.github.com/webmproject/libwebp/tar.gz/d2e245ea9e959a5a79e1db0ed2085206947e98f2",
+      "bytes": 3627855,
+      "sha256": "28bd9f1e59a66016b1519f4071c419671976ce5e98315430a8343a0616b367c1",
+      "notices": [
+        {
+          "member": "libwebp-d2e245ea9e959a5a79e1db0ed2085206947e98f2/COPYING",
+          "file": "libwebp-d2e245e--41fd076ecc6d.txt",
+          "bytes": 1496,
+          "sha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf"
+        },
+        {
+          "member": "libwebp-d2e245ea9e959a5a79e1db0ed2085206947e98f2/PATENTS",
+          "file": "libwebp-d2e245e--404666d73ca0.txt",
+          "bytes": 1436,
+          "sha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c"
+        }
+      ]
+    },
+    {
+      "id": "wasm-sync-0.1.2",
+      "repository": "DouglasDwyer/wasm_sync",
+      "ref": "cc027b3b27c2e24e3cd5c7a6cc63306eff724af5",
+      "url": "https://codeload.github.com/DouglasDwyer/wasm_sync/tar.gz/cc027b3b27c2e24e3cd5c7a6cc63306eff724af5",
+      "bytes": 13601,
+      "sha256": "28585a38bd951686866eb6fb7ae0b3d00c9a5ed68c9c3467c7a0b81597f798ad",
+      "notices": []
+    }
+  ]
+}

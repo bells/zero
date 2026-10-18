@@ -1,0 +1,35 @@
+---
+import '../../styles/image-tools.css';
+interface Props { locale: 'zh' | 'en'; tool: 'image-converter' | 'image-watermark' | 'image-compressor' }
+const {locale,tool}=Astro.props;
+const zh=locale==='zh';
+const t=(a:string,b:string)=>zh?a:b;
+const positions=['top-left','top-center','top-right','middle-left','center','middle-right','bottom-left','bottom-center','bottom-right'];
+const labels=['左上','上中','右上','左中','中心','右中','左下','下中','右下'];
+---
+<section class="wt-images" data-image-workspace aria-label={t('图片工作台','Image workspace')}>
+<p class="wi-note">{t('图片只在此浏览器内处理。选择文件后，点击处理；更改设置会清除旧结果。','Images stay in this browser. Choose files, then process. Changing settings clears previous results.')}</p>
+<label class="wi-picker">{t('选择图片（最多 10 张）','Choose images (up to 10)')}<input data-image-files type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" /></label>
+<p class="wi-note">{t('单张 ≤16 MiB、1220 万像素、最长边 8192；每批源文件 ≤64 MiB。不会自动缩图。','Per image: ≤16 MiB, 12.2 MP, 8192 px edge. Batch sources ≤64 MiB. Images are never resized automatically.')}</p>
+<fieldset data-image-settings><legend>{t('输出设置','Output settings')}</legend><div class="wi-controls">
+<label>{t('格式','Format')}<select data-image-format><option value="preserve">{t('保持原格式（HEIC → JPEG）','Keep format (HEIC → JPEG)')}</option><option value="jpeg">JPEG</option><option value="png">PNG</option><option value="webp">WebP</option></select></label>
+<label data-image-quality-label>{t('JPEG / WebP 质量','JPEG / WebP quality')}<input data-image-quality type="number" min="1" max="100" value="75" /></label>
+<label>{t('最长边（像素，留空不缩放）','Maximum edge (px; blank keeps size)')}<input data-image-edge data-image-max-edge type="number" min="1" max="8192" placeholder="—" /></label>
+<label data-image-background-label>{t('JPEG 背景色','JPEG background')}<input data-image-background type="color" value="#ffffff" /></label>
+</div><p class="wi-note">{t('JPEG 不支持透明，会合成背景色。PNG 不使用质量参数；仅重新编码不保证体积更小。','JPEG flattens transparency onto the background color. PNG has no quality setting. Re-encoding may increase file size.')}</p>
+{tool==='image-watermark' && <div class="wi-watermark"><label>{t('水印文字（最多 200 字符）','Watermark text (up to 200 characters)')}<textarea data-image-text data-image-watermark-text maxlength="400" rows="2"></textarea></label><div class="wi-controls">
+<label>{t('模式','Mode')}<select data-image-mode><option value="single">{t('单处','Single')}</option><option value="tile">{t('平铺','Tile')}</option></select></label>
+<label data-image-position-label>{t('位置','Position')}<select data-image-position>{positions.map((p,i)=><option value={p} selected={p==='bottom-right'}>{zh?labels[i]:p}</option>)}</select></label>
+<label>{t('字号 / 短边 (%)','Font / short edge (%)')}<input data-image-font type="number" min="1" max="20" step="0.5" value="5" /></label>
+<label>{t('颜色','Color')}<input data-image-color type="color" value="#ffffff" /></label>
+<label>{t('不透明度 (%)','Opacity (%)')}<input data-image-opacity type="number" min="1" max="100" value="50" /></label>
+<label>{t('旋转 (°)','Rotation (°)')}<input data-image-rotation type="number" min="-180" max="180" value="-30" /></label>
+<label>{t('边距 / 短边 (%)','Margin / short edge (%)')}<input data-image-margin type="number" min="0" max="25" value="3" /></label>
+<label data-image-spacing-label hidden>{t('间距 / 短边 (%)','Spacing / short edge (%)')}<input data-image-spacing type="number" min="5" max="100" value="15" /></label>
+</div></div>}
+</fieldset>
+<div class="wt-actions"><button class="wt-primary" type="button" data-image-run>{t('处理图片','Process images')}</button><button type="button" data-image-retry disabled>{t('重试失败项','Retry failed')}</button><button type="button" data-image-cancel disabled>{t('取消处理','Cancel processing')}</button><button type="button" data-image-clear>{t('清空','Clear')}</button><button type="button" data-image-zip disabled>{t('下载成功项 ZIP','Download successful ZIP')}</button><button type="button" data-image-zip-cancel hidden>{t('取消 ZIP','Cancel ZIP')}</button></div>
+<p data-image-counts class="wi-note"></p><p role="status" aria-live="polite" data-image-status></p><div class="wi-results" data-image-results></div>
+<figure data-image-preview hidden><img alt={t('当前实际处理结果的缩略图','Thumbnail of the current processed result')} /><figcaption>{t('实际结果预览；尺寸以结果数据为准。','Actual result preview; see result details for dimensions.')}</figcaption></figure>
+<p class="wi-note">{t('新输出不保留拍摄元数据。原文件下载保留原始数据和元数据。HEIC 仅支持可解码的主静态图；不保证 HDR / Live Photo 保真。单项最长 60 秒，结果单张 ≤16 MiB、合计 ≤32 MiB，ZIP ≤32 MiB / 10 秒。','New outputs omit capture metadata. Original downloads retain original bytes and metadata. HEIC supports a decodable primary still image; HDR / Live Photo fidelity is not guaranteed. Per item: 60 s; results ≤16 MiB each / 32 MiB total; ZIP ≤32 MiB / 10 s.')}</p>
+</section>

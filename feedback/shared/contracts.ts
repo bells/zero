@@ -4,6 +4,9 @@ export const threads = [
   "tools/json",
   "tools/base64",
   "tools/diff",
+  "tools/image-converter",
+  "tools/image-watermark",
+  "tools/image-compressor",
 ] as const;
 export type ThreadId = (typeof threads)[number];
 export type Locale = "zh" | "en";

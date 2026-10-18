@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<link rel="icon" type="image/svg+xml" href="./icon.svg"><link rel="stylesheet" href="./style.css">
+<title>图片编解码实验 · Zero</title></head>
+<body><main><p class="eyebrow">ZERO / LOCAL IMAGE LAB</p><h1>图片编解码实验</h1>
+<p>这是本地验收页。先测 12MP，再按需测试 48MP；每次只运行一个 Worker，默认只解码。测试上限为 32 MiB 源文件、5000 万像素、60 秒，均为实验参数，尚非正式支持范围。</p>
+<p>合成样本不含私人信息，也不是 iPhone 相机原片。测试期间可记录耗时、页面重载或闪退；RGBA / Blob 字节数不等于 Safari 进程峰值内存。</p>
+<section><h2>1. 编解码与方向</h2><div class="actions">
+<button id="codecs" data-run type="button">检查 JPEG / WebP / PNG / ZIP</button>
+<button id="heic" data-run type="button">解码合成 12MP HEIC</button></div>
+<label><input id="encode" type="checkbox"> 同时编码原尺寸 JPEG（质量 75）并生成 ZIP，保留一份结果</label>
+<div class="actions"><label for="rotation">HEIC 容器旋转</label><select id="rotation"><option value="1">逆时针 90°</option><option value="2">180°</option><option value="3">逆时针 270°</option></select><button id="rotate" data-run type="button">检查旋转</button></div>
+<label><input id="large" type="checkbox"> 我已完成 12MP 测试，继续单张 48MP 实验（可能重载或退出）</label><button id="heic48" data-run type="button" disabled>解码合成 48MP HEIC</button></section>
+<section><h2>2. 取消与超时</h2><div class="actions"><button id="cancel" data-run type="button">主图检查后自动终止 48MP</button><button id="timeout" data-run type="button">启动 60 秒超时测试</button><button id="stop" type="button" disabled>取消当前任务</button></div><p>手动取消可在解码、编码或超时测试时点击。终止 Worker 不等于已经证明内存回收。</p></section>
+<section><h2>3. 可选：原始 HEIC</h2><p>优先从“文件”选原片。照片选择器可能交付 JPEG，本页按实际字节报告；JPEG 不计为 HEIC 解码证据。文件只在当前浏览器内读取，不显示文件名、不上传、不存储。</p><label for="local">选择单个本地文件</label><input id="local" type="file"><button id="decode-local" data-run type="button">明确开始解码所选 HEIC</button></section>
+<section><h2>4. 结果与下载</h2><p id="retained">未保留结果。</p><div class="actions"><button id="preview" type="button" disabled>打开结果预览</button><button id="download-jpeg" type="button" disabled>下载 JPEG</button><button id="download-zip" type="button" disabled>下载 ZIP</button><button id="clear" type="button">清空并释放引用</button></div><p>启用编码后才有下载。请在 Safari 实际打开文件检查方向及内容；下载事件不能证明已保存到相册。预览为单独的显式操作，会增加浏览器解码内存。</p><img id="image" alt="本次实验 JPEG 结果预览" hidden><pre id="result" role="status" aria-live="polite">Ready</pre></section>
+<footer><p>HEIC 解码使用 LGPL-3.0-or-later 的 libheif / libde265。允许修改、独立替换模块，以及为调试修改后的库进行逆向工程。<a href="./materials/THIRD_PARTY_NOTICES.md">通知</a> · <a href="./materials/manifest.json">完整源码与许可材料索引</a> · <a href="./materials/application-source/image-codecs/REBUILD.md">重建与替换说明</a>。本页不代表工具已发布或 iPhone 验收通过。</p></footer>
+</main><script type="module" src="./main.ts"></script></body></html>

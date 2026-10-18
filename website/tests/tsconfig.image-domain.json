@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "ES2023", "lib": ["ES2023"], "module": "ESNext", "moduleResolution": "Bundler",
+    "strict": true, "noUncheckedIndexedAccess": true, "allowImportingTsExtensions": true,
+    "noEmit": true, "types": []
+  },
+  "include": ["../src/lib/web-tools/image-contracts.ts", "../src/lib/web-tools/image-batch.ts"]
+}

@@ -8,19 +8,27 @@
     "node": ">=24"
   },
   "scripts": {
-    "predev": "node scripts/prepare-social.mjs",
+    "experiment:images:fixtures": "node experiments/image-codecs/generate-fixtures.mjs",
+    "experiment:images:sources": "node experiments/image-codecs/fetch-sources.mjs",
+    "experiment:images:rebuild": "node experiments/image-codecs/rebuild-heic.mjs",
+    "experiment:images:licenses": "node experiments/image-codecs/collect-license-materials.mjs && node --test experiments/image-codecs/license-materials.test.mjs",
+    "experiment:images": "node --test experiments/image-codecs/fixtures.test.mjs experiments/image-codecs/orientation.test.mjs experiments/image-codecs/server.test.mjs experiments/image-codecs/process-memory.test.mjs && node experiments/image-codecs/probe.test.mjs && node experiments/image-codecs/audit-dependencies.mjs",
+    "predev": "node scripts/prepare-social.mjs && node scripts/prepare-image-codecs.mjs",
     "dev": "astro dev --host 127.0.0.1 --port 4321 --ignore-lock",
     "check": "node scripts/check-content.mjs && astro check",
-    "prebuild": "node scripts/prepare-social.mjs",
+    "prebuild": "node scripts/prepare-social.mjs && node scripts/prepare-image-codecs.mjs",
     "build": "astro build",
     "preview": "astro preview --host 127.0.0.1 --port 4321 --ignore-lock",
-    "test": "node --test tests/catalog.test.mjs tests/web-tools.test.mjs tests/timestamp-batch.test.mjs tests/text-diff*.test.mjs tests/feedback.test.mjs",
+    "test": "node --test tests/catalog.test.mjs tests/web-tools.test.mjs tests/timestamp-batch.test.mjs tests/text-diff*.test.mjs tests/feedback.test.mjs tests/image-batch.test.mjs tests/image-engine.test.mjs tests/categories.test.mjs tests/image-ui-lifecycle.test.mjs scripts/prepare-image-codecs.test.mjs && tsc -p tests/tsconfig.image-domain.json",
     "test:seo": "node --test tests/discovery-output.test.mjs",
     "pretest:browser": "pnpm verify:fixtures",
     "test:browser": "playwright test",
     "verify:fixtures": "node scripts/build-fixtures.mjs",
     "verify:links": "node scripts/verify-links.mjs",
-    "verify:performance": "node scripts/performance.mjs"
+    "verify:performance": "node scripts/performance.mjs",
+    "experiment:images:serve": "node experiments/image-codecs/server.mjs --lan",
+    "experiment:images:resources": "node experiments/image-codecs/resource-probe.mjs",
+    "prepare:image-codecs": "node scripts/prepare-image-codecs.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",
@@ -43,8 +51,14 @@
   "devDependencies": {
     "@astrojs/check": "0.9.10",
     "@axe-core/playwright": "4.13.0",
+    "@jsquash/jpeg": "1.6.0",
+    "@jsquash/oxipng": "2.3.0",
+    "@jsquash/png": "3.1.1",
+    "@jsquash/webp": "1.5.0",
     "@playwright/test": "1.64.0",
     "chrome-launcher": "1.2.2",
+    "fflate": "0.8.3",
+    "heic-to": "1.6.6",
     "lighthouse": "13.5.0",
     "typescript": "5.9.3"
   }

@@ -1,0 +1,76 @@
+{
+  "emscripten": "6.0.12",
+  "cmake": "3.31.6",
+  "sources": [
+    {
+      "id": "libheif-1.23.6",
+      "repository": "strukturag/libheif",
+      "ref": "v1.23.6",
+      "url": "https://codeload.github.com/strukturag/libheif/tar.gz/v1.23.6",
+      "bytes": 2311710,
+      "sha256": "c9a00b0452f5c16d72ef71e5e40c0e90fbe2ad37148d27a1b2f9bb21546f5f03",
+      "notices": [
+        {
+          "member": "libheif-1.23.6/COPYING",
+          "file": "libheif-1.23.6--4b37add6766d.txt",
+          "bytes": 44366,
+          "sha256": "fa81ce652315b013359d6e8e4744335f31a50c7c192907176d3632f78a3b4596"
+        },
+        {
+          "member": "libheif-1.23.6/examples/COPYING",
+          "file": "libheif-1.23.6--00cefeac12e5.txt",
+          "bytes": 1066,
+          "sha256": "278ee9bbb13ecb080a131c68927bd589a6a56fd5449ce25e8e594c858864830d"
+        }
+      ]
+    },
+    {
+      "id": "libde265-1.0.16",
+      "repository": "strukturag/libde265",
+      "ref": "v1.0.16",
+      "url": "https://github.com/strukturag/libde265/releases/download/v1.0.16/libde265-1.0.16.tar.gz",
+      "bytes": 835657,
+      "sha256": "b92beb6b53c346db9a8fae968d686ab706240099cdd5aff87777362d668b0de7",
+      "notices": [
+        {
+          "member": "libde265-1.0.16/COPYING",
+          "file": "libde265-1.0.16--37f3cf8d17e2.txt",
+          "bytes": 44339,
+          "sha256": "02cc1585a20677992e0ba578fa692635dc193735f2691dc81de924b51c4e8020"
+        },
+        {
+          "member": "libde265-1.0.16/dec265/COPYING",
+          "file": "libde265-1.0.16--fc47b3554f07.txt",
+          "bytes": 1094,
+          "sha256": "687871f725037b40b35ad0b8f5c79263616dfe7b48f72619cec3d84f2d02409a"
+        },
+        {
+          "member": "libde265-1.0.16/sherlock265/COPYING",
+          "file": "libde265-1.0.16--a106a8875873.txt",
+          "bytes": 1094,
+          "sha256": "687871f725037b40b35ad0b8f5c79263616dfe7b48f72619cec3d84f2d02409a"
+        },
+        {
+          "member": "libde265-1.0.16/libde265/COPYING",
+          "file": "libde265-1.0.16--d2277ab1049c.txt",
+          "bytes": 7651,
+          "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+        },
+        {
+          "member": "libde265-1.0.16/enc265/COPYING",
+          "file": "libde265-1.0.16--dc24acd5838c.txt",
+          "bytes": 1094,
+          "sha256": "687871f725037b40b35ad0b8f5c79263616dfe7b48f72619cec3d84f2d02409a"
+        }
+      ]
+    }
+  ],
+  "mode": "asm.js ES module, CSP-safe, static HEVC decoder only",
+  "artifact": {
+    "file": "libheif-rebuilt.js",
+    "bytes": 3340062,
+    "sha256": "5c7b2c8ce7a3a9161c7ed5dd33fdd43ed4fb26b972cd331f03a4163b14ceb3ca"
+  },
+  "browserReplacementVerified": true,
+  "browserEvidence": "results-rebuilt.json"
+}

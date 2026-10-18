@@ -1,0 +1,11 @@
+{
+  "model": "iPhone 17 Pro",
+  "osVersion": "iOS 27.0.1",
+  "source": "User-provided About screenshot, 2026-10-17",
+  "status": "partial device validation: synthetic 12MP processing/downloads/irot pixels and cancel/timeout recovery reported; 48MP timed out",
+  "browserVersion": null,
+  "notes": "Model/OS from screenshot. Decode-only: 13254 ms. Decode+JPEG+ZIP: decode 16005 ms, encode 18867 ms, ZIP 32 ms, total 51621 ms. JPEG 176763 bytes; ZIP 176901 bytes. User confirms JPEG download/open and, contextually, ZIP download/extract/contained JPEG opening. Exact system UI/save location not separately described. Manual HEIC cancellation is reported timely and fresh processing normal. Synthetic 48MP decode returned timeout under the configured 60000 ms deadline. User confirms fresh 12MP processing after the 48MP timeout without refreshing. Synthetic HEIC irot 90/180/270 dimensions and four pixel samples exactly match expected rotations (13568/14343/13891 ms). Raw camera input, camera orientation/color/HDR, alpha, Safari version and process memory remain unverified; final workbench downloads require regression.",
+  "deferredChecks": [
+    "Raw camera-original 12MP HEIC decode: user requested deferral on 2026-10-17"
+  ]
+}

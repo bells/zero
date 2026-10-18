@@ -5,7 +5,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 
 const origin = process.env.WEBSITE_ORIGIN || 'http://127.0.0.1:4321';
-const routes = ['/', '/en/', '/download/', '/en/download/', '/tools/snap/', '/guide/install/', '/en/guide/install/', '/en/faq/', ...['', 'en/'].flatMap((locale) => ['tools/', 'tools/timestamp/', 'tools/json/', 'tools/base64/', 'tools/diff/'].map((route) => `/${locale}${route}`))];
+const routes = ['/', '/en/', '/download/', '/en/download/', '/tools/snap/', '/guide/install/', '/en/guide/install/', '/en/faq/', ...['', 'en/'].flatMap((locale) => ['tools/', 'tools/timestamp/', 'tools/json/', 'tools/base64/', 'tools/diff/', 'tools/image-converter/', 'tools/image-watermark/', 'tools/image-compressor/'].map((route) => `/${locale}${route}`))];
 await mkdir('output/performance', { recursive: true });
 const browser = await chromium.launch({ channel: process.env.WEBSITE_BROWSER_CHANNEL || undefined });
 const browserVersion = browser.version();
@@ -106,6 +106,46 @@ try {
   const navigationStart=Date.now(); await diffPage.locator('[data-open-search]').click(); await diffPage.keyboard.press('Escape'); enhanced.diffNavigationMs=Date.now()-navigationStart;
   if (enhanced.diffCancelMs > 1000 || enhanced.diffNavigationMs > 1000) throw new Error('Heavy comparison blocked cancellation/navigation');
   await diffPage.close();
+
+
+  const imagePage = await browser.newPage();
+  await imagePage.goto(`${origin}/en/tools/image-converter/`);
+  await imagePage.locator('[data-web-tools][data-ready="true"]').waitFor();
+  const imageResponses = [];
+  imagePage.on('response', response => imageResponses.push(response));
+  await imagePage.locator('[data-image-files]').setInputFiles('output/image-codecs/fixtures/synthetic-12mp.heic');
+  await imagePage.locator('[data-image-results] article').waitFor();
+  if (imageResponses.some(response => /libheif|wasm/.test(response.url()))) throw new Error('Import automatically loaded an image codec');
+  const imageStart = Date.now();
+  await imagePage.locator('[data-image-run]').click();
+  await imagePage.locator('[data-image-download]').waitFor({timeout:65000});
+  enhanced.image12MPFirstMs = Date.now() - imageStart;
+  enhanced.imageInteractionResources = [];
+  for (const response of [...imageResponses]) {
+    if (!['script', 'fetch', 'other'].includes(response.request().resourceType())) continue;
+    let body;
+    try { body = await response.body(); }
+    catch { const resource = await imagePage.request.get(response.url()); if (!resource.ok()) throw new Error('Cannot read local image resource'); body = await resource.body(); }
+    enhanced.imageInteractionResources.push({ path:new URL(response.url()).pathname, bytes:body.length, gzipBytes:gzipSync(body).length });
+  }
+  enhanced.imageInteractionResourceBytes = enhanced.imageInteractionResources.reduce((sum, resource) => sum + resource.bytes, 0);
+  enhanced.image12MPResult = await imagePage.locator('[data-image-results]').innerText();
+  await imagePage.locator('[data-image-clear]').click();
+  if (await imagePage.locator('[data-image-download]').count()) throw new Error('Image clear retained output downloads');
+  await imagePage.locator('[data-image-files]').setInputFiles('output/image-codecs/fixtures/synthetic-12mp.heic');
+  await imagePage.locator('[data-image-results] article').waitFor();
+  const subsequentStart = Date.now(); await imagePage.locator('[data-image-run]').click();
+  await imagePage.locator('[data-image-download]').waitFor({timeout:65000});
+  enhanced.image12MPSubsequentMs = Date.now() - subsequentStart;
+  await imagePage.locator('[data-image-quality]').fill('74');
+  await imagePage.locator('[data-image-run]').click();
+  const imageCancelStart = Date.now(); await imagePage.locator('[data-image-cancel]').click();
+  await imagePage.locator('[data-image-run]:enabled').waitFor();
+  enhanced.imageCancelMs = Date.now() - imageCancelStart;
+  if (await imagePage.locator('[data-image-download]').count()) throw new Error('Image cancel restored an obsolete download');
+  await imagePage.locator('[data-image-clear]').click();
+  enhanced.imageReleaseEvidence = 'Browser downloads and queue clear; lifecycle tests assert worker termination and Blob URL revocation. OS process-memory reclamation is a separate device gate.';
+  await imagePage.close();
 
 } finally { await browser.close(); }
 const chrome = await launch({ chromeFlags: ['--headless', '--disable-extensions'], logLevel: 'silent' });
