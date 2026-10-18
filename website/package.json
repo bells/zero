@@ -28,7 +28,8 @@
     "verify:performance": "node scripts/performance.mjs",
     "experiment:images:serve": "node experiments/image-codecs/server.mjs --lan",
     "experiment:images:resources": "node experiments/image-codecs/resource-probe.mjs",
-    "prepare:image-codecs": "node scripts/prepare-image-codecs.mjs"
+    "prepare:image-codecs": "node scripts/prepare-image-codecs.mjs",
+    "package:image-codecs": "node scripts/package-image-codecs.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",

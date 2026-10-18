@@ -21,11 +21,13 @@
 
 处理输出清理源 GPS、EXIF、XMP 与拍摄设备信息；PNG 无损路径也移除源 iCCP/ICC 配置及其中可能标识来源的描述信息，保持方向规范化后的原始 RGBA 像素；sRGB/gAMA/cHRM/sBIT 等纯数值渲染信息可能保留。移除配置后不承诺源色彩配置或 HDR 保真。保留原图动作下载原始字节，仍含原始元数据。普通静态输出不承诺 HDR、Live Photo、深度或原色域保真，也不承诺自动存入相册。
 
-编解码/ZIP 依赖按网站锁文件固定，HEIC 使用可独立替换的重建 libheif 模块，JPEG/WebP/PNG 使用 jSquash codec，ZIP 使用 fflate。`predev`/`prebuild` 现在运行 `scripts/prepare-image-codecs.mjs`，从忽略的 `output/image-codecs/license-materials/` 校验 manifest、材料哈希、完整 GPL/LGPL 通知和宿主不变的 decoder 替换证据，准备忽略的 `public/image-codecs/libheif-rebuilt.js` 与 `public/image-codecs/materials/`。缺失或不完整即失败，不降级为缺许可的构建。首次干净环境先按 [REBUILD.md](../website/experiments/image-codecs/REBUILD.md) 准备来源、工具链、重建和替换验证，再运行 `experiment:images:licenses` / `prepare:image-codecs`。生产页面静态链接 `BASE_URL + image-codecs/materials/THIRD_PARTY_NOTICES.md`，材料包含许可、对应源码、构建及替换/重建说明；网站 source allowlist 随构建刷新，浏览器实验样本不复制到公开材料。codec 与 ZIP 按操作懒加载；最终构建仍需复核实际分发物、base/CSP 与初始资源预算。材料准备不等于法律结论或公开发布许可。
+编解码/ZIP 依赖按网站锁文件固定，HEIC 使用可独立替换的重建 libheif 模块，JPEG/WebP/PNG 使用 jSquash codec，ZIP 使用 fflate。`predev`/`prebuild` 运行 `scripts/prepare-image-codecs.mjs`，从随仓库版本化的 [vendor/image-codecs](../website/vendor/image-codecs/README.md) 材料包校验 ZIP 的固定长度/SHA-256、manifest、逐项材料哈希、完整 GPL/LGPL 通知和宿主不变的 decoder 替换证据，原子准备忽略的 `public/image-codecs/libheif-rebuilt.js` 与 `public/image-codecs/materials/`。普通干净 checkout 在 `pnpm install --frozen-lockfile` 后即可构建，不依赖 `output/`、外网材料下载或 Emscripten；CI 在检查前显式准备材料。缺失或不完整即失败，不降级为缺许可的构建。更新 codec 时才按 [REBUILD.md](../website/experiments/image-codecs/REBUILD.md) 准备来源、工具链、重建和替换验证，执行 `experiment:images:licenses` 后运行 `package:image-codecs`，一起审查材料 ZIP、锁定清单及版本/许可变化。生产页面静态链接 `BASE_URL + image-codecs/materials/THIRD_PARTY_NOTICES.md`，材料包含许可、对应源码、构建及替换/重建说明；网站 source allowlist 随构建刷新，浏览器实验样本不复制到公开材料。codec 与 ZIP 按操作懒加载；最终构建仍需复核实际分发物、base/CSP 与初始资源预算。材料准备不等于法律结论或公开发布许可。
 
 三个图片反馈线程为 `tools/image-converter`、`tools/image-watermark`、`tools/image-compressor`，与目录及四旧工具合计八线程、双语十六页面。服务仍默认关闭；点击前无反馈请求，点击后只传稳定线程和 locale，文件、元数据、水印、搜索与结果不附送。原线程、异源隔离、白名单和部署门禁不变。
 
 本地集成应串行运行 check、test、build、test:seo、test:browser、verify:links 和 verify:performance；fixture 准备会重建隔离目录，勿并发执行。新浏览器覆盖包含分类恢复、查询隐私、七项全工具搜索、三图片页和资源/生命周期场景；测试存在不表示已通过，实际结果见本变更证据。真实桌面 Safari、原始相机 HEIC、真实 iPhone 方向/色彩/alpha、进程峰值与回收、单图/ZIP 保存行为及最终资源策略仍是未完成的人工门禁。既有合成 12MP 手机反馈和 Chrome 实验不能代替这些证据。提交、推送、部署、OpenSpec 同步和归档仍需独立授权。
+
+CI 使用的两张 HEIC 合成象限样本及哈希/来源清单位于 `website/tests/fixtures/image-codecs/`，浏览器与性能检查直接读取它们，无需先在 macOS 生成忽略目录中的实验语料；样本不进入网站公开资源。干净构建修复及验证见[CI 修复记录](../openspec/changes/add-web-image-tools-and-categories/evidence/ci-build-2026-10-18.md)。
 
 2026-10-12 搜索/AI 增量：增加 `/tools/{snap,launch,awake,paper,file}/`、`/guide/install/` 和 `/faq/`，以及对应 `/en/` 页面，共 18 个可索引 HTML 页面。它们使用现有视觉，静态提供操作步骤、平台/发行边界、内容核对日期与来源。`llms.txt` 提供事实摘要和文档索引，`llms-full.txt` 提供文档全文；均从同一份内容和发行清单生成。它们是补充入口，不保证搜索收录、排名或 AI 引用。
 

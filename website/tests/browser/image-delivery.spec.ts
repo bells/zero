@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 
-const fixture = (name: string) => `output/image-codecs/fixtures/${name}`;
+const fixture = (name: string) => `tests/fixtures/image-codecs/${name}`;
 
 test('production HEIC replacement module loads only on demand and produces a real JPEG', async ({ page }) => {
   test.setTimeout(90_000);

@@ -2,8 +2,10 @@
 
 This procedure concerns the standalone experimental HEIC decoder. It does not
 deploy a site or establish iPhone support. All downloads, source extractions,
-toolchains, binaries and material bundles stay in ignored
-`website/output/image-codecs/`.
+toolchains and intermediate materials stay in ignored
+`website/output/image-codecs/`. Ordinary website builds use the verified,
+versioned material bundle in `website/vendor/image-codecs/`; they do not run
+this native rebuild procedure or depend on its local cache.
 
 ## Fixed inputs
 
@@ -139,3 +141,14 @@ debug modified LGPL libraries. The bundle records this permission without
 changing other components' licenses. It is a reviewable experimental
 distribution material set. Public release, phone acceptance, codec budgets and
 any later host integration remain separate verification steps.
+
+## Update the checkout's build input
+
+After the above checks succeed, run `pnpm package:image-codecs` from
+`website/`. The packager revalidates materials, excludes browser experiments,
+and writes a reproducible `vendor/image-codecs/materials.zip` plus its hash
+lock `bundle.json`. Review and commit those together with any codec recipe or
+version changes when authorized. Normal `predev`/`prebuild` reads the fixed
+bundle directly, verifies its hash and each material, and refreshes the public
+application source. It never needs ignored experiment output. See
+`../../vendor/image-codecs/README.md` for the update and distribution boundary.

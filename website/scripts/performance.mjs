@@ -113,7 +113,7 @@ try {
   await imagePage.locator('[data-web-tools][data-ready="true"]').waitFor();
   const imageResponses = [];
   imagePage.on('response', response => imageResponses.push(response));
-  await imagePage.locator('[data-image-files]').setInputFiles('output/image-codecs/fixtures/synthetic-12mp.heic');
+  await imagePage.locator('[data-image-files]').setInputFiles('tests/fixtures/image-codecs/synthetic-12mp.heic');
   await imagePage.locator('[data-image-results] article').waitFor();
   if (imageResponses.some(response => /libheif|wasm/.test(response.url()))) throw new Error('Import automatically loaded an image codec');
   const imageStart = Date.now();
@@ -132,7 +132,7 @@ try {
   enhanced.image12MPResult = await imagePage.locator('[data-image-results]').innerText();
   await imagePage.locator('[data-image-clear]').click();
   if (await imagePage.locator('[data-image-download]').count()) throw new Error('Image clear retained output downloads');
-  await imagePage.locator('[data-image-files]').setInputFiles('output/image-codecs/fixtures/synthetic-12mp.heic');
+  await imagePage.locator('[data-image-files]').setInputFiles('tests/fixtures/image-codecs/synthetic-12mp.heic');
   await imagePage.locator('[data-image-results] article').waitFor();
   const subsequentStart = Date.now(); await imagePage.locator('[data-image-run]').click();
   await imagePage.locator('[data-image-download]').waitFor({timeout:65000});

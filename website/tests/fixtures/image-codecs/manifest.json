@@ -1,0 +1,36 @@
+{
+  "personalData": false,
+  "generator": "website/experiments/image-codecs/generate-fixtures.mjs",
+  "sharp": "0.35.5",
+  "files": [
+    {
+      "name": "synthetic-12mp.heic",
+      "source": "synthetic: Apple ImageIO sips HEIC encode on darwin 25.6.0; generated quadrants, original HEIC bytes, no picker",
+      "tags": [
+        "heic-12mp"
+      ],
+      "width": 4032,
+      "height": 3024,
+      "cameraOriginal": false,
+      "expected": "decode primary at original dimensions, or explicitly reject by measured policy",
+      "bytes": 230438,
+      "sha256": "dff22106bef6c258c2c799134066532b556ccc3e4d93a77dd1d8b7e79d04dec5",
+      "signature": "00000020667479706865696300000000"
+    },
+    {
+      "name": "heic-rotate-1.heic",
+      "source": "synthetic: Apple ImageIO encoded quadrants; associated primary irot changed without reencoding",
+      "cameraOriginal": false,
+      "tags": [
+        "heic-orientation"
+      ],
+      "quarterTurnsCCW": 1,
+      "width": 3024,
+      "height": 4032,
+      "expected": "apply associated irot exactly once; rotated quadrant samples match baseline",
+      "bytes": 230438,
+      "sha256": "05469a2db75eb869b4eee724cecdd6f96e35e5db19195cb0b4420343aae46a0f",
+      "signature": "00000020667479706865696300000000"
+    }
+  ]
+}
