@@ -13,14 +13,20 @@ export interface Point {
   y: number;
 }
 
-interface BaseAnnotation {
-  id: string;
+export type DrawingTool = Exclude<CaptureTool, "select" | "pin">;
+
+interface IdentifiedAnnotation { id: string }
+
+interface BaseAnnotation extends IdentifiedAnnotation {
+  opacity: number;
   color: string;
   strokeWidth: number;
 }
 
 export interface RectangleAnnotation extends BaseAnnotation {
   type: "rectangle";
+  fillMode: "outline" | "solid";
+  cornerRadius: number;
   x: number;
   y: number;
   width: number;
@@ -29,6 +35,7 @@ export interface RectangleAnnotation extends BaseAnnotation {
 
 export interface EllipseAnnotation extends BaseAnnotation {
   type: "ellipse";
+  fillMode: "outline" | "solid";
   x: number;
   y: number;
   width: number;
@@ -37,6 +44,7 @@ export interface EllipseAnnotation extends BaseAnnotation {
 
 export interface ArrowAnnotation extends BaseAnnotation {
   type: "arrow";
+  heads: "single" | "double";
   from: Point;
   to: Point;
 }
@@ -48,13 +56,14 @@ export interface PenAnnotation extends BaseAnnotation {
 
 export interface TextAnnotation extends BaseAnnotation {
   type: "text";
+  bold: boolean;
   x: number;
   y: number;
   text: string;
   fontSize: number;
 }
 
-export interface MosaicAnnotation extends BaseAnnotation {
+export interface MosaicAnnotation extends IdentifiedAnnotation {
   type: "mosaic";
   x: number;
   y: number;
@@ -63,7 +72,7 @@ export interface MosaicAnnotation extends BaseAnnotation {
   pixelSize: number;
 }
 
-export interface PinAnnotation extends BaseAnnotation {
+export interface PinAnnotation extends IdentifiedAnnotation {
   type: "pin";
   x: number;
   y: number;
@@ -71,14 +80,15 @@ export interface PinAnnotation extends BaseAnnotation {
   height: number;
 }
 
-export type AnnotationObject =
+export type DrawingAnnotation =
   | RectangleAnnotation
   | EllipseAnnotation
   | ArrowAnnotation
   | PenAnnotation
   | TextAnnotation
-  | MosaicAnnotation
-  | PinAnnotation;
+  | MosaicAnnotation;
+
+export type AnnotationObject = DrawingAnnotation | PinAnnotation;
 
 export interface ScreenshotMediaDescriptor {
   token: string;

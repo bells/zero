@@ -101,6 +101,7 @@ test("draws an ellipse and every line of multiline text", () => {
     ellipse(...args) {
       ellipseCalls.push(args);
     },
+    measureText(line) { return { width: line === "Hello" ? 56 : 40 }; },
     fillText(...args) {
       fillTextCalls.push(args);
     },

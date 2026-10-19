@@ -67,3 +67,12 @@ test("recalculates from current toolbar and viewport dimensions", () => {
   assert.equal(resized.left, 620);
   assert.equal(resized.placement, "inside-bottom");
 });
+
+test('measured two-layer editor avoids the crop geometry bar at viewport corners', () => {
+ const view={width:360,height:300}; const stack={width:344,height:200};
+ const obstacle={x:8,y:8,width:292,height:46};
+ const pos=resolveCaptureToolbarPosition({x:0,y:0,width:360,height:40},stack,view,obstacle);
+ assert.ok(pos.top>=62,'combined toolbar must be below geometry bar');
+ assert.ok(pos.left>=8 && pos.left+stack.width<=352);
+ assert.ok(pos.top+stack.height<=292);
+});

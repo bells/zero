@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Snap synthetic editor fixture</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      const source = document.createElement("canvas");
+      source.width = 1000;
+      source.height = 700;
+      const ctx = source.getContext("2d");
+      ctx.fillStyle = "#e7e9ec";
+      ctx.fillRect(0, 0, 1000, 700);
+      ctx.fillStyle = "#c4cbd0";
+      ctx.fillRect(80, 80, 840, 540);
+      ctx.fillStyle = "#283139";
+      ctx.font = "28px sans-serif";
+      ctx.fillText("Synthetic Snap fixture / 合成图像", 120, 150);
+      const bytes = await new Promise((r) =>
+        source.toBlob(async (b) => r(await b.arrayBuffer()), "image/png"),
+      );
+      window.snapInvocations = [];
+      window.snapUploads = [];
+      window.__TAURI_INTERNALS__ = {
+        invoke: async (cmd, args, options) => {
+          window.snapInvocations.push({ cmd, args });
+          switch (cmd) {
+            case "get_ocr_capability":
+              return { available: true, languages: ["zh-Hans", "en-US"], reason: null };
+            case "init_screenshot_session":
+              return {
+                sessionId: "synthetic",
+                initialAction: "copy",
+                media: {
+                  token: "synthetic-media",
+                  mimeType: "image/png",
+                  byteLength: bytes.byteLength,
+                  width: 1000,
+                  height: 700,
+                  expiresAtMs: null,
+                },
+                display: {
+                  nativeId: 1,
+                  logicalFrame: { x: 0, y: 0, width: 1000, height: 700 },
+                  physicalFrame: { x: 0, y: 0, width: 1000, height: 700 },
+                  pixelWidth: 1000,
+                  pixelHeight: 700,
+                  sourceScaleX: 1,
+                  sourceScaleY: 1,
+                },
+                targets: [],
+              };
+            case "read_screenshot_media":
+              return bytes.slice(0);
+            case "prepare_screenshot_commit":
+              return {
+                token: `synthetic-lease-${window.snapInvocations.length}`,
+                sessionId: "synthetic",
+                action: args.input.action,
+                maxBytes: 10000000,
+                expiresAtMs: Date.now() + 10000,
+              };
+            case "upload_screenshot_commit":
+              window.snapUploads.push({byteLength:args.byteLength,signature:[...args.slice(0,8)],headers:options.headers});
+              return { copied: true, savedPath: null, pinWindowLabel: null };
+            case "reveal_screenshot_capture":
+            case "cancel_screenshot_session":
+            case "start_snap_ocr":
+              return null;
+            default:
+              throw Error(`Unexpected native command in fixture: ${cmd}`);
+          }
+        },
+      };
+      const React = await import("react");
+      const { createRoot } = await import("react-dom/client");
+      const { CaptureApp } = await import(
+        "/src/plugins/screenshot/capture/CaptureApp.tsx"
+      );
+      await import("/src/App.css");
+      createRoot(document.getElementById("root")).render(
+        React.createElement(CaptureApp),
+      );
+    </script>
+  </body>
+</html>

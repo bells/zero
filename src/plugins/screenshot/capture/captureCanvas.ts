@@ -1,4 +1,20 @@
-import type { AnnotationObject, ArrowAnnotation, MosaicAnnotation, PenAnnotation, Point } from "./captureTypes";
+import type {
+  AnnotationObject,
+  DrawingAnnotation,
+  Point,
+} from "./captureTypes";
+import { normalizeAnnotation } from "./captureAnnotationProperties.js";
+import {
+  annotationBounds,
+  selectableBounds,
+  arrowHeadPoints,
+  textFont,
+  textLayout,
+} from "./captureAnnotationGeometry.js";
+export {
+  annotationBounds,
+  hitTestAnnotation,
+} from "./captureAnnotationGeometry.js";
 
 export interface Bounds {
   x: number;
@@ -21,64 +37,10 @@ export function normalizeRect(from: Point, to: Point): Bounds {
   return { x, y, width, height };
 }
 
-export function annotationBounds(annotation: AnnotationObject): Bounds | null {
-  switch (annotation.type) {
-    case "rectangle":
-    case "ellipse":
-    case "mosaic":
-    case "pin":
-      return {
-        x: annotation.x,
-        y: annotation.y,
-        width: annotation.width,
-        height: annotation.height,
-      };
-    case "arrow": {
-      const fromX = Math.min(annotation.from.x, annotation.to.x);
-      const fromY = Math.min(annotation.from.y, annotation.to.y);
-      const width = Math.abs(annotation.from.x - annotation.to.x);
-      const height = Math.abs(annotation.from.y - annotation.to.y);
-      return {
-        x: fromX,
-        y: fromY,
-        width,
-        height,
-      };
-    }
-    case "pen": {
-      if (annotation.points.length === 0) {
-        return null;
-      }
-      const xs = annotation.points.map((point) => point.x);
-      const ys = annotation.points.map((point) => point.y);
-      const minX = Math.min(...xs);
-      const maxX = Math.max(...xs);
-      const minY = Math.min(...ys);
-      const maxY = Math.max(...ys);
-      return {
-        x: minX,
-        y: minY,
-        width: maxX - minX,
-        height: maxY - minY,
-      };
-    }
-    case "text": {
-      const lines = annotation.text.split(/\r?\n/);
-      const longestLine = Math.max(...lines.map((line) => line.length), 1);
-      const width = Math.max(24, Math.round(longestLine * annotation.fontSize * 0.56));
-      return {
-        x: annotation.x,
-        y: annotation.y - annotation.fontSize,
-        width,
-        height: lines.length * annotation.fontSize * 1.35,
-      };
-    }
-    default:
-      return null;
-  }
-}
-
-export function isAnnotationLargeEnough(annotation: AnnotationObject, minimumSize = 4): boolean {
+export function isAnnotationLargeEnough(
+  annotation: AnnotationObject,
+  minimumSize = 4,
+): boolean {
   if (annotation.type === "arrow") {
     return distance(annotation.from, annotation.to) >= minimumSize;
   }
@@ -99,7 +61,11 @@ export function isAnnotationLargeEnough(annotation: AnnotationObject, minimumSiz
   return bounds.width >= minimumSize && bounds.height >= minimumSize;
 }
 
-export function clampBounds(bounds: Bounds, maxWidth: number, maxHeight: number): Bounds | null {
+export function clampBounds(
+  bounds: Bounds,
+  maxWidth: number,
+  maxHeight: number,
+): Bounds | null {
   const x = Math.max(0, Math.min(bounds.x, maxWidth));
   const y = Math.max(0, Math.min(bounds.y, maxHeight));
   const right = Math.max(0, Math.min(bounds.x + bounds.width, maxWidth));
@@ -113,158 +79,60 @@ export function clampBounds(bounds: Bounds, maxWidth: number, maxHeight: number)
   return { x, y, width, height };
 }
 
-export function hitTestAnnotation(
-  annotations: AnnotationObject[],
-  point: Point,
-): AnnotationObject | null {
-  for (let index = annotations.length - 1; index >= 0; index -= 1) {
-    const bounds = annotationBounds(annotations[index]);
-    if (!bounds) {
-      continue;
+// One local backing store per render owner; export owners dispose it in finally.
+export class AnnotationRenderResources {
+  private canvas: HTMLCanvasElement | null = null;
+  acquire(
+    width: number,
+    height: number,
+  ): { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D } {
+    this.canvas ??= document.createElement("canvas");
+    const w = Math.max(1, Math.ceil(width)),
+      h = Math.max(1, Math.ceil(height));
+    if (this.canvas.width !== w) this.canvas.width = w;
+    if (this.canvas.height !== h) this.canvas.height = h;
+    const context = this.canvas.getContext("2d");
+    if (!context) throw new Error("annotation-render-failed");
+    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    return { canvas: this.canvas, context };
+  }
+  release(): void {
+    if (this.canvas) {
+      this.canvas.width = 1;
+      this.canvas.height = 1;
     }
-
-    const padding = Math.max(6, annotations[index].strokeWidth);
-    const insideX = point.x >= bounds.x - padding && point.x <= bounds.x + bounds.width + padding;
-    const insideY = point.y >= bounds.y - padding && point.y <= bounds.y + bounds.height + padding;
-    if (insideX && insideY) {
-      return annotations[index];
-    }
+    this.canvas = null;
   }
-
-  return null;
 }
 
-function drawArrow(ctx: CanvasRenderingContext2D, arrow: ArrowAnnotation) {
-  const { from, to, strokeWidth, color } = arrow;
-  const length = distance(from, to);
-  if (length < 2) {
-    return;
-  }
-
-  const angle = Math.atan2(to.y - from.y, to.x - from.x);
-  const headLength = Math.max(10, strokeWidth * 3.6);
-  const left = {
-    x: to.x - headLength * Math.cos(angle - Math.PI / 7),
-    y: to.y - headLength * Math.sin(angle - Math.PI / 7),
-  };
-  const right = {
-    x: to.x - headLength * Math.cos(angle + Math.PI / 7),
-    y: to.y - headLength * Math.sin(angle + Math.PI / 7),
-  };
-
-  ctx.save();
-  ctx.lineWidth = strokeWidth;
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  ctx.beginPath();
-  ctx.moveTo(from.x, from.y);
-  ctx.lineTo(to.x, to.y);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(to.x, to.y);
-  ctx.lineTo(left.x, left.y);
-  ctx.lineTo(right.x, right.y);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.restore();
-}
-
-function drawPen(ctx: CanvasRenderingContext2D, pen: PenAnnotation) {
-  const { points, color, strokeWidth } = pen;
-  if (points.length === 0) {
-    return;
-  }
-
-  ctx.save();
-  ctx.lineWidth = strokeWidth;
-  ctx.strokeStyle = color;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for (let index = 1; index < points.length; index += 1) {
-    const point = points[index];
-    ctx.lineTo(point.x, point.y);
-  }
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawMosaic(ctx: CanvasRenderingContext2D, mosaic: MosaicAnnotation) {
-  const { x, y, width, height, pixelSize } = mosaic;
-  const safePixel = Math.max(2, Math.floor(pixelSize));
-  const sourceX = Math.max(0, Math.floor(x));
-  const sourceY = Math.max(0, Math.floor(y));
-  const sourceWidth = Math.max(1, Math.floor(width));
-  const sourceHeight = Math.max(1, Math.floor(height));
-
-  const tinyWidth = Math.max(1, Math.floor(sourceWidth / safePixel));
-  const tinyHeight = Math.max(1, Math.floor(sourceHeight / safePixel));
-
-  const tinyCanvas = document.createElement("canvas");
-  tinyCanvas.width = tinyWidth;
-  tinyCanvas.height = tinyHeight;
-  const tinyContext = tinyCanvas.getContext("2d");
-  if (!tinyContext) {
-    return;
-  }
-
-  tinyContext.imageSmoothingEnabled = false;
-  tinyContext.drawImage(
-    ctx.canvas,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    0,
-    0,
-    tinyWidth,
-    tinyHeight,
-  );
-
-  ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(
-    tinyCanvas,
-    0,
-    0,
-    tinyWidth,
-    tinyHeight,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-  );
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.22)";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(sourceX, sourceY, sourceWidth, sourceHeight);
-  ctx.restore();
-}
-
-export function drawAnnotations(
+function drawOpaque(
   ctx: CanvasRenderingContext2D,
-  annotations: AnnotationObject[],
+  annotation: DrawingAnnotation,
 ): void {
-  annotations.forEach((annotation) => {
+  ctx.save();
+  try {
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+    if (annotation.type === "mosaic") return;
+    ctx.strokeStyle = annotation.color;
+    ctx.fillStyle = annotation.color;
+    ctx.lineWidth = annotation.strokeWidth;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     switch (annotation.type) {
       case "rectangle":
-        ctx.save();
-        ctx.lineWidth = annotation.strokeWidth;
-        ctx.strokeStyle = annotation.color;
-        ctx.strokeRect(annotation.x, annotation.y, annotation.width, annotation.height);
-        ctx.restore();
+        ctx.beginPath();
+        ctx.roundRect(
+          annotation.x,
+          annotation.y,
+          annotation.width,
+          annotation.height,
+          annotation.cornerRadius,
+        );
+        if (annotation.fillMode === "solid") ctx.fill();
+        else ctx.stroke();
         break;
-
       case "ellipse":
-        ctx.save();
-        ctx.lineWidth = annotation.strokeWidth;
-        ctx.strokeStyle = annotation.color;
         ctx.beginPath();
         ctx.ellipse(
           annotation.x + annotation.width / 2,
@@ -275,38 +143,180 @@ export function drawAnnotations(
           0,
           Math.PI * 2,
         );
+        if (annotation.fillMode === "solid") ctx.fill();
+        else ctx.stroke();
+        break;
+      case "arrow": {
+        if (
+          Math.hypot(
+            annotation.to.x - annotation.from.x,
+            annotation.to.y - annotation.from.y,
+          ) < 2
+        )
+          break;
+        ctx.beginPath();
+        ctx.moveTo(annotation.from.x, annotation.from.y);
+        ctx.lineTo(annotation.to.x, annotation.to.y);
         ctx.stroke();
-        ctx.restore();
+        const heads = [
+          arrowHeadPoints(
+            annotation.from,
+            annotation.to,
+            annotation.strokeWidth,
+          ),
+        ];
+        if (annotation.heads === "double")
+          heads.push(
+            arrowHeadPoints(
+              annotation.to,
+              annotation.from,
+              annotation.strokeWidth,
+            ),
+          );
+        for (const head of heads) {
+          ctx.beginPath();
+          ctx.moveTo(head[0].x, head[0].y);
+          ctx.lineTo(head[1].x, head[1].y);
+          ctx.lineTo(head[2].x, head[2].y);
+          ctx.closePath();
+          ctx.fill();
+        }
         break;
-
-      case "arrow":
-        drawArrow(ctx, annotation);
-        break;
-
+      }
       case "pen":
-        drawPen(ctx, annotation);
+        if (annotation.points.length === 0) break;
+        ctx.beginPath();
+        ctx.moveTo(annotation.points[0].x, annotation.points[0].y);
+        for (let i = 1; i < annotation.points.length; i++)
+          ctx.lineTo(annotation.points[i].x, annotation.points[i].y);
+        ctx.stroke();
         break;
-
-      case "text":
-        ctx.save();
-        ctx.fillStyle = annotation.color;
-        ctx.font = `${annotation.fontSize}px "Avenir Next", "PingFang SC", sans-serif`;
+      case "text": {
+        ctx.font = textFont(annotation);
         ctx.textBaseline = "alphabetic";
-        annotation.text.split(/\r?\n/).forEach((line, index) => {
-          ctx.fillText(line, annotation.x, annotation.y + index * annotation.fontSize * 1.35);
-        });
-        ctx.restore();
+        const layout = textLayout(annotation, ctx);
+        layout.lines.forEach((line, index) =>
+          ctx.fillText(
+            line,
+            annotation.x,
+            annotation.y + index * layout.lineHeight,
+          ),
+        );
         break;
-
-      case "mosaic":
-        drawMosaic(ctx, annotation);
-        break;
-
-      case "pin":
-        break;
-
-      default:
-        break;
+      }
     }
-  });
+  } finally {
+    ctx.restore();
+  }
+}
+function drawMosaic(
+  ctx: CanvasRenderingContext2D,
+  annotation: Extract<DrawingAnnotation, { type: "mosaic" }>,
+  resources: AnnotationRenderResources,
+): void {
+  const bounds = clampBounds(
+    {
+      x: Math.floor(annotation.x),
+      y: Math.floor(annotation.y),
+      width:
+        Math.ceil(annotation.x + annotation.width) - Math.floor(annotation.x),
+      height:
+        Math.ceil(annotation.y + annotation.height) - Math.floor(annotation.y),
+    },
+    ctx.canvas.width,
+    ctx.canvas.height,
+  );
+  if (!bounds) return;
+  const w = Math.max(1, Math.floor(bounds.width / annotation.pixelSize)),
+    h = Math.max(1, Math.floor(bounds.height / annotation.pixelSize));
+  const layer = resources.acquire(w, h);
+  layer.context.imageSmoothingEnabled = false;
+  layer.context.drawImage(
+    ctx.canvas,
+    bounds.x,
+    bounds.y,
+    bounds.width,
+    bounds.height,
+    0,
+    0,
+    w,
+    h,
+  );
+  ctx.save();
+  try {
+    ctx.globalAlpha = 1;
+    ctx.imageSmoothingEnabled = false;
+    ctx.beginPath();
+    ctx.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+    ctx.clip();
+    ctx.globalCompositeOperation = "copy";
+    ctx.drawImage(
+      layer.canvas,
+      0,
+      0,
+      w,
+      h,
+      bounds.x,
+      bounds.y,
+      bounds.width,
+      bounds.height,
+    );
+  } finally {
+    ctx.restore();
+  }
+}
+export function drawAnnotations(
+  ctx: CanvasRenderingContext2D,
+  annotations: AnnotationObject[],
+  owner?: AnnotationRenderResources,
+): void {
+  const resources = owner ?? new AnnotationRenderResources();
+  try {
+    for (const raw of annotations) {
+      if (raw.type === "pin") continue;
+      const annotation = normalizeAnnotation(raw);
+      if (annotation.type === "mosaic") {
+        drawMosaic(ctx, annotation, resources);
+        continue;
+      }
+      if (annotation.opacity === 1) {
+        drawOpaque(ctx, annotation);
+        continue;
+      }
+      const b = selectableBounds(annotation);
+      if (!b) continue;
+      // Pixel-aligned padding preserves antialiasing at thick strokes and glyph edges.
+      const left = Math.floor(b.x) - 2,
+        top = Math.floor(b.y) - 2;
+      const bounds = clampBounds(
+        {
+          x: left,
+          y: top,
+          width: Math.ceil(b.x + b.width) + 2 - left,
+          height: Math.ceil(b.y + b.height) + 2 - top,
+        },
+        ctx.canvas.width,
+        ctx.canvas.height,
+      );
+      if (!bounds) continue;
+      const layer = resources.acquire(bounds.width, bounds.height);
+      layer.context.save();
+      try {
+        layer.context.translate(-bounds.x, -bounds.y);
+        drawOpaque(layer.context, annotation);
+      } finally {
+        layer.context.restore();
+      }
+      ctx.save();
+      try {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = annotation.opacity;
+        ctx.drawImage(layer.canvas, bounds.x, bounds.y);
+      } finally {
+        ctx.restore();
+      }
+    }
+  } finally {
+    if (!owner) resources.release();
+  }
 }

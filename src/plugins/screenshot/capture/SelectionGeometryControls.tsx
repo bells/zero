@@ -32,6 +32,7 @@ interface SelectionGeometryControlsProps {
   labels: SelectionGeometryControlLabels;
   disabled?: boolean;
   onChange: (geometry: SelectionGeometry) => void;
+  onBoundsChange?: (bounds: Bounds) => void;
 }
 
 interface DimensionDrafts {
@@ -47,6 +48,7 @@ export function SelectionGeometryControls({
   labels,
   disabled = false,
   onChange,
+  onBoundsChange,
 }: SelectionGeometryControlsProps) {
   const controlRef = useRef<HTMLDivElement | null>(null);
   const skipBlurCommitRef = useRef<SelectionDimension | null>(null);
@@ -54,7 +56,10 @@ export function SelectionGeometryControls({
     width: String(Math.round(geometry.bounds.width)),
     height: String(Math.round(geometry.bounds.height)),
   });
-  const [controlSize, setControlSize] = useState<Size>({ width: 292, height: 46 });
+  const [controlSize, setControlSize] = useState<Size>({
+    width: 292,
+    height: 46,
+  });
   const [drafts, setDrafts] = useState<DimensionDrafts>(editStartRef.current);
   const [invalid, setInvalid] = useState<SelectionDimension | null>(null);
 
@@ -84,12 +89,33 @@ export function SelectionGeometryControls({
   }, []);
 
   const position = useMemo(
-    () => resolveGeometryControlPosition(viewportBounds, controlSize, viewportSize),
+    () =>
+      resolveGeometryControlPosition(viewportBounds, controlSize, viewportSize),
     [controlSize, viewportBounds, viewportSize],
   );
 
+  useLayoutEffect(() => {
+    onBoundsChange?.({
+      x: position.left,
+      y: position.top,
+      width: controlSize.width,
+      height: controlSize.height,
+    });
+  }, [
+    onBoundsChange,
+    position.left,
+    position.top,
+    controlSize.width,
+    controlSize.height,
+  ]);
+
   const commitDraft = (dimension: SelectionDimension) => {
-    const result = commitSelectionDimension(geometry, dimension, drafts[dimension], imageSize);
+    const result = commitSelectionDimension(
+      geometry,
+      dimension,
+      drafts[dimension],
+      imageSize,
+    );
     if (!result.valid) {
       setInvalid(dimension);
       return;
@@ -99,7 +125,10 @@ export function SelectionGeometryControls({
   };
 
   const rollbackDraft = (dimension: SelectionDimension) => {
-    setDrafts((current) => ({ ...current, [dimension]: editStartRef.current[dimension] }));
+    setDrafts((current) => ({
+      ...current,
+      [dimension]: editStartRef.current[dimension],
+    }));
     setInvalid(null);
   };
 
@@ -145,7 +174,9 @@ export function SelectionGeometryControls({
           disabled={disabled}
           value={drafts.width}
           onFocus={() => {
-            editStartRef.current.width = String(Math.round(geometry.bounds.width));
+            editStartRef.current.width = String(
+              Math.round(geometry.bounds.width),
+            );
           }}
           onChange={(event) => {
             setDrafts((current) => ({ ...current, width: event.target.value }));
@@ -163,7 +194,9 @@ export function SelectionGeometryControls({
           onCompositionEnd={(event) => event.stopPropagation()}
         />
       </label>
-      <span className="capture-geometry-times" aria-hidden="true">×</span>
+      <span className="capture-geometry-times" aria-hidden="true">
+        ×
+      </span>
       <label className="capture-geometry-field">
         <span>{labels.height}</span>
         <input
@@ -174,10 +207,15 @@ export function SelectionGeometryControls({
           disabled={disabled}
           value={drafts.height}
           onFocus={() => {
-            editStartRef.current.height = String(Math.round(geometry.bounds.height));
+            editStartRef.current.height = String(
+              Math.round(geometry.bounds.height),
+            );
           }}
           onChange={(event) => {
-            setDrafts((current) => ({ ...current, height: event.target.value }));
+            setDrafts((current) => ({
+              ...current,
+              height: event.target.value,
+            }));
             setInvalid(null);
           }}
           onBlur={() => {

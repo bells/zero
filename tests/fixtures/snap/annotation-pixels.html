@@ -1,0 +1,230 @@
+<!doctype html><meta charset="utf-8" /><title>
+  Snap annotation pixel fixtures
+</title>
+<body>
+  <pre id="results">Running</pre>
+  <script type="module">
+    import { drawAnnotations } from "/src/plugins/screenshot/capture/captureCanvas.ts";
+    import {
+      renderFinalCanvas,
+      cropCanvasToPngBytes,
+    } from "/src/plugins/screenshot/capture/captureExport.ts";
+    const results = [];
+    const check = (name, fn) => {
+      try {
+        fn();
+        results.push({ name, pass: true });
+      } catch (e) {
+        results.push({ name, pass: false, error: String(e) });
+      }
+    };
+    const assert = (value, message) => {
+      if (!value) throw Error(message);
+    };
+    const canvas = () => {
+      const c = document.createElement("canvas");
+      c.width = 200;
+      c.height = 160;
+      return c;
+    };
+    const pixel = (ctx, x, y) => [...ctx.getImageData(x, y, 1, 1).data];
+    const rect = {
+      id: "r",
+      type: "rectangle",
+      x: 20,
+      y: 20,
+      width: 80,
+      height: 60,
+      strokeWidth: 8,
+      color: "#ff0000",
+      opacity: 0.4,
+      fillMode: "solid",
+      cornerRadius: 16,
+    };
+    check("rounded solid and object opacity", () => {
+      const c = canvas(),
+        ctx = c.getContext("2d");
+      drawAnnotations(ctx, [rect]);
+      assert(pixel(ctx, 50, 50)[3] === 102, "40% solid alpha");
+      assert(pixel(ctx, 20, 20)[3] === 0, "rounded transparent corner");
+      assert(
+        pixel(ctx, 50, 18)[3] === 0,
+        "solid does not expand with retained stroke",
+      );
+    });
+    check("arrow whole opacity and following object isolation", () => {
+      const c = canvas(),
+        ctx = c.getContext("2d");
+      drawAnnotations(ctx, [
+        {
+          id: "a",
+          type: "arrow",
+          from: { x: 25, y: 60 },
+          to: { x: 150, y: 60 },
+          color: "#ff0000",
+          strokeWidth: 12,
+          opacity: 0.5,
+          heads: "double",
+        },
+        {
+          ...rect,
+          id: "next",
+          x: 20,
+          y: 100,
+          width: 20,
+          height: 20,
+          cornerRadius: 0,
+          opacity: 1,
+        },
+      ]);
+      for (const [x, y] of [
+        [80, 60],
+        [143, 60],
+        [32, 60],
+      ])
+        assert(
+          Math.abs(pixel(ctx, x, y)[3] - 128) <= 1,
+          "shaft/head overlap must be 50%",
+        );
+      assert(pixel(ctx, 30, 110)[3] === 255, "next object full opacity");
+    });
+    check("opacity boundaries and clipped thick edge", () => {
+      for (const [opacity, alpha] of [
+        [0.01, 3],
+        [1, 255],
+      ]) {
+        const c = canvas(),
+          ctx = c.getContext("2d");
+        drawAnnotations(ctx, [
+          {
+            id: "p",
+            type: "pen",
+            points: [
+              { x: 0, y: 10 },
+              { x: 100, y: 10 },
+              { x: 0, y: 10 },
+            ],
+            color: "#0000ff",
+            strokeWidth: 32,
+            opacity,
+          },
+        ]);
+        assert(
+          Math.abs(pixel(ctx, 50, 10)[3] - alpha) <= 1,
+          "pen alpha and clipping",
+        );
+      }
+    });
+    check("text bold multiline overlap stays within object opacity", () => {
+      const c = canvas(),
+        ctx = c.getContext("2d");
+      drawAnnotations(ctx, [
+        {
+          id: "t",
+          type: "text",
+          x: 5,
+          y: 50,
+          text: "中文AA\nAA",
+          fontSize: 48,
+          bold: true,
+          color: "#000000",
+          strokeWidth: 2,
+          opacity: 0.5,
+        },
+      ]);
+      const data = ctx.getImageData(0, 0, 200, 160).data;
+      let max = 0;
+      for (let i = 3; i < data.length; i += 4) max = Math.max(max, data[i]);
+      assert(max >= 126 && max <= 128, "text opacity");
+    });
+    check(
+      "mosaic recomputes preceding scene and never inherits opacity",
+      () => {
+        const c = canvas(),
+          ctx = c.getContext("2d");
+        const base = () => {
+          ctx.globalAlpha = 1;
+          for (let y = 0; y < 160; y++)
+            for (let x = 0; x < 200; x++) {
+              ctx.fillStyle = (x + y) % 2 ? "#000000" : "#ffffff";
+              ctx.fillRect(x, y, 1, 1);
+            }
+        };
+        const mosaic = {
+          id: "m",
+          type: "mosaic",
+          x: 20,
+          y: 20,
+          width: 80,
+          height: 60,
+          pixelSize: 14,
+        };
+        base();
+        drawAnnotations(ctx, [{ ...rect, opacity: 0.2 }, mosaic]);
+        assert(pixel(ctx, 30, 30)[3] === 255, "mosaic fully replaces");
+        const first = ctx.getImageData(0, 0, 200, 160).data.slice();
+        base();
+        drawAnnotations(ctx, [
+          { ...rect, opacity: 0.2 },
+          { ...mosaic, pixelSize: 40 },
+        ]);
+        base();
+        drawAnnotations(ctx, [{ ...rect, opacity: 0.2 }, mosaic]);
+        const restored = ctx.getImageData(0, 0, 200, 160).data;
+        assert(
+          first.every((v, i) => v === restored[i]),
+          "strength is reversible from original scene",
+        );
+      },
+    );
+    check("shared preview and final committed pixels", () => {
+      const base = canvas(),
+        ctx = base.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, 200, 160);
+      const final = renderFinalCanvas(base, 200, 160, [rect]);
+      const preview = canvas(),
+        pc = preview.getContext("2d");
+      pc.drawImage(base, 0, 0);
+      drawAnnotations(pc, [rect]);
+      const output = final.getContext("2d").getImageData(0, 0, 200, 160).data;
+      assert(
+        [...pc.getImageData(0, 0, 200, 160).data].every(
+          (v, i) => v === output[i],
+        ),
+        "same scene pixels",
+      );
+    });
+    try {
+      const base = canvas();
+      base.getContext("2d").fillRect(0, 0, 200, 160);
+      const bytes = await cropCanvasToPngBytes(
+        base,
+        { x: 0, y: 0, width: 100, height: 100 },
+        20,
+      );
+      const image = await createImageBitmap(
+        new Blob([bytes], { type: "image/png" }),
+      );
+      const c = canvas(),
+        ctx = c.getContext("2d");
+      ctx.drawImage(image, 0, 0);
+      assert(pixel(ctx, 0, 0)[3] === 0, "crop transparent corner");
+      assert(pixel(ctx, 50, 50)[3] === 255, "crop center");
+      image.close();
+      results.push({ name: "real PNG crop radius alpha", pass: true });
+    } catch (e) {
+      results.push({
+        name: "real PNG crop radius alpha",
+        pass: false,
+        error: String(e),
+      });
+    }
+    window.snapPixelResults = results;
+    document.querySelector("#results").textContent = JSON.stringify(
+      results,
+      null,
+      2,
+    );
+  </script>
+</body>

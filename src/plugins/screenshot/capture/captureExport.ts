@@ -101,9 +101,14 @@ export function renderFinalCanvas(
     releaseCanvas(canvas);
     throw new Error("Canvas context is unavailable");
   }
-  ctx.drawImage(baseImage, 0, 0, width, height);
-  drawAnnotations(ctx, annotations.filter((annotation) => annotation.type !== "pin"));
-  return canvas;
+  try {
+    ctx.drawImage(baseImage, 0, 0, width, height);
+    drawAnnotations(ctx, annotations.filter((annotation) => annotation.type !== "pin"));
+    return canvas;
+  } catch (error) {
+    releaseCanvas(canvas);
+    throw error;
+  }
 }
 
 export function canvasToPngBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {

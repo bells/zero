@@ -10,7 +10,10 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { normalizeOcrError, type OcrCapability } from "../../../core/ocr/contracts";
+import {
+  normalizeOcrError,
+  type OcrCapability,
+} from "../../../core/ocr/contracts";
 import {
   Check,
   Circle,
@@ -30,6 +33,7 @@ import {
 } from "lucide-react";
 import type { Bounds } from "./captureCanvas";
 import {
+  AnnotationRenderResources,
   drawAnnotations,
   isAnnotationLargeEnough,
   normalizeRect,
@@ -43,7 +47,11 @@ import {
   renderFinalCanvas,
 } from "./captureExport";
 import { resolveCaptureHotkey } from "./captureHotkeys";
-import { captureReducer, createId, initialHistoryState } from "./captureReducer";
+import {
+  captureReducer,
+  createId,
+  initialHistoryState,
+} from "./captureReducer";
 import {
   CAPTURE_SELECTION_HANDLES,
   imageBoundsToViewportBounds,
@@ -84,6 +92,8 @@ import type {
   AnnotationObject,
   CaptureSession,
   CaptureTool,
+  DrawingAnnotation,
+  TextAnnotation,
   Point,
   ScreenshotCommitResult,
   ScreenshotError,
@@ -93,19 +103,60 @@ import { resolveLanguage } from "../../../core/preferences/i18n";
 import { normalizePreferences } from "../../../core/preferences/preferencesModel";
 import { readStoredPreferences } from "../../../core/preferences/preferencesStorage";
 import {
-  createScreenshotTranslator,
-  type TranslationKey,
-} from "../i18n";
+  createCaptureTranslator,
+  type CaptureTranslationKey as TranslationKey,
+} from "./i18n";
+
+import {
+  AnnotationPropertiesPanel,
+  type AnnotationPanelContext,
+} from "./AnnotationPropertiesPanel";
+import {
+  annotationStyle,
+  isDrawingTool,
+  normalizeAnnotation,
+  patchAnnotationStyle,
+} from "./captureAnnotationProperties";
+import {
+  annotationBounds,
+  annotationBoundsToViewport,
+  annotationHandles,
+  hitAnnotationHandle,
+  hitTestAnnotation,
+  moveAnnotation,
+  resizeAnnotation,
+  moveArrowEndpoint,
+  textFont,
+  textLayout,
+  releaseTextMeasurement,
+  type ObjectHandle,
+} from "./captureAnnotationGeometry";
+import { useCaptureAnnotationEditing } from "./useCaptureAnnotationEditing";
+import { useCaptureToolDefaults } from "./useCaptureToolDefaults";
 
 type DraftAnnotation = AnnotationObject | null;
 
 interface TextDraft {
-  x: number;
-  y: number;
+  mode: "create" | "edit";
+  annotation: TextAnnotation;
+  token?: number;
   screenX: number;
   screenY: number;
   value: string;
 }
+interface ObjectPointerInteraction {
+  pointerId: number;
+  start: Point;
+  startViewport: Point;
+  original: DrawingAnnotation;
+  token: number;
+  handle: ObjectHandle | null;
+  moved: boolean;
+}
+type PropertyInteraction =
+  | { kind: "default" }
+  | { kind: "selected"; token: number }
+  | { kind: "text"; snapshot: TextDraft };
 
 interface CaptureToolDescriptor {
   tool: CaptureTool;
@@ -136,7 +187,11 @@ type SelectionPointerInteraction =
     };
 
 const tools: CaptureToolDescriptor[] = [
-  { tool: "select", labelKey: "screenshot.toolbar.select", Icon: MousePointer2 },
+  {
+    tool: "select",
+    labelKey: "screenshot.toolbar.select",
+    Icon: MousePointer2,
+  },
   { tool: "rectangle", labelKey: "screenshot.toolbar.rectangle", Icon: Square },
   { tool: "ellipse", labelKey: "screenshot.toolbar.ellipse", Icon: Circle },
   { tool: "arrow", labelKey: "screenshot.toolbar.arrow", Icon: MoveUpRight },
@@ -148,7 +203,6 @@ const tools: CaptureToolDescriptor[] = [
 
 const TEXT_INPUT_WIDTH = 220;
 const TEXT_INPUT_HEIGHT = 96;
-const TEXT_FONT_SIZE = 24;
 
 function roundedRectanglePath(bounds: Bounds, radius: number): string {
   const { x, y, width, height } = bounds;
@@ -180,8 +234,11 @@ function screenshotErrorMessage(error: unknown): string {
 }
 
 export function CaptureApp() {
-  const preferences = normalizePreferences(readStoredPreferences(window.localStorage), []);
-  const t = createScreenshotTranslator(
+  const preferences = normalizePreferences(
+    readStoredPreferences(window.localStorage),
+    [],
+  );
+  const t = createCaptureTranslator(
     resolveLanguage(preferences.language, navigator.language),
   );
   const [session, setSession] = useState<CaptureSession | null>(null);
@@ -189,9 +246,13 @@ export function CaptureApp() {
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
   const [tool, setTool] = useState<CaptureTool>("select");
   const [selection, setSelection] = useState<SelectionGeometry | null>(null);
-  const [selectionCursor, setSelectionCursor] = useState<"default" | "grab" | "grabbing">("default");
-  const [selectionDraft, setSelectionDraft] = useState<SelectionGeometry | null>(null);
-  const [hoverTarget, setHoverTarget] = useState<ResolvedScreenshotTarget | null>(null);
+  const [selectionCursor, setSelectionCursor] = useState<
+    "default" | "grab" | "grabbing"
+  >("default");
+  const [selectionDraft, setSelectionDraft] =
+    useState<SelectionGeometry | null>(null);
+  const [hoverTarget, setHoverTarget] =
+    useState<ResolvedScreenshotTarget | null>(null);
   const [crosshair, setCrosshair] = useState<Point | null>(null);
   const [viewportSize, setViewportSize] = useState<Size>(() => ({
     width: window.innerWidth,
@@ -199,28 +260,47 @@ export function CaptureApp() {
   }));
   const [toolbarSize, setToolbarSize] = useState<Size | null>(null);
   const [history, dispatch] = useReducer(captureReducer, initialHistoryState);
+  const editing = useCaptureAnnotationEditing(history.annotations, dispatch);
+  const defaults = useCaptureToolDefaults();
+  const propertyInteractionRef = useRef<PropertyInteraction | null>(null);
+  const objectInteractionRef = useRef<ObjectPointerInteraction | null>(null);
+  const drawingPointerRef = useRef<number | null>(null);
+  const renderResources = useRef(new AnnotationRenderResources());
+  const compositionRef = useRef(false);
+  const closingRef = useRef(false);
+  const [propertyActive, setPropertyActive] = useState(false);
+  const [propertyRevision, setPropertyRevision] = useState(0);
+  const [renderFailed, setRenderFailed] = useState(false);
+  const [geometryControlBounds, setGeometryControlBounds] =
+    useState<Bounds | null>(null);
   const [draft, setDraft] = useState<DraftAnnotation>(null);
   const [textDraft, setTextDraft] = useState<TextDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
   const [ocrAvailable, setOcrAvailable] = useState(false);
   const dragStartRef = useRef<Point | null>(null);
-  const selectionInteractionRef = useRef<SelectionPointerInteraction | null>(null);
+  const selectionInteractionRef = useRef<SelectionPointerInteraction | null>(
+    null,
+  );
   const draftIdRef = useRef<string | null>(null);
   const draftRef = useRef<DraftAnnotation>(null);
   const textDraftRef = useRef<TextDraft | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const textInputRef = useRef<HTMLTextAreaElement | null>(null);
-  const toolbarRef = useRef<HTMLElement | null>(null);
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
   const revealedSessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let disposed = false;
-    void invoke<OcrCapability>("get_ocr_capability").then(capability => {
-      if (!disposed) setOcrAvailable(capability.available);
-    }).catch(() => undefined);
-    return () => { disposed = true; };
+    void invoke<OcrCapability>("get_ocr_capability")
+      .then((capability) => {
+        if (!disposed) setOcrAvailable(capability.available);
+      })
+      .catch(() => undefined);
+    return () => {
+      disposed = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -232,7 +312,10 @@ export function CaptureApp() {
 
     void (async () => {
       try {
-        const payload = await invoke<CaptureSession>("init_screenshot_session", {});
+        const payload = await invoke<CaptureSession>(
+          "init_screenshot_session",
+          {},
+        );
         initializedSessionId = payload.sessionId;
         const value = await invoke<ArrayBuffer>("read_screenshot_media", {
           input: { token: payload.media.token },
@@ -242,9 +325,13 @@ export function CaptureApp() {
           receivedBytes.byteLength === 0 ||
           receivedBytes.byteLength !== payload.media.byteLength
         ) {
-          throw new Error("The screenshot resource size does not match its descriptor");
+          throw new Error(
+            "The screenshot resource size does not match its descriptor",
+          );
         }
-        objectUrl = URL.createObjectURL(new Blob([value], { type: payload.media.mimeType }));
+        objectUrl = URL.createObjectURL(
+          new Blob([value], { type: payload.media.mimeType }),
+        );
         decodedImage = await loadImageFromObjectUrl(objectUrl);
         if (disposed) {
           releaseDecodedImage(decodedImage);
@@ -297,10 +384,7 @@ export function CaptureApp() {
     void (async () => {
       try {
         await imageElement.decode();
-        if (
-          cancelled ||
-          revealedSessionIdRef.current === session.sessionId
-        ) {
+        if (cancelled || revealedSessionIdRef.current === session.sessionId) {
           return;
         }
         revealedSessionIdRef.current = session.sessionId;
@@ -308,7 +392,9 @@ export function CaptureApp() {
         // Force layout after the displayed image itself has decoded. Native reveal is
         // queued onto AppKit's main thread, so no empty WebView frame is exposed.
         void document.documentElement.offsetWidth;
-        await invoke("reveal_screenshot_capture", { sessionId: session.sessionId });
+        await invoke("reveal_screenshot_capture", {
+          sessionId: session.sessionId,
+        });
       } catch (error) {
         if (cancelled) {
           return;
@@ -348,7 +434,9 @@ export function CaptureApp() {
       const rect = toolbar.getBoundingClientRect();
       const next = { width: rect.width, height: rect.height };
       setToolbarSize((current) =>
-        current?.width === next.width && current.height === next.height ? current : next,
+        current?.width === next.width && current.height === next.height
+          ? current
+          : next,
       );
     };
     const updateViewportSize = () => {
@@ -368,7 +456,10 @@ export function CaptureApp() {
   }, [selection]);
 
   const imageSize = useMemo<Size>(
-    () => ({ width: session?.media.width ?? 0, height: session?.media.height ?? 0 }),
+    () => ({
+      width: session?.media.width ?? 0,
+      height: session?.media.height ?? 0,
+    }),
     [session?.media.height, session?.media.width],
   );
   const targets = useMemo(
@@ -403,35 +494,131 @@ export function CaptureApp() {
     if (!hoverTarget || !session) {
       return null;
     }
-    return imageBoundsToViewportBounds(hoverTarget.bounds, imageSize, viewportSize);
+    return imageBoundsToViewportBounds(
+      hoverTarget.bounds,
+      imageSize,
+      viewportSize,
+    );
   }, [hoverTarget, imageSize, session, viewportSize]);
 
   const toolbarPosition: CaptureToolbarPosition | null = useMemo(() => {
     if (!selectionViewportBounds || !toolbarSize) {
       return null;
     }
-    return resolveCaptureToolbarPosition(selectionViewportBounds, toolbarSize, viewportSize);
-  }, [selectionViewportBounds, toolbarSize, viewportSize]);
+    return resolveCaptureToolbarPosition(
+      selectionViewportBounds,
+      toolbarSize,
+      viewportSize,
+      geometryControlBounds,
+    );
+  }, [
+    selectionViewportBounds,
+    toolbarSize,
+    viewportSize,
+    geometryControlBounds,
+  ]);
+
+  const selectedObject =
+    tool === "select"
+      ? (editing.scene.find(
+          (a) => a.id === history.selectedId && a.type !== "pin",
+        ) as DrawingAnnotation | undefined)
+      : undefined;
+  const panelContext: AnnotationPanelContext | null = textDraft
+    ? {
+        mode: textDraft.mode === "edit" ? "selected" : "default",
+        tool: "text",
+        style: annotationStyle(textDraft.annotation),
+      }
+    : selectedObject
+      ? {
+          mode: "selected",
+          tool: selectedObject.type,
+          style: annotationStyle(selectedObject),
+          radiusMaximum:
+            selectedObject.type === "rectangle"
+              ? Math.min(
+                  100,
+                  Math.floor(
+                    Math.min(selectedObject.width, selectedObject.height) / 2,
+                  ),
+                )
+              : undefined,
+        }
+      : isDrawingTool(tool)
+        ? { mode: "default", tool, style: defaults.styles[tool] }
+        : null;
+  const sourceScale = imageViewportBounds
+    ? imageViewportBounds.width / imageSize.width
+    : 1;
+  const editBusy = Boolean(
+    draft ||
+      textDraft ||
+      selectionDraft ||
+      selectionInteractionRef.current ||
+      objectInteractionRef.current ||
+      editing.active ||
+      defaults.active ||
+      propertyActive,
+  );
+  const pointerBusy = Boolean(
+    drawingPointerRef.current !== null ||
+      objectInteractionRef.current ||
+      selectionInteractionRef.current,
+  );
 
   useEffect(() => {
-    if (!session || !overlayRef.current) {
-      return;
-    }
+    if (!session || !overlayRef.current) return;
+    const frame = requestAnimationFrame(() => {
+      const overlay = overlayRef.current;
+      if (!overlay) return;
+      if (
+        overlay.width !== session.media.width ||
+        overlay.height !== session.media.height
+      ) {
+        overlay.width = session.media.width;
+        overlay.height = session.media.height;
+      }
+      const ctx = overlay.getContext("2d");
+      if (!ctx) {
+        setRenderFailed(true);
+        return;
+      }
+      try {
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        if (baseImage)
+          ctx.drawImage(baseImage, 0, 0, overlay.width, overlay.height);
+        const scene =
+          textDraft?.mode === "edit"
+            ? editing.scene.filter((a) => a.id !== textDraft.annotation.id)
+            : editing.scene;
+        drawAnnotations(
+          ctx,
+          draft ? [...scene, draft] : scene,
+          renderResources.current,
+        );
+        setRenderFailed(false);
+      } catch {
+        setRenderFailed(true);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [baseImage, draft, editing.scene, session, textDraft]);
 
-    const overlay = overlayRef.current;
-    overlay.width = session.media.width;
-    overlay.height = session.media.height;
-    const ctx = overlay.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
-    ctx.clearRect(0, 0, session.media.width, session.media.height);
-    if (baseImage) {
-      ctx.drawImage(baseImage, 0, 0, session.media.width, session.media.height);
-    }
-    drawAnnotations(ctx, draft ? [...history.annotations, draft] : history.annotations);
-  }, [baseImage, draft, history.annotations, session]);
+  useEffect(() => {
+    closingRef.current = false;
+    return () => {
+      closingRef.current = true;
+      objectInteractionRef.current = null;
+      drawingPointerRef.current = null;
+      propertyInteractionRef.current = null;
+      textDraftRef.current = null;
+      draftRef.current = null;
+      renderResources.current.release();
+      releaseTextMeasurement();
+      releaseCanvas(overlayRef.current);
+    };
+  }, []);
 
   const pointerToImagePoint = useCallback(
     (event: ReactPointerEvent, clampToImage = false): Point | null => {
@@ -457,16 +644,28 @@ export function CaptureApp() {
 
   const updateTextDraft = useCallback((nextDraft: TextDraft | null) => {
     textDraftRef.current = nextDraft;
+    if (!nextDraft) compositionRef.current = false;
     setTextDraft(nextDraft);
   }, []);
 
   const recognizeSelection = useCallback(async () => {
-    if (!session || !selection || isCommitting) return;
-    setIsCommitting(true); setError(null);
-    try { await invoke("start_snap_ocr", { input: { sessionId: session.sessionId, selection: selection.bounds, languages: [] } }); }
-    catch (reason) { setError(t(`ocr.error.${normalizeOcrError(reason)}`)); }
-    finally { setIsCommitting(false); }
-  }, [session, selection, isCommitting, t]);
+    if (!session || !selection || isCommitting || editBusy) return;
+    setIsCommitting(true);
+    setError(null);
+    try {
+      await invoke("start_snap_ocr", {
+        input: {
+          sessionId: session.sessionId,
+          selection: selection.bounds,
+          languages: [],
+        },
+      });
+    } catch (reason) {
+      setError(t(`ocr.error.${normalizeOcrError(reason)}`));
+    } finally {
+      setIsCommitting(false);
+    }
+  }, [session, selection, isCommitting, editBusy, t]);
 
   const renderCurrentFinalCanvas = useCallback((): HTMLCanvasElement => {
     if (!session || !baseImage) {
@@ -523,11 +722,15 @@ export function CaptureApp() {
 
   const commitPin = useCallback(
     async (geometry: SelectionGeometry) => {
+      if (closingRef.current) return;
+      setIsCommitting(true);
       setError(null);
       try {
         await uploadSelection("pin", geometry);
       } catch (error) {
         setError(screenshotErrorMessage(error));
+      } finally {
+        setIsCommitting(false);
       }
     },
     [uploadSelection],
@@ -535,7 +738,7 @@ export function CaptureApp() {
 
   const commit = useCallback(
     async (action: "copy" | "save") => {
-      if (!session || !selection) {
+      if (!session || !selection || editBusy || renderFailed || isCommitting) {
         return;
       }
 
@@ -549,46 +752,154 @@ export function CaptureApp() {
         setIsCommitting(false);
       }
     },
-    [selection, session, uploadSelection],
+    [selection, session, uploadSelection, editBusy, renderFailed, isCommitting],
   );
 
-  const cancel = useCallback(() => {
-    if (draft || textDraft || selectionDraft || selectionInteractionRef.current) {
-      setDraft(null);
-      draftRef.current = null;
+  function cancelProperty() {
+    const interaction = propertyInteractionRef.current;
+    propertyInteractionRef.current = null;
+    setPropertyActive(false);
+    if (interaction) setPropertyRevision((revision) => revision + 1);
+    if (interaction?.kind === "default") defaults.cancel();
+    else if (interaction?.kind === "selected") editing.cancel();
+    else if (interaction?.kind === "text") {
+      updateTextDraft(interaction.snapshot);
+      if (interaction.snapshot.mode === "create") defaults.cancel();
+    }
+  }
+  function finishProperty() {
+    const interaction = propertyInteractionRef.current;
+    propertyInteractionRef.current = null;
+    setPropertyActive(false);
+    if (interaction?.kind === "default") defaults.commit();
+    else if (interaction?.kind === "selected")
+      editing.commit(interaction.token);
+    else if (
+      interaction?.kind === "text" &&
+      interaction.snapshot.mode === "create"
+    )
+      defaults.commit();
+  }
+  function beginProperty() {
+    finishProperty();
+    const text = textDraftRef.current;
+    if (text) {
+      propertyInteractionRef.current = {
+        kind: "text",
+        snapshot: structuredClone(text),
+      };
+      if (text.mode === "create") defaults.begin("text");
+    } else if (selectedObject) {
+      propertyInteractionRef.current = {
+        kind: "selected",
+        token: editing.begin(selectedObject, "property"),
+      };
+    } else if (isDrawingTool(tool)) {
+      defaults.begin(tool);
+      propertyInteractionRef.current = { kind: "default" };
+    }
+    setPropertyActive(true);
+  }
+  function previewProperty(patch: Record<string, unknown>) {
+    const text = textDraftRef.current;
+    if (text) {
+      updateTextDraft({
+        ...text,
+        annotation: patchAnnotationStyle(text.annotation, patch),
+      });
+      if (text.mode === "create") defaults.patch("text", patch);
+      return;
+    }
+    const interaction = propertyInteractionRef.current;
+    const transaction = editing.peek();
+    if (interaction?.kind === "selected" && transaction)
+      editing.preview(
+        interaction.token,
+        patchAnnotationStyle(transaction.preview, patch),
+      );
+    else if (interaction?.kind === "default" && isDrawingTool(tool))
+      defaults.patch(tool, patch);
+  }
+  function rollbackGesture() {
+    objectInteractionRef.current = null;
+    drawingPointerRef.current = null;
+    editing.cancel();
+    updateDraft(null);
+    dragStartRef.current = null;
+    draftIdRef.current = null;
+    selectionInteractionRef.current = null;
+    setSelectionDraft(null);
+    setCrosshair(null);
+    setHoverTarget(null);
+    setSelectionCursor("default");
+  }
+  function cancelLayer() {
+    if (propertyInteractionRef.current) {
+      cancelProperty();
+      return;
+    }
+    if (textDraftRef.current) {
       updateTextDraft(null);
-      setSelectionDraft(null);
-      dragStartRef.current = null;
-      selectionInteractionRef.current = null;
-      draftIdRef.current = null;
-      setCrosshair(null);
-      setHoverTarget(null);
-      setSelectionCursor("default");
+      editing.cancel();
       return;
     }
-
-    if (!session) {
+    if (
+      draftRef.current ||
+      drawingPointerRef.current !== null ||
+      objectInteractionRef.current ||
+      selectionInteractionRef.current
+    ) {
+      rollbackGesture();
       return;
     }
-
-    invoke("cancel_screenshot_session", { sessionId: session.sessionId }).catch((error) =>
-      setError(screenshotErrorMessage(error)),
-    );
-  }, [draft, selectionDraft, session, textDraft, updateTextDraft]);
+    if (history.selectedId) {
+      dispatch({ type: "select", id: null });
+      return;
+    }
+    closeSession();
+  }
+  function closeSession() {
+    closingRef.current = true;
+    cancelProperty();
+    rollbackGesture();
+    updateTextDraft(null);
+    if (session)
+      void invoke("cancel_screenshot_session", {
+        sessionId: session.sessionId,
+      }).catch((error) => {
+        closingRef.current = false;
+        setError(screenshotErrorMessage(error));
+      });
+  }
+  function changeTool(next: CaptureTool) {
+    if (pointerBusy || isCommitting) return;
+    finishProperty();
+    if (textDraftRef.current) commitTextDraft();
+    dispatch({ type: "select", id: null });
+    setTool(next);
+  }
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.isComposing || compositionRef.current) return;
       const target = event.target;
       const editableTarget =
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
         (target instanceof HTMLElement && target.isContentEditable);
       const selectionDelta = resolveSelectionNudge({
         key: event.key,
         selectToolActive: tool === "select",
         editableTarget,
         composing: event.isComposing || Boolean(textDraftRef.current),
-        pointerActive: Boolean(selectionInteractionRef.current),
+        pointerActive: Boolean(
+          selectionInteractionRef.current ||
+            objectInteractionRef.current ||
+            editing.active ||
+            propertyActive ||
+            history.selectedId,
+        ),
         metaKey: event.metaKey,
         ctrlKey: event.ctrlKey,
         altKey: event.altKey,
@@ -602,7 +913,11 @@ export function CaptureApp() {
             ? normalizeSelectionGeometry(
                 {
                   ...current,
-                  bounds: moveSelectionBy(current.bounds, selectionDelta, imageSize),
+                  bounds: moveSelectionBy(
+                    current.bounds,
+                    selectionDelta,
+                    imageSize,
+                  ),
                 },
                 imageSize,
               )
@@ -611,9 +926,7 @@ export function CaptureApp() {
         return;
       }
 
-      if (editableTarget) {
-        return;
-      }
+      if (editableTarget) return;
 
       const action = resolveCaptureHotkey(event);
       if (!action) {
@@ -621,6 +934,7 @@ export function CaptureApp() {
       }
 
       event.preventDefault();
+      if (action !== "cancel" && editBusy) return;
       if (action === "undo") {
         dispatch({ type: "undo" });
       } else if (action === "redo") {
@@ -628,83 +942,143 @@ export function CaptureApp() {
       } else if (action === "removeSelected") {
         dispatch({ type: "removeSelected" });
       } else if (action === "cancel") {
-        cancel();
+        cancelLayer();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cancel, imageSize, session, tool]);
+  });
 
   function createDraft(start: Point, point: Point): AnnotationObject {
     const id = draftIdRef.current ?? createId(tool);
     draftIdRef.current = id;
-
-    if (tool === "arrow") {
+    if (tool === "arrow")
       return {
         id,
         type: "arrow",
         from: start,
         to: point,
-        color: "#55f280",
-        strokeWidth: 5,
+        ...defaults.styles.arrow,
+        opacity: defaults.styles.arrow.opacity / 100,
       };
-    }
-
     if (tool === "pen") {
-      const previousDraft = draftRef.current;
-      const previousPoints = previousDraft?.type === "pen" ? previousDraft.points : [start];
+      const previous = draftRef.current;
       return {
         id,
         type: "pen",
-        points: [...previousPoints, point],
-        color: "#55f280",
-        strokeWidth: 5,
+        points: [
+          ...(previous?.type === "pen" ? previous.points : [start]),
+          point,
+        ],
+        ...defaults.styles.pen,
+        opacity: defaults.styles.pen.opacity / 100,
       };
     }
-
     const bounds = normalizeRect(start, point);
-    if (tool === "ellipse") {
+    if (tool === "ellipse")
       return {
         id,
         type: "ellipse",
         ...bounds,
-        color: "#55f280",
-        strokeWidth: 4,
+        ...defaults.styles.ellipse,
+        opacity: defaults.styles.ellipse.opacity / 100,
       };
-    }
-
-    if (tool === "mosaic") {
-      return {
-        id,
-        type: "mosaic",
-        ...bounds,
-        color: "#55f280",
-        strokeWidth: 2,
-        pixelSize: 14,
-      };
-    }
-
-    if (tool === "pin") {
-      return {
-        id,
-        type: "pin",
-        ...bounds,
-        color: "#55f280",
-        strokeWidth: 2,
-      };
-    }
-
-    return {
+    if (tool === "mosaic")
+      return { id, type: "mosaic", ...bounds, ...defaults.styles.mosaic };
+    if (tool === "pin") return { id, type: "pin", ...bounds };
+    return normalizeAnnotation({
       id,
       type: "rectangle",
       ...bounds,
-      color: "#55f280",
-      strokeWidth: 4,
+      ...defaults.styles.rectangle,
+      opacity: defaults.styles.rectangle.opacity / 100,
+    });
+  }
+  function beginText(
+    annotation: TextAnnotation,
+    mode: "create" | "edit",
+    screen: Point,
+  ) {
+    const token =
+      mode === "edit" ? editing.begin(annotation, "text") : undefined;
+    updateTextDraft({
+      mode,
+      annotation,
+      token,
+      value: annotation.text,
+      screenX: Math.max(0, Math.min(screen.x, window.innerWidth - 24)),
+      screenY: Math.max(0, Math.min(screen.y, window.innerHeight - 24)),
+    });
+  }
+  function startObjectGesture(
+    event: ReactPointerEvent<HTMLCanvasElement>,
+    point: Point,
+    annotation: DrawingAnnotation,
+    handle: ObjectHandle | null,
+  ) {
+    const token = editing.begin(
+      annotation,
+      handle
+        ? annotation.type === "arrow"
+          ? "arrow-endpoint"
+          : "resize"
+        : "move",
+    );
+    objectInteractionRef.current = {
+      pointerId: event.pointerId,
+      start: point,
+      startViewport: { x: event.clientX, y: event.clientY },
+      original: annotation,
+      token,
+      handle,
+      moved: false,
     };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dispatch({ type: "select", id: annotation.id });
+  }
+  function previewObjectGesture(
+    event: ReactPointerEvent<HTMLCanvasElement>,
+    point: Point,
+  ) {
+    const interaction = objectInteractionRef.current;
+    if (!interaction || interaction.pointerId !== event.pointerId) return;
+    if (
+      !interaction.moved &&
+      !hasExceededTargetDragThreshold(interaction.startViewport, {
+        x: event.clientX,
+        y: event.clientY,
+      })
+    )
+      return;
+    interaction.moved = true;
+    const delta = {
+      x: point.x - interaction.start.x,
+      y: point.y - interaction.start.y,
+    };
+    const next =
+      interaction.handle === "from" || interaction.handle === "to"
+        ? interaction.original.type === "arrow"
+          ? moveArrowEndpoint(
+              interaction.original,
+              interaction.handle,
+              point,
+              imageSize,
+            )
+          : interaction.original
+        : interaction.handle
+          ? resizeAnnotation(
+              interaction.original,
+              interaction.handle,
+              delta,
+              imageSize,
+            )
+          : moveAnnotation(interaction.original, delta, imageSize);
+    editing.preview(interaction.token, next);
   }
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.button !== 0 || isCommitting || closingRef.current) return;
     const point = pointerToImagePoint(event);
     if (!point) {
       return;
@@ -712,11 +1086,16 @@ export function CaptureApp() {
 
     if (textDraftRef.current) {
       event.preventDefault();
-      commitTextDraft();
+      if (!compositionRef.current) commitTextDraft();
       return;
     }
+    finishProperty();
 
-    if (tool !== "select" && activeSelection && !isPointInBounds(point, activeSelection)) {
+    if (
+      tool !== "select" &&
+      activeSelection &&
+      !isPointInBounds(point, activeSelection)
+    ) {
       return;
     }
 
@@ -724,7 +1103,11 @@ export function CaptureApp() {
 
     if (tool === "select") {
       if (!selection) {
-        const target = resolveScreenshotTargetAtPoint(targets, point, imageSize);
+        const target = resolveScreenshotTargetAtPoint(
+          targets,
+          point,
+          imageSize,
+        );
         event.currentTarget.setPointerCapture(event.pointerId);
         selectionInteractionRef.current = {
           kind: "pending-target",
@@ -737,9 +1120,16 @@ export function CaptureApp() {
         setCrosshair(point);
         return;
       }
-      const target = resolveSelectPointerTarget(history.annotations, point);
-      if (target.kind === "annotation") {
-        dispatch({ type: "select", id: target.annotationId });
+      const handle = selectedObject
+        ? hitAnnotationHandle(selectedObject, point, imageSize, viewportSize)
+        : null;
+      if (selectedObject && handle) {
+        startObjectGesture(event, point, selectedObject, handle);
+        return;
+      }
+      const object = hitTestAnnotation(history.annotations, point);
+      if (object && object.type !== "pin") {
+        startObjectGesture(event, point, object, null);
         return;
       }
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -753,22 +1143,42 @@ export function CaptureApp() {
         initial: selection,
       };
       setSelectionDraft(null);
-      setSelectionCursor(isPointInBounds(point, selection.bounds) ? "grabbing" : "default");
+      setSelectionCursor(
+        isPointInBounds(point, selection.bounds) ? "grabbing" : "default",
+      );
       setCrosshair(point);
       return;
     }
 
     if (tool === "text") {
-      updateTextDraft({
-        x: point.x,
-        y: point.y,
-        screenX: Math.min(event.clientX, Math.max(0, window.innerWidth - TEXT_INPUT_WIDTH)),
-        screenY: Math.min(event.clientY, Math.max(0, window.innerHeight - TEXT_INPUT_HEIGHT)),
-        value: "",
-      });
+      const style = defaults.styles.text;
+      const scale = sourceScale;
+      beginText(
+        {
+          id: createId("text"),
+          type: "text",
+          x: point.x,
+          y: Math.min(imageSize.height, point.y + style.fontSize),
+          text: "",
+          strokeWidth: 2,
+          ...style,
+          opacity: style.opacity / 100,
+        },
+        "create",
+        {
+          x: event.clientX,
+          y:
+            event.clientY +
+            (Math.min(imageSize.height, point.y + style.fontSize) -
+              style.fontSize -
+              point.y) *
+              scale,
+        },
+      );
       return;
     }
 
+    drawingPointerRef.current = event.pointerId;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragStartRef.current = point;
     draftIdRef.current = createId(tool);
@@ -776,7 +1186,14 @@ export function CaptureApp() {
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    const point = pointerToImagePoint(event, Boolean(selectionInteractionRef.current));
+    const point = pointerToImagePoint(
+      event,
+      Boolean(
+        selectionInteractionRef.current ||
+          objectInteractionRef.current ||
+          drawingPointerRef.current !== null,
+      ),
+    );
     if (!point) {
       if (!selectionInteractionRef.current) {
         setHoverTarget(null);
@@ -785,15 +1202,33 @@ export function CaptureApp() {
       return;
     }
 
+    if (objectInteractionRef.current) {
+      previewObjectGesture(event, point);
+      return;
+    }
     const interaction = selectionInteractionRef.current;
-    setSelectionCursor(interaction?.kind === "move" ? "grabbing" : tool === "select" && selection && isPointInBounds(point, selection.bounds) && resolveSelectPointerTarget(history.annotations, point).kind !== "annotation" ? "grab" : "default");
+    setSelectionCursor(
+      interaction?.kind === "move"
+        ? "grabbing"
+        : tool === "select" &&
+            selection &&
+            isPointInBounds(point, selection.bounds) &&
+            resolveSelectPointerTarget(history.annotations, point).kind !==
+              "annotation"
+          ? "grab"
+          : "default",
+    );
     if (
       interaction?.kind === "pending-target" &&
       interaction.pointerId === event.pointerId &&
       session
     ) {
       setCrosshair(point);
-      const currentTarget = resolveScreenshotTargetAtPoint(targets, point, imageSize);
+      const currentTarget = resolveScreenshotTargetAtPoint(
+        targets,
+        point,
+        imageSize,
+      );
       setHoverTarget(currentTarget);
       if (
         hasExceededTargetDragThreshold(interaction.startViewport, {
@@ -820,7 +1255,12 @@ export function CaptureApp() {
           point,
           imageSize,
         );
-        setSelectionDraft(normalizeSelectionGeometry({ ...initial, bounds: nextBounds }, imageSize));
+        setSelectionDraft(
+          normalizeSelectionGeometry(
+            { ...initial, bounds: nextBounds },
+            imageSize,
+          ),
+        );
       }
       return;
     }
@@ -829,14 +1269,22 @@ export function CaptureApp() {
       interaction.pointerId === event.pointerId &&
       session
     ) {
-      const nextSelection = interaction.kind === "move"
-        ? moveSelectionBy(interaction.initial.bounds, { x: point.x - interaction.start.x, y: point.y - interaction.start.y }, imageSize)
-        : resolveSelectionDrag(
-        interaction.initial.bounds,
-        interaction.start,
-        point,
-        { width: session.media.width, height: session.media.height },
-      );
+      const nextSelection =
+        interaction.kind === "move"
+          ? moveSelectionBy(
+              interaction.initial.bounds,
+              {
+                x: point.x - interaction.start.x,
+                y: point.y - interaction.start.y,
+              },
+              imageSize,
+            )
+          : resolveSelectionDrag(
+              interaction.initial.bounds,
+              interaction.start,
+              point,
+              { width: session.media.width, height: session.media.height },
+            );
       setSelectionDraft(
         nextSelection === interaction.initial.bounds
           ? null
@@ -855,15 +1303,21 @@ export function CaptureApp() {
     }
 
     const start = dragStartRef.current;
-    if (!start) {
-      return;
-    }
-
+    if (!start || drawingPointerRef.current !== event.pointerId) return;
     updateDraft(createDraft(start, point));
   };
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const point = pointerToImagePoint(event, true);
+    const objectInteraction = objectInteractionRef.current;
+    if (objectInteraction?.pointerId === event.pointerId) {
+      if (point) previewObjectGesture(event, point);
+      objectInteractionRef.current = null;
+      editing.commit(objectInteraction.token);
+      if (event.currentTarget.hasPointerCapture(event.pointerId))
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      return;
+    }
     const interaction = selectionInteractionRef.current;
     if (
       interaction?.kind === "pending-target" &&
@@ -873,9 +1327,18 @@ export function CaptureApp() {
       const endTarget = point
         ? resolveScreenshotTargetAtPoint(targets, point, imageSize)
         : null;
-      const bounds = resolveStableTargetClick(interaction.target, endTarget, false);
+      const bounds = resolveStableTargetClick(
+        interaction.target,
+        endTarget,
+        false,
+      );
       if (bounds) {
-        setSelection(normalizeSelectionGeometry(selectionGeometryFromBounds(bounds), imageSize));
+        setSelection(
+          normalizeSelectionGeometry(
+            selectionGeometryFromBounds(bounds),
+            imageSize,
+          ),
+        );
         setHoverTarget(null);
         setCrosshair(null);
       }
@@ -892,13 +1355,20 @@ export function CaptureApp() {
     ) {
       const nextSelection = point
         ? interaction.kind === "move"
-          ? moveSelectionBy(interaction.initial.bounds, { x: point.x - interaction.start.x, y: point.y - interaction.start.y }, imageSize)
+          ? moveSelectionBy(
+              interaction.initial.bounds,
+              {
+                x: point.x - interaction.start.x,
+                y: point.y - interaction.start.y,
+              },
+              imageSize,
+            )
           : resolveSelectionDrag(
-            interaction.initial.bounds,
-            interaction.start,
-            point,
-            { width: session.media.width, height: session.media.height },
-          )
+              interaction.initial.bounds,
+              interaction.start,
+              point,
+              { width: session.media.width, height: session.media.height },
+            )
         : interaction.initial.bounds;
       const nextGeometry = normalizeSelectionGeometry(
         { ...interaction.initial, bounds: nextSelection },
@@ -921,8 +1391,11 @@ export function CaptureApp() {
       return;
     }
 
+    if (drawingPointerRef.current !== event.pointerId) return;
+    drawingPointerRef.current = null;
     const start = dragStartRef.current;
-    const currentDraft = start && point ? createDraft(start, point) : draftRef.current;
+    const currentDraft =
+      start && point ? createDraft(start, point) : draftRef.current;
     dragStartRef.current = null;
     draftIdRef.current = null;
     draftRef.current = null;
@@ -941,10 +1414,17 @@ export function CaptureApp() {
       return;
     }
 
-    dispatch({ type: "add", annotation: currentDraft });
+    dispatch({ type: "add", annotation: currentDraft, select: false });
   };
 
   const rollbackSelectionPointerInteraction = (event: ReactPointerEvent) => {
+    if (
+      objectInteractionRef.current?.pointerId === event.pointerId ||
+      drawingPointerRef.current === event.pointerId
+    ) {
+      rollbackGesture();
+      return;
+    }
     const interaction = selectionInteractionRef.current;
     if (!interaction || interaction.pointerId !== event.pointerId) {
       return;
@@ -961,7 +1441,11 @@ export function CaptureApp() {
     event: ReactPointerEvent<HTMLSpanElement>,
     handle: SelectionResizeHandle,
   ) => {
-    if (tool !== "select" || !session || !selection) {
+    if (textDraftRef.current) {
+      if (!compositionRef.current) commitTextDraft();
+      return;
+    }
+    if (tool !== "select" || !session || !selection || isCommitting) {
       return;
     }
 
@@ -984,7 +1468,9 @@ export function CaptureApp() {
     setSelectionDraft(null);
   };
 
-  const handleResizePointerMove = (event: ReactPointerEvent<HTMLSpanElement>) => {
+  const handleResizePointerMove = (
+    event: ReactPointerEvent<HTMLSpanElement>,
+  ) => {
     const interaction = selectionInteractionRef.current;
     if (
       interaction?.kind !== "resize" ||
@@ -1052,42 +1538,84 @@ export function CaptureApp() {
     }
   };
 
-  const handleResizePointerCancel = (event: ReactPointerEvent<HTMLSpanElement>) => {
+  const handleResizePointerCancel = (
+    event: ReactPointerEvent<HTMLSpanElement>,
+  ) => {
     event.preventDefault();
     event.stopPropagation();
     rollbackSelectionPointerInteraction(event);
   };
 
   function commitTextDraft() {
+    if (compositionRef.current || closingRef.current) return;
+    finishProperty();
     const currentDraft = textDraftRef.current;
-    if (!currentDraft) {
-      return;
-    }
+    if (!currentDraft) return;
     updateTextDraft(null);
-
-    const text = currentDraft.value;
-    if (text.trim().length === 0) {
-      return;
-    }
-
-    dispatch({
-      type: "add",
-      annotation: {
-        id: createId("text"),
-        type: "text",
-        x: currentDraft.x,
-        y: currentDraft.y + TEXT_FONT_SIZE,
-        text,
-        fontSize: TEXT_FONT_SIZE,
-        color: "#55f280",
-        strokeWidth: 2,
-      },
-    });
+    if (currentDraft.mode === "edit") {
+      if (!currentDraft.value.trim()) {
+        editing.cancel();
+        dispatch({ type: "removeSelected" });
+      } else if (currentDraft.token !== undefined) {
+        editing.preview(currentDraft.token, {
+          ...currentDraft.annotation,
+          text: currentDraft.value,
+        });
+        editing.commit(currentDraft.token);
+      }
+    } else if (currentDraft.value.trim())
+      dispatch({
+        type: "add",
+        annotation: { ...currentDraft.annotation, text: currentDraft.value },
+        select: false,
+      });
   }
+  function handleDoubleClick(event: React.MouseEvent<HTMLCanvasElement>) {
+    if (tool !== "select" || textDraftRef.current || pointerBusy) return;
+    const rect = imageRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const point = viewportPointToImagePoint(
+      { x: event.clientX - rect.left, y: event.clientY - rect.top },
+      imageSize,
+      { width: rect.width, height: rect.height },
+      true,
+    );
+    const object = point ? hitTestAnnotation(history.annotations, point) : null;
+    if (object?.type === "text") {
+      dispatch({ type: "select", id: object.id });
+      const position = annotationBoundsToViewport(
+        { x: object.x, y: object.y - object.fontSize, width: 0, height: 0 },
+        imageSize,
+        viewportSize,
+      );
+      beginText(object, "edit", position);
+    }
+  }
+  const objectBounds = selectedObject ? annotationBounds(selectedObject) : null;
+  const objectViewportBounds = objectBounds
+    ? annotationBoundsToViewport(objectBounds, imageSize, viewportSize)
+    : null;
+
+  const textViewportPosition = textDraft
+    ? annotationBoundsToViewport(
+        {
+          x: textDraft.annotation.x,
+          y: textDraft.annotation.y - textDraft.annotation.fontSize,
+          width: 0,
+          height: 0,
+        },
+        imageSize,
+        viewportSize,
+      )
+    : null;
 
   const selectionViewportRadius =
-    activeGeometry && activeSelection && selectionViewportBounds && activeSelection.width > 0
-      ? activeGeometry.cornerRadius * (selectionViewportBounds.width / activeSelection.width)
+    activeGeometry &&
+    activeSelection &&
+    selectionViewportBounds &&
+    activeSelection.width > 0
+      ? activeGeometry.cornerRadius *
+        (selectionViewportBounds.width / activeSelection.width)
       : 0;
   const selectionMaskPath =
     selectionViewportBounds && imageViewportBounds
@@ -1097,19 +1625,54 @@ export function CaptureApp() {
           `V ${imageViewportBounds.y + imageViewportBounds.height}`,
           `H ${imageViewportBounds.x}`,
           "Z",
-          roundedRectanglePath(selectionViewportBounds, selectionViewportRadius),
+          roundedRectanglePath(
+            selectionViewportBounds,
+            selectionViewportRadius,
+          ),
         ].join(" ")
       : null;
 
   return (
-    <main className="capture-shell">
+    <main
+      className="capture-shell"
+      onPointerDownCapture={(event) => {
+        const target = event.target;
+        if (
+          target instanceof Element &&
+          target.closest("[data-capture-cancel]")
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          closeSession();
+          return;
+        }
+        if (
+          textDraftRef.current &&
+          target instanceof Element &&
+          !target.closest("[data-annotation-edit-domain]") &&
+          !target.closest(".capture-overlay") &&
+          !target.closest(".capture-selection-handle")
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!compositionRef.current) commitTextDraft();
+        }
+      }}
+    >
       {imageSrc ? (
-        <img ref={imageRef} className="capture-image" src={imageSrc} alt="" draggable={false} />
+        <img
+          ref={imageRef}
+          className="capture-image"
+          src={imageSrc}
+          alt=""
+          draggable={false}
+        />
       ) : null}
       <canvas
         ref={overlayRef}
         className="capture-overlay"
         style={{ cursor: tool === "select" ? selectionCursor : undefined }}
+        onDoubleClick={handleDoubleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -1140,14 +1703,16 @@ export function CaptureApp() {
           className="capture-crosshair"
           role="img"
           aria-label={t("screenshot.target.guides")}
-          style={{
-            "--capture-guide-x": `${imageViewportBounds.x + (crosshair.x / imageSize.width) * imageViewportBounds.width}px`,
-            "--capture-guide-y": `${imageViewportBounds.y + (crosshair.y / imageSize.height) * imageViewportBounds.height}px`,
-            "--capture-image-left": `${imageViewportBounds.x}px`,
-            "--capture-image-top": `${imageViewportBounds.y}px`,
-            "--capture-image-width": `${imageViewportBounds.width}px`,
-            "--capture-image-height": `${imageViewportBounds.height}px`,
-          } as CSSProperties}
+          style={
+            {
+              "--capture-guide-x": `${imageViewportBounds.x + (crosshair.x / imageSize.width) * imageViewportBounds.width}px`,
+              "--capture-guide-y": `${imageViewportBounds.y + (crosshair.y / imageSize.height) * imageViewportBounds.height}px`,
+              "--capture-image-left": `${imageViewportBounds.x}px`,
+              "--capture-image-top": `${imageViewportBounds.y}px`,
+              "--capture-image-width": `${imageViewportBounds.width}px`,
+              "--capture-image-height": `${imageViewportBounds.height}px`,
+            } as CSSProperties
+          }
         >
           <span className="capture-guide-horizontal" />
           <span className="capture-guide-vertical" />
@@ -1160,12 +1725,48 @@ export function CaptureApp() {
       ) : null}
       {selectionMaskPath && selectionViewportBounds ? (
         <svg className="capture-selection-chrome" aria-hidden="true">
-          <path className="capture-selection-dimming" d={selectionMaskPath} fillRule="evenodd" />
           <path
-            className={selectionDraft ? "capture-selection-border dragging" : "capture-selection-border"}
-            d={roundedRectanglePath(selectionViewportBounds, selectionViewportRadius)}
+            className="capture-selection-dimming"
+            d={selectionMaskPath}
+            fillRule="evenodd"
+          />
+          <path
+            className={
+              selectionDraft
+                ? "capture-selection-border dragging"
+                : "capture-selection-border"
+            }
+            d={roundedRectanglePath(
+              selectionViewportBounds,
+              selectionViewportRadius,
+            )}
           />
         </svg>
+      ) : null}
+      {selectedObject && objectViewportBounds && !textDraft ? (
+        <div
+          className="capture-object-frame"
+          role="img"
+          aria-label={t("screenshot.properties.object")}
+          style={{
+            left: objectViewportBounds.x,
+            top: objectViewportBounds.y,
+            width: objectViewportBounds.width,
+            height: objectViewportBounds.height,
+          }}
+        >
+          {annotationHandles(selectedObject).map(({ handle, point }) => (
+            <span
+              key={handle}
+              className="capture-object-handle"
+              data-object-handle={handle}
+              style={{
+                left: (point.x - objectBounds!.x) * sourceScale,
+                top: (point.y - objectBounds!.y) * sourceScale,
+              }}
+            />
+          ))}
+        </div>
       ) : null}
       {activeSelection && selectionViewportBounds ? (
         <div
@@ -1200,7 +1801,8 @@ export function CaptureApp() {
           imageSize={imageSize}
           viewportBounds={selectionViewportBounds}
           viewportSize={viewportSize}
-          disabled={Boolean(selectionDraft)}
+          disabled={editBusy || isCommitting}
+          onBoundsChange={setGeometryControlBounds}
           labels={{
             group: t("screenshot.geometry.group"),
             width: t("screenshot.geometry.width"),
@@ -1208,133 +1810,303 @@ export function CaptureApp() {
             radius: t("screenshot.geometry.radius"),
             invalid: t("screenshot.geometry.invalid"),
           }}
-          onChange={(geometry) => setSelection(normalizeSelectionGeometry(geometry, imageSize))}
+          onChange={(geometry) =>
+            setSelection(normalizeSelectionGeometry(geometry, imageSize))
+          }
         />
       ) : null}
       {textDraft ? (
-        <textarea
-          ref={textInputRef}
-          className="capture-text-input"
-          style={{ left: textDraft.screenX, top: textDraft.screenY }}
-          value={textDraft.value}
-          aria-label={t("screenshot.toolbar.text")}
-          onChange={(event) => updateTextDraft({ ...textDraft, value: event.target.value })}
-          onBlur={commitTextDraft}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              updateTextDraft(null);
+        <div data-annotation-edit-domain="true">
+          <textarea
+            ref={textInputRef}
+            className="capture-text-input"
+            style={{
+              left: textViewportPosition!.x,
+              top: textViewportPosition!.y,
+              font: textFont({
+                ...textDraft.annotation,
+                fontSize: textDraft.annotation.fontSize * sourceScale,
+              }),
+              lineHeight: 1.35,
+              color: textDraft.annotation.color,
+              opacity: textDraft.annotation.opacity,
+              width: Math.min(
+                viewportSize.width - textViewportPosition!.x,
+                Math.max(
+                  TEXT_INPUT_WIDTH,
+                  textLayout({ ...textDraft.annotation, text: textDraft.value })
+                    .bounds.width *
+                    sourceScale +
+                    18,
+                ),
+              ),
+              height: Math.min(
+                viewportSize.height - textViewportPosition!.y,
+                Math.max(
+                  TEXT_INPUT_HEIGHT,
+                  textLayout({ ...textDraft.annotation, text: textDraft.value })
+                    .bounds.height *
+                    sourceScale +
+                    18,
+                ),
+              ),
+            }}
+            value={textDraft.value}
+            aria-label={t("screenshot.toolbar.text")}
+            aria-describedby="capture-text-hint"
+            onChange={(event) =>
+              updateTextDraft({ ...textDraft, value: event.target.value })
             }
-          }}
-        />
+            onCompositionStart={() => {
+              compositionRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              compositionRef.current = false;
+            }}
+            onBlur={(event) => {
+              if (
+                event.relatedTarget instanceof Element &&
+                !event.relatedTarget.closest("[data-annotation-edit-domain]")
+              )
+                commitTextDraft();
+            }}
+            onKeyDown={(event) => {
+              event.stopPropagation();
+              if (
+                event.nativeEvent.isComposing ||
+                compositionRef.current ||
+                event.keyCode === 229
+              )
+                return;
+              if (event.key === "Escape") {
+                event.preventDefault();
+                if (propertyInteractionRef.current) {
+                  cancelProperty();
+                  return;
+                }
+                updateTextDraft(null);
+                editing.cancel();
+              } else if (
+                event.key === "Enter" &&
+                (event.metaKey || event.ctrlKey)
+              ) {
+                event.preventDefault();
+                commitTextDraft();
+              }
+            }}
+          />
+          <span id="capture-text-hint" className="capture-text-hint">
+            {t("screenshot.properties.textHint")}
+          </span>
+        </div>
+      ) : null}
+      {renderFailed ? (
+        <p className="capture-error" role="alert">
+          {t("screenshot.properties.renderFailed")}
+        </p>
+      ) : null}
+      {defaults.saveFailed ? (
+        <div className="capture-storage-notice" role="status">
+          {t("screenshot.properties.saveFailed")}
+          <button
+            type="button"
+            onClick={defaults.dismissFailure}
+            aria-label={t("screenshot.properties.dismiss")}
+          >
+            ×
+          </button>
+        </div>
       ) : null}
       {error ? <p className="capture-error">{error}</p> : null}
-      {selection ? <nav
-        ref={toolbarRef}
-        className="capture-toolbar-live"
-        aria-label={t("screenshot.toolbar.label")}
-        data-placement={toolbarPosition?.placement}
-        data-ready={toolbarPosition ? "true" : "false"}
-        style={{ left: toolbarPosition?.left ?? 0, top: toolbarPosition?.top ?? 0 }}
-      >
-        <span
-          className="capture-tool-group"
-          role="group"
-          aria-label={t("screenshot.toolbar.tools")}
+      {selection ? (
+        <div
+          ref={toolbarRef}
+          className="capture-toolbar-stack"
+          data-ready={toolbarPosition ? "true" : "false"}
+          data-placement={toolbarPosition?.placement}
+          style={{
+            left: toolbarPosition?.left ?? 0,
+            top: toolbarPosition?.top ?? 0,
+            maxHeight: Math.max(
+              56,
+              geometryControlBounds
+                ? Math.max(
+                    geometryControlBounds.y - 16,
+                    viewportSize.height -
+                      geometryControlBounds.y -
+                      geometryControlBounds.height -
+                      16,
+                  )
+                : viewportSize.height - 16,
+            ),
+          }}
         >
-          {tools.map(({ tool: entryTool, labelKey, Icon }) => {
-            const label = t(labelKey);
-            const selected = entryTool === tool;
-            return (
+          <nav
+            className="capture-toolbar-live"
+            aria-label={t("screenshot.toolbar.label")}
+          >
+            <span
+              className="capture-tool-group"
+              role="group"
+              aria-label={t("screenshot.toolbar.tools")}
+            >
+              {tools.map(({ tool: entryTool, labelKey, Icon }) => {
+                const label = t(labelKey);
+                const selected = entryTool === tool;
+                return (
+                  <button
+                    type="button"
+                    className={
+                      selected
+                        ? "capture-tool-live selected"
+                        : "capture-tool-live"
+                    }
+                    key={entryTool}
+                    title={label}
+                    aria-label={label}
+                    aria-pressed={selected}
+                    disabled={pointerBusy || isCommitting}
+                    onClick={() => changeTool(entryTool)}
+                  >
+                    <Icon aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </span>
+            <span className="capture-divider-live" aria-hidden="true" />
+            <span
+              className="capture-tool-group"
+              role="group"
+              aria-label={t("screenshot.toolbar.history")}
+            >
               <button
                 type="button"
-                className={selected ? "capture-tool-live selected" : "capture-tool-live"}
-                key={entryTool}
-                title={label}
-                aria-label={label}
-                aria-pressed={selected}
-                onClick={() => setTool(entryTool)}
+                className="capture-tool-live"
+                title={t("screenshot.toolbar.undo")}
+                aria-label={t("screenshot.toolbar.undo")}
+                disabled={
+                  history.undoStack.length === 0 || editBusy || isCommitting
+                }
+                onClick={() => dispatch({ type: "undo" })}
               >
-                <Icon aria-hidden="true" />
+                <Undo2 aria-hidden="true" />
               </button>
-            );
-          })}
-        </span>
-        <span className="capture-divider-live" aria-hidden="true" />
-        <span
-          className="capture-tool-group"
-          role="group"
-          aria-label={t("screenshot.toolbar.history")}
-        >
-          <button
-            type="button"
-            className="capture-tool-live"
-            title={t("screenshot.toolbar.undo")}
-            aria-label={t("screenshot.toolbar.undo")}
-            disabled={history.undoStack.length === 0}
-            onClick={() => dispatch({ type: "undo" })}
-          >
-            <Undo2 aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="capture-tool-live"
-            title={t("screenshot.toolbar.redo")}
-            aria-label={t("screenshot.toolbar.redo")}
-            disabled={history.redoStack.length === 0}
-            onClick={() => dispatch({ type: "redo" })}
-          >
-            <Redo2 aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="capture-tool-live danger"
-            title={t("screenshot.toolbar.delete")}
-            aria-label={t("screenshot.toolbar.delete")}
-            disabled={!history.selectedId}
-            onClick={() => dispatch({ type: "removeSelected" })}
-          >
-            <Trash2 aria-hidden="true" />
-          </button>
-        </span>
-        <span className="capture-divider-live" aria-hidden="true" />
-        <span
-          className="capture-tool-group"
-          role="group"
-          aria-label={t("screenshot.toolbar.finish")}
-        >
-          <button type="button" className="capture-tool-live" title={t("ocr.originalHint")} aria-label={t("ocr.capture")} disabled={isCommitting || !selection || !ocrAvailable} onClick={() => void recognizeSelection()}>OCR</button>
-          <button
-            type="button"
-            className="capture-tool-live danger"
-            title={t("screenshot.toolbar.cancel")}
-            aria-label={t("screenshot.toolbar.cancel")}
-            onClick={cancel}
-          >
-            <X aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="capture-tool-live"
-            title={t("screenshot.toolbar.save")}
-            aria-label={t("screenshot.toolbar.save")}
-            disabled={isCommitting || !selection}
-            onClick={() => commit("save")}
-          >
-            <Download aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="capture-tool-live confirm"
-            title={session?.initialAction === "ocr" ? t("ocr.originalHint") : t("screenshot.toolbar.copy")}
-            aria-label={session?.initialAction === "ocr" ? t("ocr.capture") : t("screenshot.toolbar.copy")}
-            disabled={isCommitting || !selection || (session?.initialAction === "ocr" && !ocrAvailable)}
-            onClick={() => session?.initialAction === "ocr" ? void recognizeSelection() : void commit("copy")}
-          >
-            <Check aria-hidden="true" />
-          </button>
-        </span>
-      </nav> : null}
+              <button
+                type="button"
+                className="capture-tool-live"
+                title={t("screenshot.toolbar.redo")}
+                aria-label={t("screenshot.toolbar.redo")}
+                disabled={
+                  history.redoStack.length === 0 || editBusy || isCommitting
+                }
+                onClick={() => dispatch({ type: "redo" })}
+              >
+                <Redo2 aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="capture-tool-live danger"
+                title={t("screenshot.toolbar.delete")}
+                aria-label={t("screenshot.toolbar.delete")}
+                disabled={!history.selectedId || editBusy || isCommitting}
+                onClick={() => dispatch({ type: "removeSelected" })}
+              >
+                <Trash2 aria-hidden="true" />
+              </button>
+            </span>
+            <span className="capture-divider-live" aria-hidden="true" />
+            <span
+              className="capture-tool-group"
+              role="group"
+              aria-label={t("screenshot.toolbar.finish")}
+            >
+              <button
+                type="button"
+                className="capture-tool-live"
+                title={t("ocr.originalHint")}
+                aria-label={t("ocr.capture")}
+                disabled={
+                  isCommitting ||
+                  editBusy ||
+                  renderFailed ||
+                  !selection ||
+                  !ocrAvailable
+                }
+                onClick={() => void recognizeSelection()}
+              >
+                OCR
+              </button>
+              <button
+                type="button"
+                className="capture-tool-live danger"
+                title={t("screenshot.toolbar.cancel")}
+                aria-label={t("screenshot.toolbar.cancel")}
+                data-capture-cancel="true"
+                onClick={closeSession}
+              >
+                <X aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="capture-tool-live"
+                title={t("screenshot.toolbar.save")}
+                aria-label={t("screenshot.toolbar.save")}
+                disabled={
+                  isCommitting || editBusy || renderFailed || !selection
+                }
+                onClick={() => commit("save")}
+              >
+                <Download aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="capture-tool-live confirm"
+                title={
+                  session?.initialAction === "ocr"
+                    ? t("ocr.originalHint")
+                    : t("screenshot.toolbar.copy")
+                }
+                aria-label={
+                  session?.initialAction === "ocr"
+                    ? t("ocr.capture")
+                    : t("screenshot.toolbar.copy")
+                }
+                disabled={
+                  isCommitting ||
+                  editBusy ||
+                  renderFailed ||
+                  !selection ||
+                  (session?.initialAction === "ocr" && !ocrAvailable)
+                }
+                onClick={() =>
+                  session?.initialAction === "ocr"
+                    ? void recognizeSelection()
+                    : void commit("copy")
+                }
+              >
+                <Check aria-hidden="true" />
+              </button>
+            </span>
+          </nav>
+          {panelContext ? (
+            <AnnotationPropertiesPanel
+              key={`${panelContext.mode}:${panelContext.tool}:${history.selectedId ?? "default"}:${propertyRevision}`}
+              context={panelContext}
+              t={t}
+              disabled={pointerBusy || isCommitting}
+              onBegin={beginProperty}
+              onPatch={previewProperty}
+              onCommit={finishProperty}
+              onCancel={cancelProperty}
+              onReset={() => {
+                cancelProperty();
+                defaults.reset(panelContext.tool);
+                setPropertyRevision((revision) => revision + 1);
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
     </main>
   );
 }

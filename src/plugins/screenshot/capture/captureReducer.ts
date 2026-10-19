@@ -1,7 +1,7 @@
 import type { AnnotationObject, HistoryState } from "./captureTypes";
 
 export type CaptureAction =
-  | { type: "add"; annotation: AnnotationObject }
+  | { type: "add"; annotation: AnnotationObject; select?: boolean }
   | { type: "replace"; annotation: AnnotationObject }
   | { type: "select"; id: string | null }
   | { type: "removeSelected" }
@@ -35,13 +35,13 @@ export function captureReducer(state: HistoryState, action: CaptureAction): Hist
       return {
         ...next,
         annotations: [...next.annotations, action.annotation],
-        selectedId: action.annotation.id,
+        selectedId: action.select === false ? null : action.annotation.id,
       };
     }
 
     case "replace": {
       const index = state.annotations.findIndex((annotation) => annotation.id === action.annotation.id);
-      if (index < 0) {
+      if (index < 0 || JSON.stringify(state.annotations[index]) === JSON.stringify(action.annotation)) {
         return state;
       }
       const next = pushUndo(state);
@@ -60,7 +60,7 @@ export function captureReducer(state: HistoryState, action: CaptureAction): Hist
       };
 
     case "removeSelected": {
-      if (!state.selectedId) {
+      if (!state.selectedId || !state.annotations.some(annotation => annotation.id === state.selectedId)) {
         return state;
       }
       const next = pushUndo(state);
