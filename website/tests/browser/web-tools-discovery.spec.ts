@@ -71,13 +71,15 @@ for (const locale of ['zh', 'en'] as const) {
   });
 }
 
-test('grouped tool navigation and directory retain touch targets at 200% zoom', async ({ page }) => {
+test('tool breadcrumbs and directory retain touch targets at 200% zoom', async ({ page }) => {
   await page.setViewportSize({ width: 640, height: 1000 });
-  await page.goto('/en/tools/');
-  await page.evaluate(() => { document.body.style.zoom = '2'; });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-  for (const target of await page.locator('[data-category], .wt-tabs a').evaluateAll(elements => elements.map(element => ({ width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height })))) {
-    expect(target.width).toBeGreaterThanOrEqual(44);
-    expect(target.height).toBeGreaterThanOrEqual(44);
+  for (const route of ['/en/tools/', '/en/tools/timestamp/', '/tools/image-converter/']) {
+    await page.goto(route);
+    await page.evaluate(() => { document.body.style.zoom = '2'; });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    for (const target of await page.locator('[data-category], .wt-breadcrumb a').evaluateAll(elements => elements.map(element => ({ width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height })))) {
+      expect(target.width).toBeGreaterThanOrEqual(44);
+      expect(target.height).toBeGreaterThanOrEqual(44);
+    }
   }
 });

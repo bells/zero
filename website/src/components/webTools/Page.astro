@@ -42,17 +42,17 @@ const available = catalog.packages.some((entry) => entry.profile === 'standard')
       </header>
       <p class="wt-local wt-directory-local">{c.local}</p>
     </> : <>
-    <div class="wt-bar">
-      <nav class="wt-tabs" aria-label={c.directory}>
-        <a href={path(locale, 'tools')} aria-current={!tool ? 'page' : undefined}>{c.directory}</a>
-        {webCategories.map((category) => <div class="wt-nav-group"><span>{categories[category]}</span><div>{webTools[locale].filter((entry) => entry.category === category).map((entry) => <a href={path(locale, `tools/${entry.slug}`)} aria-current={tool === entry.slug ? 'page' : undefined}>{entry.title}</a>)}</div></div>)}
+    <div class="wt-bar wt-detail-bar">
+      <nav class="wt-breadcrumb" aria-label={locale === 'zh' ? '工具位置' : 'Tool location'}>
+        <a href={path(locale, 'tools')}>{c.directory}</a>
+        {details && <><span aria-hidden="true">-</span><a href={`${path(locale, 'tools')}?category=${details.category}`}>{categories[details.category]}</a></>}
       </nav>
       <div class="wt-settings" data-enhance-only hidden>
-        <label class="wt-theme">{c.theme}<select data-theme aria-label={c.theme}><option value="system">{c.system}</option><option value="light">{c.light}</option><option value="dark">{c.dark}</option></select></label>
         <button type="button" data-open-search>{c.search}<kbd>{c.searchKeys}</kbd></button>
+        <select data-theme aria-label={c.theme}><option value="system">{c.system}</option><option value="light">{c.light}</option><option value="dark">{c.dark}</option></select>
       </div>
     </div>
-    <header class="wt-heading"><p class="wt-local">{c.local}</p><h1>{title}</h1><p>{details?.description ?? g.description}</p></header>
+    <header class="wt-heading"><div class="wt-title-row"><h1>{title}</h1><p class="wt-local">{c.local}</p></div><p>{details?.description ?? g.description}</p></header>
     </>}
     <noscript><p class="wt-notice">{c.nojs}</p></noscript>
     {!tool ? <>

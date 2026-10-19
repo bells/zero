@@ -24,7 +24,7 @@ for (const locale of ['zh', 'en'] as const) {
       for (const width of [1440, 768, 720, 390, 320]) {
         await page.setViewportSize({ width, height: 900 });
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-        const targets = await page.locator('.wt button:visible, .wt select:visible, .wt summary:visible, .wt-tabs a:visible').evaluateAll((elements) => elements.map((item) => ({ width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height })));
+        const targets = await page.locator('.wt button:visible, .wt select:visible, .wt summary:visible, .wt-breadcrumb a:visible').evaluateAll((elements) => elements.map((item) => ({ width: item.getBoundingClientRect().width, height: item.getBoundingClientRect().height })));
         for (const target of targets) { expect(target.width).toBeGreaterThanOrEqual(44); expect(target.height).toBeGreaterThanOrEqual(44); }
         if (width === 1440 || width === 390) await page.screenshot({ path: `output/screenshots/web-tools/${locale}-${slug || 'directory'}-${width}.png`, fullPage: true });
       }
@@ -42,7 +42,7 @@ for (const locale of ['zh', 'en'] as const) {
         await expect(staticPage.locator('.wt-guidance')).toBeVisible();
       }
       await expect(staticPage.locator('.wt-cta')).toContainText(locale === 'zh' ? '尚未内置桌面版' : 'not currently built into');
-      await expect(staticPage.locator(slug ? '.wt-tabs a' : '.wt-directory a')).toHaveCount(slug ? 8 : 7);
+      await expect(staticPage.locator(slug ? '.wt-breadcrumb a' : '.wt-directory a')).toHaveCount(slug ? 2 : 7);
       await context.close();
       expect(errors).toEqual([]);
     });
