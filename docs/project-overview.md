@@ -1,5 +1,7 @@
 # Zero 项目全景与维护地图
 
+2026-10-20 Snap 属性面板修订：面板位于对应类型按钮下方，指示三角跟随按钮和工具栏横向滚动。绘制完成后可直接调整当前标注，仍可连续画下一笔；工具默认样式保持独立。合成浏览器验证与真实 macOS 截图启动限制分别记录在[本次证据](../openspec/changes/enhance-snap-annotation-editing/evidence/implementation.md)。
+
 2026-10-19 Snap 标注增量：macOS 编辑器增加六工具属性面板、单对象移动/缩放/端点与文字重编辑、事务式撤销重做，以及独立的样式默认值存储。预览和 PNG 共用整体透明度与马赛克合成，OCR/raw IPC 边界保持原样；属性文案随 capture 懒加载。维护入口见[截图编辑器地图](../src/plugins/screenshot/capture/README.md)，自动验证、包体对照、审查修复和未完成实机门禁见[本次记录](../openspec/changes/enhance-snap-annotation-editing/evidence/implementation.md)。本次真实 debug 主窗口可访问，但截图启动返回“打开失败: [object Object]”，未进入编辑器；不能据浏览器合成测试宣称原生颜色/输入法、Copy/Save/Pin、多屏或应用重启已验收。Windows 仍为系统截图启动器。本轮按用户后续授权作本地提交，未推送、同步、归档或发布。
 
 2026-10-18 官网图片增量：双语在线工具扩为七项，目录提供开发/图片分类与分类内搜索，全工具搜索继续覆盖七项；新增本地批量转换、水印和压缩工作台。共享纯 TS 队列、可终止顺序 Worker、有界选中项预览、真实格式导出与成功项 ZIP 已接入；PNG 元数据清理兼顾透明像素和 16 位方向样本，HEIC 解码器保持独立可替换资源并附完整来源/许可材料。当前限额是可执行的保守候选，48MP 提前拒绝；Safari、相机原片及手机进程内存仍是未完成验收。入口、构建材料与范围见[官网指南](website.md)和[本次实施记录](../openspec/changes/add-web-image-tools-and-categories/evidence/implementation-2026-10-18.md)。本轮不涉及桌面功能、同步、归档或部署；本地提交另经用户授权执行。

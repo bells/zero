@@ -5,11 +5,15 @@ Let macOS Zero Snap users revise one existing annotation through selection, geom
 ## ADDED Requirements
 
 ### Requirement: Drawing and object selection remain distinct modes
-Finishing an annotation SHALL keep its drawing tool active for continuous drawing and show that tool's defaults. The user SHALL switch to Select to target existing annotations. A Select click SHALL choose the topmost annotation whose selectable bounds contain the point; empty space SHALL clear object selection without adding annotation history. Selection chrome SHALL reflect a single selected object only. Starting a drawing tool SHALL leave object editing and use tool defaults.
+Finishing an annotation SHALL keep its drawing tool active for continuous drawing and retain the newly created annotation as the property target. Property controls SHALL immediately preview and commit edits to that annotation without requiring Select, while preserving independent drawing defaults. The user SHALL switch to Select to target older annotations for geometry editing. A Select click SHALL choose the topmost annotation whose selectable bounds contain the point; empty space SHALL clear object selection without adding annotation history. Selection chrome SHALL reflect a single selected object only. Switching tools or explicitly reactivating the current drawing tool SHALL clear the property target and show tool defaults. Undo, redo, deletion and deselection SHALL clear that target. Geometry chrome SHALL appear only in Select; a drawing drag SHALL continue creating a new annotation using tool defaults.
 
 #### Scenario: User draws several rectangles
 - **WHEN** the user finishes one rectangle and starts another without changing tools
 - **THEN** Rectangle remains active and the next rectangle uses Rectangle defaults rather than entering object dragging
+
+#### Scenario: Newly drawn annotation is adjusted
+- **WHEN** the user finishes a rectangle and changes its stroke width, color, opacity, fill or radius in the panel
+- **THEN** that rectangle updates immediately with reversible property transactions, Rectangle remains active and subsequent rectangles retain their saved defaults
 
 #### Scenario: Annotations overlap
 - **WHEN** Select clicks within the selectable bounds of multiple annotations

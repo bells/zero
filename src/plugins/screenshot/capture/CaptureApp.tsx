@@ -9,6 +9,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { useCapturePropertyAnchor } from "./useCapturePropertyAnchor";
 import { invoke } from "@tauri-apps/api/core";
 import {
   normalizeOcrError,
@@ -518,29 +519,30 @@ export function CaptureApp() {
     geometryControlBounds,
   ]);
 
-  const selectedObject =
-    tool === "select"
-      ? (editing.scene.find(
-          (a) => a.id === history.selectedId && a.type !== "pin",
-        ) as DrawingAnnotation | undefined)
-      : undefined;
+  const propertyObject = editing.scene.find(
+    (annotation): annotation is DrawingAnnotation =>
+      annotation.id === history.selectedId &&
+      annotation.type !== "pin" &&
+      (tool === "select" || annotation.type === tool),
+  );
+  const selectedObject = tool === "select" ? propertyObject : undefined;
   const panelContext: AnnotationPanelContext | null = textDraft
     ? {
         mode: textDraft.mode === "edit" ? "selected" : "default",
         tool: "text",
         style: annotationStyle(textDraft.annotation),
       }
-    : selectedObject
+    : propertyObject
       ? {
           mode: "selected",
-          tool: selectedObject.type,
-          style: annotationStyle(selectedObject),
+          tool: propertyObject.type,
+          style: annotationStyle(propertyObject),
           radiusMaximum:
-            selectedObject.type === "rectangle"
+            propertyObject.type === "rectangle"
               ? Math.min(
                   100,
                   Math.floor(
-                    Math.min(selectedObject.width, selectedObject.height) / 2,
+                    Math.min(propertyObject.width, propertyObject.height) / 2,
                   ),
                 )
               : undefined,
@@ -548,6 +550,7 @@ export function CaptureApp() {
       : isDrawingTool(tool)
         ? { mode: "default", tool, style: defaults.styles[tool] }
         : null;
+  const propertyAnchor = useCapturePropertyAnchor(toolbarRef, panelContext?.tool);
   const sourceScale = imageViewportBounds
     ? imageViewportBounds.width / imageSize.width
     : 1;
@@ -789,10 +792,10 @@ export function CaptureApp() {
         snapshot: structuredClone(text),
       };
       if (text.mode === "create") defaults.begin("text");
-    } else if (selectedObject) {
+    } else if (propertyObject) {
       propertyInteractionRef.current = {
         kind: "selected",
-        token: editing.begin(selectedObject, "property"),
+        token: editing.begin(propertyObject, "property"),
       };
     } else if (isDrawingTool(tool)) {
       defaults.begin(tool);
@@ -1414,7 +1417,7 @@ export function CaptureApp() {
       return;
     }
 
-    dispatch({ type: "add", annotation: currentDraft, select: false });
+    dispatch({ type: "add", annotation: currentDraft });
   };
 
   const rollbackSelectionPointerInteraction = (event: ReactPointerEvent) => {
@@ -1567,7 +1570,6 @@ export function CaptureApp() {
       dispatch({
         type: "add",
         annotation: { ...currentDraft.annotation, text: currentDraft.value },
-        select: false,
       });
   }
   function handleDoubleClick(event: React.MouseEvent<HTMLCanvasElement>) {
@@ -1962,6 +1964,7 @@ export function CaptureApp() {
                         : "capture-tool-live"
                     }
                     key={entryTool}
+                    data-capture-tool={entryTool}
                     title={label}
                     aria-label={label}
                     aria-pressed={selected}
@@ -2089,21 +2092,33 @@ export function CaptureApp() {
             </span>
           </nav>
           {panelContext ? (
-            <AnnotationPropertiesPanel
-              key={`${panelContext.mode}:${panelContext.tool}:${history.selectedId ?? "default"}:${propertyRevision}`}
-              context={panelContext}
-              t={t}
-              disabled={pointerBusy || isCommitting}
-              onBegin={beginProperty}
-              onPatch={previewProperty}
-              onCommit={finishProperty}
-              onCancel={cancelProperty}
-              onReset={() => {
-                cancelProperty();
-                defaults.reset(panelContext.tool);
-                setPropertyRevision((revision) => revision + 1);
-              }}
-            />
+            <div
+              className="capture-property-shell"
+              style={{ marginLeft: propertyAnchor.left }}
+            >
+              {propertyAnchor.visible ? (
+                <span
+                  className="capture-property-caret"
+                  aria-hidden="true"
+                  style={{ left: propertyAnchor.caretLeft }}
+                />
+              ) : null}
+              <AnnotationPropertiesPanel
+                key={`${panelContext.mode}:${panelContext.tool}:${history.selectedId ?? "default"}:${propertyRevision}`}
+                context={panelContext}
+                t={t}
+                disabled={pointerBusy || isCommitting}
+                onBegin={beginProperty}
+                onPatch={previewProperty}
+                onCommit={finishProperty}
+                onCancel={cancelProperty}
+                onReset={() => {
+                  cancelProperty();
+                  defaults.reset(panelContext.tool);
+                  setPropertyRevision((revision) => revision + 1);
+                }}
+              />
+            </div>
           ) : null}
         </div>
       ) : null}

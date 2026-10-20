@@ -5,7 +5,7 @@ Preserve each Zero Snap annotation tool's preferred style across capture session
 ## ADDED Requirements
 
 ### Requirement: Drawing defaults are independent for each tool
-Each of Rectangle, Ellipse, Arrow, Pen, Text and Mosaic SHALL retain its own applicable default properties. Changing defaults SHALL affect subsequently created annotations only; changing an existing selected object's properties SHALL affect that object only. The panel SHALL distinguish these two editing contexts. Switching tools SHALL restore that tool's defaults without importing another tool's color, opacity, width or other fields.
+Each of Rectangle, Ellipse, Arrow, Pen, Text and Mosaic SHALL retain its own applicable default properties. Changing defaults SHALL affect subsequently created annotations only; changing an existing selected object's properties SHALL affect that object only. The panel SHALL distinguish these two editing contexts, including immediately after drawing when controls target the newly created object. Reactivating a drawing tool or deselecting SHALL return to its defaults without changing the object. Switching tools SHALL restore that tool's defaults without importing another tool's color, opacity, width or other fields.
 
 #### Scenario: User changes a tool default
 - **WHEN** the user changes Rectangle color without an object selected and draws two rectangles

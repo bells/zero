@@ -73,10 +73,49 @@ try {
       .count(),
     1,
   );
+  const anchorPanel = async (name) => {
+    await tool(name);
+    await page.waitForTimeout(40);
+    const button = await page.getByRole("button", {name, exact:true}).boundingBox();
+    const panel = await page.locator(".capture-annotation-properties").boundingBox();
+    const caret = await page.locator(".capture-property-caret").boundingBox();
+    assert.ok(panel.y > button.y + button.height, "panel is below tool");
+    assert.ok(Math.abs(caret.x + caret.width/2 - (button.x+button.width/2)) < 2, "caret points to tool");
+    return panel.x;
+  };
+  const rectanglePanelX = await anchorPanel("Rectangle");
+  const ellipsePanelX = await anchorPanel("Ellipse");
+  assert.ok(ellipsePanelX > rectanglePanelX, "panel follows corresponding button");
+  await tool("Rectangle");
+  results.push("properties anchored below Rectangle/Ellipse with pointing caret");
   await input("Stroke width · px", 12);
   await input("Object radius · px", 40);
   await drag(150, 150, 300, 250);
+  const selectedRectangle = page.getByRole("region", { name: "Rectangle · Selected annotation", exact:true });
+  assert.equal(await selectedRectangle.count(), 1, "new rectangle stays editable without Select");
+  const pixel = (x,y) => page.locator(".capture-overlay").evaluate((canvas,{x,y}) => [...canvas.getContext("2d").getImageData(x,y,1,1).data],{x,y});
+  await page.waitForTimeout(40);
+  const outlinePixel = await pixel(225,200);
+  await page.getByRole("combobox",{name:"Shape",exact:true}).selectOption("solid");
+  await page.waitForTimeout(40);
+  assert.notDeepEqual(await pixel(225,200), outlinePixel, "new object's fill previews immediately");
+  await input("Opacity · %", 40);
+  if (process.env.SNAP_SCREENSHOT_PATH) await page.screenshot({path:process.env.SNAP_SCREENSHOT_PATH});
+  await tool("Undo");
+  await tool("Select screenshot area");
+  await page.mouse.click(225,200);
+  assert.equal(await number("Opacity · %").inputValue(), "100");
+  await tool("Redo");
+  await page.mouse.click(225,200);
+  assert.equal(await number("Opacity · %").inputValue(), "40");
+  await tool("Undo");
+  await tool("Undo");
+  await tool("Rectangle");
+  assert.equal(await number("Opacity · %").inputValue(), "100");
   await drag(400, 150, 550, 250);
+  assert.equal(await selectedRectangle.count(),1);
+  assert.equal(await number("Opacity · %").inputValue(),"100", "object changes leave next defaults intact");
+  results.push("new drawing live properties, pixel preview, undo/redo and next-object defaults");
   assert.equal(
     await page
       .getByRole("button", { name: "Rectangle", exact: true })
@@ -343,6 +382,47 @@ try {
   assert.equal(new Set(uploads.map(upload=>upload.headers['x-zero-screenshot-lease'])).size,3);
   for(const upload of uploads){assert.ok(upload.byteLength>8);assert.deepEqual(upload.signature,[137,80,78,71,13,10,26,10]);}
   results.push('Copy/Save/Pin share committed PNG composition and raw upload lease headers');
+  await open();
+  await tool("Rectangle");
+  await input("Stroke width · px", 4);
+  await input("Object radius · px", 0);
+  await drag(150, 180, 300, 280);
+  await input("Stroke width · px", 16);
+  await input("Object radius · px", 25);
+  await input("Opacity · %", 40);
+  await tool("Color #ff5252");
+  await page.getByRole("combobox", {name:"Shape",exact:true}).selectOption("solid");
+  await drag(400, 180, 550, 280);
+  assert.equal(await number("Stroke width · px").inputValue(), "4");
+  assert.equal(await number("Object radius · px").inputValue(), "0");
+  assert.equal(await number("Opacity · %").inputValue(), "100");
+  assert.equal(await page.getByRole("combobox", {name:"Shape",exact:true}).inputValue(),"outline");
+  await tool("Select screenshot area");
+  await page.mouse.click(225,220);
+  assert.equal(await number("Stroke width · px").inputValue(), "16");
+  assert.equal(await number("Object radius · px").inputValue(), "25");
+  assert.equal(await number("Opacity · %").inputValue(), "40");
+  assert.equal(await page.getByRole("button", {name:"Color #ff5252",exact:true}).getAttribute("aria-pressed"),"true");
+  assert.equal(await page.getByRole("combobox", {name:"Shape",exact:true}).inputValue(),"solid");
+  await tool("Ellipse");
+  await drag(600,180,750,280);
+  assert.equal(await page.getByRole("region",{name:"Ellipse · Selected annotation",exact:true}).count(),1);
+  await input("Stroke width · px",20);
+  await page.getByRole("button",{name:"Ellipse",exact:true}).focus();
+  await page.keyboard.press("Escape");
+  assert.equal(await page.getByRole("region",{name:"Ellipse · Drawing defaults",exact:true}).count(),1);
+  await tool("Select screenshot area");
+  await page.mouse.click(675,220);
+  assert.equal(await number("Stroke width · px").inputValue(),"20");
+  await tool("Ellipse");
+  await drag(600,300,750,400);
+  await tool("Delete annotation");
+  assert.equal(await page.getByRole("region",{name:"Ellipse · Drawing defaults",exact:true}).count(),1);
+  await tool("Undo");
+  assert.equal(await page.getByRole("region",{name:"Ellipse · Drawing defaults",exact:true}).count(),1);
+  await tool("Redo");
+  assert.equal(await page.getByRole("region",{name:"Ellipse · Drawing defaults",exact:true}).count(),1);
+  results.push("live shape fields stay on current object; next drawing, Escape, deletion and history clear targets safely");
   for (const [width, height] of [
     [360, 300],
     [720, 480],
@@ -373,6 +453,18 @@ try {
       );
     assert.equal(overlap, 0);
   }
+  await page.setViewportSize({width:360,height:480});
+  await tool("Ellipse");
+  const nav = page.locator(".capture-toolbar-live");
+  await nav.evaluate(el => {el.scrollLeft = 60;});
+  await page.waitForTimeout(60);
+  const scrolledButton = await page.getByRole("button",{name:"Ellipse",exact:true}).boundingBox();
+  const scrolledCaret = await page.locator(".capture-property-caret").boundingBox();
+  assert.ok(Math.abs(scrolledCaret.x+scrolledCaret.width/2-scrolledButton.x-scrolledButton.width/2)<2);
+  await nav.evaluate(el => {el.scrollLeft = el.scrollWidth;});
+  await page.waitForTimeout(60);
+  assert.equal(await page.locator(".capture-property-caret").count(),0,"hidden tool has no misleading caret");
+  results.push("caret tracks horizontal toolbar scrolling and hides for offscreen tools");
   assert.deepEqual(errors, []);
   results.push(
     "measured panel stays within narrow/resized viewport and avoids crop geometry",

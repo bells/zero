@@ -102,3 +102,29 @@ Final implementation scope: no Rust/IPC/capability change, no new runtime depend
 ## Local commit handoff — 2026-10-19
 
 The user subsequently requested a local commit ("先提交代码"). Before staging, `pnpm test` (376/376), `pnpm build`, the independent build-graph budget, change-specific strict OpenSpec validation and whitespace checks were rerun. Only the reviewed Snap source, synthetic tests, maintenance map and this OpenSpec change are included. No native acceptance checkbox changed; the screenshot-start failure remains unresolved. This authorization excludes push, release, spec sync and archive. The resulting commit identity is recorded in Git history and the conversation.
+
+
+## User-feedback revision — 2026-10-20
+
+The user's screenshot and follow-up supersede the original post-drawing default-context decision. The current code keeps the drawing tool active, retains the newly added object as the property target and routes panel edits through the existing object transaction. New drawings continue to read independent tool defaults. Select alone owns geometry handles/movement; switching tools (including reactivating the current button), Escape deselection, undo/redo and deletion clear the property target. Text creation also retains its committed object. The explicitly labeled restore-tool-defaults action still affects only defaults.
+
+`useCapturePropertyAnchor.ts` observes toolbar/stack/panel dimensions and horizontal scrolling. A pure horizontal resolver places the panel below its corresponding type button, clamped inside the measured stack; a small caret points toward the button and hides when that button scrolls outside the toolbar. The existing combined-stack vertical placement, viewport margins, bounded panel scrolling and crop-geometry avoidance remain in place. No dependencies, Rust source or IPC contracts changed.
+
+Verification:
+
+- Regression tests were added before production edits: the pure test initially failed for the missing anchor resolver; the browser test failed waiting for the previously absent caret. The first Chrome invocation was prevented by the sandbox (SIGABRT/EPERM); approved outside-sandbox invocations ran normally. New test-control labels were corrected to the existing preset `#ff5252` and `Delete annotation` before the final run.
+- `pnpm test`: 377 passed, 0 failed (includes the new pure anchor regression).
+- Real Chrome synthetic interaction harness: 17 groups passed. New checks cover Rectangle/Ellipse button alignment and caret position, new-object live solid-fill pixel changes, properties and undo/redo, all rectangle style fields retained on the current object, independent next-object defaults, Ellipse live edits, Escape/deletion/history target clearing, narrow/resized viewports and toolbar scrolling/offscreen caret hiding.
+- Existing real Canvas/PNG pixel harness: 7 groups passed. These fixtures mock native IPC and use only a generated synthetic image.
+- `pnpm build` and separate `/tmp/zero-build-graph.json` budget check passed. No budget changes or tracked historical snapshots were made.
+- `openspec validate --all --strict`: 33 passed, 0 failed. `git diff --check` passed.
+- `pnpm tauri dev --no-watch --config /private/tmp/snap-followup-native.json`: current native debug build completed. A temporary app wrapper with the current debug binary opened the visible main window through CUA. Clicking Snap's screenshot action returned `Zero Snap 打开失败: [object Object]` and did not enter capture, so this run does not prove native editor behavior. The temporary app was quit and CUA confirmed Zero was no longer running. Tracked Tauri configuration and system permissions were not changed. The first native launch waited for IPv6 `localhost`; a temporary config using the existing IPv4 Vite server resolved that setup issue.
+- Full Rust unit tests were not rerun for this frontend-only revision; the native debug rebuild is compilation evidence only. Section 9's six actual-device acceptance tasks remain open.
+
+A synthetic screenshot was visually inspected at `/tmp/snap-annotation-followup.png`; it shows the panel below Rectangle, a caret aligned to the Rectangle button, and the current object's 40%-opacity solid fill. It is not a native capture screenshot. No new commit, push, spec sync, archive or release was performed for this revision.
+
+Final follow-up gates were rerun after source formatting and expanded tests: frontend 377/377, build and budget check passed; initial entry 282459 bytes / gzip 86999 bytes, lazy CaptureApp 47836 / gzip 14888. Independent reviewer found no actionable source issues after checking target isolation, geometry ownership, history, observer lifecycle and anchor clamping (source review only). Revised change progress is 33/39; all remaining tasks are the six native acceptance tasks in section 9.
+
+## Local commit handoff — 2026-10-20
+
+The user subsequently requested `提交代码`. Pre-commit verification reran frontend tests (377/377), build, separate build-graph budget check, strict change/all OpenSpec validation, Chrome synthetic interactions (17 groups) and Canvas/PNG pixels (7 groups), all passing. The commit is limited to this Snap revision, its tests and documentation. Native acceptance remains unchanged at 33/39 tasks complete; no Rust tests or additional native smoke were rerun during the commit handoff. No push, sync, archive or release is included. The resulting identity is recorded in Git history and the conversation.

@@ -5,6 +5,7 @@ import {
   CAPTURE_TOOLBAR_INSET,
   CAPTURE_TOOLBAR_SAFE_MARGIN,
   resolveCaptureToolbarPosition,
+  resolveAnnotationPanelAnchor,
 } from "/private/tmp/zero-tests/plugins/screenshot/capture/captureToolbarModel.js";
 
 const toolbar = { width: 600, height: 56 };
@@ -75,4 +76,19 @@ test('measured two-layer editor avoids the crop geometry bar at viewport corners
  assert.ok(pos.top>=62,'combined toolbar must be below geometry bar');
  assert.ok(pos.left>=8 && pos.left+stack.width<=352);
  assert.ok(pos.top+stack.height<=292);
+});
+
+
+test("properties follow the corresponding button and caret even when clamped", () => {
+  const rectangle = resolveAnnotationPanelAnchor({x:52,y:0,width:36,height:36}, 600, 780);
+  const ellipse = resolveAnnotationPanelAnchor({x:92,y:0,width:36,height:36}, 600, 780);
+  assert.equal(rectangle.left, 40);
+  assert.equal(ellipse.left, 80);
+  assert.equal(rectangle.left + rectangle.caretLeft, 70);
+  assert.equal(ellipse.left + ellipse.caretLeft, 110);
+  const edge = resolveAnnotationPanelAnchor({x:290,y:0,width:36,height:36}, 344, 344);
+  assert.equal(edge.left, 0);
+  assert.equal(edge.caretLeft, 308);
+  assert.equal(edge.visible, true);
+  assert.equal(resolveAnnotationPanelAnchor({x:-60,y:0,width:36,height:36},344,344).visible,false);
 });

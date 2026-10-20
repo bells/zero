@@ -102,3 +102,18 @@ export function resolveCaptureToolbarPosition(
   }
   return best;
 }
+
+
+export function resolveAnnotationPanelAnchor(
+  button: Bounds,
+  panelWidth: number,
+  stackWidth: number,
+): { left: number; caretLeft: number; visible: boolean } {
+  const center = button.x + button.width / 2;
+  const left = clamp(button.x - 12, 0, stackWidth - panelWidth);
+  return {
+    left,
+    caretLeft: clamp(center - left, 10, panelWidth - 10),
+    visible: center >= 0 && center <= stackWidth,
+  };
+}

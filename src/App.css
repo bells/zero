@@ -3811,10 +3811,31 @@ input:focus-visible {
   position: relative;
   flex: 0 0 auto;
 }
-.capture-annotation-properties {
+.capture-property-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
   flex: 0 1 auto;
   min-height: 0;
   width: min(600px, calc(100vw - 16px));
+}
+.capture-property-caret {
+  position: absolute;
+  z-index: 1;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
+  background: #121519;
+  pointer-events: none;
+}
+.capture-annotation-properties {
+  flex: 0 1 auto;
+  min-height: 0;
+  width: 100%;
   box-sizing: border-box;
   overflow: auto;
   overscroll-behavior: contain;

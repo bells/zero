@@ -11,10 +11,10 @@ macOS owns the custom editor. Windows continues to launch the system screenshot 
 | Style-only storage and in-memory default transactions | `captureToolDefaults.ts`, `useCaptureToolDefaults.ts` |
 | Presentational range/number/color/options controls | `AnnotationPropertiesPanel.tsx` |
 | Shared scene renderer, bounded temporary layer and cropped PNG | `captureCanvas.ts`, `captureExport.ts` |
-| Crop geometry and measured toolbar/panel placement | `captureSelectionModel.ts`, `captureGeometryModel.ts`, `captureToolbarModel.ts`, `SelectionGeometryControls.tsx` |
+| Crop geometry and measured toolbar/panel placement | `captureSelectionModel.ts`, `captureGeometryModel.ts`, `captureToolbarModel.ts`, `useCapturePropertyAnchor.ts`, `SelectionGeometryControls.tsx` |
 | Capture-only Chinese/English property labels | `i18n.ts` (kept out of the initial application graph) |
 
-Drawing keeps its tool/default context. Select enables one object's editing context. Crop and object geometry are independent and use source pixels; viewport projection preserves horizontal/vertical objects. Text uses one source baseline and shared font/layout helpers. One completed edit produces one history entry; preview replacement never appends a duplicate object. Escape unwinds input/property/text/pointer work, object selection, then the session. Explicit Cancel exits the session.
+Drawing keeps its tool active and targets the newly completed annotation for live property edits. The next drawing still uses independent tool defaults. Reactivate the drawing tool or press Escape to deselect and adjust defaults; Select enables geometry editing of existing objects. The properties panel sits below its type button with a measured caret, clamping inside the toolbar stack and tracking horizontal scrolling. Crop and object geometry are independent and use source pixels; viewport projection preserves horizontal/vertical objects. Text uses one source baseline and shared font/layout helpers. One completed edit produces one history entry; preview replacement never appends a duplicate object. Escape unwinds input/property/text/pointer work, object selection, then the session. Explicit Cancel exits the session.
 
 `zero.snap.annotation-defaults.v1` stores allowlisted styles only. Object changes, IDs, text, coordinates, OCR, media tokens and screenshots never enter that record. Unsupported versions are not overwritten on initialization. A failed save leaves in-memory drawing usable.
 

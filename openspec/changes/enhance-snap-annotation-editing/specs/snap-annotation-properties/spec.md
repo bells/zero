@@ -85,7 +85,11 @@ Mosaic SHALL expose only its pixel block size, with larger values producing coar
 - **THEN** the effect is recomputed from the same underlying scene content, without accumulating previous mosaic previews or changing its geometry
 
 ### Requirement: Property panels remain reachable and localized
-The secondary panel SHALL anchor beside the selection-following main toolbar, remeasure when its content changes, flip or clamp within the visible viewport, and keep main actions and selection geometry controls operable. When necessary it SHALL wrap controls or use bounded internal scrolling. Controls SHALL provide Chinese/English labels, accessible names, visible keyboard focus, keyboard-operable inputs and practical pointer targets; native color controls SHALL NOT cancel capture simply by taking focus. Panel interactions MUST NOT draw annotations, move the crop, or invoke canvas Delete/undo/nudge hotkeys while an input consumes them.
+The secondary panel SHALL appear below the corresponding tool button within the selection-following toolbar stack, with a small caret pointing at that button. It SHALL track horizontal toolbar scrolling and hide the caret when its button is outside the visible toolbar. It SHALL remeasure when its content changes, flip or clamp within the visible viewport, and keep main actions and selection geometry controls operable. When necessary it SHALL wrap controls or use bounded internal scrolling. Controls SHALL provide Chinese/English labels, accessible names, visible keyboard focus, keyboard-operable inputs and practical pointer targets; native color controls SHALL NOT cancel capture simply by taking focus. Panel interactions MUST NOT draw annotations, move the crop, or invoke canvas Delete/undo/nudge hotkeys while an input consumes them.
+
+#### Scenario: Panel follows its tool button
+- **WHEN** the user switches between Rectangle and Ellipse or selects an annotation
+- **THEN** the panel anchors below the corresponding type button, clamps horizontally within the visible stack and points its caret at the button center
 
 #### Scenario: Tool panel meets a screen edge
 - **WHEN** the selection or active tool changes near a viewport corner
