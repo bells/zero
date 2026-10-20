@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { RotateCcw } from "lucide-react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import {
   PRESET_COLORS,
   PROPERTY_RANGES,
@@ -32,6 +33,7 @@ interface NumericProps {
   value: number;
   maximum?: number;
   label: string;
+  compactLabel: string;
   invalidLabel: string;
   sliderLabel: string;
   disabled?: boolean;
@@ -45,6 +47,7 @@ function NumericControl({
   value,
   maximum,
   label,
+  compactLabel,
   invalidLabel,
   sliderLabel,
   disabled,
@@ -53,6 +56,7 @@ function NumericControl({
   onCommit,
   onCancel,
 }: NumericProps) {
+  const inputId = useId();
   const [text, setText] = useState(String(value)),
     [invalid, setInvalid] = useState(false);
   const editing = useRef(false),
@@ -96,46 +100,8 @@ function NumericControl({
   };
   return (
     <div className="capture-property-number">
-      <label>
-        {label}
-        <input
-          type="number"
-          min={PROPERTY_RANGES[field][0]}
-          max={maximum ?? PROPERTY_RANGES[field][1]}
-          step="1"
-          aria-label={label}
-          aria-invalid={invalid}
-          title={invalid ? invalidLabel : label}
-          value={text}
-          disabled={disabled}
-          onFocus={begin}
-          onChange={(e) => {
-            begin();
-            const next = e.target.value;
-            setText(next);
-            const result = parsePropertyNumber(
-              field,
-              next,
-              initial.current,
-              maximum,
-            );
-            setInvalid(!result.valid);
-            onValue(result.valid ? result.value : initial.current);
-          }}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.nativeEvent.isComposing) return;
-            if (e.key === "Escape") {
-              e.preventDefault();
-              cancel();
-              e.currentTarget.blur();
-            } else if (e.key === "Enter") {
-              e.preventDefault();
-              commit();
-            } else if (e.key === "Tab") commit();
-          }}
-        />
+      <label htmlFor={inputId} title={label}>
+        {compactLabel}
       </label>
       <input
         type="range"
@@ -182,6 +148,45 @@ function NumericControl({
           }
         }}
       />
+      <input
+        id={inputId}
+        type="number"
+        min={PROPERTY_RANGES[field][0]}
+        max={maximum ?? PROPERTY_RANGES[field][1]}
+        step="1"
+        aria-label={label}
+        aria-invalid={invalid}
+        title={invalid ? invalidLabel : label}
+        value={text}
+        disabled={disabled}
+        onFocus={begin}
+        onChange={(e) => {
+          begin();
+          const next = e.target.value;
+          setText(next);
+          const result = parsePropertyNumber(
+            field,
+            next,
+            initial.current,
+            maximum,
+          );
+          setInvalid(!result.valid);
+          onValue(result.valid ? result.value : initial.current);
+        }}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.nativeEvent.isComposing) return;
+          if (e.key === "Escape") {
+            e.preventDefault();
+            cancel();
+            e.currentTarget.blur();
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          } else if (e.key === "Tab") commit();
+        }}
+      />
       {invalid ? (
         <span className="capture-property-invalid" role="alert">
           {invalidLabel}
@@ -211,6 +216,7 @@ export function AnnotationPropertiesPanel(props: Props) {
   return (
     <section
       className="capture-annotation-properties"
+      data-tool={context.tool}
       data-annotation-edit-domain="true"
       aria-label={`${title} · ${t(`screenshot.properties.${context.mode}`)}`}
       style={props.style}
@@ -221,6 +227,16 @@ export function AnnotationPropertiesPanel(props: Props) {
       <header>
         <strong>{title}</strong>
         <span>{t(`screenshot.properties.${context.mode}`)}</span>
+        <button
+          type="button"
+          className="capture-property-reset"
+          aria-label={`${t("screenshot.properties.reset")} · ${title}`}
+          title={`${t("screenshot.properties.reset")} · ${title}`}
+          disabled={disabled}
+          onClick={onReset}
+        >
+          <RotateCcw size={14} aria-hidden="true" />
+        </button>
       </header>
       <div className="capture-property-fields">
         {(
@@ -242,6 +258,7 @@ export function AnnotationPropertiesPanel(props: Props) {
                 field === "cornerRadius" ? context.radiusMaximum : undefined
               }
               label={t(`screenshot.properties.${field}`)}
+              compactLabel={t(`screenshot.properties.compact.${field}`)}
               invalidLabel={t("screenshot.properties.invalid")}
               sliderLabel={t("screenshot.properties.slider")}
               disabled={disabled}
@@ -273,8 +290,10 @@ export function AnnotationPropertiesPanel(props: Props) {
               {values.color === color ? "✓" : ""}
             </button>
           ))}
-          <label className="capture-custom-color">
-            {t("screenshot.properties.customColor")}
+          <label
+            className="capture-custom-color"
+            title={t("screenshot.properties.customColor")}
+          >
             <input
               type="color"
               value={String(values.color)}
@@ -341,14 +360,6 @@ export function AnnotationPropertiesPanel(props: Props) {
             {t("screenshot.properties.bold")}
           </label>
         ) : null}
-        <button
-          type="button"
-          className="capture-property-reset"
-          disabled={disabled}
-          onClick={onReset}
-        >
-          {t("screenshot.properties.reset")} · {title}
-        </button>
       </div>
     </section>
   );

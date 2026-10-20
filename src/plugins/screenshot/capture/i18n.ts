@@ -9,6 +9,11 @@ const captureMessages = {
   "zh-CN": {
     ...screenshotMessages["zh-CN"],
     "screenshot.properties.slider": "滑杆",
+    "screenshot.properties.compact.strokeWidth": "线宽",
+    "screenshot.properties.compact.fontSize": "字号",
+    "screenshot.properties.compact.opacity": "不透明度 %",
+    "screenshot.properties.compact.pixelSize": "像素块",
+    "screenshot.properties.compact.cornerRadius": "圆角",
     "screenshot.properties.default": "默认样式",
     "screenshot.properties.selected": "已选标注",
     "screenshot.properties.strokeWidth": "线宽 · px",
@@ -38,6 +43,11 @@ const captureMessages = {
   "en-US": {
     ...screenshotMessages["en-US"],
     "screenshot.properties.slider": "slider",
+    "screenshot.properties.compact.strokeWidth": "Stroke",
+    "screenshot.properties.compact.fontSize": "Font size",
+    "screenshot.properties.compact.opacity": "Opacity %",
+    "screenshot.properties.compact.pixelSize": "Pixel block",
+    "screenshot.properties.compact.cornerRadius": "Radius",
     "screenshot.properties.default": "Drawing defaults",
     "screenshot.properties.selected": "Selected annotation",
     "screenshot.properties.strokeWidth": "Stroke width · px",
