@@ -1,218 +1,239 @@
 # Zero
 
-Zero is a tray-first desktop utility collection built with Tauri 2, React, and TypeScript. Each tool is designed as a plugin so the app can grow into a larger toolbox without turning the main window into a crowded control panel.
+[中文](#中文) · [English](#english) · [官网 / Website](https://www.usezero.cn/) · [在线工具箱 / Web tools](https://www.usezero.cn/tools/)
 
-## Current Features
+## 中文
 
-- Zero Snap with macOS window targeting, adjustable selection dimensions and corner radius, annotations, copy, save, and pin; Windows uses its system screenshot tool.
-- Global screenshot shortcut: `CommandOrControl+Shift+A`.
-- Zero Awake to keep the screen and system awake.
-- Zero Paper with Bing daily wallpaper history, cache-first loading, save-to-Downloads, and one-click desktop apply.
-- Zero Launch for fuzzy application/system-setting search, app launch/focus, and a reusable Option + Space (macOS) / Ctrl + Alt + Space (Windows) window on macOS and Windows.
-- Separate tray, main, preferences, and about windows, with login autostart and configurable global shortcuts.
-- Tool visibility preferences so users can choose which plugins appear in the main tool list.
-- Language preference with system default, Chinese, and English.
-- About and Exit actions in a compact bottom system section.
-- MVP plugin host: GitHub Releases `.zplugin` packages, hosted `market.json`, local package validation/install, permission review, enable/disable/uninstall, and bundled restore.
-- Zero File with offline PDF-to-DOCX and macOS 11+ DOCX-to-PDF implementations. The signed engine package is still a release candidate; see the [development and release boundary](docs/plugins/zero-file-offline-engines.md#current-checkout-and-source-development).
+Zero 是一个跨平台桌面工具箱，从状态栏 / 系统托盘快速使用各个插件工具。每个工具按独立、可插拔的模块组织：快捷入口处理高频操作，主窗口承载完整工具与设置。
 
-## Tech Stack
+官网同时提供无需安装的在线工具箱，在浏览器本地处理文本、图片和文档。桌面工具与在线工具独立开发、构建和交付，共用 Zero 的产品定位。
 
-- Tauri 2
-- Rust 2021
-- React 19
-- TypeScript
-- Vite
-- pnpm
+### 桌面工具箱
 
-## Prerequisites
+| 插件 | 用途 | 当前平台边界 |
+| --- | --- | --- |
+| **Zero Snap** | 截图、窗口选区、标注与对象编辑、复制/保存/钉图、离线 OCR | macOS 自定义编辑器与 Vision OCR；Windows 调用系统截图工具 |
+| **Zero Awake** | 按时长保持屏幕与系统唤醒 | macOS、Windows 原生实现 |
+| **Zero Paper** | 浏览 Bing 每日壁纸、历史缓存、下载和设为桌面 | macOS、Windows 适配；Linux 应用壁纸取决于桌面后端 |
+| **Zero Launch** | 中英文/拼音应用与系统设置搜索、启动和聚焦 | macOS 应用包、Windows 开始菜单索引 |
+| **Zero File** | 本地 PDF → DOCX、DOCX → PDF | PDF → DOCX 有 macOS/Windows 实现；内置 DOCX → PDF 仅 macOS 11+，签名引擎尚未批准发布 |
 
-- Node.js 22.13+ on the 22.x line, or Node.js 24+ (Vite 7 and PDF.js 6 requirements; CI uses Node 24)
-- pnpm 10.33.0 (pinned in `package.json`)
-- Rust via `rustup`
-- Platform build tools:
-  - macOS: Xcode Command Line Tools
-  - Windows: Visual Studio Build Tools and WebView2
-  - Linux: WebKitGTK and app indicator dependencies required by Tauri
+桌面主要面向 macOS 与 Windows，各插件能力并不完全相同；Linux 尚无完整支持与设备验收，移动端未交付。macOS 原生 OCR 为 Snap 与 File 共用服务；File 扫描页 OCR 当前仅在 macOS 提供。转换以可编辑正文为目标，不承诺原版式还原。
 
-## Development
+- 状态栏 / 托盘提供紧凑快捷入口，主窗口提供完整工具工作区和设置视图，关于窗口独立。
+- 支持工具可见性、中文/英文/跟随系统、登录自启和可配置全局快捷键。
+- 默认截图快捷键：`CommandOrControl+Shift+A`；Launch：macOS `Option+Space`、Windows `Ctrl+Alt+Space`。
+- 打包 release 启动后会为所包含的工具创建系统应用搜索入口；入口转发到同一个 Zero 实例，不是五个独立应用安装包。详见[打包说明](docs/packaging.md)。
 
-Install dependencies:
+**可插拔的实现边界：**五个内置插件各自拥有描述、界面、翻译与服务契约，由宿主统一注册和管理生命周期，并支持构建裁剪。它们的 Rust 能力随宿主编译；第三方不能动态加载 Rust。`.zplugin` 包管理与权限桥接已存在，但公开 Web Plugin API v1 runtime 仍关闭，不能把开发预览当作正式插件生态。参见[协议现状](docs/plugins/protocol-v1.md)。
+
+当前源码版本为 `0.1.0`。试用打包提供 **core**（无内置工具）和 **standard**（Snap、Awake、Paper、Launch），两者均不包含 File；源码默认 full 配置包含五工具。下载入口见[官网](https://www.usezero.cn/download/)，产物与限制见[打包指南](docs/packaging.md)，不要将源码功能清单等同于每个安装包的内容。
+
+### 官网在线工具箱
+
+入口：[中文工具箱](https://www.usezero.cn/tools/) · [English tools](https://www.usezero.cn/en/tools/)。源码当前提供八项工具：
+
+| 分类 | 工具 | 用途 |
+| --- | --- | --- |
+| 开发 | 时间戳转换 | 单条/批量 Unix 时间戳、北京时间与 UTC 转换 |
+| 开发 | JSON 格式化 | 校验、格式化、压缩、错误定位，保留大整数原文 |
+| 开发 | Base64 与 URL 编解码 | Unicode 文本、URL 组件和本地图片编码 |
+| 开发 | 文本 / 文件对比 | UTF-8 文本的行级/行内差异、并排/统一视图 |
+| 图片 | 图片格式转换 | HEIC/HEIF 主静态图、JPEG、PNG、静态 WebP 转 JPEG/PNG/WebP |
+| 图片 | 图片文字水印 | 批量单处九宫格或平铺文字水印 |
+| 图片 | 图片压缩 | JPEG/WebP 质量压缩、PNG 无损优化、真实体积对照 |
+| 文本 | Markdown 编辑器 | 源码/预览/分屏，下载 Markdown、独立 HTML、文字型中文 PDF |
+
+工具输入在浏览器本地计算，不上传到计算服务。首次加载和按需下载算法、编解码器、字体仍需要网络；这不等于完整离线应用。Markdown 草稿默认关闭，开启后仅在当前浏览器保存一篇；外部图片须主动授权才请求来源。图片、文档和导出都有资源限额，详见各工具说明。
+
+可选反馈是独立服务，默认关闭，主动点击后才加载异源页面；提交的反馈文字会发送到该服务，工具输入与结果不会自动附送。反馈先审后公开，服务故障不影响本地工具计算。更多边界见[官网维护指南](docs/website.md)和[反馈服务说明](feedback/README.md)。
+
+### 本地开发
+
+推荐统一使用 **Node.js 24+、pnpm 10.33.0**。桌面还需要 Rust stable 与平台构建工具：macOS 的 Xcode Command Line Tools，或 Windows 的 Visual Studio Build Tools / WebView2。完整平台依赖见 [Tauri 前置条件](https://v2.tauri.app/start/prerequisites/)。官网与反馈服务要求 Node 24+；桌面依赖也允许 Node 22.13+ 的 22.x 版本。
+
+在仓库根目录执行：
 
 ```bash
-pnpm install
-```
-
-Run the frontend only:
-
-```bash
-pnpm dev
-```
-
-Run the desktop app:
-
-```bash
+# 桌面
+pnpm install --frozen-lockfile
 pnpm tauri dev
+
+# 官网（独立依赖与锁文件）
+pnpm --dir website install --frozen-lockfile
+pnpm --dir website dev
 ```
 
-To exercise the Zero File source engine in a debug build:
+`pnpm dev` 仅启动桌面前端，系统能力需通过 Tauri 运行。官网开发地址为 `http://127.0.0.1:4321/`。
+
+需要调试 File 源码引擎时：
 
 ```bash
 ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev
 ```
 
-The flag enables a debug-only source fallback. It does not approve or install a signed engine package, and it has no effect in release builds.
+该开关仅启用 debug 源码回退，不安装或批准签名包，release 构建不生效。File 候选为 `1.2.0`，发布门禁见[离线引擎指南](docs/plugins/zero-file-offline-engines.md)。
 
-Build the frontend:
-
-```bash
-pnpm build
-```
-
-Check the Rust side:
-
-```bash
-cd src-tauri
-cargo check
-cargo test
-```
-
-Build the desktop app:
-
-```bash
-pnpm tauri build
-```
-
-## Project Structure
-
-The independent product website lives in `website/`. Start it with `pnpm --dir website install --frozen-lockfile` and `pnpm --dir website dev`; build static output with `pnpm --dir website build`. See [website maintenance](docs/website.md) for bilingual content, verified release catalogs, browser checks and preview settings.
+### 项目结构与验证
 
 ```text
-src/
-  main.tsx                        Lazy routing by Tauri window label
-  App.tsx                         Tray, main, preferences, and about shells
-  appShell/
-    bundledPluginModules.ts       Only bundled-plugin composition registry
-  core/
-    pluginHost/                   Registry, market, Extension API bridge, and host UI
-    preferences/                  Global preferences, About, storage, and host i18n
-    windowing/                    Surface activity and lifecycle hooks
-  plugins/
-    caffeine/                     Self-contained Zero Awake module
-    bingWallpaper/                Self-contained Zero Paper module
-    quickLauncher/                Self-contained Zero Launch module
-    screenshot/                   Self-contained Zero Snap module
-    file/                         Zero File UI, contracts, and offline engine
-src-tauri/
-  src/
-    bundled_plugins.rs            Trusted native plugin composition
-    commands/                     Thin Tauri IPC handlers grouped by plugin
-    services/                     Plugin business logic and host coordinators
-    plugins/                      Third-party package registry/runtime host
-  capabilities/                   Tauri permission capabilities
-tests/
-  unit/                            Pure core, plugin, service, app-shell, and brand tests
-  integration/                     Extension host, source-boundary, and shell contracts
+src/                  React 桌面宿主、五个独立插件、typed service 与 SDK
+src-tauri/            Rust 原生服务、IPC、包管理、权限和生命周期
+website/              独立 Astro 双语官网与浏览器在线工具
+feedback/             独立 Node 服务、审核与存储（GPL-2.0-only）
+tests/                桌面单元、集成及源码边界测试
+docs/                 架构、协议、打包、官网与诊断指南
+openspec/             规范、活跃变更、任务和历史验收证据
 ```
 
-Each bundled plugin owns a typed `plugin.tsx` descriptor, its manifest and presentation metadata, plugin-local translations, UI surfaces, and domain code. `src/appShell/bundledPluginModules.ts` is the only frontend file that registers all bundled descriptors; plugins never import peer plugins, and host core never imports concrete plugin implementations.
+`src/core/` 不导入具体插件，插件之间不互相导入。桌面前端组合入口是 `src/appShell/bundledPluginModules.ts` 与按构建配置选择的 `bundledPluginCatalog.*.ts`；Rust 组合入口是 `src-tauri/src/bundled_plugins.rs`。官网纯逻辑位于 `website/src/lib/web-tools/`，不依赖桌面 IPC。
 
-Bundled plugins are trusted, build-time modules because their native Rust commands and state are compiled into Zero and explicitly registered in `src-tauri/src/bundled_plugins.rs`. Installed third-party `.zplugin` packages remain runtime-pluggable only through validated manifests, approved permissions, isolated WebView surfaces, and the versioned Extension API Bridge. Zero does not dynamically load third-party Rust code.
-
-## Zero Paper
-
-`zero.paper` is the third bundled tool. It reads up to 10 records from Bing's `zh-CN` daily image feed, shows a validated cached snapshot immediately, and refreshes metadata and missing images in Rust. The card supports older/newer navigation, a separate Downloads action, and applying the selected image as the desktop wallpaper. Clicking the preview is equivalent to Apply.
-
-The cache lives at `~/.zero/data/wallpaper/`. `index.json` and image files are written through plugin-scoped, staged replacement; the service retains at most 10 indexed entries and removes only obsolete files that an earlier index owned. Unknown files are not deleted. A failed refresh leaves usable cached records visible with stale/error state.
-
-The bundled manifest requests `network`, `storage.plugin`, and `system.wallpaper`. The WebView does not fetch Bing or receive unrestricted filesystem access: Rust restricts requests to bounded HTTPS Bing endpoints, validates image content, resolves paths inside the wallpaper root, and passes only one selected preview back as a bounded data URL.
-
-Desktop wallpaper apply uses the replaceable `WallpaperSetter` adapter around `wallpaper 3.2`. macOS and Windows are supported by the adapter. Linux support depends on the detected desktop environment and its required desktop command; unsupported or missing backends return a structured error while browse/download remain available. Mobile wallpaper apply is not part of this release.
-
-This bundled plugin uses the existing `webview` runtime and React renderer. It intentionally does not introduce a `plugin.wasm` or WASI runtime.
-
-## Zero Launch
-
-`zero.launch` is the fourth bundled tool. The main plugin panel and the floating `launcher` window share one React view and one Rust-owned index. Press Option + Space (macOS) / Ctrl + Alt + Space (Windows), type an English/Chinese name, full pinyin, initials, acronym, or bundled alias such as `wx`/`ps`, then use `ArrowUp`/`ArrowDown` and `Enter`. Press the same Launch shortcut again, `Escape`, or move focus away to hide only the floating window; Zero keeps running.
-
-Rust scans macOS application bundles in `/Applications`, `~/Applications`, `/System/Applications`, and `/System/Applications/Utilities`; Windows scans machine/user Start Menu Programs `.lnk` and `.exe` entries. Running applications are focused when the OS provides a reliable identity; otherwise the validated indexed entry is launched. Common system settings are host-maintained catalog records mapped privately to `x-apple.systempreferences:` or `ms-settings:` destinations. Linux and mobile return explicit unsupported state in this release.
-
-The versioned local data is stored under `~/.zero/data/quick-launcher/`: `apps_cache.json` contains rebuildable application metadata, `usage.json` contains bounded success-only counts and last-used timestamps, and icons are lazy/rebuildable. Raw queries are never persisted or uploaded. Startup uses the cache immediately, refreshes in the background, and coalesces application-directory changes.
-
-The manifest requests `system.apps.read`, `system.apps.execute`, `system.window.focus`, and `system.settings.open`. Bundled Tauri commands and approved Extension Bridge methods resolve only host-issued `itemId` values; callers cannot submit arbitrary paths, Bundle IDs, command lines, shortcut targets, or URIs. Like the other bundled tools, Zero Launch uses the existing React `webview` renderer and intentionally does not add `plugin.wasm`/WASI.
-
-## Plugin MVP
-
-The first plugin market is repository-based, not server-backed:
-
-- plugin authors publish a `.zplugin` ZIP archive in their own GitHub Releases;
-- Zero reads a hosted static `market.json`;
-- install extracts packages under `~/.zero/plugins/<plugin>/<version>/`;
-- `manifest.json` requires `name`, `version`, `author`, `main`, and `permissions`;
-- permissions are reviewed before install and enforced by a host-mediated Extension API bridge.
-
-## Upgrade compatibility
-
-Zero keeps `com.watson.ztool` as its immutable Tauri bundle identifier so an existing installation upgrades in place and retains operating-system permissions, autostart registration, and WebView storage. This identifier is a compatibility value, not the current product name.
-
-On startup, Zero copies missing data from `~/.ztool` into `~/.zero`, normalizes the four known first-party plugin IDs, and leaves the legacy directory untouched for rollback. Canonical `~/.zero` data wins when both locations contain the same unit. Frontend preferences follow the same rule: `zero.preferences.v1` wins, otherwise `ztool.preferences.v1` is read and copied forward without deleting the legacy key. Extension API v1 continues to accept `engines.ztool`, while current manifests use `engines.zero`.
-
-Developer docs:
-
-- [Project overview, platform boundaries, and verification snapshot](docs/project-overview.md)
-- [Maintainer and agent instructions](AGENTS.md)
-- [Compact project memory](memory.md)
-- [OpenSpec project context](openspec/project.md)
-- [MVP protocol](docs/plugins/mvp-plugin-protocol.md)
-- [Developer guide](docs/plugins/developer-guide.md)
-- [GitHub Releases publishing guide](docs/plugins/publishing-github-releases.md)
-- [Zero File offline engine and release guide](docs/plugins/zero-file-offline-engines.md)
-- [Minimal example plugin](examples/plugins/minimal-view-command-setting)
-
-Validate an unpacked plugin directory:
+按改动范围验证；以下命令分别在仓库根目录执行，准备测试 fixture 的任务不可并发：
 
 ```bash
-node scripts/validate-plugin-package.mjs examples/plugins/minimal-view-command-setting
-```
-
-## Verification
-
-The test scripts compile the TypeScript fixtures first, replacing the clean temporary output at `/private/tmp/zero-tests`, and then recursively discover every nested `*.test.mjs` file exactly once.
-
-Run a focused level while iterating:
-
-```bash
-pnpm test:unit
-pnpm test:integration
-```
-
-Run the complete recursive suite and production checks before pushing:
-
-```bash
+# 桌面
 pnpm test
 pnpm build
-cd src-tauri
-cargo fmt --check
-cargo check --locked
-cargo test --locked
-cargo test --release --test quick_launcher_benchmark -- --ignored --nocapture
+node scripts/performance/build-graph.mjs --check --output /tmp/zero-build-graph.json
+cargo fmt --manifest-path src-tauri/Cargo.toml --check
+cargo check --manifest-path src-tauri/Cargo.toml --locked
+cargo test --manifest-path src-tauri/Cargo.toml --locked
+
+# 官网（按顺序）
+pnpm --dir website check
+pnpm --dir website test
+pnpm --dir website build
+pnpm --dir website test:seo
+pnpm --dir website exec playwright install chromium
+pnpm --dir website test:browser
+
+# 文档与规范
+openspec validate --all --strict
+git diff --check
 ```
 
-## Notes
+原生交互、Windows 设备、真实 iPhone、签名安装包和线上部署需各自验证；构建通过不能替代它们。兼容升级继续保留 `com.watson.ztool`，数据使用 `~/.zero` / `zero.preferences.v1`，旧 `.ztool` 数据只迁移、不删除。
 
-- `node_modules`, frontend build output, and Rust/Tauri build output are intentionally ignored.
-- The login autostart preference uses the official Tauri autostart plugin.
-- Zero Snap's macOS editor implements selection, annotations, geometry controls, copy/save, and pin. Real multi-display, clipboard, window lifecycle, and packaged-app evidence must be tracked separately from automated checks.
+### 当前重点与维护入口
 
+下一阶段由维护者再完整体验并优化五个桌面工具，优先处理真实操作中的入口、交互、反馈和稳定性问题。逐插件形成可验证改动，同时维护官网八工具与平台边界。
 
-### Desktop application search
+[产品定位](PRODUCT.md) · [项目全景](docs/project-overview.md) · [协作规则](AGENTS.md) · [项目记忆](memory.md) · [OpenSpec 上下文](openspec/project.md) · [插件开发](docs/plugins/developer-guide.md) · [插件发布](docs/plugins/publishing-github-releases.md) · [诊断](docs/diagnostics.md)
 
-After the packaged release app starts, it creates **Zero Snap**, **Zero Awake**, **Zero Paper**, **Zero Launch**, and **Zero File** entries in `~/Applications/Zero Tools/` on macOS and the current user's `Start Menu/Programs/Zero Tools/` on Windows. Zero itself remains the installed `Zero.app` / installer Start Menu entry. Open any tool entry to launch or activate the same Zero instance and select that tool in the main window. Hidden or disabled tools are not enabled automatically.
+## English
 
-Alfred, Spotlight, Raycast, and Windows Search use their own index and search scope; allow time for indexing and include the user Applications folder in the launcher's search scope. These are standard application entries, with no Alfred workflow or paid feature required. Moving Zero requires opening it once to update entry paths. Quit and uninstall Zero, then remove only its owned `Zero Tools` folder to remove these entries.
+Zero is a cross-platform desktop toolbox with quick access to plugin tools from the menu bar / system tray. Each tool is organized as an independent, pluggable module: compact entry points handle quick actions, while the main window provides a full workspace and preferences.
 
-Raw development builds do not install persistent entries. Packaged macOS debug smoke can set `ZERO_DESKTOP_ENTRIES_TEST_ROOT` to an isolated temporary Applications directory. Generated wrappers forward to Zero; they are not independent signed distribution packages.
+The website also offers browser tools that process text, images and documents locally without installing the desktop app. Desktop and web tools are developed, built and delivered independently under the Zero product.
 
-## Trial installers and size comparison
+### Desktop toolbox
 
-See [v0.1.0 packaging](docs/packaging.md) for core (no bundled tools) and standard (Awake, Paper, Snap, Launch), local commands, GitHub Actions artifact downloads and size/checksum reports. Both trial profiles exclude File.
+| Plugin | Purpose | Current platform boundary |
+| --- | --- | --- |
+| **Zero Snap** | Capture, window selection, annotations and object editing, copy/save/pin, offline OCR | Custom editor and Vision OCR on macOS; system screenshot launcher on Windows |
+| **Zero Awake** | Keep the display and system awake for a chosen duration | Native macOS and Windows implementations |
+| **Zero Paper** | Bing daily wallpapers, cached history, download and desktop apply | macOS/Windows adapters; Linux apply depends on the desktop backend |
+| **Zero Launch** | English/Chinese/pinyin app and settings search, launch and focus | macOS application bundles and Windows Start Menu index |
+| **Zero File** | Local PDF → DOCX and DOCX → PDF | PDF → DOCX implemented for macOS/Windows; built-in DOCX → PDF requires macOS 11+; signed engine release remains unapproved |
+
+The desktop app primarily targets macOS and Windows, with different capabilities per plugin. Linux has no complete support or device acceptance; mobile is not delivered. Snap and File share native macOS OCR; File scanned-page OCR is currently macOS-only. Conversion targets editable text rather than original-layout fidelity.
+
+- Compact menu bar / tray actions, a full main-window workspace with preferences, and a separate About window.
+- Tool visibility, English/Chinese/system language selection, login autostart and configurable global shortcuts.
+- Default capture shortcut: `CommandOrControl+Shift+A`; Launch: `Option+Space` on macOS and `Ctrl+Alt+Space` on Windows.
+- Packaged release builds create system application-search entries for included tools on startup. These forward to the same Zero instance; they are not five standalone application packages. See [packaging](docs/packaging.md).
+
+**What pluggable means today:** each bundled plugin owns its descriptor, UI, translations and service contracts. The host registers plugins, manages their lifecycle and supports build-time exclusion. Native Rust capabilities are compiled with the host; third parties cannot dynamically load Rust. `.zplugin` package management and permission bridges exist, but the public Web Plugin API v1 runtime remains disabled. Developer previews do not establish a released plugin ecosystem. See [protocol status](docs/plugins/protocol-v1.md).
+
+The source version is `0.1.0`. Trial packages offer **core** (no bundled tools) and **standard** (Snap, Awake, Paper, Launch); both exclude File. The default full source configuration includes all five tools. Check the [download page](https://www.usezero.cn/en/download/) and [packaging guide](docs/packaging.md) for actual artifacts and limitations; the source feature list does not describe every installer.
+
+### Browser toolbox
+
+Open [English tools](https://www.usezero.cn/en/tools/) or [中文工具箱](https://www.usezero.cn/tools/). The current source contains eight tools:
+
+| Category | Tool | Purpose |
+| --- | --- | --- |
+| Development | Timestamp converter | Single/batch Unix timestamp, Beijing time and UTC conversion |
+| Development | JSON formatter | Validation, formatting, compaction and error locations, preserving large integers |
+| Development | Base64 & URL codec | Unicode text, URL components and local image encoding |
+| Development | Text / file comparison | Line and inline differences for UTF-8 text, split/unified views |
+| Image | Image converter | HEIC/HEIF primary stills, JPEG, PNG and static WebP to JPEG/PNG/WebP |
+| Image | Text watermark | Batch single-position or tiled text watermarks |
+| Image | Image compressor | JPEG/WebP quality compression, lossless PNG optimization and actual size comparison |
+| Text | Markdown editor | Source/preview/split views; Markdown, standalone HTML and searchable Chinese-text PDF downloads |
+
+Tool inputs are processed in the browser without uploading them to a computation service. Initial loads and on-demand algorithms, codecs and fonts still need a network connection; this is not a fully offline app. Markdown draft saving is off by default and stores one document in the current browser when enabled. External images require explicit permission before contacting their origin. Images, documents and exports have resource limits described on each tool page.
+
+Optional feedback is a separate service, disabled by default and loaded in a cross-origin frame only after a click. Submitted feedback is sent to that service; tool inputs and results are not attached automatically. Feedback is moderated before publication, and service failures do not block local computation. See [website maintenance](docs/website.md) and [feedback service](feedback/README.md).
+
+### Local development
+
+Use **Node.js 24+ and pnpm 10.33.0** across the repository. Desktop development also requires Rust stable and platform build tools: Xcode Command Line Tools on macOS, or Visual Studio Build Tools / WebView2 on Windows. See [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/). The website and feedback service require Node 24+; desktop dependencies also allow Node 22.13+ on the 22.x line.
+
+Run from the repository root:
+
+```bash
+# Desktop
+pnpm install --frozen-lockfile
+pnpm tauri dev
+
+# Website: separate dependencies and lockfile
+pnpm --dir website install --frozen-lockfile
+pnpm --dir website dev
+```
+
+`pnpm dev` starts only the desktop frontend; native features require Tauri. The website runs at `http://127.0.0.1:4321/`.
+
+To debug the File source engine:
+
+```bash
+ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev
+```
+
+This flag enables a debug-only source fallback. It neither installs nor approves a signed package and has no effect in release builds. The File candidate is `1.2.0`; see the [offline engine guide](docs/plugins/zero-file-offline-engines.md) for release gates.
+
+### Structure and verification
+
+```text
+src/                  React desktop host, five plugins, typed services and SDK
+src-tauri/            Rust native services, IPC, packages, permissions and lifecycle
+website/              Independent Astro bilingual site and browser tools
+feedback/             Independent Node service, moderation and storage (GPL-2.0-only)
+tests/                Desktop unit, integration and source-boundary tests
+docs/                 Architecture, protocol, packaging, website and diagnostics
+openspec/             Specifications, active changes, tasks and dated evidence
+```
+
+`src/core/` must not import concrete plugins, and plugins must not import peers. Frontend composition uses `src/appShell/bundledPluginModules.ts` and the selected `bundledPluginCatalog.*.ts`; Rust composition uses `src-tauri/src/bundled_plugins.rs`. Browser domain logic lives in `website/src/lib/web-tools/` without desktop IPC dependencies.
+
+Validate the affected area from the repository root. Do not run fixture-preparation tasks concurrently:
+
+```bash
+# Desktop
+pnpm test
+pnpm build
+node scripts/performance/build-graph.mjs --check --output /tmp/zero-build-graph.json
+cargo fmt --manifest-path src-tauri/Cargo.toml --check
+cargo check --manifest-path src-tauri/Cargo.toml --locked
+cargo test --manifest-path src-tauri/Cargo.toml --locked
+
+# Website, in order
+pnpm --dir website check
+pnpm --dir website test
+pnpm --dir website build
+pnpm --dir website test:seo
+pnpm --dir website exec playwright install chromium
+pnpm --dir website test:browser
+
+# Documentation and specifications
+openspec validate --all --strict
+git diff --check
+```
+
+Native interactions, Windows hardware, real iPhones, signed installers and hosted deployments need separate verification. Successful builds do not replace those checks. Upgrade compatibility retains `com.watson.ztool`; canonical data uses `~/.zero` / `zero.preferences.v1`, with legacy `.ztool` data copied forward without deletion.
+
+### Current focus and documentation
+
+The maintainer will run another hands-on review and refinement pass across the five desktop tools, prioritizing real entry-point, interaction, feedback and stability issues. Improvements should remain scoped and verifiable per plugin, alongside maintenance of the eight browser tools and their platform boundaries.
+
+[Product](PRODUCT.md) · [Project overview](docs/project-overview.md) · [Contributor instructions](AGENTS.md) · [Project memory](memory.md) · [OpenSpec context](openspec/project.md) · [Plugin development](docs/plugins/developer-guide.md) · [Plugin publishing](docs/plugins/publishing-github-releases.md) · [Diagnostics](docs/diagnostics.md)

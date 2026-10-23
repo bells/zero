@@ -4,7 +4,7 @@
 
 ## 架构与许可
 
-- `shared/contracts.ts` 定义五个线程、输入限制和公开 DTO；中英页面共享线程，正文不自动翻译。
+- `shared/contracts.ts` 定义九个线程（工具目录 + 八个在线工具）、输入限制和公开 DTO；中英页面共享线程，正文不自动翻译。新增工具时同步核对官网和服务白名单。
 - `server/app.ts` 是唯一 HTTP facade。访客只能创建待审顶层记录；所有公开读取使用已批准状态和字段白名单。管理员使用独立 `/admin` 页面，服务端核验会话与角色后才能审核、回复、编辑、删除、查看邮箱或导出。
 - `server/waline.ts` 通过小型 PostgreSQL 模型适配器复用固定 `@waline/vercel@1.43.4` 内置的 `@waline/core@0.1.0`。后者没有独立 npm 发布，不能替换成不存在的独立依赖。没有启动默认 ThinkJS HTTP 入口；注册、原生评论、OAuth、RSS 等底层路由均不挂载。没有修改 upstream 文件或维护大型 fork。
 - JWT 使用 HS256、30 分钟会话及数据库权威管理员角色；浏览器仅在内存保存 token。访客没有账号、Cookie、持久资料或草稿。正文以 `textContent` 展示，不调用 Markdown、头像、邮件、分析或反垃圾服务。

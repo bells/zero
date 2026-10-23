@@ -2,6 +2,12 @@
 
 官网在 `website/`，使用 Astro 静态输出。它有独立依赖、锁文件和构建，不使用桌面 React/Tauri、IPC、File 引擎或根项目的 prebuild。中文为 `/`、`/download/`，英文为 `/en/`、`/en/download/`。
 
+## 当前维护基线（2026-10-23）
+
+官网已是产品站与在线工具箱。当前注册表有八个双语工具：开发类 timestamp/json/base64/diff、图片类 image-converter/image-watermark/image-compressor、文本类 markdown。工具目录为 `/tools/`、`/en/tools/`；五个桌面插件说明页独立保留，不计入八个在线工具。反馈为目录加八工具的九线程，默认关闭。
+
+以 `src/content/web-tools.ts` 和 policy 源码为当前事实源。下文按日期保留实施细节，四/七工具及 18/28/34 页属于历史阶段；当前为 36 个可索引站点页面。浏览器输入本地处理，Markdown 草稿与外部图片为主动开启的例外；初始资源、codec 和字体仍需网络。桌面、网站、反馈分别验证与交付，本轮项目文档盘点没有重新执行功能回归或核验生产部署。
+
 ## Markdown 编辑器与文本分类（2026-10-22）
 
 新增 `text`（文本类 / Text）和双语 `/tools/markdown/`、`/en/tools/markdown/`。当前八个在线工具的显式归属为：开发类 timestamp/json/base64/diff，图片类三个 image 工具，文本类 markdown。新增两条可索引路由，生成 36 个可索引页面、38 个站点页面 HTML；图片编解码许可材料里另附的源代码 HTML 不属于站点路由。其他工具 URL、分类归属和桌面说明保持原样。

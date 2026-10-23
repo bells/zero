@@ -1,15 +1,33 @@
 # Zero maintainer and agent guide
 
-Read this file, [the project overview](docs/project-overview.md), and [project memory](memory.md) before substantial work. For behavior changes, also read [OpenSpec context](openspec/project.md) and the relevant active change. Source and current verification take precedence over older notes.
+Read this file, [the project overview](docs/project-overview.md), and [project memory](memory.md) before substantial work. For product/UI decisions, also read [PRODUCT.md](PRODUCT.md). For behavior changes, read [OpenSpec context](openspec/project.md) and the relevant active change. Source and current verification take precedence over older notes.
+
+## Product and repository scope
+
+- Zero is a cross-platform desktop toolbox with independent, pluggable tools accessed quickly from the menu bar / system tray. The website also provides a browser-local online toolbox; it is an implemented product surface, not a future marketing-site proposal.
+- Desktop: `src/` + `src-tauri/`. Website: independent Astro project in `website/`. Optional feedback: independent Node service in `feedback/`. Each JavaScript project has its own package manifest and lockfile; root commands do not validate all three.
+- Current desktop modules are Snap, Awake, Paper, Launch and File. The browser catalog has eight tools across development, image and text; verify the list in `website/src/content/web-tools.ts` before changing counts.
+- Current priority: the maintainer will experience all five desktop tools again and refine them individually. Follow concrete user feedback with bounded plugin-scoped work; do not treat this direction as authorization for a broad redesign or new tools.
+- Keep `README.md` complete in both Chinese and English. Product claims must distinguish implemented source, actual package contents, device evidence and deployed behavior.
 
 ## Architecture
 
 - Zero is a tray-first desktop toolbox: React 19 + TypeScript + Vite in `src/`, Tauri 2 + Rust 2021 in `src-tauri/`.
 - Five bundled plugins live in `src/plugins/{screenshot,caffeine,bingWallpaper,quickLauncher,file}`. Each owns its descriptor, translations, UI, domain helpers, and typed service boundary.
-- Register frontend modules in `src/appShell/bundledPluginModules.ts`; compose native state in `src-tauri/src/bundled_plugins.rs` and command handlers in `src-tauri/src/lib.rs`.
+- Register frontend modules through `src/appShell/bundledPluginModules.ts` and the build-selected `bundledPluginCatalog.*.ts`; compose native state in `src-tauri/src/bundled_plugins.rs` and command handlers in `src-tauri/src/lib.rs`.
 - `src/core/` must not import concrete plugins. Plugins must not import peers. Shared window, shortcut, status-bar, and lifecycle behavior belongs in host coordinators.
 - Keep Tauri handlers in `src-tauri/src/commands/` thin; place native business logic in `services/`. `plugins/` owns installed-package contracts, integrity, registry, and runtime.
-- Bundled modules are trusted at build time. Third-party `.zplugin` packages use host-approved permissions and isolated runtime surfaces; they cannot dynamically load Rust code.
+- Bundled modules are trusted at build time; full includes five, standard excludes File, and core has none. Check Rust feature gates and frontend catalogs together when changing profiles.
+- Third-party `.zplugin` packages use a separate permission/runtime boundary and cannot dynamically load Rust code. Public Web Plugin API v1 runtime remains disabled; isolated WebView/SDK development support is not a released public ecosystem. Consult [protocol status](docs/plugins/protocol-v1.md), and keep legacy process-runtime behavior distinct.
+
+## Website and feedback boundaries
+
+- Read [website maintenance](docs/website.md) for web work and [feedback maintenance](feedback/README.md) for service work. Website code does not import desktop IPC, native providers or the File engine.
+- Keep browser domain rules/contracts in `website/src/lib/web-tools/`, DOM/lifecycle/Worker adapters in `website/src/scripts/web-tools/`, and bilingual metadata/guides in `website/src/content/`. Reuse common image and Markdown pipelines rather than duplicating per-page behavior.
+- Inputs/results stay local to the browser. Markdown alone offers an opt-in local draft and explicit external-image permission; initial assets, fonts and codecs still need network access. Do not claim complete offline operation or zero network requests.
+- Preserve cancellation, time/byte/pixel limits, revision checks, lazy resource loading, Blob/Worker cleanup, bilingual routes, categories, canonical/hreflang and preview/error noindex behavior. Codec/font distribution must retain verified source/license materials.
+- Feedback is disabled by default and loads a cross-origin iframe only after a click. Pass only stable thread/locale context, never tool inputs/results. Submitted feedback is a separate network operation with moderation and retention rules; service failure must not block tools.
+- `feedback/` conservatively uses GPL-2.0-only for its pinned Waline integration. Keep its dependency tree, deployment, credentials and license scope separate from the website and desktop. Do not enable hosted feedback as part of local validation.
 
 ## Implementation rules
 
@@ -31,7 +49,7 @@ Read this file, [the project overview](docs/project-overview.md), and [project m
 
 ## Verification
 
-Use `pnpm@10.33.0` and a Node runtime compatible with Vite 7 and PDF.js 6 (Node 22.13+ on 22.x or 24+). Run checks relevant to the change; normal implementation gates are:
+Use `pnpm@10.33.0` and preferably Node 24+ across the repository. Website and feedback require Node 24+; desktop Vite 7/PDF.js 6 also allow Node 22.13+ on 22.x. Run checks relevant to the change; normal desktop implementation gates are:
 
 ```bash
 pnpm test
@@ -47,6 +65,10 @@ git diff --check
 - Validate relevant OpenSpec artifacts with `openspec validate --all --strict`. Task checkboxes, spec validity, and real-device evidence are different things. Do not silently archive changes or mark manual tasks complete.
 - For changed UI/native flows, run `pnpm tauri dev` and inspect the affected real desktop flow unless the user reserves that verification. Report build/unit/source-contract checks separately from native/manual and Windows-device checks.
 - Some Rust tests touch native pasteboards and timed child processes. If sandbox execution fails, preserve the first result and use a permitted targeted or serial rerun to investigate; do not weaken tests to hide environment failures.
+
+For website changes, run `pnpm --dir website check`, `test`, `build`, `test:seo`, then `test:browser` serially. Use `verify:links` and `verify:performance` for navigation/resource changes; see the website guide for browser setup. For feedback changes run `pnpm --dir feedback check`, `test`, `build`, `verify:client` and the relevant two-origin browser checks. Root/website fixtures and File build assets may be shared; do not run competing preparation/build jobs concurrently.
+
+Documentation-only reviews should check local links, source facts, bilingual consistency, OpenSpec validity when context/artifacts change, and `git diff --check`. Do not report historical test counts as a fresh full regression or launch native flows solely to validate prose.
 
 ## Change hygiene
 
