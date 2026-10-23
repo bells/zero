@@ -1,0 +1,420 @@
+{
+  "capturedAt": "2026-10-23T00:15:24.781Z",
+  "node": "v24.20.0",
+  "browserVersion": "155.0.8059.85",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "protocol": "Local production preview; Lighthouse mobile simulated throttling, 390x844, DPR 1; Lighthouse resets storage per route; transfer budget uses uncompressed response bodies conservatively; JS gzip includes inline and external executable scripts",
+  "lighthouse": "13.5.0",
+  "lockfilePresent": true,
+  "measurements": [
+    {
+      "route": "/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 138542,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/",
+      "initialJsGzip": 639,
+      "firstViewportBytes": 140382,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 117675,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/download/",
+      "initialJsGzip": 465,
+      "firstViewportBytes": 118089,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/snap/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 115624,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/guide/install/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117159,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/guide/install/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117679,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/faq/",
+      "initialJsGzip": 238,
+      "firstViewportBytes": 117446,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/",
+      "initialJsGzip": 8900,
+      "firstViewportBytes": 145275,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/timestamp/",
+      "initialJsGzip": 13862,
+      "firstViewportBytes": 180974,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/json/",
+      "initialJsGzip": 11422,
+      "firstViewportBytes": 171765,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/base64/",
+      "initialJsGzip": 11422,
+      "firstViewportBytes": 171925,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/diff/",
+      "initialJsGzip": 16108,
+      "firstViewportBytes": 185654,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/image-converter/",
+      "initialJsGzip": 22377,
+      "firstViewportBytes": 203832,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/image-watermark/",
+      "initialJsGzip": 22377,
+      "firstViewportBytes": 205325,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/image-compressor/",
+      "initialJsGzip": 22377,
+      "firstViewportBytes": 203861,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/tools/markdown/",
+      "initialJsGzip": 17277,
+      "firstViewportBytes": 194743,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/",
+      "initialJsGzip": 8900,
+      "firstViewportBytes": 145876,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/timestamp/",
+      "initialJsGzip": 13862,
+      "firstViewportBytes": 181811,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/json/",
+      "initialJsGzip": 11422,
+      "firstViewportBytes": 172333,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/base64/",
+      "initialJsGzip": 11422,
+      "firstViewportBytes": 172436,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/diff/",
+      "initialJsGzip": 16108,
+      "firstViewportBytes": 186387,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/image-converter/",
+      "initialJsGzip": 22377,
+      "firstViewportBytes": 204714,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/image-watermark/",
+      "initialJsGzip": 22377,
+      "firstViewportBytes": 206228,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/image-compressor/",
+      "initialJsGzip": 22377,
+      "firstViewportBytes": 204754,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    },
+    {
+      "route": "/en/tools/markdown/",
+      "initialJsGzip": 17277,
+      "firstViewportBytes": 195912,
+      "jsBudgetPass": true,
+      "transferBudgetPass": true
+    }
+  ],
+  "reports": [
+    {
+      "route": "/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1656.4337999999998,
+      "cls": 0
+    },
+    {
+      "route": "/en/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1729.8319500000002,
+      "cls": 0
+    },
+    {
+      "route": "/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1503.4848,
+      "cls": 0
+    },
+    {
+      "route": "/en/download/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1502.3094,
+      "cls": 0
+    },
+    {
+      "route": "/tools/snap/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1502.93625,
+      "cls": 0
+    },
+    {
+      "route": "/guide/install/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1504.06695,
+      "cls": 0
+    },
+    {
+      "route": "/en/guide/install/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1502.4605999999999,
+      "cls": 0
+    },
+    {
+      "route": "/en/faq/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1427.68995,
+      "cls": 0
+    },
+    {
+      "route": "/tools/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1355.91525,
+      "cls": 0
+    },
+    {
+      "route": "/tools/timestamp/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1655.31885,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/tools/json/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1652.6082000000001,
+      "cls": 0
+    },
+    {
+      "route": "/tools/base64/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1654.3807499999998,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/tools/diff/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1659.0793500000002,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/tools/image-converter/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1653.8303999999998,
+      "cls": 0
+    },
+    {
+      "route": "/tools/image-watermark/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1653.0759,
+      "cls": 0
+    },
+    {
+      "route": "/tools/image-compressor/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1653.95505,
+      "cls": 0
+    },
+    {
+      "route": "/tools/markdown/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1506.3645,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/en/tools/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1354.5670499999999,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/timestamp/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1655.0661,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/en/tools/json/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1657.0077,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/en/tools/base64/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1655.8261499999999,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/en/tools/diff/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1658.1126,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/en/tools/image-converter/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1654.0915499999999,
+      "cls": 0
+    },
+    {
+      "route": "/en/tools/image-watermark/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1655.1574500000002,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/en/tools/image-compressor/",
+      "performance": 99,
+      "accessibility": 100,
+      "lcpMs": 1656.8533499999999,
+      "cls": 0.05250358301095594
+    },
+    {
+      "route": "/en/tools/markdown/",
+      "performance": 100,
+      "accessibility": 100,
+      "lcpMs": 1504.09245,
+      "cls": 0
+    }
+  ],
+  "enhanced": {
+    "editorReadyMs": 115,
+    "editorScriptGzip": 114077,
+    "jsonInputBytes": 1048576,
+    "maximumJsonMs": 167,
+    "batch1000Ms": 137,
+    "diffLongLineMs": 115,
+    "diffAlgorithmGzip": 4046,
+    "diffAlgorithmMeasurement": "Observed executable URLs; worker bodies unavailable through page response are reread from the same local preview URL.",
+    "diffStressInput": "20,000 lines per side seeded with DOM value + input event after native automation fill timed out; actual keyboard, compare, cancel and search actions follow.",
+    "diffEditMs": 214,
+    "diffCancelMs": 30,
+    "diffNavigationMs": 144,
+    "image12MPFirstMs": 1836,
+    "imageInteractionResources": [
+      {
+        "path": "/_astro/image-worker-BdZpGeYH.js",
+        "bytes": 25022,
+        "gzipBytes": 9559
+      },
+      {
+        "path": "/image-codecs/libheif-rebuilt.js",
+        "bytes": 3340062,
+        "gzipBytes": 798257
+      },
+      {
+        "path": "/_astro/encode-vRol6Gcb.js",
+        "bytes": 19359,
+        "gzipBytes": 7919
+      },
+      {
+        "path": "/_astro/mozjpeg_enc-DO-zoExo.wasm",
+        "bytes": 251524,
+        "gzipBytes": 59854
+      }
+    ],
+    "imageInteractionResourceBytes": 3635967,
+    "image12MPResult": "synthetic-12mp.heic\n\nHEIC · 4032 × 3024 (source dimensions) · 225.0 KiB · Complete\n\nJPEG · 4032 × 3024 · 172.6 KiB · -23.3%\n\nDownload original (metadata retained)\nPreview current settings\nDownload result\nPreview result",
+    "image12MPSubsequentMs": 1304,
+    "imageCancelMs": 35,
+    "imageReleaseEvidence": "Browser downloads and queue clear; lifecycle tests assert worker termination and Blob URL revocation. OS process-memory reclamation is a separate device gate."
+  }
+}

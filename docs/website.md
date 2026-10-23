@@ -2,6 +2,26 @@
 
 官网在 `website/`，使用 Astro 静态输出。它有独立依赖、锁文件和构建，不使用桌面 React/Tauri、IPC、File 引擎或根项目的 prebuild。中文为 `/`、`/download/`，英文为 `/en/`、`/en/download/`。
 
+## Markdown 编辑器与文本分类（2026-10-22）
+
+新增 `text`（文本类 / Text）和双语 `/tools/markdown/`、`/en/tools/markdown/`。当前八个在线工具的显式归属为：开发类 timestamp/json/base64/diff，图片类三个 image 工具，文本类 markdown。新增两条可索引路由，生成 36 个可索引页面、38 个站点页面 HTML；图片编解码许可材料里另附的源代码 HTML 不属于站点路由。其他工具 URL、分类归属和桌面说明保持原样。
+
+编辑器提供源码、预览、分屏、增强编辑、格式工具栏、撤销/重做、查找替换、字数、标题目录、可关闭的同步滚动和可退出的扩展工作区。窄屏默认源码；支持 GFM 表格、任务列表、删除线和有界语言集代码高亮。粘贴及单个 UTF-8 `.md`/`.markdown`/`.txt`（可带 BOM）共用 1 MiB/20,000 行限制，规范 CRLF/CR 为 LF，不猜测其他编码或转换 Office/PDF。
+
+下载 Markdown 是当前源文；HTML 是带内嵌样式、受控正文和已授权本地图片的独立文件，无脚本或自动外部资源请求。PDF 在专用 Worker 中由 pdfmake 直接生成文字型文件，默认 A4 纵向、浅色正文、自动分页，中英文可选择/搜索；Print 是另一个独立入口，不能代替下载 PDF。长代码行换行保留文字，跨页表格重复表头，超过八列的宽表转为带列名的逐行排版。字体仅覆盖实际 cmap 内受支持的 BMP 字符；补充平面字符/多数 emoji 明确失败，斜体采用直立字形，不承诺与网页像素一致。
+
+正文默认仅在页面内存；“在此浏览器保存草稿”默认关闭，开启后保留一篇，双语共享，关闭/删除移除存储并取消待写入而保留当前内存文档。存储错误、损坏和其他标签更新有明确状态。恢复/导入即使正文相同，也作为新文档撤销图片许可、取消旧导出并刷新占位。原始 HTML 不执行；外部图片默认不请求，逐项主动加载后才无凭证/no-referrer 地请求对应 HTTP(S) 来源，CORS 或跳转失败不转服务端代理。
+
+集中限额在 `lib/web-tools/markdown-policy.ts`：解析 5 秒；图片最多 10 张、单张 5 MiB/1600 万像素、合计 20 MiB/2000 万像素；图片/字体请求 15 秒；每份源字体最多 32 MiB；HTML/PDF 输出最多 32 MiB，PDF 500 页、生成 60 秒。超限、失败、取消和新 revision 不产生陈旧下载。默认字体完整常规/粗体合计约 20.2 MiB，仅在 PDF 下载后从本站加载，文件和许可随仓库提供。
+
+维护入口：`components/webTools/MarkdownWorkspace.astro`、`scripts/web-tools/markdown-workspace.ts`、worker/session/editor/assets/draft/pdf adapters，以及 `lib/web-tools/markdown-*`。源码 AST 同时驱动预览/目录/导出，实体解码器固定为无 DOM 实现以适配 Worker。交互文案从 `content/web-copy.ts` 独立导出，静态指南不进入浏览器可执行包。反馈新增 `tools/markdown` 稳定线程，仍默认关闭、点击后异源加载，仅传 thread/locale。
+
+`predev`/`prebuild` 离线核对字体 SHA/许可和当前锁定依赖的 notices；不下载字体、不重建字体或改写许可历史。维护时才显式运行 `scripts/prepare-markdown-fonts.mjs`（锁定上游 SHA 和 fonttools 版本）或 `scripts/prepare-markdown-notices.mjs`。公开材料见 `public/markdown-fonts/` 与 `public/markdown-notices/`，页面提供来源/许可链接。`pnpm --dir website verify:markdown` 在已启动的本地预览上测合成大文档、PDF 首次/后续导出和取消；RSS 是独立 Chrome 进程树之和，不能当作物理 footprint 或手机证据。
+
+验证结果、字体/许可、资源和设备边界见 [实施记录](../openspec/changes/add-web-markdown-editor/evidence/implementation.md)。真实桌面 Safari 27.0.1 已通过原生界面完成导入/增强、草稿、图片许可、HTML/PDF 下载打开、中文 PDF 搜索和独立打印预览；WebDriver 未启用远程自动化的限制保持原样。真实 iPhone 验收仍未完成。当前源代码和本地检查不代表部署、所有设备通过或桌面 Markdown 插件交付。
+
+2026-10-23 本地验证：96 项单元、122 项 Chrome 浏览器及 10 项 SEO 检查通过；26 路由 Lighthouse 性能 99–100、可访问性均为 100，首屏预算通过。Markdown 两页初始 JS gzip 为 17,277 字节；合成长文、多页中文 PDF、独立 HTML 无网络打开、病理输入超时和图片边界实验已记录。OpenSpec 为 36/37 项，未完成项为真实 iPhone 验收；Safari 代表性桌面流程见[实机记录](../openspec/changes/add-web-markdown-editor/evidence/safari-desktop.md)。
+
 2026-10-17 图片工具预检（历史阶段，当前接入见下节）：`website/experiments/image-codecs/` 提供纯合成语料、独立 Chrome Worker 编解码实验和固定候选依赖/产物清单；运行 `pnpm --dir website experiment:images:fixtures`（macOS ImageIO）后运行 `pnpm --dir website experiment:images`。源码/许可材料及 HEIC 真实重建、宿主不变的独立模块替换已验证，见[重建流程](../website/experiments/image-codecs/REBUILD.md)和[许可材料证据](../openspec/changes/add-web-image-tools-and-categories/evidence/license-rebuild.md)。构建和材料包仅写忽略的 `website/output/image-codecs/`，没有公开图片页面或分类入口，现有四工具与 28 个索引页面保持原状。测试设备计划为 iPhone 17 Pro / iOS 27.0.1；合成 HEIC 的 90°/180°/270° 方向与异常输入已在 Chrome 验证；真实 Safari、原始相机照片、实机方向/色彩、峰值和回收、下载及最终资源上限仍待验收。`pnpm --dir website experiment:images:serve` 可提供白名单局域网实验入口（须先完成材料包准备），包含取消、原始字节识别及可选 JPEG/ZIP 下载，详见[实机步骤](../website/experiments/image-codecs/MOBILE-TEST.md)。低报尺寸属性的异常样本表明，前置和主图头部尺寸不能完全约束库内部内存分配；该失败保留在证据中。未来公开构建必须携带相同许可/源码/替换机制，并复核最终产物；固定 SDK 的 asm.js 弃用提示保留为维护风险。详见[实验说明](../website/experiments/image-codecs/README.md)、[依赖审查](../website/experiments/image-codecs/DEPENDENCIES.md)和[实施证据](../openspec/changes/add-web-image-tools-and-categories/evidence/implementation.md)。
 
 2026-10-18 图片预检增量（页面接入前的历史阶段）：合成 12MP HEIC 的 iPhone 解码/旋转、JPEG/ZIP 下载打开及取消/超时恢复已有用户实机反馈；48MP 在 60 秒内未完成。原始相机 HEIC 和桌面 Safari 按用户要求暂缓。新增 `experiment:images:resources` 提供独立 Chrome 进程树 RSS 采样与合成 ZIP 压力实验；RSS 不是物理 footprint，手机峰值/回收与生产资源策略仍未确定。纯 TS 图片任务契约和 revision/重试/取消状态规则已完成，尚未连接生产页面或 Worker 适配器；旧 Base64 限制不变。详见[当前设备矩阵](../openspec/changes/add-web-image-tools-and-categories/evidence/device-matrix.md)与[资源/域契约证据](../openspec/changes/add-web-image-tools-and-categories/evidence/resource-and-domain-2026-10-18.md)。
@@ -9,7 +29,7 @@
 
 ## 当前图片工具与分类（2026-10-18，本地功能接入）
 
-目录 `/tools/`、`/en/tools/` 当前提供七个工具：development 分类下 timestamp/json/base64/diff，image 分类下 image-converter/image-watermark/image-compressor。新工具各有中文和英文入口，全站当前生成 34 个可索引页面、36 个 HTML（含两个 noindex 错误页面）。下面按日期记录的 18/26/28 页是历史基线，不代表当前目录；本地接入不代表已经部署。
+2026-10-18 接入图片工具时，目录 `/tools/`、`/en/tools/` 提供七个工具：development 分类下 timestamp/json/base64/diff，image 分类下 image-converter/image-watermark/image-compressor；当时生成 34 个可索引页面、36 个 HTML（含两个 noindex 错误页面）。最新八工具和页面数量见上方 Markdown 增量。下面按日期记录的 18/26/28 页同样是历史基线；本地接入不代表已经部署。
 
 `content/web-tools.ts` 维护稳定 slug、分类与双语说明，`lib/web-tools/categories.ts` 提供枚举校验；`content/web-tool-guides.ts` 维护共享 HTML/AI 指南和明确标注的演示示例。目录在当前分类内搜索，空结果可切回全部并保留内存查询；Cmd/Ctrl+K 搜索全部七项。仅允许 category=development/image 跟随语言导航，默认 all 可省略；搜索词不写 URL 或存储，canonical 不含查询参数。无 JavaScript 时七个普通链接、分类信息和指南仍可读。分类分组导航采用换行布局，触摸目标至少 44px；320px、200% 缩放和深浅主题仍以浏览器验收结果为准。
 
@@ -99,7 +119,7 @@ pnpm --dir website verify:links
 WEBSITE_BROWSER_CHANNEL=chrome pnpm --dir website verify:performance
 ```
 
-脚本用本机 Chrome 和 Lighthouse 13.5.0 检查代表产品/下载/文档页，以及双语在线目录和全部七工具页，固定 mobile simulated throttling、390×844、DPR 1，逐页清除 Lighthouse 存储。目标为 performance/accessibility ≥95、LCP ≤2500ms、CLS ≤0.1、初始内联/外部 JS gzip ≤50 KiB、首屏资源 ≤1 MiB。资源预算保守累加首屏请求的未压缩正文。结果保存在 `website/output/performance/`，属于本地实验室结果，不代表真实访客网络、服务器/CDN 或桌面原生性能。
+脚本用本机 Chrome 和 Lighthouse 13.5.0 检查代表产品/下载/文档页，以及双语在线目录和全部八工具页，固定 mobile simulated throttling、390×844、DPR 1，逐页清除 Lighthouse 存储。目标为 performance/accessibility ≥95、LCP ≤2500ms、CLS ≤0.1、初始内联/外部 JS gzip ≤50 KiB、首屏资源 ≤1 MiB。资源预算保守累加首屏请求的未压缩正文。结果保存在 `website/output/performance/`，属于本地实验室结果，不代表真实访客网络、服务器/CDN 或桌面原生性能。
 
 ## 静态部署与回退
 

@@ -1,4 +1,4 @@
-import { webCopy } from '../../content/web-tools';
+import { webCopy } from '../../content/web-copy';
 import type { Locale } from '../../content/site';
 import type { ToolError } from '../../lib/web-tools/contracts';
 import { errorMessage } from './messages';

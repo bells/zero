@@ -35,7 +35,7 @@ try {
   await writeFile(`${workspace}/src/content/releases.json`, await readFile(`${root}src/content/releases.json`));
   execFileSync(process.execPath, [`${root}node_modules/astro/bin/astro.mjs`, 'build'], { cwd: workspace, env: { ...process.env, SITE_BASE: '/zero-preview/', SITE_PREVIEW: '1' }, stdio: 'pipe' });
   await cp(`${workspace}/dist`, new URL('preview/', output), { recursive: true });
-  for (const route of ['', 'en/', 'download/', 'en/download/', 'tools/snap/', 'en/tools/snap/', 'guide/install/', 'en/guide/install/', 'faq/', 'en/faq/', 'tools/', 'en/tools/', 'tools/timestamp/', 'en/tools/timestamp/', 'tools/json/', 'en/tools/json/', 'tools/base64/', 'en/tools/base64/', 'tools/diff/', 'tools/image-converter/', 'tools/image-watermark/', 'tools/image-compressor/', 'en/tools/diff/', 'en/tools/image-converter/', 'en/tools/image-watermark/', 'en/tools/image-compressor/']) {
+  for (const route of ['', 'en/', 'download/', 'en/download/', 'tools/snap/', 'en/tools/snap/', 'guide/install/', 'en/guide/install/', 'faq/', 'en/faq/', 'tools/', 'en/tools/', 'tools/timestamp/', 'en/tools/timestamp/', 'tools/json/', 'en/tools/json/', 'tools/base64/', 'en/tools/base64/', 'tools/diff/', 'tools/image-converter/', 'tools/image-watermark/', 'tools/image-compressor/', 'en/tools/diff/', 'en/tools/image-converter/', 'en/tools/image-watermark/', 'en/tools/image-compressor/', 'tools/markdown/', 'en/tools/markdown/']) {
     const page = await readFile(`${workspace}/dist/${route}index.html`, 'utf8');
     assert.match(page, /content="noindex, nofollow"/);
     assert.ok(page.includes(`https://www.usezero.cn/zero-preview/${route}`));
@@ -56,7 +56,7 @@ try {
   assert.match(await readFile(`${workspace}/dist/llms.txt`, 'utf8'), /Discovery index is disabled/);
   execFileSync(process.execPath, [`${root}node_modules/astro/bin/astro.mjs`, 'build'], { cwd: workspace, env: { ...process.env, SITE_BASE: '/feedback-review/', SITE_PREVIEW: '1', VERCEL_ENV: 'preview', PUBLIC_FEEDBACK_ENABLED: '1', PUBLIC_FEEDBACK_ORIGIN: 'https://production-feedback.example.invalid', PUBLIC_FEEDBACK_PREVIEW_ORIGIN: 'http://127.0.0.1:4323', FEEDBACK_ALLOWED_ORIGINS: 'http://127.0.0.1:4323', FEEDBACK_LOCAL_TEST: '1' }, stdio: 'pipe' });
   await cp(`${workspace}/dist`, new URL('feedback/', output), { recursive: true });
-  for (const prefix of ['', 'en/']) for (const tool of ['', 'timestamp/', 'json/', 'base64/', 'diff/', 'image-converter/', 'image-watermark/', 'image-compressor/']) {
+  for (const prefix of ['', 'en/']) for (const tool of ['', 'timestamp/', 'json/', 'base64/', 'diff/', 'image-converter/', 'image-watermark/', 'image-compressor/', 'markdown/']) {
     const page = await readFile(`${workspace}/dist/${prefix}tools/${tool}index.html`, 'utf8');
     assert.ok(page.includes(`data-thread="tools${tool ? `/${tool.slice(0,-1)}` : ''}"`));
     assert.ok(page.includes('data-origin="http://127.0.0.1:4323"'));

@@ -5,7 +5,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 
 const origin = process.env.WEBSITE_ORIGIN || 'http://127.0.0.1:4321';
-const routes = ['/', '/en/', '/download/', '/en/download/', '/tools/snap/', '/guide/install/', '/en/guide/install/', '/en/faq/', ...['', 'en/'].flatMap((locale) => ['tools/', 'tools/timestamp/', 'tools/json/', 'tools/base64/', 'tools/diff/', 'tools/image-converter/', 'tools/image-watermark/', 'tools/image-compressor/'].map((route) => `/${locale}${route}`))];
+const routes = ['/', '/en/', '/download/', '/en/download/', '/tools/snap/', '/guide/install/', '/en/guide/install/', '/en/faq/', ...['', 'en/'].flatMap((locale) => ['tools/', 'tools/timestamp/', 'tools/json/', 'tools/base64/', 'tools/diff/', 'tools/image-converter/', 'tools/image-watermark/', 'tools/image-compressor/', 'tools/markdown/'].map((route) => `/${locale}${route}`))];
 await mkdir('output/performance', { recursive: true });
 const browser = await chromium.launch({ channel: process.env.WEBSITE_BROWSER_CHANNEL || undefined });
 const browserVersion = browser.version();
@@ -148,18 +148,20 @@ try {
   await imagePage.close();
 
 } finally { await browser.close(); }
-const chrome = await launch({ chromeFlags: ['--headless', '--disable-extensions'], logLevel: 'silent' });
 const reports = [];
-try {
-  for (const route of routes) {
+for (const route of routes) {
+  // Isolate each audit after a long reused Chrome session lost its Page.enable target.
+  const chrome = await launch({ chromeFlags: ['--headless', '--disable-extensions'], logLevel: 'silent' });
+  try {
     const result = await lighthouse(`${origin}${route}`, { port: chrome.port, output: 'json', logLevel: 'error', onlyCategories: ['performance', 'accessibility'], formFactor: 'mobile', screenEmulation: { mobile: true, width: 390, height: 844, deviceScaleFactor: 1, disabled: false } });
     if (!result) throw new Error(`No Lighthouse report for ${route}`);
     const lhr = result.lhr;
     const scores = { route, performance: Math.round(lhr.categories.performance.score * 100), accessibility: Math.round(lhr.categories.accessibility.score * 100), lcpMs: lhr.audits['largest-contentful-paint'].numericValue, cls: lhr.audits['cumulative-layout-shift'].numericValue };
     reports.push(scores);
     await writeFile(`output/performance/${route.replaceAll('/', '-') || 'home'}.json`, result.report);
-  }
-} finally { chrome.kill(); }
+    console.log(`Lighthouse ${route}: ${scores.performance}/${scores.accessibility}`);
+  } finally { chrome.kill(); }
+}
 const lock = await readFile('pnpm-lock.yaml', 'utf8');
 const summary = { capturedAt: new Date().toISOString(), node: process.version, browserVersion, platform: process.platform, architecture: process.arch, protocol: 'Local production preview; Lighthouse mobile simulated throttling, 390x844, DPR 1; Lighthouse resets storage per route; transfer budget uses uncompressed response bodies conservatively; JS gzip includes inline and external executable scripts', lighthouse: '13.5.0', lockfilePresent: Boolean(lock.length), measurements, reports, enhanced };
 await writeFile('output/performance/summary.json', JSON.stringify(summary, null, 2) + '\n');

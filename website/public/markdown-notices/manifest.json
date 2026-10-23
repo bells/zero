@@ -1,0 +1,1745 @@
+{
+  "format": 1,
+  "roots": [
+    "@codemirror/lang-markdown",
+    "@codemirror/search",
+    "decode-named-character-reference",
+    "highlight.js",
+    "lowlight",
+    "pdfmake",
+    "rehype-sanitize",
+    "rehype-stringify",
+    "remark-gfm",
+    "remark-parse",
+    "remark-rehype",
+    "unified",
+    "@types/hast",
+    "@types/mdast",
+    "@types/pdfmake"
+  ],
+  "resolvedPackageCount": 138,
+  "pdfmakeBrowserBundle": {
+    "version": "0.3.12",
+    "sha256": "1ba82a13fbe197ddda9cc9160ed57d44e428b404bc51f84711a53623bf6a7773",
+    "bytes": 1859339,
+    "sourceMapSha256": "6b428dbb274eaedd604028ddc79cfa3bd20279e56a4f5f8a43ae70147ae3be0d",
+    "sourceMapPackages": [
+      "@noble/ciphers",
+      "@noble/hashes",
+      "@swc/helpers",
+      "base64-js",
+      "brotli",
+      "buffer",
+      "clone",
+      "core-js",
+      "dfa",
+      "events",
+      "expose-loader",
+      "fast-deep-equal",
+      "fflate",
+      "file-saver",
+      "fontkit",
+      "ieee754",
+      "linebreak",
+      "pdfkit",
+      "png-js",
+      "process",
+      "restructure",
+      "sax",
+      "tiny-inflate",
+      "tslib",
+      "unicode-properties",
+      "unicode-trie"
+    ]
+  },
+  "notes": [
+    "Three upstream projects omit standalone LICENSE files at their pinned tags. Their complete upstream README and package metadata preserve their MIT declaration without inventing copyright notices.",
+    "Full Apache-2.0, BSD-3-Clause, ISC, BlueOak-1.0.0, 0BSD and OFL text is preserved from actual license files; source-map notices retain embedded Google/QR/Node author notices.",
+    "Versions for seven separately vendored browser helpers are confirmed by exact source-map file matches in the integrity-verified npm artifacts recorded under upstream/."
+  ],
+  "records": [
+    {
+      "package": "@codemirror/lang-markdown",
+      "version": "6.5.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/lang-markdown/-/lang-markdown-6.5.2.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "@codemirror/autocomplete",
+      "version": "6.20.4",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/autocomplete/-/autocomplete-6.20.4.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "@codemirror/language",
+      "version": "6.13.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/language/-/language-6.13.1.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "@codemirror/state",
+      "version": "6.7.6",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/state/-/state-6.7.6.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "@marijn/find-cluster-break",
+      "version": "1.0.4",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@marijn/find-cluster-break/-/find-cluster-break-1.0.4.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "9360b00fdd091f05c783b568bdd46c679c41b72415599252de98949462ea1acb",
+      "section": 2
+    },
+    {
+      "package": "@codemirror/streamparser",
+      "version": "6.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/streamparser/-/streamparser-6.0.0.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "@codemirror/view",
+      "version": "6.43.14",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/view/-/view-6.43.14.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "crelt",
+      "version": "1.0.7",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/crelt/-/crelt-1.0.7.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "23852ebf6aef7fadffc92514b3c5df163a8651f2c3ed0dbb494cb49d93bd5de5",
+      "section": 3
+    },
+    {
+      "package": "style-mod",
+      "version": "4.1.4",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/style-mod/-/style-mod-4.1.4.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "cb4474e26547397169061d3586c00022cda5330a1b64fa13e872319f3b63aff1",
+      "section": 4
+    },
+    {
+      "package": "w3c-keyname",
+      "version": "2.2.8",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/w3c-keyname/-/w3c-keyname-2.2.8.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "869c30f368eb08735e779027b9f4bc9fea2f39624351856aebe42741f0bc0884",
+      "section": 5
+    },
+    {
+      "package": "@lezer/common",
+      "version": "1.5.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@lezer/common/-/common-1.5.3.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "568902fb66eaf1f11750e966b33fd7b5d7c618e65af09f35ef843635bcf5f1ba",
+      "section": 6
+    },
+    {
+      "package": "@lezer/highlight",
+      "version": "1.2.5",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@lezer/highlight/-/highlight-1.2.5.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "568902fb66eaf1f11750e966b33fd7b5d7c618e65af09f35ef843635bcf5f1ba",
+      "section": 6
+    },
+    {
+      "package": "@lezer/lr",
+      "version": "1.4.11",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@lezer/lr/-/lr-1.4.11.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "568902fb66eaf1f11750e966b33fd7b5d7c618e65af09f35ef843635bcf5f1ba",
+      "section": 6
+    },
+    {
+      "package": "@codemirror/lang-html",
+      "version": "6.4.12",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/lang-html/-/lang-html-6.4.12.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "@codemirror/lang-css",
+      "version": "6.3.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/lang-css/-/lang-css-6.3.1.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "@lezer/css",
+      "version": "1.3.9",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@lezer/css/-/css-1.3.9.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "568902fb66eaf1f11750e966b33fd7b5d7c618e65af09f35ef843635bcf5f1ba",
+      "section": 6
+    },
+    {
+      "package": "@codemirror/lang-javascript",
+      "version": "6.2.5",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/lang-javascript/-/lang-javascript-6.2.5.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "@codemirror/lint",
+      "version": "6.9.7",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/lint/-/lint-6.9.7.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "@lezer/javascript",
+      "version": "1.5.6",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@lezer/javascript/-/javascript-1.5.6.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "568902fb66eaf1f11750e966b33fd7b5d7c618e65af09f35ef843635bcf5f1ba",
+      "section": 6
+    },
+    {
+      "package": "@lezer/html",
+      "version": "1.3.13",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@lezer/html/-/html-1.3.13.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "568902fb66eaf1f11750e966b33fd7b5d7c618e65af09f35ef843635bcf5f1ba",
+      "section": 6
+    },
+    {
+      "package": "@lezer/markdown",
+      "version": "1.8.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@lezer/markdown/-/markdown-1.8.1.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "54bd812a6d334e0c438b78a43cea74b67e882739fd3450115ddc7c52be5706c1",
+      "section": 7
+    },
+    {
+      "package": "@codemirror/search",
+      "version": "6.7.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@codemirror/search/-/search-6.7.2.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "05c6130cda97e7600ca91427a41e8a065efcf82365fc0293e7de80faec494c07",
+      "section": 1
+    },
+    {
+      "package": "decode-named-character-reference",
+      "version": "1.3.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/decode-named-character-reference/-/decode-named-character-reference-1.3.0.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "character-entities",
+      "version": "2.0.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/character-entities/-/character-entities-2.0.2.tgz#package/license",
+      "file": "license",
+      "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf",
+      "section": 9
+    },
+    {
+      "package": "highlight.js",
+      "version": "11.11.2",
+      "license": "BSD-3-Clause",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/highlight.js/-/highlight.js-11.11.2.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "6c081431591d9df696c82dc598fe1423765b8a299b200ed00b281afd0f64c490",
+      "section": 10
+    },
+    {
+      "package": "lowlight",
+      "version": "3.3.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/lowlight/-/lowlight-3.3.0.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "@types/hast",
+      "version": "3.0.5",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@types/hast/-/hast-3.0.5.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "section": 11
+    },
+    {
+      "package": "@types/unist",
+      "version": "3.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@types/unist/-/unist-3.0.3.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "section": 11
+    },
+    {
+      "package": "devlop",
+      "version": "1.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/devlop/-/devlop-1.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "6f296a5eccc1dc96714bb94ebaa9cac25b0a1467d74cc5263ac4d0646ab01f62",
+      "section": 12
+    },
+    {
+      "package": "dequal",
+      "version": "2.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/dequal/-/dequal-2.0.3.tgz#package/license",
+      "file": "license",
+      "sha256": "306fa513e39b23a6e8747520de761809d206b99800ef41907b530226574c59ae",
+      "section": 13
+    },
+    {
+      "package": "pdfmake",
+      "version": "0.3.12",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "ab919430421c2e244dbb8694d70916eae16235b75c0ea07e9a6c67cd4265c954",
+      "section": 14
+    },
+    {
+      "package": "linebreak",
+      "version": "1.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/linebreak/-/linebreak-1.1.0.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "cf22b8198f0886a8d4626121579114f23141070e1fceab02ab3c1c361e163440",
+      "section": 15
+    },
+    {
+      "package": "base64-js",
+      "version": "0.0.8",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/base64-js/-/base64-js-0.0.8.tgz#package/LICENSE.MIT",
+      "file": "LICENSE.MIT",
+      "sha256": "136239d1783a151cdbf6fd7935dd945082b9d0ee2cbb8497cc0ae49e8a743a47",
+      "section": 16
+    },
+    {
+      "package": "unicode-trie",
+      "version": "2.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/unicode-trie/-/unicode-trie-2.0.0.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "43439dbd4f43837aadab215cdbe5a422cc6323a50c4ea84d8d6bbc3671666a1d",
+      "section": 17
+    },
+    {
+      "package": "pako",
+      "version": "0.2.9",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/pako/-/pako-0.2.9.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "3bc404ffa7888053253eedcc5a667619aa08dc1be0bea400e5ff28c51602180f",
+      "section": 18
+    },
+    {
+      "package": "tiny-inflate",
+      "version": "1.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/tiny-inflate/-/tiny-inflate-1.0.3.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c0df7f551401f8f80197ff31bf69b8cd23727d127423403282514d242a3ab132",
+      "section": 19
+    },
+    {
+      "package": "pdfkit",
+      "version": "0.20.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/pdfkit/-/pdfkit-0.20.2.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "5f0d5197d2b5d91f41de43143b0be42fb55515bc2b894f2a9b62de9f7056c0f8",
+      "section": 20
+    },
+    {
+      "package": "@noble/ciphers",
+      "version": "1.3.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@noble/ciphers/-/ciphers-1.3.0.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "f36671a5487c9c5050efacb58011c37c24c55a889803cb036cf9d9a6347c1e2d",
+      "section": 21
+    },
+    {
+      "package": "@noble/hashes",
+      "version": "1.8.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec",
+      "section": 22
+    },
+    {
+      "package": "fflate",
+      "version": "0.8.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/fflate/-/fflate-0.8.3.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "0a1df3a083d0c010560aa342e87959c8c1070e6fd54545741f083f22d0c8b551",
+      "section": 23
+    },
+    {
+      "package": "@swc/helpers",
+      "version": "0.5.23",
+      "license": "Apache-2.0",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.23.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "d96eba1f1881334d50ffc144276dfa98e147a415e7c591ecdfcb81680361dc91",
+      "section": 24
+    },
+    {
+      "package": "tslib",
+      "version": "2.8.1",
+      "license": "0BSD",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz#package/LICENSE.txt",
+      "file": "LICENSE.txt",
+      "sha256": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751",
+      "section": 25
+    },
+    {
+      "package": "base64-js",
+      "version": "1.5.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/base64-js/-/base64-js-1.5.1.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "5b37224c080cdcc97c871ada971c224e9926370fe74f11b539aa1cf9f3b1aca1",
+      "section": 26
+    },
+    {
+      "package": "clone",
+      "version": "2.1.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/clone/-/clone-2.1.2.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "3fb0857ef0133928cf72c88dfc464e931486e88778961eedec25585e2321507f",
+      "section": 27
+    },
+    {
+      "package": "fast-deep-equal",
+      "version": "3.1.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a",
+      "section": 28
+    },
+    {
+      "package": "restructure",
+      "version": "3.0.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/restructure/-/restructure-3.0.2.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c0df7f551401f8f80197ff31bf69b8cd23727d127423403282514d242a3ab132",
+      "section": 19
+    },
+    {
+      "package": "unicode-properties",
+      "version": "1.4.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/unicode-properties/-/unicode-properties-1.4.1.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "43439dbd4f43837aadab215cdbe5a422cc6323a50c4ea84d8d6bbc3671666a1d",
+      "section": 17
+    },
+    {
+      "package": "png-js",
+      "version": "2.0.0",
+      "license": "MIT (actual LICENSE)",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/png-js/-/png-js-2.0.0.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "bdb26a2ec815931ed6a38f3416362566204ee85ecdef96702b636402da4c75c3",
+      "section": 29
+    },
+    {
+      "package": "xmldoc",
+      "version": "2.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/xmldoc/-/xmldoc-2.0.3.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "decc26c3118890c4ba02c4408d8561e0114c6e6eb95e22b4a78a0c674d1a5ae0",
+      "section": 30
+    },
+    {
+      "package": "sax",
+      "version": "1.6.1",
+      "license": "BlueOak-1.0.0",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/sax/-/sax-1.6.1.tgz#package/LICENSE.md",
+      "file": "LICENSE.md",
+      "sha256": "8a1af140fdfbf5afd3df27f7e662f989c5b963a300020dfafce42033cae9e004",
+      "section": 31
+    },
+    {
+      "package": "rehype-sanitize",
+      "version": "6.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/rehype-sanitize/-/rehype-sanitize-6.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d",
+      "section": 32
+    },
+    {
+      "package": "hast-util-sanitize",
+      "version": "5.0.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/hast-util-sanitize/-/hast-util-sanitize-5.0.2.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "@ungap/structured-clone",
+      "version": "1.4.0",
+      "license": "ISC",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@ungap/structured-clone/-/structured-clone-1.4.0.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "dc6d4961d8b6ee747231582ae9c53ce1d66bf76bc9f5a28f554c0e97210953bf",
+      "section": 33
+    },
+    {
+      "package": "unist-util-position",
+      "version": "5.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/unist-util-position/-/unist-util-position-5.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf",
+      "section": 9
+    },
+    {
+      "package": "rehype-stringify",
+      "version": "10.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/rehype-stringify/-/rehype-stringify-10.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "e18cf5173e928f808f0cd208097fee8fbec9d28fc0255213938e4c559e29ff58",
+      "section": 34
+    },
+    {
+      "package": "hast-util-to-html",
+      "version": "9.0.5",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/hast-util-to-html/-/hast-util-to-html-9.0.5.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "ccount",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/ccount/-/ccount-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf",
+      "section": 9
+    },
+    {
+      "package": "comma-separated-tokens",
+      "version": "2.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/comma-separated-tokens/-/comma-separated-tokens-2.0.3.tgz#package/license",
+      "file": "license",
+      "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d",
+      "section": 32
+    },
+    {
+      "package": "hast-util-whitespace",
+      "version": "3.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/hast-util-whitespace/-/hast-util-whitespace-3.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d",
+      "section": 32
+    },
+    {
+      "package": "html-void-elements",
+      "version": "3.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/html-void-elements/-/html-void-elements-3.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d",
+      "section": 32
+    },
+    {
+      "package": "mdast-util-to-hast",
+      "version": "13.2.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-to-hast/-/mdast-util-to-hast-13.2.1.tgz#package/license",
+      "file": "license",
+      "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d",
+      "section": 32
+    },
+    {
+      "package": "@types/mdast",
+      "version": "4.0.4",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@types/mdast/-/mdast-4.0.4.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "section": 11
+    },
+    {
+      "package": "micromark-util-sanitize-uri",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-sanitize-uri/-/micromark-util-sanitize-uri-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-character",
+      "version": "2.1.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-character/-/micromark-util-character-2.1.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-symbol",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-symbol/-/micromark-util-symbol-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-types",
+      "version": "2.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-types/-/micromark-util-types-2.0.3.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-encode",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-encode/-/micromark-util-encode-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "trim-lines",
+      "version": "3.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/trim-lines/-/trim-lines-3.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "9f084fac69d8cf1e6ce983ba5a3499c7695ed74a26ec625c38f0fd19fddd5e10",
+      "section": 35
+    },
+    {
+      "package": "unist-util-visit",
+      "version": "5.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/unist-util-visit/-/unist-util-visit-5.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf",
+      "section": 9
+    },
+    {
+      "package": "unist-util-is",
+      "version": "6.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/unist-util-is/-/unist-util-is-6.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "82974dbf2639d13edab95c32ed9cb6c0867ede272cd2e07ce47ce8548fe55c05",
+      "section": 36
+    },
+    {
+      "package": "unist-util-visit-parents",
+      "version": "6.0.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/unist-util-visit-parents/-/unist-util-visit-parents-6.0.2.tgz#package/license",
+      "file": "license",
+      "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d",
+      "section": 32
+    },
+    {
+      "package": "vfile",
+      "version": "6.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/vfile/-/vfile-6.0.3.tgz#package/license",
+      "file": "license",
+      "sha256": "05811400116ed61f1a7693b78fe8ca6598c155a12f3978e609db4df648a4cb3d",
+      "section": 37
+    },
+    {
+      "package": "vfile-message",
+      "version": "4.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/vfile-message/-/vfile-message-4.0.3.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "unist-util-stringify-position",
+      "version": "4.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/unist-util-stringify-position/-/unist-util-stringify-position-4.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d",
+      "section": 32
+    },
+    {
+      "package": "property-information",
+      "version": "7.2.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/property-information/-/property-information-7.2.0.tgz#package/license",
+      "file": "license",
+      "sha256": "5d0698266086f217bb11ea0499d33453e401fe479fb9126ad04e625e63d3557b",
+      "section": 38
+    },
+    {
+      "package": "space-separated-tokens",
+      "version": "2.0.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/space-separated-tokens/-/space-separated-tokens-2.0.2.tgz#package/license",
+      "file": "license",
+      "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d",
+      "section": 32
+    },
+    {
+      "package": "stringify-entities",
+      "version": "4.0.4",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/stringify-entities/-/stringify-entities-4.0.4.tgz#package/license",
+      "file": "license",
+      "sha256": "9f084fac69d8cf1e6ce983ba5a3499c7695ed74a26ec625c38f0fd19fddd5e10",
+      "section": 35
+    },
+    {
+      "package": "character-entities-html4",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/character-entities-html4/-/character-entities-html4-2.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf",
+      "section": 9
+    },
+    {
+      "package": "character-entities-legacy",
+      "version": "3.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/character-entities-legacy/-/character-entities-legacy-3.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf",
+      "section": 9
+    },
+    {
+      "package": "zwitch",
+      "version": "2.0.4",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/zwitch/-/zwitch-2.0.4.tgz#package/license",
+      "file": "license",
+      "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d",
+      "section": 32
+    },
+    {
+      "package": "unified",
+      "version": "11.0.5",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/unified/-/unified-11.0.5.tgz#package/license",
+      "file": "license",
+      "sha256": "05811400116ed61f1a7693b78fe8ca6598c155a12f3978e609db4df648a4cb3d",
+      "section": 37
+    },
+    {
+      "package": "bail",
+      "version": "2.0.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/bail/-/bail-2.0.2.tgz#package/license",
+      "file": "license",
+      "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf",
+      "section": 9
+    },
+    {
+      "package": "extend",
+      "version": "3.0.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "97af7428f93afbab9bf79cd09254da1357161794f4255eb1b4599f04dd2d2e7c",
+      "section": 39
+    },
+    {
+      "package": "is-plain-obj",
+      "version": "4.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/is-plain-obj/-/is-plain-obj-4.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3",
+      "section": 40
+    },
+    {
+      "package": "trough",
+      "version": "2.2.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/trough/-/trough-2.2.0.tgz#package/license",
+      "file": "license",
+      "sha256": "6c03fd41cfd7c92d8aa8a2fa521b94b2683f059123281dcf921ddea9216b6254",
+      "section": 41
+    },
+    {
+      "package": "remark-gfm",
+      "version": "4.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/remark-gfm/-/remark-gfm-4.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "mdast-util-gfm",
+      "version": "3.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-gfm/-/mdast-util-gfm-3.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "mdast-util-from-markdown",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-from-markdown/-/mdast-util-from-markdown-2.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "mdast-util-to-string",
+      "version": "4.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-to-string/-/mdast-util-to-string-4.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf",
+      "section": 9
+    },
+    {
+      "package": "micromark",
+      "version": "4.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark/-/micromark-4.0.3.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "@types/debug",
+      "version": "4.1.13",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@types/debug/-/debug-4.1.13.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "section": 11
+    },
+    {
+      "package": "@types/ms",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@types/ms/-/ms-2.1.0.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "section": 11
+    },
+    {
+      "package": "debug",
+      "version": "4.4.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "3a61c6c96caf5c1d9b623fb9b04c822b783dfcb78aa7e49c76a3f643e6ed7f95",
+      "section": 42
+    },
+    {
+      "package": "ms",
+      "version": "2.1.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz#package/license.md",
+      "file": "license.md",
+      "sha256": "1662fae9b5314d11cf51284e2dcd1f006a354f7343f08712a730fcff9a359801",
+      "section": 43
+    },
+    {
+      "package": "micromark-core-commonmark",
+      "version": "2.0.4",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-core-commonmark/-/micromark-core-commonmark-2.0.4.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-factory-destination",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-factory-destination/-/micromark-factory-destination-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-factory-label",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-factory-label/-/micromark-factory-label-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-factory-space",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-factory-space/-/micromark-factory-space-2.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-factory-title",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-factory-title/-/micromark-factory-title-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-factory-whitespace",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-factory-whitespace/-/micromark-factory-whitespace-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-chunked",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-chunked/-/micromark-util-chunked-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-classify-character",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-classify-character/-/micromark-util-classify-character-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-edit-map",
+      "version": "1.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-edit-map/-/micromark-util-edit-map-1.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-html-tag-name",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-html-tag-name/-/micromark-util-html-tag-name-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-normalize-identifier",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-normalize-identifier/-/micromark-util-normalize-identifier-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-resolve-all",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-resolve-all/-/micromark-util-resolve-all-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-subtokenize",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-subtokenize/-/micromark-util-subtokenize-2.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-combine-extensions",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-combine-extensions/-/micromark-util-combine-extensions-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-decode-numeric-character-reference",
+      "version": "2.0.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-decode-numeric-character-reference/-/micromark-util-decode-numeric-character-reference-2.0.2.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-util-decode-string",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-util-decode-string/-/micromark-util-decode-string-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "mdast-util-gfm-autolink-literal",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-gfm-autolink-literal/-/mdast-util-gfm-autolink-literal-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "section": 44
+    },
+    {
+      "package": "mdast-util-find-and-replace",
+      "version": "3.0.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-find-and-replace/-/mdast-util-find-and-replace-3.0.3.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "escape-string-regexp",
+      "version": "5.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/escape-string-regexp/-/escape-string-regexp-5.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3",
+      "section": 40
+    },
+    {
+      "package": "mdast-util-gfm-footnote",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-gfm-footnote/-/mdast-util-gfm-footnote-2.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "mdast-util-to-markdown",
+      "version": "2.2.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-to-markdown/-/mdast-util-to-markdown-2.2.0.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "longest-streak",
+      "version": "3.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/longest-streak/-/longest-streak-3.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "9f084fac69d8cf1e6ce983ba5a3499c7695ed74a26ec625c38f0fd19fddd5e10",
+      "section": 35
+    },
+    {
+      "package": "mdast-util-phrasing",
+      "version": "4.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-phrasing/-/mdast-util-phrasing-4.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "b6d1a4e1831b177acc96f22a817d4f0f4c18419355badc3125754445fc69e3a7",
+      "section": 45
+    },
+    {
+      "package": "mdast-util-gfm-strikethrough",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-gfm-strikethrough/-/mdast-util-gfm-strikethrough-2.0.1.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "mdast-util-gfm-table",
+      "version": "2.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-gfm-table/-/mdast-util-gfm-table-2.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "section": 44
+    },
+    {
+      "package": "markdown-table",
+      "version": "3.0.4",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/markdown-table/-/markdown-table-3.0.4.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "mdast-util-gfm-task-list-item",
+      "version": "2.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/mdast-util-gfm-task-list-item/-/mdast-util-gfm-task-list-item-2.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "section": 44
+    },
+    {
+      "package": "micromark-extension-gfm",
+      "version": "3.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-extension-gfm/-/micromark-extension-gfm-3.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "section": 44
+    },
+    {
+      "package": "micromark-extension-gfm-autolink-literal",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-extension-gfm-autolink-literal/-/micromark-extension-gfm-autolink-literal-2.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "section": 44
+    },
+    {
+      "package": "micromark-extension-gfm-footnote",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-extension-gfm-footnote/-/micromark-extension-gfm-footnote-2.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "807a88522a850092aece49486207c17c313c4d5708ac276524840fe1caa0b0fa",
+      "section": 46
+    },
+    {
+      "package": "micromark-extension-gfm-strikethrough",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-extension-gfm-strikethrough/-/micromark-extension-gfm-strikethrough-2.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "section": 44
+    },
+    {
+      "package": "micromark-extension-gfm-table",
+      "version": "2.1.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-extension-gfm-table/-/micromark-extension-gfm-table-2.1.2.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "micromark-extension-gfm-tagfilter",
+      "version": "2.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-extension-gfm-tagfilter/-/micromark-extension-gfm-tagfilter-2.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "section": 44
+    },
+    {
+      "package": "micromark-extension-gfm-task-list-item",
+      "version": "2.1.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/micromark-extension-gfm-task-list-item/-/micromark-extension-gfm-task-list-item-2.1.0.tgz#package/license",
+      "file": "license",
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "section": 44
+    },
+    {
+      "package": "remark-parse",
+      "version": "11.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/remark-parse/-/remark-parse-11.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "413654b0a78b98661dce96d2aff2e4d075603d220b8483e28b1aa010ccc138b4",
+      "section": 47
+    },
+    {
+      "package": "remark-stringify",
+      "version": "11.0.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/remark-stringify/-/remark-stringify-11.0.0.tgz#package/license",
+      "file": "license",
+      "sha256": "413654b0a78b98661dce96d2aff2e4d075603d220b8483e28b1aa010ccc138b4",
+      "section": 47
+    },
+    {
+      "package": "remark-rehype",
+      "version": "11.1.2",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/remark-rehype/-/remark-rehype-11.1.2.tgz#package/license",
+      "file": "license",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "section": 8
+    },
+    {
+      "package": "@types/pdfmake",
+      "version": "0.3.3",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@types/pdfmake/-/pdfmake-0.3.3.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "section": 11
+    },
+    {
+      "package": "@types/node",
+      "version": "26.6.5",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@types/node/-/node-26.6.5.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "section": 11
+    },
+    {
+      "package": "undici-types",
+      "version": "8.9.0",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/undici-types/-/undici-types-8.9.0.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27",
+      "section": 48
+    },
+    {
+      "package": "@types/pdfkit",
+      "version": "0.17.7",
+      "license": "MIT",
+      "kind": "installed package notice",
+      "source": "https://registry.npmjs.org/@types/pdfkit/-/pdfkit-0.17.7.tgz#package/LICENSE",
+      "file": "LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+      "section": 11
+    },
+    {
+      "package": "fontkit",
+      "version": "2.0.4",
+      "license": "MIT",
+      "kind": "upstream declaration",
+      "source": "https://raw.githubusercontent.com/foliojs/fontkit/fbf3b9ef21eebd219eb73e666faed573af0fba09/package.json",
+      "file": "fontkit-2.0.4-package.json.txt",
+      "sha256": "49c60605b92316a5d5fe57b9a3bca8950ad9a8beab1cb633d6f29862d1bd163d",
+      "commit": "fbf3b9ef21eebd219eb73e666faed573af0fba09",
+      "section": 49
+    },
+    {
+      "package": "fontkit",
+      "version": "2.0.4",
+      "license": "MIT",
+      "kind": "upstream declaration",
+      "source": "https://raw.githubusercontent.com/foliojs/fontkit/fbf3b9ef21eebd219eb73e666faed573af0fba09/README.md",
+      "file": "fontkit-2.0.4-README.md.txt",
+      "sha256": "8a1cf12d8ae7277f047c3000af7677927f2da9243627223ba5715d40df4979d6",
+      "commit": "fbf3b9ef21eebd219eb73e666faed573af0fba09",
+      "section": 50
+    },
+    {
+      "package": "brotli",
+      "version": "1.3.3",
+      "license": "MIT",
+      "kind": "upstream declaration",
+      "source": "https://raw.githubusercontent.com/devongovett/brotli.js/e36051345f6d27a56e5f39ea70d2f789b8574046/package.json",
+      "file": "brotli.js-1.3.3-package.json.txt",
+      "sha256": "387b47d00ea96cab9b4c521629fbcdc7621053ac061812526f3c69700924cef5",
+      "commit": "e36051345f6d27a56e5f39ea70d2f789b8574046",
+      "section": 51
+    },
+    {
+      "package": "brotli",
+      "version": "1.3.3",
+      "license": "MIT",
+      "kind": "upstream declaration",
+      "source": "https://raw.githubusercontent.com/devongovett/brotli.js/e36051345f6d27a56e5f39ea70d2f789b8574046/readme.md",
+      "file": "brotli.js-1.3.3-readme.md.txt",
+      "sha256": "8a8bac543fccf52a64708ff3315ca2be90e3e4c270634df1e4e4b51f0ee9c5d7",
+      "commit": "e36051345f6d27a56e5f39ea70d2f789b8574046",
+      "section": 52
+    },
+    {
+      "package": "dfa",
+      "version": "1.2.0",
+      "license": "MIT",
+      "kind": "upstream declaration",
+      "source": "https://raw.githubusercontent.com/devongovett/dfa/3f5e603e5082caedabefefdf53e8a6ca3111e966/package.json",
+      "file": "dfa-1.2.0-package.json.txt",
+      "sha256": "96c0ce3cc17b34aabd58fd442157766d9e244cba735e54ee4fe10d7841f0460c",
+      "commit": "3f5e603e5082caedabefefdf53e8a6ca3111e966",
+      "section": 53
+    },
+    {
+      "package": "dfa",
+      "version": "1.2.0",
+      "license": "MIT",
+      "kind": "upstream declaration",
+      "source": "https://raw.githubusercontent.com/devongovett/dfa/3f5e603e5082caedabefefdf53e8a6ca3111e966/README.md",
+      "file": "dfa-1.2.0-README.md.txt",
+      "sha256": "30bd445925aa53205ff7f9afa6a43e21358fab656e471df6e028431aefc426c7",
+      "commit": "3f5e603e5082caedabefefdf53e8a6ca3111e966",
+      "section": 54
+    },
+    {
+      "package": "buffer",
+      "version": "6.0.3",
+      "kind": "embedded dependency license",
+      "source": "https://registry.npmjs.org/buffer/-/buffer-6.0.3.tgz",
+      "integrity": "sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==",
+      "file": "buffer-6.0.3-LICENSE",
+      "sha256": "06bafa45fdad2579ba0e43b0c9b2c6290287c99c4203c300254a462b38a307f6",
+      "sourceMapExactMatches": [
+        "index.js"
+      ],
+      "section": 55
+    },
+    {
+      "package": "core-js",
+      "version": "3.49.0",
+      "kind": "embedded dependency license",
+      "source": "https://registry.npmjs.org/core-js/-/core-js-3.49.0.tgz",
+      "integrity": "sha512-es1U2+YTtzpwkxVLwAFdSpaIMyQaq0PBgm3YD1W3Qpsn1NAmO3KSgZfu+oGSWVu6NvLHoHCV/aYcsE5wiB7ALg==",
+      "file": "core-js-3.49.0-LICENSE",
+      "sha256": "b87653fff2d44426ab5cd4723cee3b1364dc8d35a0acdf098c54689543123bf8",
+      "sourceMapExactMatches": [
+        "internals/a-callable.js",
+        "internals/add-to-unscopables.js",
+        "internals/an-object.js",
+        "internals/array-includes.js",
+        "internals/classof-raw.js",
+        "configurator.js",
+        "internals/copy-constructor-properties.js",
+        "internals/create-non-enumerable-property.js",
+        "internals/create-property-descriptor.js",
+        "internals/define-built-in.js",
+        "internals/define-global-property.js",
+        "internals/descriptors.js",
+        "internals/document-create-element.js",
+        "internals/enum-bug-keys.js",
+        "internals/environment-user-agent.js",
+        "internals/environment-v8-version.js",
+        "modules/es.array.includes.js",
+        "internals/export.js",
+        "internals/fails.js",
+        "internals/function-bind-native.js",
+        "internals/function-call.js",
+        "internals/function-name.js",
+        "internals/function-uncurry-this.js",
+        "internals/get-built-in.js",
+        "internals/get-method.js",
+        "internals/global-this.js",
+        "internals/has-own-property.js",
+        "internals/hidden-keys.js",
+        "internals/html.js",
+        "internals/ie8-dom-define.js",
+        "internals/indexed-object.js",
+        "internals/inspect-source.js",
+        "internals/internal-state.js",
+        "internals/is-array.js",
+        "internals/is-callable.js",
+        "internals/is-forced.js",
+        "internals/is-null-or-undefined.js",
+        "internals/is-object.js",
+        "internals/is-pure.js",
+        "internals/is-symbol.js",
+        "internals/length-of-array-like.js",
+        "internals/make-built-in.js",
+        "internals/math-trunc.js",
+        "internals/object-create.js",
+        "internals/object-define-properties.js",
+        "internals/object-define-property.js",
+        "internals/object-get-own-property-descriptor.js",
+        "internals/object-get-own-property-names.js",
+        "internals/object-get-own-property-symbols.js",
+        "internals/object-is-prototype-of.js",
+        "internals/object-keys-internal.js",
+        "internals/object-keys.js",
+        "internals/object-property-is-enumerable.js",
+        "internals/ordinary-to-primitive.js",
+        "internals/own-keys.js",
+        "internals/require-object-coercible.js",
+        "internals/shared-key.js",
+        "internals/symbol-constructor-detection.js",
+        "internals/to-absolute-index.js",
+        "internals/to-indexed-object.js",
+        "internals/to-integer-or-infinity.js",
+        "internals/to-length.js",
+        "internals/to-object.js",
+        "internals/to-primitive.js",
+        "internals/to-property-key.js",
+        "internals/try-to-string.js",
+        "internals/uid.js",
+        "internals/use-symbol-as-uid.js",
+        "internals/v8-prototype-define-bug.js",
+        "internals/weak-map-basic-detection.js",
+        "internals/well-known-symbol.js"
+      ],
+      "section": 56
+    },
+    {
+      "package": "events",
+      "version": "3.3.0",
+      "kind": "embedded dependency license",
+      "source": "https://registry.npmjs.org/events/-/events-3.3.0.tgz",
+      "integrity": "sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==",
+      "file": "events-3.3.0-LICENSE",
+      "sha256": "631987b7616a325a5b97566c232418481ddf7dbb5ecadefb991e791876cc2599",
+      "sourceMapExactMatches": [
+        "events.js"
+      ],
+      "section": 57
+    },
+    {
+      "package": "expose-loader",
+      "version": "5.0.1",
+      "kind": "embedded dependency license",
+      "source": "https://registry.npmjs.org/expose-loader/-/expose-loader-5.0.1.tgz",
+      "integrity": "sha512-5YPZuszN/eWND/B+xuq5nIpb/l5TV1HYmdO6SubYtHv+HenVw9/6bn33Mm5reY8DNid7AVtbARvyUD34edfCtg==",
+      "file": "expose-loader-5.0.1-LICENSE",
+      "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e",
+      "sourceMapExactMatches": [
+        "dist/runtime/getGlobalThis.js"
+      ],
+      "section": 58
+    },
+    {
+      "package": "file-saver",
+      "version": "2.0.5",
+      "kind": "embedded dependency license",
+      "source": "https://registry.npmjs.org/file-saver/-/file-saver-2.0.5.tgz",
+      "integrity": "sha512-P9bmyZ3h/PRG+Nzga+rbdI4OEpNDzAVyy74uVO9ATgzLK6VtAsYybF/+TOCvrc0MO793d6+42lLyZTw7/ArVzA==",
+      "file": "file-saver-2.0.5-LICENSE.md",
+      "sha256": "2d1d7a93b46e4274355ac2904428707c4ee47ee8c6029fa394ebf405648d3f63",
+      "sourceMapExactMatches": [
+        "src/FileSaver.js"
+      ],
+      "section": 59
+    },
+    {
+      "package": "ieee754",
+      "version": "1.2.1",
+      "kind": "embedded dependency license",
+      "source": "https://registry.npmjs.org/ieee754/-/ieee754-1.2.1.tgz",
+      "integrity": "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==",
+      "file": "ieee754-1.2.1-LICENSE",
+      "sha256": "18d45466ba3253deae04667e267a91ea8de8548f18c1125264d1c9db28194cc1",
+      "sourceMapExactMatches": [
+        "index.js"
+      ],
+      "section": 60
+    },
+    {
+      "package": "process",
+      "version": "0.11.10",
+      "kind": "embedded dependency license",
+      "source": "https://registry.npmjs.org/process/-/process-0.11.10.tgz",
+      "integrity": "sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==",
+      "file": "process-0.11.10-LICENSE",
+      "sha256": "59a400d04c5078579acc27ddd6452c1bdf763f9506e01364700935fbb1a7c91b",
+      "sourceMapExactMatches": [
+        "browser.js"
+      ],
+      "section": 61
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/events/events.js",
+      "sha256": "9ed580a09fdd2e561c0ffc1fb5504c66b9cd72b039ac979d96264436deeca325",
+      "section": 62
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/tslib/tslib.es6.mjs",
+      "sha256": "7932ec89afeb0991d60e50b13194a73eeefba8976f37a03d3e6b64670f833855",
+      "section": 63
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./src/qrEnc.js",
+      "sha256": "c8ebad9a8367323bd4b9aea6ba7724e4929603ea8d967d8a036d438672f8da07",
+      "section": 64
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/brotli/dec/bit_reader.js",
+      "sha256": "fc9d129cb53839e58599b096d99173a5b75698d1fa9a9f5e6a0d1ddd0150cdf9",
+      "section": 65
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/brotli/dec/context.js",
+      "sha256": "1de09f802fcbb69d6796326c20dc90704ab35c85879eac89e1496c73b4ac7a8b",
+      "section": 66
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/brotli/dec/decode.js",
+      "sha256": "64a30a4769143c40f92048731bc51f0882ad7f7d11562bb0fda50f4596043c20",
+      "section": 67
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/brotli/dec/dictionary.js",
+      "sha256": "6df7fa5cbe83def1b5c794a89a12d7282dc547b2d25f4c870c1ec23050ac7062",
+      "section": 68
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/brotli/dec/prefix.js",
+      "sha256": "f5c1adaa1038a1ceefc3e27d550cefa2ec5703a8ee4e5f70971936278ceb20c7",
+      "section": 69
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/brotli/dec/transform.js",
+      "sha256": "067fa5b9eda238384c9ecd38986909b9eeb2e9eead616923b28484af1acc9a02",
+      "section": 70
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/buffer/index.js",
+      "sha256": "968c87c5220e57f44fc00b7c7a1a63faa33e76fcaf7e057ebfa3e34c8a7ef0a3",
+      "section": 71
+    },
+    {
+      "package": "pdfmake embedded source notice",
+      "version": "0.3.12",
+      "kind": "source-map preserved notice",
+      "source": "https://registry.npmjs.org/pdfmake/-/pdfmake-0.3.12.tgz#build/pdfmake.js.map:webpack://pdfmake/./node_modules/file-saver/src/FileSaver.js",
+      "sha256": "c0ea72e3c8d1ef1acefdd07a6ad81b3ada82dd551dd5ee9cba8461b19435ed92",
+      "section": 72
+    },
+    {
+      "package": "SVG-to-PDFKit (vendored in pdfmake)",
+      "version": "b091ebd4e7b7d2310eb1003511cd5de480f7e0e1",
+      "license": "MIT",
+      "kind": "vendored license",
+      "source": "https://github.com/alafr/SVG-to-PDFKit/blob/b091ebd4e7b7d2310eb1003511cd5de480f7e0e1/LICENSE",
+      "sha256": "97a9a454169e8bb54afa875ba1741ac77f2a3b8cfac57e06c7e54f4467776ed8",
+      "section": 73
+    },
+    {
+      "package": "Noto Sans SC",
+      "version": "2.004-H2",
+      "license": "OFL-1.1",
+      "kind": "font notice",
+      "source": "https://github.com/google/fonts/blob/2894aab31764f10f29c421bdfd2340d3b382d384/ofl/notosanssc/OFL.txt",
+      "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9",
+      "section": 74
+    }
+  ]
+}

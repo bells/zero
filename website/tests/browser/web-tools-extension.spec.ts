@@ -1,8 +1,8 @@
 import {test,expect}from'@playwright/test';
 
-test('both new workers compute below a preview base and localized search includes seven tools',async({page})=>{
+test('both new workers compute below a preview base and localized search includes eight tools',async({page})=>{
   await page.route('http://127.0.0.1:4321/zero-preview/**',async route=>{const path=new URL(route.request().url()).pathname.slice('/zero-preview/'.length);await route.fulfill({path:`output/fixtures/preview/${path}${path.endsWith('/')?'index.html':''}`});});
-  await page.goto('/zero-preview/tools/');await page.locator('[data-open-search]').click();await expect(page.locator('[data-search-name]')).toHaveCount(7);
+  await page.goto('/zero-preview/tools/');await page.locator('[data-open-search]').click();await expect(page.locator('[data-search-name]')).toHaveCount(8);
   await page.locator('[data-search-input]').fill('对比');await page.keyboard.press('Enter');await expect(page).toHaveURL(/\/zero-preview\/tools\/diff\/$/);
   await page.locator('[data-diff-source="before"]').fill('before');await page.locator('[data-diff-source="after"]').fill('after');await page.locator('[data-diff-compare]').click();await expect(page.locator('[data-diff-result]')).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content','noindex, nofollow');
@@ -18,4 +18,21 @@ test('comparison defaults to unified on a narrow fresh load and reading can time
   await expect(page.locator('[data-diff-compare]')).toBeDisabled();await expect(page.locator('[data-status]')).toContainText(/5.second/,{timeout:7000});
   await expect(page.locator('[data-diff-source="before"]')).toHaveValue('retained');await expect(page.locator('[data-diff-compare]')).toBeEnabled();
   await page.locator('[data-diff-source="after"]').fill('changed');await page.locator('[data-diff-compare]').click();await expect(page.locator('[data-diff-result]')).toBeVisible();
+});
+
+
+test('Text category survives localized navigation under a base without source or search context', async ({ page }) => {
+  await page.route('http://127.0.0.1:4321/zero-preview/**', async route => {
+    const path = new URL(route.request().url()).pathname.slice('/zero-preview/'.length);
+    await route.fulfill({ path: `output/fixtures/preview/${path}${path.endsWith('/') ? 'index.html' : ''}` });
+  });
+  await page.goto('/zero-preview/tools/?category=text&source=PRIVATE_SOURCE');
+  await expect(page.locator('[data-category="text"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.wt-directory-row:visible')).toHaveCount(1);
+  await expect(page.locator('.wt-directory-row:visible')).toHaveAttribute('href', '/zero-preview/tools/markdown/');
+  await page.locator('[data-directory-search]').fill('PRIVATE_QUERY');
+  await page.getByRole('link', { name: 'Switch to English', exact: true }).click();
+  await expect(page).toHaveURL('http://127.0.0.1:4321/zero-preview/en/tools/?category=text');
+  await expect(page.locator('[data-directory-search]')).toHaveValue('');
+  await expect(page.locator('.wt-directory-row:visible')).toHaveAttribute('href', '/zero-preview/en/tools/markdown/');
 });

@@ -1,3 +1,4 @@
+import { markdownGuides } from './markdown-content.ts';
 import type { Locale } from './site.ts';
 import type { WebTool } from './web-tools.ts';
 
@@ -20,6 +21,7 @@ function imageGuide(locale: Locale, operation: 'convert' | 'watermark' | 'compre
 }
 export const webToolGuides: Record<Locale, Record<WebTool, WebToolGuide>> = {
   zh: {
+    markdown: markdownGuides.zh,
     'image-converter': /* @__PURE__ */ imageGuide('zh', 'convert'),
     'image-watermark': /* @__PURE__ */ imageGuide('zh', 'watermark'),
     'image-compressor': /* @__PURE__ */ imageGuide('zh', 'compress'),
@@ -74,6 +76,7 @@ export const webToolGuides: Record<Locale, Record<WebTool, WebToolGuide>> = {
     },
   },
   en: {
+    markdown: markdownGuides.en,
     'image-converter': /* @__PURE__ */ imageGuide('en', 'convert'),
     'image-watermark': /* @__PURE__ */ imageGuide('en', 'watermark'),
     'image-compressor': /* @__PURE__ */ imageGuide('en', 'compress'),
@@ -131,8 +134,8 @@ export const webToolGuides: Record<Locale, Record<WebTool, WebToolGuide>> = {
 
 export const guideCopy = {
   zh: {
-    directoryTitle: '在线开发与图片工具：JSON、时间戳、Base64、对比与图片处理',
-    description: '免费在线 JSON 格式化与校验、时间戳批量转换、Base64 / URL 编解码、文本与 UTF-8 文件对比，以及图片转换、水印和压缩。浏览器本地处理，无需上传内容。',
+    directoryTitle: '在线开发、图片与文本工具：JSON、时间戳、Base64、对比与 Markdown',
+    description: '八项免费在线工具：JSON 格式化、时间戳批量转换、Base64 / URL 编解码、文本对比、图片转换、水印、压缩和 Markdown 编辑。默认浏览器本地处理；Markdown 可主动开启本机草稿与外部图片。',
     steps: '操作步骤', examples: '输入与输出示例', input: '示例输入', output: '预期输出', limits: '格式与限制',
     agent: '浏览器 Agent 使用说明', actions: '支持的操作', agentInput: '输入方式', agentOutput: '读取结果',
     runtime: '这是浏览器交互工具，不是 HTTP 计算 API。计算需要 JavaScript，首次页面和按需资源加载需要网络。',
@@ -140,8 +143,8 @@ export const guideCopy = {
     entry: '工具入口',
   },
   en: {
-    directoryTitle: 'Online developer and image tools: JSON, timestamps, Base64, diff and images',
-    description: 'Free online JSON formatting and validation, batch timestamp conversion, Base64 / URL encoding and text or UTF-8 file comparison, plus image conversion, watermarks and compression. Local browser processing without content uploads.',
+    directoryTitle: 'Online developer, image and text tools: JSON, timestamps, Base64, diff and Markdown',
+    description: 'Eight free online tools: JSON formatting, batch timestamps, Base64 / URL encoding, text diff, image conversion, watermarks, compression and Markdown editing. Local by default; Markdown offers opt-in browser drafts and external images.',
     steps: 'How to use', examples: 'Input and output examples', input: 'Example input', output: 'Expected output', limits: 'Formats and limits',
     agent: 'Browser agent usage', actions: 'Supported operations', agentInput: 'Input method', agentOutput: 'Reading results',
     runtime: 'These are interactive browser tools, not HTTP computation APIs. Computation requires JavaScript; initial page and on-demand asset loading need a network.',

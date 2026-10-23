@@ -37,16 +37,19 @@ for (const locale of ['zh', 'en'] as const) {
 
 for (const locale of ['zh', 'en'] as const) {
   const prefix = locale === 'en' ? '/en' : '';
-  test(`${locale} category-local query stays in memory and all-search covers seven tools`, async ({ page, browser }) => {
+  test(`${locale} category-local query stays in memory and all-search covers eight tools`, async ({ page, browser }) => {
     const query = 'JSON_PRIVATE_DISCOVERY';
     await page.goto(`${prefix}/tools/?category=image&search=discarded`);
     await expect(page.locator('[data-category="image"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.wt-directory-row:visible')).toHaveCount(3);
-    await page.locator('[data-directory-search]').fill('JSON');
+    await page.locator('[data-directory-search]').fill('Markdown');
     await expect(page.locator('[data-directory-empty]')).toBeVisible();
     await page.locator('[data-category-recover]').click();
-    await expect(page.locator('[data-directory-search]')).toHaveValue('JSON');
+    await expect(page.locator('[data-directory-search]')).toHaveValue('Markdown');
     await expect(page.locator('.wt-directory-row:visible')).toHaveCount(1);
+    await expect(page.locator('.wt-directory-row:visible')).toHaveAttribute('data-directory-category', 'text');
+    await page.locator('[data-category="text"]').click();
+    await expect(page.locator('[data-language]')).toHaveAttribute('href', /\?category=text$/);
     await page.locator('[data-directory-search]').fill(query);
     await page.locator('[data-category="image"]').click();
     const language = await page.locator('[data-language]').getAttribute('href');
@@ -55,17 +58,17 @@ for (const locale of ['zh', 'en'] as const) {
     expect(language).not.toContain('search=');
     expect(await page.locator('link[rel="canonical"]').getAttribute('href')).not.toContain('?');
     await page.keyboard.press('Control+k');
-    await expect(page.locator('[data-search-name]:visible')).toHaveCount(7);
+    await expect(page.locator('[data-search-name]:visible')).toHaveCount(8);
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-directory-search]')).toHaveValue(query);
     expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(query);
     await page.goto(`${prefix}/tools/?category=unknown`);
     await expect(page.locator('[data-category="all"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.wt-directory-row:visible')).toHaveCount(7);
+    await expect(page.locator('.wt-directory-row:visible')).toHaveCount(8);
     const plain = await browser.newContext({ javaScriptEnabled: false });
     const nojs = await plain.newPage();
     await nojs.goto(`${prefix}/tools/?category=image`);
-    await expect(nojs.locator('.wt-directory-row')).toHaveCount(7);
+    await expect(nojs.locator('.wt-directory-row')).toHaveCount(8);
     await expect(nojs.locator('[data-directory-search]')).toBeHidden();
     await plain.close();
   });

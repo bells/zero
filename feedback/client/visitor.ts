@@ -5,6 +5,7 @@ import {
   parseCreate,
   type FrameMessage,
   type PublicFeedback,
+  type ThreadId,
 } from "../shared/contracts.ts";
 import {
   element,
@@ -110,13 +111,17 @@ if (
   root.append(element("p", c.errors.invalid_input));
   message({ version: 1, type: "error", code: "unavailable" });
 } else {
-  const subjects = zh
+  const subjects: Record<ThreadId, string> = zh
     ? {
         tools: "工具箱建议与新工具需求",
         "tools/timestamp": "时间戳转换",
         "tools/json": "JSON 工具",
         "tools/base64": "Base64 / URL 工具",
         "tools/diff": "文本对比",
+        "tools/image-converter": "图片格式转换",
+        "tools/image-watermark": "图片文字水印",
+        "tools/image-compressor": "图片压缩",
+        "tools/markdown": "Markdown 编辑器",
       }
     : {
         tools: "Toolbox suggestions and new tools",
@@ -124,6 +129,10 @@ if (
         "tools/json": "JSON tools",
         "tools/base64": "Base64 / URL tools",
         "tools/diff": "Text comparison",
+        "tools/image-converter": "Image converter",
+        "tools/image-watermark": "Image text watermark",
+        "tools/image-compressor": "Image compressor",
+        "tools/markdown": "Markdown editor",
       };
   root.append(
     element("p", subjects[subject]),

@@ -17,7 +17,7 @@
 .wt-bar { padding: 16px 0; border-block: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .wt-settings { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .wt-breadcrumb { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
-.wt-breadcrumb a { display: inline-flex; align-items: center; min-height: 44px; border-radius: 4px; }
+.wt-breadcrumb a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; border-radius: 4px; }
 .wt-breadcrumb > span, .wt-breadcrumb a:last-child { color: var(--muted); font-size: 15px; font-weight: 400; letter-spacing: normal; }
 .wt kbd { font: 11px var(--mono); margin-left: 12px; color: var(--muted); }
 .wt-heading { padding: 24px 0; }

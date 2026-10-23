@@ -7,6 +7,7 @@ export const threads = [
   "tools/image-converter",
   "tools/image-watermark",
   "tools/image-compressor",
+  "tools/markdown",
 ] as const;
 export type ThreadId = (typeof threads)[number];
 export type Locale = "zh" | "en";

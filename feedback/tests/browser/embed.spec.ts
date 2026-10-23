@@ -1,5 +1,30 @@
 import { test, expect } from "@playwright/test";
 const parentOrigin = "http://127.0.0.1:4321";
+for (const locale of ["zh", "en"] as const) {
+  test(`${locale} Markdown feedback loads its shared thread only after a click with no document context`, async ({ page }) => {
+    const requests: { url: string; body: string; referrer: string }[] = [];
+    await page.route("http://127.0.0.1:4323/**", async (route) => {
+      const request = route.request();
+      requests.push({ url: request.url(), body: request.postData() || "", referrer: request.headers().referer || "" });
+      await route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Synthetic feedback</title>" });
+    });
+    await page.goto(`${parentOrigin}/feedback-review/${locale === "en" ? "en/" : ""}tools/markdown/`);
+    const marker = "SYNTHETIC_MARKDOWN_PRIVATE_9520";
+    await page.locator("textarea").first().fill(`# ${marker}\n\nPrivate source`);
+    await expect(page.locator("iframe")).toHaveCount(0);
+    expect(requests).toEqual([]);
+    await page.getByRole("button", { name: locale === "en" ? "Open feedback" : "展开反馈", exact: true }).click();
+    await expect(page.locator("iframe")).toHaveAttribute("src", `http://127.0.0.1:4323/?threadId=tools%2Fmarkdown&locale=${locale}`);
+    await expect.poll(() => requests.length).toBe(1);
+    expect([...new URL(requests[0]!.url).searchParams.keys()].sort()).toEqual(["locale", "threadId"]);
+    expect(requests[0]!.body).toBe("");
+    expect(requests[0]!.referrer).toBe("");
+    expect(JSON.stringify(requests)).not.toContain(marker);
+    await page.getByRole("button", { name: locale === "en" ? "Close feedback" : "关闭反馈", exact: true }).click();
+    await expect(page.locator("iframe")).toHaveCount(0);
+    await expect(page.locator("textarea").first()).toHaveValue(new RegExp(marker));
+  });
+}
 test("real separate-origin iframe loads only on click, excludes tool markers and survives close and blocked storage", async ({
   page,
   context,

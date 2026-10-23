@@ -6,6 +6,8 @@
 
 2026-10-19 Snap 标注增量：macOS 编辑器增加六工具属性面板、单对象移动/缩放/端点与文字重编辑、事务式撤销重做，以及独立的样式默认值存储。预览和 PNG 共用整体透明度与马赛克合成，OCR/raw IPC 边界保持原样；属性文案随 capture 懒加载。维护入口见[截图编辑器地图](../src/plugins/screenshot/capture/README.md)，自动验证、包体对照、审查修复和未完成实机门禁见[本次记录](../openspec/changes/enhance-snap-annotation-editing/evidence/implementation.md)。本次真实 debug 主窗口可访问，但截图启动返回“打开失败: [object Object]”，未进入编辑器；不能据浏览器合成测试宣称原生颜色/输入法、Copy/Save/Pin、多屏或应用重启已验收。Windows 仍为系统截图启动器。本轮按用户后续授权作本地提交，未推送、同步、归档或发布。
 
+2026-10-22 官网 Markdown 增量：双语在线工具扩为八项，新增文本分类与单篇 Markdown 编辑工作区，提供源码/预览/分屏、主动本机草稿、授权图片及 Markdown/独立 HTML/文字型中文 PDF 直接下载。语义解析和 PDF 走可终止 Worker，字体和 PDF 按操作从本站懒加载；原有七工具隐私和分类不变。2026-10-23 已通过 122 项 Chrome 浏览器回归和真实 Safari 27.0.1 代表性桌面流程；当前状态与检查见[官网指南](website.md)和[实施记录](../openspec/changes/add-web-markdown-editor/evidence/implementation.md)。真实 iPhone、部署与桌面交付仍保持独立边界；提交和推送以 Git 记录为准，未同步或归档。
+
 2026-10-18 官网图片增量：双语在线工具扩为七项，目录提供开发/图片分类与分类内搜索，全工具搜索继续覆盖七项；新增本地批量转换、水印和压缩工作台。共享纯 TS 队列、可终止顺序 Worker、有界选中项预览、真实格式导出与成功项 ZIP 已接入；PNG 元数据清理兼顾透明像素和 16 位方向样本，HEIC 解码器保持独立可替换资源并附完整来源/许可材料。当前限额是可执行的保守候选，48MP 提前拒绝；Safari、相机原片及手机进程内存仍是未完成验收。入口、构建材料与范围见[官网指南](website.md)和[本次实施记录](../openspec/changes/add-web-image-tools-and-categories/evidence/implementation-2026-10-18.md)。本轮不涉及桌面功能、同步、归档或部署；本地提交另经用户授权执行。
 
 2026-10-17 官网反馈增量：新增独立 GPL v2 `feedback/` 服务，以固定 Waline core 复用认证/审核/导出；官网目录及四工具的十个双语页面仅在主动点击后加载异源 iframe。匿名纯文本全量待审，站长审核/回复、私密导出与隔离恢复已有本地合成数据验收；工具计算层不依赖服务。入口默认关闭，空闲时来源摘要物理清理期限、云端套餐/费用/保留/部署、Safari 仍待独立验收。维护见[反馈 README](../feedback/README.md)及[官网指南](website.md)，证据见[本次记录](../openspec/changes/add-web-tools-feedback/evidence/implementation.md)。没有提交、推送、部署或更改桌面功能。

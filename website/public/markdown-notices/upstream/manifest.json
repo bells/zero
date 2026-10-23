@@ -1,0 +1,216 @@
+[
+  {
+    "package": "fontkit",
+    "version": "2.0.4",
+    "license": "MIT",
+    "kind": "upstream declaration",
+    "source": "https://raw.githubusercontent.com/foliojs/fontkit/fbf3b9ef21eebd219eb73e666faed573af0fba09/package.json",
+    "file": "fontkit-2.0.4-package.json.txt",
+    "sha256": "49c60605b92316a5d5fe57b9a3bca8950ad9a8beab1cb633d6f29862d1bd163d",
+    "commit": "fbf3b9ef21eebd219eb73e666faed573af0fba09"
+  },
+  {
+    "package": "fontkit",
+    "version": "2.0.4",
+    "license": "MIT",
+    "kind": "upstream declaration",
+    "source": "https://raw.githubusercontent.com/foliojs/fontkit/fbf3b9ef21eebd219eb73e666faed573af0fba09/README.md",
+    "file": "fontkit-2.0.4-README.md.txt",
+    "sha256": "8a1cf12d8ae7277f047c3000af7677927f2da9243627223ba5715d40df4979d6",
+    "commit": "fbf3b9ef21eebd219eb73e666faed573af0fba09"
+  },
+  {
+    "package": "brotli",
+    "version": "1.3.3",
+    "license": "MIT",
+    "kind": "upstream declaration",
+    "source": "https://raw.githubusercontent.com/devongovett/brotli.js/e36051345f6d27a56e5f39ea70d2f789b8574046/package.json",
+    "file": "brotli.js-1.3.3-package.json.txt",
+    "sha256": "387b47d00ea96cab9b4c521629fbcdc7621053ac061812526f3c69700924cef5",
+    "commit": "e36051345f6d27a56e5f39ea70d2f789b8574046"
+  },
+  {
+    "package": "brotli",
+    "version": "1.3.3",
+    "license": "MIT",
+    "kind": "upstream declaration",
+    "source": "https://raw.githubusercontent.com/devongovett/brotli.js/e36051345f6d27a56e5f39ea70d2f789b8574046/readme.md",
+    "file": "brotli.js-1.3.3-readme.md.txt",
+    "sha256": "8a8bac543fccf52a64708ff3315ca2be90e3e4c270634df1e4e4b51f0ee9c5d7",
+    "commit": "e36051345f6d27a56e5f39ea70d2f789b8574046"
+  },
+  {
+    "package": "dfa",
+    "version": "1.2.0",
+    "license": "MIT",
+    "kind": "upstream declaration",
+    "source": "https://raw.githubusercontent.com/devongovett/dfa/3f5e603e5082caedabefefdf53e8a6ca3111e966/package.json",
+    "file": "dfa-1.2.0-package.json.txt",
+    "sha256": "96c0ce3cc17b34aabd58fd442157766d9e244cba735e54ee4fe10d7841f0460c",
+    "commit": "3f5e603e5082caedabefefdf53e8a6ca3111e966"
+  },
+  {
+    "package": "dfa",
+    "version": "1.2.0",
+    "license": "MIT",
+    "kind": "upstream declaration",
+    "source": "https://raw.githubusercontent.com/devongovett/dfa/3f5e603e5082caedabefefdf53e8a6ca3111e966/README.md",
+    "file": "dfa-1.2.0-README.md.txt",
+    "sha256": "30bd445925aa53205ff7f9afa6a43e21358fab656e471df6e028431aefc426c7",
+    "commit": "3f5e603e5082caedabefefdf53e8a6ca3111e966"
+  },
+  {
+    "package": "buffer",
+    "version": "6.0.3",
+    "kind": "embedded dependency license",
+    "source": "https://registry.npmjs.org/buffer/-/buffer-6.0.3.tgz",
+    "integrity": "sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==",
+    "file": "buffer-6.0.3-LICENSE",
+    "sha256": "06bafa45fdad2579ba0e43b0c9b2c6290287c99c4203c300254a462b38a307f6",
+    "sourceMapExactMatches": [
+      "index.js"
+    ]
+  },
+  {
+    "package": "core-js",
+    "version": "3.49.0",
+    "kind": "embedded dependency license",
+    "source": "https://registry.npmjs.org/core-js/-/core-js-3.49.0.tgz",
+    "integrity": "sha512-es1U2+YTtzpwkxVLwAFdSpaIMyQaq0PBgm3YD1W3Qpsn1NAmO3KSgZfu+oGSWVu6NvLHoHCV/aYcsE5wiB7ALg==",
+    "file": "core-js-3.49.0-LICENSE",
+    "sha256": "b87653fff2d44426ab5cd4723cee3b1364dc8d35a0acdf098c54689543123bf8",
+    "sourceMapExactMatches": [
+      "internals/a-callable.js",
+      "internals/add-to-unscopables.js",
+      "internals/an-object.js",
+      "internals/array-includes.js",
+      "internals/classof-raw.js",
+      "configurator.js",
+      "internals/copy-constructor-properties.js",
+      "internals/create-non-enumerable-property.js",
+      "internals/create-property-descriptor.js",
+      "internals/define-built-in.js",
+      "internals/define-global-property.js",
+      "internals/descriptors.js",
+      "internals/document-create-element.js",
+      "internals/enum-bug-keys.js",
+      "internals/environment-user-agent.js",
+      "internals/environment-v8-version.js",
+      "modules/es.array.includes.js",
+      "internals/export.js",
+      "internals/fails.js",
+      "internals/function-bind-native.js",
+      "internals/function-call.js",
+      "internals/function-name.js",
+      "internals/function-uncurry-this.js",
+      "internals/get-built-in.js",
+      "internals/get-method.js",
+      "internals/global-this.js",
+      "internals/has-own-property.js",
+      "internals/hidden-keys.js",
+      "internals/html.js",
+      "internals/ie8-dom-define.js",
+      "internals/indexed-object.js",
+      "internals/inspect-source.js",
+      "internals/internal-state.js",
+      "internals/is-array.js",
+      "internals/is-callable.js",
+      "internals/is-forced.js",
+      "internals/is-null-or-undefined.js",
+      "internals/is-object.js",
+      "internals/is-pure.js",
+      "internals/is-symbol.js",
+      "internals/length-of-array-like.js",
+      "internals/make-built-in.js",
+      "internals/math-trunc.js",
+      "internals/object-create.js",
+      "internals/object-define-properties.js",
+      "internals/object-define-property.js",
+      "internals/object-get-own-property-descriptor.js",
+      "internals/object-get-own-property-names.js",
+      "internals/object-get-own-property-symbols.js",
+      "internals/object-is-prototype-of.js",
+      "internals/object-keys-internal.js",
+      "internals/object-keys.js",
+      "internals/object-property-is-enumerable.js",
+      "internals/ordinary-to-primitive.js",
+      "internals/own-keys.js",
+      "internals/require-object-coercible.js",
+      "internals/shared-key.js",
+      "internals/symbol-constructor-detection.js",
+      "internals/to-absolute-index.js",
+      "internals/to-indexed-object.js",
+      "internals/to-integer-or-infinity.js",
+      "internals/to-length.js",
+      "internals/to-object.js",
+      "internals/to-primitive.js",
+      "internals/to-property-key.js",
+      "internals/try-to-string.js",
+      "internals/uid.js",
+      "internals/use-symbol-as-uid.js",
+      "internals/v8-prototype-define-bug.js",
+      "internals/weak-map-basic-detection.js",
+      "internals/well-known-symbol.js"
+    ]
+  },
+  {
+    "package": "events",
+    "version": "3.3.0",
+    "kind": "embedded dependency license",
+    "source": "https://registry.npmjs.org/events/-/events-3.3.0.tgz",
+    "integrity": "sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==",
+    "file": "events-3.3.0-LICENSE",
+    "sha256": "631987b7616a325a5b97566c232418481ddf7dbb5ecadefb991e791876cc2599",
+    "sourceMapExactMatches": [
+      "events.js"
+    ]
+  },
+  {
+    "package": "expose-loader",
+    "version": "5.0.1",
+    "kind": "embedded dependency license",
+    "source": "https://registry.npmjs.org/expose-loader/-/expose-loader-5.0.1.tgz",
+    "integrity": "sha512-5YPZuszN/eWND/B+xuq5nIpb/l5TV1HYmdO6SubYtHv+HenVw9/6bn33Mm5reY8DNid7AVtbARvyUD34edfCtg==",
+    "file": "expose-loader-5.0.1-LICENSE",
+    "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e",
+    "sourceMapExactMatches": [
+      "dist/runtime/getGlobalThis.js"
+    ]
+  },
+  {
+    "package": "file-saver",
+    "version": "2.0.5",
+    "kind": "embedded dependency license",
+    "source": "https://registry.npmjs.org/file-saver/-/file-saver-2.0.5.tgz",
+    "integrity": "sha512-P9bmyZ3h/PRG+Nzga+rbdI4OEpNDzAVyy74uVO9ATgzLK6VtAsYybF/+TOCvrc0MO793d6+42lLyZTw7/ArVzA==",
+    "file": "file-saver-2.0.5-LICENSE.md",
+    "sha256": "2d1d7a93b46e4274355ac2904428707c4ee47ee8c6029fa394ebf405648d3f63",
+    "sourceMapExactMatches": [
+      "src/FileSaver.js"
+    ]
+  },
+  {
+    "package": "ieee754",
+    "version": "1.2.1",
+    "kind": "embedded dependency license",
+    "source": "https://registry.npmjs.org/ieee754/-/ieee754-1.2.1.tgz",
+    "integrity": "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==",
+    "file": "ieee754-1.2.1-LICENSE",
+    "sha256": "18d45466ba3253deae04667e267a91ea8de8548f18c1125264d1c9db28194cc1",
+    "sourceMapExactMatches": [
+      "index.js"
+    ]
+  },
+  {
+    "package": "process",
+    "version": "0.11.10",
+    "kind": "embedded dependency license",
+    "source": "https://registry.npmjs.org/process/-/process-0.11.10.tgz",
+    "integrity": "sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==",
+    "file": "process-0.11.10-LICENSE",
+    "sha256": "59a400d04c5078579acc27ddd6452c1bdf763f9506e01364700935fbb1a7c91b",
+    "sourceMapExactMatches": [
+      "browser.js"
+    ]
+  }
+]

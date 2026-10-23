@@ -4,6 +4,7 @@ import Feedback from './Feedback.astro';
 import { getFeedbackConfiguration } from '../../lib/feedback/config';
 import { siteOrigin } from '../../content/seo';
 import TimestampWorkspace from './TimestampWorkspace.astro';
+import MarkdownWorkspace from './MarkdownWorkspace.astro';
 import DiffWorkspace from './DiffWorkspace.astro';
 import Layout from '../../layouts/Layout.astro';
 import { webCopy, webTools, webReviewedAt, webCategories, categoryLabels, type WebTool } from '../../content/web-tools';
@@ -19,6 +20,7 @@ const g = guideCopy[locale];
 const details = webTools[locale].find((entry) => entry.slug === tool);
 const page = tool ? `tools/${tool}` : 'tools';
 const title = details?.title ?? c.directory;
+const privacy = !tool ? c.directoryPrivacy : tool === 'markdown' ? c.markdownPrivacy : c.privacy;
 const feedback = getFeedbackConfiguration({ ...process.env, SITE_PREVIEW: import.meta.env.SITE_PREVIEW, VERCEL_ENV: import.meta.env.VERCEL_ENV }, siteOrigin);
 const available = catalog.packages.some((entry) => entry.profile === 'standard');
 ---
@@ -58,17 +60,17 @@ const available = catalog.packages.some((entry) => entry.profile === 'standard')
     {!tool ? <>
       <p data-directory-empty hidden>{locale === 'zh' ? '当前分类没有匹配工具。' : 'No tools match in this category.'} <button type="button" data-category-recover>{locale === 'zh' ? '搜索全部分类' : 'Search all categories'}</button></p>
       <div class="wt-directory">{webTools[locale].map((entry) => <a href={path(locale, `tools/${entry.slug}`)} class="wt-directory-row" data-directory-category={entry.category} data-directory-name={`${entry.slug} ${entry.title} ${entry.description}`}>
-        <div class="wt-card-heading"><span class="wt-tool-symbol" aria-hidden="true">{{ timestamp: '↔', json: '{ }', base64: 'A/', diff: '±', 'image-converter': '⇄', 'image-watermark': '©', 'image-compressor': '↓' }[entry.slug]}</span><h2>{entry.title}</h2><small>{categories[entry.category]}</small></div>
+        <div class="wt-card-heading"><span class="wt-tool-symbol" aria-hidden="true">{{ timestamp: '↔', json: '{ }', base64: 'A/', diff: '±', 'image-converter': '⇄', 'image-watermark': '©', 'image-compressor': '↓', markdown: 'M↓' }[entry.slug]}</span><h2>{entry.title}</h2><small>{categories[entry.category]}</small></div>
         <p>{entry.description}</p>
         <div class="wt-card-footer"><code>{entry.example}</code><span aria-hidden="true">↗</span></div>
       </a>)}</div>
-      <section class="wt-guidance"><h2>{c.desktop}</h2><nav class="wt-desktop-links" aria-label={c.desktop}>{toolSlugs.map((slug) => <a href={path(locale, `tools/${slug}`)}>Zero {slug.charAt(0).toUpperCase() + slug.slice(1)} ↗</a>)}</nav><p>{c.directoryLimits}</p><p>{c.privacy}</p></section>
+      <section class="wt-guidance"><h2>{c.desktop}</h2><nav class="wt-desktop-links" aria-label={c.desktop}>{toolSlugs.map((slug) => <a href={path(locale, `tools/${slug}`)}>Zero {slug.charAt(0).toUpperCase() + slug.slice(1)} ↗</a>)}</nav><p>{c.directoryLimits}</p><p>{privacy}</p></section>
       <section class="wt-faq"><h2>{c.faq}</h2>{c.directoryFaq.map((item) => <details><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>
     </> : <>
-      <fieldset class="wt-workspace" data-interactive disabled aria-label={title}>
+      <fieldset class:list={["wt-workspace", { "wt-markdown-shell": tool === "markdown" }]} data-interactive disabled aria-label={title}>
         {tool === 'timestamp' ? <>
           <TimestampWorkspace locale={locale} />
-        </> : tool === 'diff' ? <DiffWorkspace locale={locale} /> : (tool === 'image-converter' || tool === 'image-watermark' || tool === 'image-compressor') ? <ImageWorkspace locale={locale} tool={tool} /> : <>
+        </> : tool === 'diff' ? <DiffWorkspace locale={locale} /> : tool === 'markdown' ? <MarkdownWorkspace locale={locale} /> : (tool === 'image-converter' || tool === 'image-watermark' || tool === 'image-compressor') ? <ImageWorkspace locale={locale} tool={tool} /> : <>
           {tool === 'base64' && <div class="wt-codec-controls"><label>{c.mode}<select data-mode><option value="text">{c.text}</option><option value="url">{c.url}</option><option value="image">{c.image}</option></select></label><label data-file-label hidden>{c.file}<input type="file" data-file accept="image/png,image/jpeg,image/webp" /></label></div>}
           <div class="wt-editor-columns"><div class="wt-editor-pane"><div class="wt-pane-label"><label for="tool-input">{c.source}</label>{tool === 'json' && <button type="button" data-editor-enable>{c.enhance}</button>}</div><textarea id="tool-input" data-source spellcheck="false" autocomplete="off" placeholder={details?.example}></textarea><div data-editor-host hidden></div></div><div class="wt-editor-pane"><label for="tool-output">{c.output}</label><textarea id="tool-output" data-output readonly spellcheck="false" placeholder={c.ready}></textarea></div></div>
           <div class="wt-actions">
@@ -90,8 +92,9 @@ const available = catalog.packages.some((entry) => entry.profile === 'standard')
             <figcaption>{example.name}</figcaption>
             <dl><dt>{g.input}</dt><dd><pre><code>{example.input}</code></pre></dd><dt>{g.output}</dt><dd><pre><code>{example.output}</code></pre></dd></dl>
           </figure>)}
+          {tool === 'markdown' && <p><a href={`${import.meta.env.BASE_URL}markdown-notices/THIRD-PARTY-NOTICES.txt`}>{locale === 'zh' ? 'Markdown、PDF 与中文字体的第三方许可及来源' : 'Markdown, PDF and Chinese font licenses and sources'}</a></p>}
           {details.category === 'image' && <p><a href={`${import.meta.env.BASE_URL}image-codecs/materials/THIRD_PARTY_NOTICES.md`}>{locale === 'zh' ? '图片编解码器许可、对应源码与 LGPL 使用、替换和重建权利' : 'Image codec licenses, corresponding source and LGPL usage, replacement and rebuild rights'}</a></p>}
-          <h3>{g.limits}</h3><ul>{details.notes.map((note) => <li>{note}</li>)}</ul><p>{c.privacy}</p>
+          <h3>{g.limits}</h3><ul>{details.notes.map((note) => <li>{note}</li>)}</ul><p>{privacy}</p>
         </section>
         <section class="wt-guidance" aria-labelledby="agent-usage">
           <h2 id="agent-usage">{g.agent}</h2><p>{g.runtime}</p>

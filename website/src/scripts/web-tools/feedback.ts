@@ -27,6 +27,7 @@ for (const root of document.querySelectorAll<HTMLElement>("[data-feedback]")) {
       "tools/image-converter",
       "tools/image-watermark",
       "tools/image-compressor",
+      "tools/markdown",
     ].includes(thread || "") ||
     !["zh", "en"].includes(locale || "")
   )

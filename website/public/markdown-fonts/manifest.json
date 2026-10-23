@@ -1,0 +1,29 @@
+{
+  "family": "Noto Sans SC",
+  "upstream": "https://raw.githubusercontent.com/google/fonts/2894aab31764f10f29c421bdfd2340d3b382d384/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf",
+  "sourceSha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+  "license": "SIL Open Font License 1.1; see OFL.txt",
+  "licenseSha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9",
+  "preparation": "fonttools==4.60.1; full cmap, no character subset; static wght=400/700; recalcTimestamp=False; website/scripts/prepare-markdown-fonts.mjs",
+  "scope": "Chinese/Latin BMP code points present in cmap only. Supplementary-plane characters including emoji fail explicitly because pdfmake 0.3 break-all splits UTF-16 code units. Italics use upright regular/bold because upstream has no italic faces.",
+  "fonts": [
+    {
+      "file": "NotoSansSC-Regular.ttf",
+      "weight": 400,
+      "bytes": 10595948,
+      "sha256": "b7bebb49c3c6b0266362cf75dd9bdd9bf5fbe5fb390be8f7808ebedef376de76",
+      "cmapCodePoints": 30890,
+      "bmpCodePoints": 30445,
+      "embeddingFsType": 0
+    },
+    {
+      "file": "NotoSansSC-Bold.ttf",
+      "weight": 700,
+      "bytes": 10585504,
+      "sha256": "984cc8f1b8463689f39f653c783188a3914b2ea4bc084db240569d5e6473d035",
+      "cmapCodePoints": 30890,
+      "bmpCodePoints": 30445,
+      "embeddingFsType": 0
+    }
+  ]
+}

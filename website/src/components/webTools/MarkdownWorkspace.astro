@@ -1,0 +1,35 @@
+---
+import type { Locale } from '../../content/site';
+import '../../styles/markdown-workspace.css';
+const { locale } = Astro.props as { locale: Locale };
+const zh = locale === 'zh';
+const words = zh ? { source: 'Markdown 源码', preview: '预览', split: '分屏', open: '打开文件', copy: '复制源码', clear: '清空文档', enhance: '启用增强编辑', full: '展开工作区', exit: '退出全屏', undo: '撤销', redo: '重做', search: '查找替换', sync: '同步滚动', outline: '标题目录', draft: '在此浏览器保存草稿', restore: '恢复本地草稿', remove: '删除本地草稿', images: '外部图片', print: '打印', cancel: '取消处理' } : { source: 'Markdown source', preview: 'Preview', split: 'Split', open: 'Open file', copy: 'Copy source', clear: 'Clear document', enhance: 'Enable enhanced editing', full: 'Expand workspace', exit: 'Exit fullscreen', undo: 'Undo', redo: 'Redo', search: 'Find and replace', sync: 'Sync scrolling', outline: 'Heading outline', draft: 'Save draft in this browser', restore: 'Restore local draft', remove: 'Delete local draft', images: 'External images', print: 'Print', cancel: 'Cancel processing' };
+---
+<section class="md-workspace" data-markdown data-mode="split" aria-label={zh ? 'Markdown 编辑工作区' : 'Markdown editing workspace'}>
+  <div class="md-command-bar">
+    <div class="md-modes" role="group" aria-label={zh ? '编辑模式' : 'Editor mode'}>
+      <button type="button" data-md-mode="source" aria-pressed="false">{zh ? '源码' : 'Source'}</button>
+      <button type="button" data-md-mode="preview" aria-pressed="false">{words.preview}</button>
+      <button type="button" data-md-mode="split" aria-pressed="true">{words.split}</button>
+    </div>
+    <div class="md-file-actions">
+      <label class="md-file-button">{words.open}<input type="file" data-md-file accept=".md,.markdown,.txt,text/markdown,text/plain" /></label>
+      <button type="button" data-md-expand aria-expanded="false">{words.full}</button>
+      <button type="button" data-md-exit hidden>{words.exit}</button>
+    </div>
+  </div>
+  <div class="md-format-bar" role="group" aria-label={zh ? 'Markdown 格式' : 'Markdown formatting'}>
+    {[['bold', '**', '**', 'B', zh ? '加粗' : 'Bold'], ['italic', '*', '*', 'I', zh ? '斜体' : 'Italic'], ['heading', '## ', '', 'H2', zh ? '二级标题' : 'Heading 2'], ['quote', '> ', '', '❯', zh ? '引用' : 'Quote'], ['list', '- ', '', '•', zh ? '无序列表' : 'Bullet list'], ['task', '- [ ] ', '', '☐', zh ? '任务列表' : 'Task list'], ['link', '[', '](https://example.com)', zh ? '链接' : 'Link', zh ? '插入链接' : 'Insert link'], ['code', '\n```\n', '\n```\n', '</>', zh ? '代码块' : 'Code block'], ['table', '\n| A | B |\n| --- | --- |\n| ', ' | |\n', zh ? '表格' : 'Table', zh ? '插入表格' : 'Insert table']].map(([key, before, after, label, title]) => <button type="button" data-md-format={key} data-before={before} data-after={after} aria-label={title} title={title}>{label}</button>)}
+    <span class="md-toolbar-divider" aria-hidden="true"></span>
+    <button type="button" data-md-command="undo">{words.undo}</button><button type="button" data-md-command="redo">{words.redo}</button><button type="button" data-md-command="search">{words.search}</button>
+    <button type="button" data-md-enhance>{words.enhance}</button>
+  </div>
+  <div class="md-panes">
+    <div class="md-source-pane"><label for="markdown-source">{words.source}</label><textarea id="markdown-source" data-md-source spellcheck="false" autocomplete="off" placeholder={zh ? '# 从这里开始写作\n\n支持 Markdown 与 GFM。' : '# Start writing here\n\nMarkdown and GFM supported.'}></textarea><div data-md-editor hidden></div></div>
+    <div class="md-preview-pane"><div class="md-pane-caption"><span>{words.preview}</span><label><input type="checkbox" data-md-sync checked />{words.sync}</label></div><article class="md-document" data-md-preview tabindex="0" aria-label={zh ? 'Markdown 文档预览' : 'Markdown document preview'}><p class="md-empty">{zh ? '写下第一行，预览会显示在这里。' : 'Write your first line to see the preview here.'}</p></article></div>
+  </div>
+  <div class="md-document-bar"><output data-md-count aria-live="off">{zh ? '0 字符 · 0 字词' : '0 characters · 0 words'}</output><details data-md-outline><summary>{words.outline}</summary><nav aria-label={words.outline}></nav></details></div>
+  <div class="md-downloads"><button type="button" class="wt-primary" data-md-download="md">{zh ? '下载 Markdown' : 'Download Markdown'}</button><button type="button" data-md-download="html">{zh ? '下载 HTML' : 'Download HTML'}</button><button type="button" data-md-download="pdf">{zh ? '下载 PDF' : 'Download PDF'}</button><button type="button" data-md-print>{words.print}</button><button type="button" data-md-copy>{words.copy}</button><button type="button" data-md-clear>{words.clear}</button><button type="button" data-md-cancel hidden>{words.cancel}</button></div>
+  <div class="md-privacy-controls"><label><input type="checkbox" data-md-draft />{words.draft}</label><span data-md-draft-status>{zh ? '关闭：离开页面后不保留正文' : 'Off: document is not retained after leaving'}</span><button type="button" data-md-restore>{words.restore}</button><button type="button" data-md-delete>{words.remove}</button></div>
+  <details class="md-image-panel" data-md-images hidden><summary>{words.images}</summary><p>{zh ? '图片默认不请求。主动加载会将图片 URL 发送到对应网站，不携带登录凭证；只有可读取的 PNG、JPEG 和静态 WebP 可嵌入导出。' : 'Images are blocked by default. Loading sends the image URL to its website without credentials. Only readable PNG, JPEG and static WebP can be embedded.'}</p><ul data-md-image-list></ul></details>
+</section>

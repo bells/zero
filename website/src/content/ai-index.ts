@@ -39,7 +39,7 @@ export function aiIndex(full = false) {
   lines.push('## Browser tools', '', `Web tools reviewed: ${webReviewedAt}.`, '', 'Local browser computation; no content uploads. A desktop offline plugin is planned, not currently delivered.', '');
   for (const locale of ['zh', 'en'] as const) {
     const guidance = guideCopy[locale];
-    lines.push(`[${locale === 'zh' ? '在线工具' : 'Web tools'}](${canonicalUrl(locale, 'tools')})`, '');
+    lines.push(`[${locale === 'zh' ? '在线工具' : 'Web tools'}](${canonicalUrl(locale, 'tools')})`, '', webCopy[locale].directoryPrivacy, '');
     for (const tool of webTools[locale]) {
       lines.push(`- [${tool.title}](${canonicalUrl(locale, `tools/${tool.slug}`)}): ${tool.description}`);
       if (full) {
@@ -48,7 +48,7 @@ export function aiIndex(full = false) {
         for (const example of tool.guide.examples) lines.push(`##### ${example.name}`, '', guidance.input, '```text', example.input, '```', '', guidance.output, '```text', example.output, '```', '');
         lines.push(`#### ${guidance.agent}`, '', guidance.runtime, '', guidance.agentInput, tool.guide.agent.input, '', guidance.agentOutput, tool.guide.agent.output, '',
           guidance.actions, ...tool.guide.agent.actions.map((action) => `- ${action}`), '', guidance.execution, '', `#### ${guidance.limits}`, '',
-          ...tool.notes, '', webCopy[locale].privacy, '', ...tool.faq.flatMap((item) => [item.question, item.answer]), '');
+          ...tool.notes, '', tool.slug === 'markdown' ? webCopy[locale].markdownPrivacy : webCopy[locale].privacy, '', ...tool.faq.flatMap((item) => [item.question, item.answer]), '');
       }
     }
   }

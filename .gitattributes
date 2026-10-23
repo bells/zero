@@ -1,3 +1,7 @@
 tests/fixtures/fileConversion/*.pdf binary
 tests/fixtures/fileConversion/*.docx binary
 tests/fixtures/ocr/*.pdf binary
+
+# Keep integrity-checked upstream license text verbatim, including trailing spaces.
+website/public/markdown-fonts/OFL.txt -whitespace
+website/public/markdown-notices/THIRD-PARTY-NOTICES.txt -whitespace
