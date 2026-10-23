@@ -1,3 +1,4 @@
+import { refreshLineNumbers } from './line-numbers';
 import { JobRunner } from '../../lib/web-tools/job-runner';
 import { serializeTimestampBatch, type BatchJobInput, type BatchValue } from '../../lib/web-tools/timestamp-batch';
 import type { Unit } from '../../lib/web-tools/timestamp';
@@ -52,7 +53,7 @@ export function initTimestampBatch(ui: UI) {
     previous.disabled = page === 0; next.disabled = page + 1 >= total;
     element<HTMLElement>(root, '[data-batch-summary]').textContent = `${batch.counts.success} ${b.success} · ${batch.counts.failed} ${b.failure} · ${batch.counts.skipped} ${b.skipped}`;
   };
-  const changed = () => { invalidate(); ui.status(b.ready); };
+  const changed = () => { refreshLineNumbers(source); invalidate(); ui.status(b.ready); };
   source.addEventListener('input', changed); unit.addEventListener('change', changed); zone.addEventListener('change', changed);
   root.querySelectorAll<HTMLButtonElement>('[data-time-mode]').forEach((button) => button.addEventListener('click', () => {
     const isBatch = button.dataset.timeMode === 'batch'; invalidate();

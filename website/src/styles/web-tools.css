@@ -35,6 +35,14 @@
 .wt textarea { display: block; width: 100%; min-height: 330px; padding: 16px; resize: vertical; font: 14px/1.7 var(--mono); tab-size: 2; background: var(--paper); }
 .wt textarea::placeholder, .wt input::placeholder { color: var(--muted); opacity: 1; }
 .wt textarea:read-only { background: var(--wt-soft); }
+.wt-numbered-input { --wt-gutter-width: calc(var(--wt-gutter-digits, 2) * 1ch + 24px); display: grid; grid-template-columns: var(--wt-gutter-width) minmax(0, 1fr); min-width: 0; position: relative; font: 14px/1.7 var(--mono); }
+.wt-input-gutter { position: absolute; inset: 0 auto 0 0; width: var(--wt-gutter-width); overflow: hidden; color: var(--muted); background: var(--wt-soft); border: 1px solid var(--line); border-right: 0; border-radius: 4px 0 0 4px; text-align: right; user-select: none; pointer-events: none; }
+.wt-input-gutter > div { padding-inline: 8px; white-space: pre; }
+.wt .wt-numbered-input > textarea { grid-column: 2; min-width: 0; border-radius: 0 4px 4px 0; white-space: pre; overflow: auto; }
+.wt .wt-numbered-input > textarea:focus-visible { outline-offset: -3px; }
+.wt-numbered-input:has(> textarea[hidden]) { display: none; }
+.wt .md-workspace .wt-input-gutter { border: 0; border-right: 1px solid var(--line); border-radius: 0; }
+.wt .md-workspace .wt-numbered-input > textarea { border-radius: 0; }
 .wt [data-editor-host] { height: 330px; border: 1px solid var(--line); }
 .wt .cm-editor { height: 100%; font: 14px/1.7 var(--mono); }
 .wt .cm-scroller { overflow: auto; }

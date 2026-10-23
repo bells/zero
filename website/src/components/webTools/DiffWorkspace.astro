@@ -11,7 +11,7 @@ const c = diffCopy[locale];
       <div class="diff-source-heading"><label for={`diff-${side}`}>{c[side]}</label><button type="button" data-diff-open={side}>{c.open}</button></div>
       <input type="file" data-diff-file={side} aria-label={`${c.open}: ${c[side]}`} hidden />
       <p class="diff-origin" data-diff-origin={side}></p>
-      <textarea id={`diff-${side}`} data-diff-source={side} aria-describedby="diff-semantics diff-line-help" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+      <textarea id={`diff-${side}`} data-numbered data-diff-source={side} aria-describedby="diff-semantics diff-line-help" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
       <output class="diff-cursor" data-diff-cursor={side}>{c.cursor(1, 1)}</output>
     </section>)}
   </div>

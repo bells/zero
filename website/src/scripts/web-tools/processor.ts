@@ -1,3 +1,4 @@
+import { refreshLineNumbers } from './line-numbers';
 import { JobRunner } from '../../lib/web-tools/job-runner';
 import { limits, textFits, type ProcessorJob, type JobValue, type Operation } from '../../lib/web-tools/contracts';
 import type { EditorHandle } from './editor';
@@ -17,7 +18,7 @@ export function initProcessor(ui: UI, tool: 'json' | 'base64') {
   let deadline: ReturnType<typeof setTimeout> | undefined;
   const revoke = () => { if (objectUrl) URL.revokeObjectURL(objectUrl); objectUrl = undefined; imageText = undefined; const area = root.querySelector<HTMLElement>('[data-image-area]'); if (area) { area.hidden = true; element<HTMLImageElement>(area, 'img').removeAttribute('src'); element<HTMLAnchorElement>(area, 'a').removeAttribute('href'); } };
   const busy = (value: boolean) => { if (!value && deadline) { clearTimeout(deadline); deadline = undefined; } cancel.hidden = !value; operations.forEach((button) => { button.disabled = value; }); root.setAttribute('aria-busy', String(value)); };
-  const invalidate = () => { revision++; runner.cancel(); output.value = ''; copy.disabled = true; busy(false); revoke(); editor?.error(); element<HTMLElement>(root, '[data-manual-copy]').hidden = true; element<HTMLTextAreaElement>(root, '[data-manual-value]').value = ''; };
+  const invalidate = () => { refreshLineNumbers(source); revision++; runner.cancel(); output.value = ''; refreshLineNumbers(output); copy.disabled = true; busy(false); revoke(); editor?.error(); element<HTMLElement>(root, '[data-manual-copy]').hidden = true; element<HTMLTextAreaElement>(root, '[data-manual-value]').value = ''; };
   const changed = () => { invalidate(); ui.status(c.ready); };
   source.addEventListener('input', () => { if (file) file.value = ''; changed(); });
   file?.addEventListener('change', () => { source.value = ''; changed(); });
@@ -59,7 +60,7 @@ export function initProcessor(ui: UI, tool: 'json' | 'base64') {
       if (!decoded) { invalidate(); ui.error({ code: 'image' }); return; }
     }
     if (operation === 'unwrap') { source.value = result.value.text; editor?.set(source.value); }
-    output.value = result.value.text; copy.disabled = false; busy(false); ui.status(c.success);
+    refreshLineNumbers(source); output.value = result.value.text; refreshLineNumbers(output); copy.disabled = false; busy(false); ui.status(c.success);
   };
   operations.forEach((button) => button.addEventListener('click', () => {
     if (button.dataset.operation) void perform(button.dataset.operation as Operation);

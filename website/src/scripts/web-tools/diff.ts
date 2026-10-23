@@ -1,3 +1,4 @@
+import { refreshLineNumbers } from './line-numbers';
 import { JobRunner } from '../../lib/web-tools/job-runner';
 import { diffLimits, type DiffJobInput, type DiffValue } from '../../lib/web-tools/text-diff-types';
 import { validateDiffSource } from '../../lib/web-tools/text-diff-input';
@@ -25,6 +26,7 @@ export function initDiff(ui: UI) {
   };
   const invalidate = () => { generation++; runner.cancel(); stopRead(); running = false; renderer.reset(); controls(); };
   const updateCursor = (side: 'before' | 'after', source: HTMLTextAreaElement) => {
+    refreshLineNumbers(source);
     const prefix = source.value.slice(0, source.selectionStart), parts = prefix.split('\n');
     element<HTMLOutputElement>(root, `[data-diff-cursor="${side}"]`).textContent = c.cursor(parts.length, Array.from(parts.at(-1) ?? '').length + 1);
   };

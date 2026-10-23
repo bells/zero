@@ -25,7 +25,7 @@ const words = zh ? { source: 'Markdown 源码', preview: '预览', split: '分�
     <button type="button" data-md-enhance>{words.enhance}</button>
   </div>
   <div class="md-panes">
-    <div class="md-source-pane"><label for="markdown-source">{words.source}</label><textarea id="markdown-source" data-md-source spellcheck="false" autocomplete="off" placeholder={zh ? '# 从这里开始写作\n\n支持 Markdown 与 GFM。' : '# Start writing here\n\nMarkdown and GFM supported.'}></textarea><div data-md-editor hidden></div></div>
+    <div class="md-source-pane"><label for="markdown-source">{words.source}</label><textarea id="markdown-source" data-numbered data-md-source spellcheck="false" autocomplete="off" placeholder={zh ? '# 从这里开始写作\n\n支持 Markdown 与 GFM。' : '# Start writing here\n\nMarkdown and GFM supported.'}></textarea><div data-md-editor hidden></div></div>
     <div class="md-preview-pane"><div class="md-pane-caption"><span>{words.preview}</span><label><input type="checkbox" data-md-sync checked />{words.sync}</label></div><article class="md-document" data-md-preview tabindex="0" aria-label={zh ? 'Markdown 文档预览' : 'Markdown document preview'}><p class="md-empty">{zh ? '写下第一行，预览会显示在这里。' : 'Write your first line to see the preview here.'}</p></article></div>
   </div>
   <div class="md-document-bar"><output data-md-count aria-live="off">{zh ? '0 字符 · 0 字词' : '0 characters · 0 words'}</output><details data-md-outline><summary>{words.outline}</summary><nav aria-label={words.outline}></nav></details></div>

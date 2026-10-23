@@ -1,3 +1,4 @@
+import { refreshLineNumbers } from './line-numbers';
 import type { MarkdownDocument } from '../../lib/web-tools/markdown-contracts';
 import { assertMarkdownSource, assertMarkdownOutput, importMarkdownFile, markdownPolicy, safeName } from '../../lib/web-tools/markdown-policy';
 import { MarkdownDraftStore, markdownDraftKey } from './markdown-draft';
@@ -105,6 +106,7 @@ export function initMarkdownWorkspace(root: HTMLElement, locale: 'zh' | 'en'): v
     catch (error) { clearTimeout(draftTimer); draftCheckbox.checked = false; draftStatus.textContent = error instanceof Error && error.message === 'conflict' ? (zh ? '其他标签已更新草稿，请恢复或重新开启保存。' : 'Another tab updated the draft. Restore it or explicitly enable saving again.') : (zh ? '未保存：浏览器存储不可用或文档超限。' : 'Not saved: storage unavailable or document over limit.'); }
   };
   const changed = (force = false) => {
+    refreshLineNumbers(source);
     if (!force && source.value === lastSource) return;
     lastSource = source.value; revision++; parsedRevision = -1; doc = undefined;
     clearManualCopy();

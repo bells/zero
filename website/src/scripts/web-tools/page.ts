@@ -1,5 +1,6 @@
 import { parseCategory, type CategoryFilter } from '../../lib/web-tools/categories';
 import { createUI, element } from './ui';
+import { initLineNumbers } from './line-numbers';
 const root = document.querySelector<HTMLElement>('[data-web-tools]');
 if (root) {
   const locale = root.dataset.locale === 'en' ? 'en' : 'zh';
@@ -51,6 +52,7 @@ if (root) {
   const shortcut = (event: KeyboardEvent) => { if (!event.isComposing && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if (dialog.open) dialog.close(); else openSearch(); } };
   document.addEventListener('keydown', shortcut);
   root.querySelectorAll<HTMLElement>('[data-enhance-only]').forEach((item) => { item.hidden = false; });
+  initLineNumbers(root);
   const initialize = async () => {
     if (root.dataset.tool === 'timestamp') {
       (await import('./time')).initTimestamp(ui);

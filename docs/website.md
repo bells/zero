@@ -163,7 +163,7 @@ SITE_BASE=/zero/ SITE_PREVIEW=1 pnpm --dir website build
 - `src/content/web-tools.ts` 维护中英说明、FAQ 和工具清单，并组合 `src/content/web-tool-guides.ts` 中的搜索标题、步骤、输入/输出示例及浏览器 Agent 说明。新增工具时两语言都须补齐指南；示例应使用合成数据，并通过实际计算逻辑核对。导航名称保持简短，搜索标题单独描述能力。
 - 此阶段目录说明列出已有开发工具；工具说明提供 `#usage`、`#steps`、`#examples` 和 `#agent-usage` 静态锚点。页面和 `llms-full.txt` 共享步骤、保留换行的示例、输入/输出方法、动作、限额和本地处理边界，WebApplication 的 `featureList` 使用同一动作清单。Agent 说明针对真实浏览器控件，不代表新增 HTTP API 或 MCP。纯静态指南不进入浏览器可执行脚本。
 - `src/lib/web-tools/` 是不依赖 DOM/Astro/Tauri 的纯 TS 计算、契约和任务管理。后续桌面离线插件可评估复用此层；当前没有桌面插件交付或 PWA 首次离线访问能力。
-- `src/scripts/web-tools/` 接入原生控件、主题、搜索与 worker。CodeMirror 6 仅在点击“启用增强编辑”后加载；`jsonc-parser` 严格模式保留源数字/重复键；`image-meta` 在完整图片解码前读取类型与尺寸，预览仅接受 PNG/JPEG/WebP。
+- `src/scripts/web-tools/` 接入原生控件、主题、搜索与 worker。`line-numbers.ts` 为时间戳批量输入、JSON/Base64 输入与输出、文本对比和 Markdown 源码提供默认行号，仅渲染可见行号；长行横向滚动，导入、示例、交换和清空同步更新。对比输入区最小高度为桌面 360px、窄屏 280px。CodeMirror 6 仅在点击“启用增强编辑”后加载；`jsonc-parser` 严格模式保留源数字/重复键；`image-meta` 在完整图片解码前读取类型与尺寸，预览仅接受 PNG/JPEG/WebP。
 - 工具输入/结果/文件/搜索词只保留在当前页，不上传、不放进 URL/站点存储/日志；category 枚举是语言导航 URL 的唯一筛选例外；主题是唯一存储例外，键为 `zero.web-tools.theme`。Clipboard/下载均须明确操作。清空/离页释放工具状态和 Blob URL；浏览器自身恢复机制不属于安全擦除保证。
 - 时间输入限制 256 字符；文本/JSON 输入 1 MiB UTF-8，输出 8 MiB，JSON 深度 128；旧 Base64 图片原始/解码 5 MiB、编码输入 7 MiB、1600 万像素。这些旧工具处理超过 5 秒会中止，允许取消/重试，过期结果不得恢复复制或导出。
 - 依赖升级在网站子目录完成，继续使用独立锁文件。MIT 运行时依赖与传递依赖的许可文本位于 `public/licenses/web-tools.txt`，升级时核对并同步对应版本；维护选择和验收来源见 `openspec/changes/usezero-web-tools-extension/evidence/implementation.md`。
