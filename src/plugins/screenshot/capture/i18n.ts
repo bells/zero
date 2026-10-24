@@ -15,6 +15,8 @@ const captureMessages = {
     "screenshot.properties.compact.pixelSize": "像素块",
     "screenshot.properties.compact.cornerRadius": "圆角",
     "screenshot.properties.default": "默认样式",
+    "screenshot.properties.context.default": "默认",
+    "screenshot.properties.context.selected": "已选",
     "screenshot.properties.selected": "已选标注",
     "screenshot.properties.strokeWidth": "线宽 · px",
     "screenshot.properties.fontSize": "字号 · px",
@@ -32,6 +34,8 @@ const captureMessages = {
     "screenshot.properties.double": "双向",
     "screenshot.properties.bold": "粗体",
     "screenshot.properties.reset": "恢复工具默认值",
+    "screenshot.properties.move":
+      "拖动工具栏（双击或 Enter 复原；方向键 1px，Shift+方向键 10px）",
     "screenshot.properties.saveFailed":
       "样式未能保存，下次截图可能无法恢复。当前仍可继续绘制。",
     "screenshot.properties.dismiss": "关闭提示",
@@ -49,6 +53,8 @@ const captureMessages = {
     "screenshot.properties.compact.pixelSize": "Pixel block",
     "screenshot.properties.compact.cornerRadius": "Radius",
     "screenshot.properties.default": "Drawing defaults",
+    "screenshot.properties.context.default": "Defaults",
+    "screenshot.properties.context.selected": "Selected",
     "screenshot.properties.selected": "Selected annotation",
     "screenshot.properties.strokeWidth": "Stroke width · px",
     "screenshot.properties.fontSize": "Font size · px",
@@ -67,6 +73,8 @@ const captureMessages = {
     "screenshot.properties.double": "Double",
     "screenshot.properties.bold": "Bold",
     "screenshot.properties.reset": "Restore tool defaults",
+    "screenshot.properties.move":
+      "Drag toolbar (double-click or Enter to reset; arrows 1px, Shift+arrows 10px)",
     "screenshot.properties.saveFailed":
       "Style could not be remembered. You can keep drawing in this session.",
     "screenshot.properties.dismiss": "Dismiss notice",

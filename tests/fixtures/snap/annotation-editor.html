@@ -2,6 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <link rel="icon" href="data:," />
     <title>Snap synthetic editor fixture</title>
   </head>
   <body>
@@ -23,6 +24,7 @@
       );
       window.snapInvocations = [];
       window.snapUploads = [];
+      window.snapUploadBytes = [];
       window.__TAURI_INTERNALS__ = {
         invoke: async (cmd, args, options) => {
           window.snapInvocations.push({ cmd, args });
@@ -63,6 +65,7 @@
                 expiresAtMs: Date.now() + 10000,
               };
             case "upload_screenshot_commit":
+              window.snapUploadBytes.push(Array.from(args));
               window.snapUploads.push({byteLength:args.byteLength,signature:[...args.slice(0,8)],headers:options.headers});
               return { copied: true, savedPath: null, pinWindowLabel: null };
             case "reveal_screenshot_capture":

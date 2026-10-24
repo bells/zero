@@ -3,8 +3,8 @@ import type { Size } from "./captureSelectionModel.js";
 
 export const MINIMUM_SELECTION_DIMENSION = 4;
 export const GEOMETRY_CONTROL_SAFE_MARGIN = 8;
-export const GEOMETRY_CONTROL_GAP = 8;
-export const GEOMETRY_CONTROL_INSET = 8;
+export const GEOMETRY_CONTROL_GAP = 2;
+export const GEOMETRY_CONTROL_INSET = 2;
 
 export interface SelectionGeometry {
   bounds: Bounds;
@@ -18,7 +18,8 @@ export interface DimensionCommitResult {
   valid: boolean;
 }
 
-export type GeometryControlPlacement = "outside-top" | "inside-top" | "viewport-clamped";
+export type GeometryControlPlacement =
+  "outside-top" | "inside-top" | "viewport-clamped";
 
 export interface GeometryControlPosition {
   left: number;
@@ -48,7 +49,11 @@ export function normalizeSelectionGeometry(
   geometry: SelectionGeometry,
   imageSize: Size,
 ): SelectionGeometry {
-  const bounds = clampBounds(geometry.bounds, imageSize.width, imageSize.height) ?? {
+  const bounds = clampBounds(
+    geometry.bounds,
+    imageSize.width,
+    imageSize.height,
+  ) ?? {
     x: 0,
     y: 0,
     width: 0,
@@ -57,7 +62,9 @@ export function normalizeSelectionGeometry(
   return {
     bounds,
     cornerRadius: clamp(
-      Number.isFinite(geometry.cornerRadius) ? Math.round(geometry.cornerRadius) : 0,
+      Number.isFinite(geometry.cornerRadius)
+        ? Math.round(geometry.cornerRadius)
+        : 0,
       0,
       maximumSelectionCornerRadius(bounds),
     ),
@@ -95,22 +102,27 @@ export function resolveGeometryControlPosition(
   control: Size,
   viewport: Size,
 ): GeometryControlPosition {
-  const maximumLeft = viewport.width - control.width - GEOMETRY_CONTROL_SAFE_MARGIN;
-  const left = clamp(selection.x, GEOMETRY_CONTROL_SAFE_MARGIN, maximumLeft);
+  const left = clamp(
+    selection.x,
+    GEOMETRY_CONTROL_SAFE_MARGIN,
+    viewport.width - control.width - GEOMETRY_CONTROL_SAFE_MARGIN,
+  );
   const outsideTop = selection.y - control.height - GEOMETRY_CONTROL_GAP;
-  if (outsideTop >= GEOMETRY_CONTROL_SAFE_MARGIN) {
-    return { left, top: outsideTop, placement: "outside-top" };
-  }
-
   const insideTop = selection.y + GEOMETRY_CONTROL_INSET;
-  if (selection.height >= control.height + GEOMETRY_CONTROL_INSET * 2) {
-    return { left, top: insideTop, placement: "inside-top" };
-  }
-
-  const maximumTop = viewport.height - control.height - GEOMETRY_CONTROL_SAFE_MARGIN;
+  const preferredTop = outsideTop >= 0 ? outsideTop : insideTop;
+  const top = clamp(
+    preferredTop,
+    0,
+    Math.max(0, viewport.height - control.height),
+  );
   return {
     left,
-    top: clamp(insideTop, GEOMETRY_CONTROL_SAFE_MARGIN, maximumTop),
-    placement: "viewport-clamped",
+    top,
+    placement:
+      top !== preferredTop
+        ? "viewport-clamped"
+        : outsideTop >= 0
+          ? "outside-top"
+          : "inside-top",
   };
 }

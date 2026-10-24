@@ -26,11 +26,7 @@ export interface ToolStyleMap {
 export type ToolDefaults = { [K in DrawingTool]: ToolStyleMap[K] };
 export type AnnotationStyle = ToolStyleMap[DrawingTool];
 export type NumericProperty =
-  | "strokeWidth"
-  | "opacity"
-  | "fontSize"
-  | "pixelSize"
-  | "cornerRadius";
+  "strokeWidth" | "opacity" | "fontSize" | "pixelSize" | "cornerRadius";
 export const DRAWING_TOOLS: DrawingTool[] = [
   "rectangle",
   "ellipse",
@@ -41,32 +37,28 @@ export const DRAWING_TOOLS: DrawingTool[] = [
 ];
 export const PRESET_COLORS = [
   "#ff5252",
-  "#ff9800",
   "#ffeb3b",
   "#55f280",
-  "#00bcd4",
   "#448aff",
-  "#b388ff",
-  "#ffffff",
   "#000000",
 ];
 export const INITIAL_TOOL_DEFAULTS: ToolDefaults = {
   rectangle: {
-    color: "#55f280",
+    color: "#ff5252",
     strokeWidth: 4,
     opacity: 100,
     fillMode: "outline",
     cornerRadius: 0,
   },
   ellipse: {
-    color: "#55f280",
+    color: "#ff5252",
     strokeWidth: 4,
     opacity: 100,
     fillMode: "outline",
   },
-  arrow: { color: "#55f280", strokeWidth: 5, opacity: 100, heads: "single" },
-  pen: { color: "#55f280", strokeWidth: 5, opacity: 100 },
-  text: { color: "#55f280", fontSize: 24, opacity: 100, bold: false },
+  arrow: { color: "#ff5252", strokeWidth: 5, opacity: 100, heads: "single" },
+  pen: { color: "#ff5252", strokeWidth: 5, opacity: 100 },
+  text: { color: "#ff5252", fontSize: 24, opacity: 100, bold: false },
   mosaic: { pixelSize: 14 },
 };
 export const PROPERTY_RANGES: Record<

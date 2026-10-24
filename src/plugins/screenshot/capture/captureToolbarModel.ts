@@ -4,116 +4,184 @@ import type { Size } from "./captureSelectionModel.js";
 export const CAPTURE_TOOLBAR_SAFE_MARGIN = 8;
 export const CAPTURE_TOOLBAR_GAP = 8;
 export const CAPTURE_TOOLBAR_INSET = 8;
-
 export type CaptureToolbarPlacement =
-  | "outside-bottom"
-  | "inside-bottom"
-  | "outside-top"
-  | "viewport-clamped";
-
+  "outside-bottom" | "outside-top" | "inside-bottom" | "viewport-clamped";
+export type CapturePropertySide = "above" | "below";
 export interface CaptureToolbarPosition {
   left: number;
   top: number;
   placement: CaptureToolbarPlacement;
 }
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  if (maximum < minimum) {
-    return minimum;
-  }
-  return Math.max(minimum, Math.min(value, maximum));
+export function clampPanelCoordinate(
+  value: number,
+  extent: number,
+  viewportExtent: number,
+): number {
+  return Math.max(8, Math.min(value, viewportExtent - extent - 8));
 }
-
-function preferredToolbarPosition(
-  selection: Bounds,
-  toolbar: Size,
-  viewport: Size,
-): CaptureToolbarPosition {
-  const maximumLeft =
-    viewport.width - toolbar.width - CAPTURE_TOOLBAR_SAFE_MARGIN;
-  const preferredLeft = selection.x + selection.width - toolbar.width;
-  const left = clamp(preferredLeft, CAPTURE_TOOLBAR_SAFE_MARGIN, maximumLeft);
-
-  const outsideBottomTop = selection.y + selection.height + CAPTURE_TOOLBAR_GAP;
-  if (
-    outsideBottomTop + toolbar.height <=
-    viewport.height - CAPTURE_TOOLBAR_SAFE_MARGIN
-  ) {
-    return { left, top: outsideBottomTop, placement: "outside-bottom" };
-  }
-
-  const insideBottomTop =
-    selection.y + selection.height - toolbar.height - CAPTURE_TOOLBAR_INSET;
-  if (selection.height >= toolbar.height + CAPTURE_TOOLBAR_INSET * 2) {
-    return { left, top: insideBottomTop, placement: "inside-bottom" };
-  }
-
-  const outsideTop = selection.y - toolbar.height - CAPTURE_TOOLBAR_GAP;
-  if (outsideTop >= CAPTURE_TOOLBAR_SAFE_MARGIN) {
-    return { left, top: outsideTop, placement: "outside-top" };
-  }
-
-  const maximumTop =
-    viewport.height - toolbar.height - CAPTURE_TOOLBAR_SAFE_MARGIN;
-  return {
-    left,
-    top: clamp(insideBottomTop, CAPTURE_TOOLBAR_SAFE_MARGIN, maximumTop),
-    placement: "viewport-clamped",
-  };
-}
-
 export function resolveCaptureToolbarPosition(
   selection: Bounds,
   toolbar: Size,
   viewport: Size,
-  avoid: Bounds | null = null,
+  reserved: Size = { width: 0, height: 0 },
+  geometry: Bounds | null = null,
 ): CaptureToolbarPosition {
-  const preferred = preferredToolbarPosition(selection, toolbar, viewport);
-  if (!avoid) return preferred;
-  const overlap = (left: number, top: number) =>
-    Math.max(
-      0,
-      Math.min(left + toolbar.width, avoid.x + avoid.width) -
-        Math.max(left, avoid.x),
-    ) *
-    Math.max(
-      0,
-      Math.min(top + toolbar.height, avoid.y + avoid.height) -
-        Math.max(top, avoid.y),
-    );
-  if (overlap(preferred.left, preferred.top) === 0) return preferred;
-  const margin = CAPTURE_TOOLBAR_SAFE_MARGIN,
-    gap = CAPTURE_TOOLBAR_GAP;
-  const candidates = [
-    { left: preferred.left, top: avoid.y + avoid.height + gap },
-    { left: preferred.left, top: avoid.y - toolbar.height - gap },
-    { left: avoid.x + avoid.width + gap, top: preferred.top },
-    { left: avoid.x - toolbar.width - gap, top: preferred.top },
-  ];
-  let best = preferred;
-  for (const next of candidates) {
-    const candidate = {
-      left: clamp(next.left, margin, viewport.width - toolbar.width - margin),
-      top: clamp(next.top, margin, viewport.height - toolbar.height - margin),
-      placement: "viewport-clamped" as const,
-    };
-    if (overlap(candidate.left, candidate.top) < overlap(best.left, best.top))
-      best = candidate;
+  const left = clampPanelCoordinate(
+    selection.x + (selection.width - toolbar.width) / 2,
+    toolbar.width,
+    viewport.width,
+  );
+  const extra = reserved.height > 0 ? reserved.height + CAPTURE_TOOLBAR_GAP : 0;
+  const preferredBelow = selection.y + selection.height + CAPTURE_TOOLBAR_GAP;
+  const belowIntersectsStrip =
+    geometry &&
+    left < geometry.x + geometry.width &&
+    left + toolbar.width > geometry.x &&
+    preferredBelow < geometry.y + geometry.height &&
+    preferredBelow + toolbar.height > geometry.y;
+  const below = belowIntersectsStrip
+    ? geometry.y + geometry.height + CAPTURE_TOOLBAR_GAP
+    : preferredBelow;
+  if (below + toolbar.height + extra <= viewport.height - 8) {
+    return { left, top: below, placement: "outside-bottom" };
   }
-  return best;
+  const preferredAbove = selection.y - toolbar.height - CAPTURE_TOOLBAR_GAP;
+  const overlapsFixedStrip =
+    geometry &&
+    left < geometry.x + geometry.width &&
+    left + toolbar.width > geometry.x &&
+    preferredAbove < geometry.y + geometry.height &&
+    preferredAbove + toolbar.height > geometry.y;
+  const above = overlapsFixedStrip
+    ? Math.min(
+        preferredAbove,
+        geometry.y - toolbar.height - CAPTURE_TOOLBAR_GAP,
+      )
+    : preferredAbove;
+  if (above - extra >= 8) return { left, top: above, placement: "outside-top" };
+  const inside =
+    selection.y + selection.height - toolbar.height - CAPTURE_TOOLBAR_INSET;
+  if (inside - extra >= Math.max(8, selection.y + CAPTURE_TOOLBAR_INSET)) {
+    return { left, top: inside, placement: "inside-bottom" };
+  }
+  return {
+    left,
+    top: clampPanelCoordinate(inside, toolbar.height, viewport.height),
+    placement: "viewport-clamped",
+  };
 }
-
-
+export function capturePropertySide(
+  position: CaptureToolbarPosition,
+): CapturePropertySide {
+  return position.placement === "outside-bottom" ? "below" : "above";
+}
+export function resolveCapturePropertyPosition(
+  toolbar: Bounds,
+  panel: Size,
+  viewport: Size,
+  side: CapturePropertySide,
+  buttonCenter: number,
+) {
+  const left = clampPanelCoordinate(
+    buttonCenter - 32,
+    panel.width,
+    viewport.width,
+  );
+  const available =
+    side === "below"
+      ? viewport.height - 8 - (toolbar.y + toolbar.height + 8)
+      : toolbar.y - 16;
+  // When even the toolbar and header cannot fit together, overlap is deterministic.
+  const maxHeight = Math.min(viewport.height - 16, Math.max(40, available));
+  const height = Math.min(panel.height, maxHeight);
+  const top = clampPanelCoordinate(
+    side === "below" ? toolbar.y + toolbar.height + 8 : toolbar.y - height - 8,
+    height,
+    viewport.height,
+  );
+  return {
+    left,
+    top,
+    maxHeight,
+    caretLeft: Math.max(10, Math.min(buttonCenter - left, panel.width - 10)),
+  };
+}
 export function resolveAnnotationPanelAnchor(
   button: Bounds,
   panelWidth: number,
   stackWidth: number,
-): { left: number; caretLeft: number; visible: boolean } {
+) {
   const center = button.x + button.width / 2;
-  const left = clamp(button.x - 12, 0, stackWidth - panelWidth);
+  const left = Math.max(0, Math.min(button.x - 12, stackWidth - panelWidth));
   return {
     left,
-    caretLeft: clamp(center - left, 10, panelWidth - 10),
+    caretLeft: Math.max(10, Math.min(center - left, panelWidth - 10)),
     visible: center >= 0 && center <= stackWidth,
   };
+}
+
+export interface CaptureFloatingCoordinates {
+  left: number;
+  top: number;
+}
+export type CaptureToolbarDragState =
+  | { mode: "automatic" }
+  | ({
+      mode: "manual";
+      side: CapturePropertySide;
+    } & CaptureFloatingCoordinates);
+
+export function resolveCaptureToolbarDragBounds(
+  toolbar: Size,
+  reserved: Size,
+  viewport: Size,
+  side: CapturePropertySide,
+): Bounds {
+  const panelHeight = Math.min(
+    reserved.height,
+    Math.max(0, viewport.height - 16 - toolbar.height - 8),
+  );
+  const extra = panelHeight > 0 ? panelHeight + 8 : 0;
+  return {
+    x: 0,
+    y: side === "above" ? -extra : 0,
+    width: toolbar.width,
+    height: toolbar.height + extra,
+  };
+}
+export function clampCaptureToolbarDragPosition(
+  position: CaptureFloatingCoordinates,
+  group: Bounds,
+  viewport: Size,
+): CaptureFloatingCoordinates {
+  const clamp = (value: number, minimum: number, maximum: number) =>
+    Math.max(minimum, Math.min(value, maximum));
+  return {
+    left: clamp(
+      position.left,
+      8 - group.x,
+      viewport.width - 8 - group.x - group.width,
+    ),
+    top: clamp(
+      position.top,
+      8 - group.y,
+      viewport.height - 8 - group.y - group.height,
+    ),
+  };
+}
+export function moveCaptureToolbarGroup(
+  origin: CaptureFloatingCoordinates,
+  start: { x: number; y: number },
+  pointer: { x: number; y: number },
+  group: Bounds,
+  viewport: Size,
+): CaptureFloatingCoordinates {
+  return clampCaptureToolbarDragPosition(
+    {
+      left: origin.left + pointer.x - start.x,
+      top: origin.top + pointer.y - start.y,
+    },
+    group,
+    viewport,
+  );
 }

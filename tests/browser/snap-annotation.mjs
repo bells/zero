@@ -34,7 +34,7 @@ try {
   };
   const open = async () => {
     await page.goto(
-      "http://127.0.0.1:1420/tests/fixtures/snap/annotation-editor.html",
+      `${process.env.SNAP_TEST_ORIGIN || "http://127.0.0.1:1420"}/tests/fixtures/snap/annotation-editor.html`,
     );
     await page.waitForFunction(() =>
       window.snapInvocations?.some(
@@ -77,9 +77,9 @@ try {
     await tool(name);
     await page.waitForTimeout(40);
     const button = await page.getByRole("button", {name, exact:true}).boundingBox();
-    const panel = await page.locator(".capture-annotation-properties").boundingBox();
+    const panel = await page.locator(".capture-property-shell .capture-annotation-properties").boundingBox();
     const caret = await page.locator(".capture-property-caret").boundingBox();
-    assert.ok(panel.y > button.y + button.height, "panel is below tool");
+    assert.ok(panel.y + panel.height < button.y, "panel is above inside-bottom toolbar");
     assert.ok(Math.abs(caret.x + caret.width/2 - (button.x+button.width/2)) < 2, "caret points to tool");
     return panel.x;
   };
@@ -87,7 +87,7 @@ try {
   const ellipsePanelX = await anchorPanel("Ellipse");
   assert.ok(ellipsePanelX > rectanglePanelX, "panel follows corresponding button");
   await tool("Rectangle");
-  results.push("properties anchored below Rectangle/Ellipse with pointing caret");
+  results.push("properties anchored above Rectangle/Ellipse with pointing caret");
   await input("Stroke width · px", 12);
   await input("Object radius · px", 40);
   await drag(150, 150, 300, 250);
@@ -301,7 +301,7 @@ try {
   assert.equal(await number("Pixel block · px").count(), 1);
   assert.equal(await number("Opacity · %").count(), 0);
   assert.equal(
-    await page.getByLabel("Custom color", { exact: true }).count(),
+    await page.locator(".capture-property-shell").getByLabel("Custom color", { exact: true }).count(),
     0,
   );
   await tool("Pen");
@@ -315,7 +315,7 @@ try {
   await number("Stroke width · px").press("Escape");
   assert.equal(await number("Stroke width · px").inputValue(), "32");
   await tool("Pin");
-  assert.equal(await page.locator(".capture-annotation-properties").count(), 0);
+  assert.equal(await page.locator(".capture-property-shell .capture-annotation-properties").count(), 0);
   results.push("tool-specific controls and numeric invalid/clamp/Escape");
   await tool("Arrow");
   await page
@@ -440,18 +440,9 @@ try {
         stack.y + stack.height <= height - 7,
       JSON.stringify({ width, height, stack }),
     );
-    const overlap =
-      Math.max(
-        0,
-        Math.min(stack.x + stack.width, geometry.x + geometry.width) -
-          Math.max(stack.x, geometry.x),
-      ) *
-      Math.max(
-        0,
-        Math.min(stack.y + stack.height, geometry.y + geometry.height) -
-          Math.max(stack.y, geometry.y),
-      );
-    assert.equal(overlap, 0);
+    const crop = await page.locator(".capture-selection-frame").boundingBox();
+    const preferredTop = crop.y - geometry.height - 2 >= 0 ? crop.y - geometry.height - 2 : crop.y + 2;
+    assert.ok(Math.abs(geometry.y - Math.max(0, Math.min(preferredTop,height-geometry.height))) < 0.1);
   }
   await page.setViewportSize({width:360,height:480});
   await tool("Ellipse");
@@ -467,7 +458,7 @@ try {
   results.push("caret tracks horizontal toolbar scrolling and hides for offscreen tools");
   assert.deepEqual(errors, []);
   results.push(
-    "measured panel stays within narrow/resized viewport and avoids crop geometry",
+    "measured panel stays within narrow/resized viewport and geometry remains attached to crop",
   );
   console.log(JSON.stringify({ passed: results.length, results }, null, 2));
 } catch (error) {

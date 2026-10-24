@@ -10,6 +10,9 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useCapturePropertyAnchor } from "./useCapturePropertyAnchor";
+import { useCaptureToolbarDrag } from "./useCaptureToolbarDrag";
+import { CaptureToolbarPositionControls } from "./CaptureToolbarPositionControls";
+import { CapturePropertyMeasurements } from "./CapturePropertyMeasurements";
 import { invoke } from "@tauri-apps/api/core";
 import {
   normalizeOcrError,
@@ -87,6 +90,8 @@ import {
 } from "./captureSerialize";
 import {
   resolveCaptureToolbarPosition,
+  capturePropertySide,
+  resolveCapturePropertyPosition,
   type CaptureToolbarPosition,
 } from "./captureToolbarModel";
 import type {
@@ -239,9 +244,8 @@ export function CaptureApp() {
     readStoredPreferences(window.localStorage),
     [],
   );
-  const t = createCaptureTranslator(
-    resolveLanguage(preferences.language, navigator.language),
-  );
+  const language = resolveLanguage(preferences.language, navigator.language);
+  const t = useMemo(() => createCaptureTranslator(language), [language]);
   const [session, setSession] = useState<CaptureSession | null>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
@@ -260,6 +264,8 @@ export function CaptureApp() {
     height: window.innerHeight,
   }));
   const [toolbarSize, setToolbarSize] = useState<Size | null>(null);
+  const [geometryControlBounds, setGeometryControlBounds] =
+    useState<Bounds | null>(null);
   const [history, dispatch] = useReducer(captureReducer, initialHistoryState);
   const editing = useCaptureAnnotationEditing(history.annotations, dispatch);
   const defaults = useCaptureToolDefaults();
@@ -272,8 +278,23 @@ export function CaptureApp() {
   const [propertyActive, setPropertyActive] = useState(false);
   const [propertyRevision, setPropertyRevision] = useState(0);
   const [renderFailed, setRenderFailed] = useState(false);
-  const [geometryControlBounds, setGeometryControlBounds] =
-    useState<Bounds | null>(null);
+  const [propertyReservation, setPropertyReservation] = useState<{
+    key: string;
+    size: Size;
+  } | null>(null);
+  const measurementKey = `${viewportSize.width}:${viewportSize.height}:${language}`;
+  const measureProperties = useCallback(
+    (size: Size) => {
+      setPropertyReservation((current) =>
+        current?.key === measurementKey &&
+        current.size.width === size.width &&
+        current.size.height === size.height
+          ? current
+          : { key: measurementKey, size },
+      );
+    },
+    [measurementKey],
+  );
   const [draft, setDraft] = useState<DraftAnnotation>(null);
   const [textDraft, setTextDraft] = useState<TextDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -290,6 +311,7 @@ export function CaptureApp() {
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const textInputRef = useRef<HTMLTextAreaElement | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const propertyPanelRef = useRef<HTMLDivElement | null>(null);
   const revealedSessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -502,23 +524,30 @@ export function CaptureApp() {
     );
   }, [hoverTarget, imageSize, session, viewportSize]);
 
-  const toolbarPosition: CaptureToolbarPosition | null = useMemo(() => {
-    if (!selectionViewportBounds || !toolbarSize) {
-      return null;
-    }
-    return resolveCaptureToolbarPosition(
+  const automaticToolbarPosition: CaptureToolbarPosition | null =
+    useMemo(() => {
+      if (
+        !selectionViewportBounds ||
+        !toolbarSize ||
+        propertyReservation?.key !== measurementKey
+      ) {
+        return null;
+      }
+      return resolveCaptureToolbarPosition(
+        selectionViewportBounds,
+        toolbarSize,
+        viewportSize,
+        propertyReservation.size,
+        geometryControlBounds,
+      );
+    }, [
       selectionViewportBounds,
       toolbarSize,
       viewportSize,
+      propertyReservation,
+      measurementKey,
       geometryControlBounds,
-    );
-  }, [
-    selectionViewportBounds,
-    toolbarSize,
-    viewportSize,
-    geometryControlBounds,
-  ]);
-
+    ]);
   const propertyObject = editing.scene.find(
     (annotation): annotation is DrawingAnnotation =>
       annotation.id === history.selectedId &&
@@ -550,24 +579,85 @@ export function CaptureApp() {
       : isDrawingTool(tool)
         ? { mode: "default", tool, style: defaults.styles[tool] }
         : null;
-  const propertyAnchor = useCapturePropertyAnchor(toolbarRef, panelContext?.tool);
+  const propertyPanelKey = `${panelContext?.mode}:${panelContext?.tool}:${history.selectedId ?? "default"}:${propertyRevision}`;
+  const propertyMeasurement = useCapturePropertyAnchor(
+    toolbarRef,
+    propertyPanelRef,
+    panelContext?.tool,
+    viewportSize,
+    propertyPanelKey,
+  );
+  const toolbarDrag = useCaptureToolbarDrag(
+    session?.sessionId,
+    automaticToolbarPosition ?? { left: 0, top: 0 },
+    toolbarSize ?? { width: 0, height: 0 },
+    propertyReservation?.size ?? { width: 0, height: 0 },
+    viewportSize,
+    automaticToolbarPosition
+      ? capturePropertySide(automaticToolbarPosition)
+      : "above",
+  );
+  const toolbarPosition = useMemo<CaptureToolbarPosition | null>(
+    () =>
+      automaticToolbarPosition
+        ? {
+            ...toolbarDrag.coordinates,
+            placement:
+              toolbarDrag.mode === "automatic"
+                ? automaticToolbarPosition.placement
+                : toolbarDrag.side === "below"
+                  ? "outside-bottom"
+                  : "inside-bottom",
+          }
+        : null,
+    [
+      automaticToolbarPosition,
+      toolbarDrag.coordinates.left,
+      toolbarDrag.coordinates.top,
+      toolbarDrag.mode,
+      toolbarDrag.side,
+    ],
+  );
+  const propertyAnchor =
+    toolbarPosition && toolbarSize
+      ? {
+          ...resolveCapturePropertyPosition(
+            { x: toolbarPosition.left, y: toolbarPosition.top, ...toolbarSize },
+            propertyMeasurement.size,
+            viewportSize,
+            toolbarDrag.side,
+            toolbarPosition.left + propertyMeasurement.buttonOffset,
+          ),
+          visible: propertyMeasurement.visible,
+          ready: propertyMeasurement.ready,
+        }
+      : {
+          left: 0,
+          top: 0,
+          caretLeft: 0,
+          maxHeight: 0,
+          visible: false,
+          ready: false,
+        };
   const sourceScale = imageViewportBounds
     ? imageViewportBounds.width / imageSize.width
     : 1;
   const editBusy = Boolean(
     draft ||
-      textDraft ||
-      selectionDraft ||
-      selectionInteractionRef.current ||
-      objectInteractionRef.current ||
-      editing.active ||
-      defaults.active ||
-      propertyActive,
+    textDraft ||
+    selectionDraft ||
+    selectionInteractionRef.current ||
+    objectInteractionRef.current ||
+    editing.active ||
+    defaults.active ||
+    propertyActive ||
+    toolbarDrag.dragging,
   );
   const pointerBusy = Boolean(
+    toolbarDrag.dragging ||
     drawingPointerRef.current !== null ||
-      objectInteractionRef.current ||
-      selectionInteractionRef.current,
+    objectInteractionRef.current ||
+    selectionInteractionRef.current,
   );
 
   useEffect(() => {
@@ -898,10 +988,10 @@ export function CaptureApp() {
         composing: event.isComposing || Boolean(textDraftRef.current),
         pointerActive: Boolean(
           selectionInteractionRef.current ||
-            objectInteractionRef.current ||
-            editing.active ||
-            propertyActive ||
-            history.selectedId,
+          objectInteractionRef.current ||
+          editing.active ||
+          propertyActive ||
+          history.selectedId,
         ),
         metaKey: event.metaKey,
         ctrlKey: event.ctrlKey,
@@ -1193,8 +1283,8 @@ export function CaptureApp() {
       event,
       Boolean(
         selectionInteractionRef.current ||
-          objectInteractionRef.current ||
-          drawingPointerRef.current !== null,
+        objectInteractionRef.current ||
+        drawingPointerRef.current !== null,
       ),
     );
     if (!point) {
@@ -1803,8 +1893,8 @@ export function CaptureApp() {
           imageSize={imageSize}
           viewportBounds={selectionViewportBounds}
           viewportSize={viewportSize}
-          disabled={editBusy || isCommitting}
           onBoundsChange={setGeometryControlBounds}
+          disabled={editBusy || isCommitting}
           labels={{
             group: t("screenshot.geometry.group"),
             width: t("screenshot.geometry.width"),
@@ -1925,27 +2015,33 @@ export function CaptureApp() {
           ref={toolbarRef}
           className="capture-toolbar-stack"
           data-ready={toolbarPosition ? "true" : "false"}
-          data-placement={toolbarPosition?.placement}
+          data-placement={
+            toolbarDrag.mode === "manual"
+              ? "manual"
+              : toolbarPosition?.placement
+          }
+          data-mode={toolbarDrag.mode}
           style={{
             left: toolbarPosition?.left ?? 0,
             top: toolbarPosition?.top ?? 0,
-            maxHeight: Math.max(
-              56,
-              geometryControlBounds
-                ? Math.max(
-                    geometryControlBounds.y - 16,
-                    viewportSize.height -
-                      geometryControlBounds.y -
-                      geometryControlBounds.height -
-                      16,
-                  )
-                : viewportSize.height - 16,
-            ),
           }}
         >
+          <CaptureToolbarPositionControls
+            moveLabel={t("screenshot.properties.move")}
+            disabled={isCommitting || (pointerBusy && !toolbarDrag.dragging)}
+            handleProps={toolbarDrag.handleProps}
+            onRestore={toolbarDrag.restore}
+          />
           <nav
             className="capture-toolbar-live"
             aria-label={t("screenshot.toolbar.label")}
+            onFocusCapture={(event) => {
+              if (event.target instanceof HTMLButtonElement)
+                event.target.scrollIntoView({
+                  block: "nearest",
+                  inline: "nearest",
+                });
+            }}
           >
             <span
               className="capture-tool-group"
@@ -2091,37 +2187,50 @@ export function CaptureApp() {
               </button>
             </span>
           </nav>
-          {panelContext ? (
-            <div
-              className="capture-property-shell"
-              style={{ marginLeft: propertyAnchor.left }}
-            >
-              {propertyAnchor.visible ? (
-                <span
-                  className="capture-property-caret"
-                  aria-hidden="true"
-                  style={{ left: propertyAnchor.caretLeft }}
-                />
-              ) : null}
-              <AnnotationPropertiesPanel
-                key={`${panelContext.mode}:${panelContext.tool}:${history.selectedId ?? "default"}:${propertyRevision}`}
-                context={panelContext}
-                t={t}
-                disabled={pointerBusy || isCommitting}
-                onBegin={beginProperty}
-                onPatch={previewProperty}
-                onCommit={finishProperty}
-                onCancel={cancelProperty}
-                onReset={() => {
-                  cancelProperty();
-                  defaults.reset(panelContext.tool);
-                  setPropertyRevision((revision) => revision + 1);
-                }}
-              />
-            </div>
-          ) : null}
         </div>
       ) : null}
+      {selection && panelContext ? (
+        <div
+          ref={propertyPanelRef}
+          className="capture-property-shell"
+          data-side={toolbarDrag.side}
+          data-ready={
+            toolbarPosition && propertyAnchor.ready ? "true" : "false"
+          }
+          data-annotation-edit-domain="true"
+          style={{
+            left: propertyAnchor.left,
+            top: propertyAnchor.top,
+            maxHeight: propertyAnchor.maxHeight,
+          }}
+        >
+          {propertyAnchor.visible ? (
+            <span
+              className="capture-property-caret"
+              aria-hidden="true"
+              style={{ left: propertyAnchor.caretLeft }}
+            />
+          ) : null}
+          <div className="capture-property-content">
+            <AnnotationPropertiesPanel
+              key={propertyPanelKey}
+              context={panelContext}
+              t={t}
+              disabled={pointerBusy || isCommitting}
+              onBegin={beginProperty}
+              onPatch={previewProperty}
+              onCommit={finishProperty}
+              onCancel={cancelProperty}
+              onReset={() => {
+                cancelProperty();
+                defaults.reset(panelContext.tool);
+                setPropertyRevision((revision) => revision + 1);
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
+      <CapturePropertyMeasurements t={t} onMeasure={measureProperties} />
     </main>
   );
 }

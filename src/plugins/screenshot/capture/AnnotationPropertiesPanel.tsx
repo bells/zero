@@ -1,4 +1,4 @@
-import { RotateCcw } from "lucide-react";
+import { Palette, RotateCcw } from "lucide-react";
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import {
   PRESET_COLORS,
@@ -27,6 +27,7 @@ interface Props {
   onCommit: () => void;
   onCancel: () => void;
   onReset: () => void;
+  measurement?: boolean;
 }
 interface NumericProps {
   field: NumericProperty;
@@ -217,16 +218,120 @@ export function AnnotationPropertiesPanel(props: Props) {
     <section
       className="capture-annotation-properties"
       data-tool={context.tool}
-      data-annotation-edit-domain="true"
+      data-annotation-edit-domain={props.measurement ? undefined : "true"}
       aria-label={`${title} · ${t(`screenshot.properties.${context.mode}`)}`}
       style={props.style}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerMove={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
     >
-      <header>
-        <strong>{title}</strong>
-        <span>{t(`screenshot.properties.${context.mode}`)}</span>
+      <div className="capture-property-row capture-property-primary">
+        <header>
+          <strong>{title}</strong>
+          <span title={t(`screenshot.properties.${context.mode}`)}>
+            {t(`screenshot.properties.context.${context.mode}`)}
+          </span>
+        </header>
+        {"color" in values ? (
+          <div
+            className="capture-property-colors"
+            role="group"
+            aria-label={t("screenshot.properties.color")}
+          >
+            {PRESET_COLORS.map((color) => (
+              <button
+                type="button"
+                key={color}
+                aria-label={`${t("screenshot.properties.color")} ${color}`}
+                aria-pressed={values.color === color}
+                title={color}
+                disabled={disabled}
+                className="capture-color-swatch"
+                style={{ "--swatch": color } as CSSProperties}
+                onClick={() => discrete({ color })}
+              >
+                {values.color === color ? "✓" : ""}
+              </button>
+            ))}
+            <label
+              className="capture-custom-color"
+              data-active={!PRESET_COLORS.includes(String(values.color))}
+              data-disabled={Boolean(disabled)}
+              style={
+                { "--custom-color": String(values.color) } as CSSProperties
+              }
+              title={t("screenshot.properties.customColor")}
+            >
+              <Palette size={16} aria-hidden="true" />
+              <input
+                type="color"
+                value={String(values.color)}
+                aria-label={t("screenshot.properties.customColor")}
+                disabled={disabled}
+                onFocus={onBegin}
+                onChange={(e) => onPatch({ color: e.target.value })}
+                onBlur={onCommit}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    onCancel();
+                    e.currentTarget.blur();
+                  }
+                }}
+              />
+            </label>
+          </div>
+        ) : null}
+        <div className="capture-property-options">
+          {"fillMode" in values ? (
+            <label>
+              {t("screenshot.properties.fillMode")}
+              <select
+                aria-label={t("screenshot.properties.fillMode")}
+                value={String(values.fillMode)}
+                disabled={disabled}
+                onChange={(e) => discrete({ fillMode: e.target.value })}
+              >
+                <option value="outline">
+                  {t("screenshot.properties.outline")}
+                </option>
+                <option value="solid">
+                  {t("screenshot.properties.solid")}
+                </option>
+              </select>
+            </label>
+          ) : null}
+          {"heads" in values ? (
+            <label>
+              {t("screenshot.properties.heads")}
+              <select
+                aria-label={t("screenshot.properties.heads")}
+                value={String(values.heads)}
+                disabled={disabled}
+                onChange={(e) => discrete({ heads: e.target.value })}
+              >
+                <option value="single">
+                  {t("screenshot.properties.single")}
+                </option>
+                <option value="double">
+                  {t("screenshot.properties.double")}
+                </option>
+              </select>
+            </label>
+          ) : null}
+          {"bold" in values ? (
+            <label>
+              <input
+                type="checkbox"
+                checked={Boolean(values.bold)}
+                disabled={disabled}
+                onChange={(e) => discrete({ bold: e.target.checked })}
+              />
+              {t("screenshot.properties.bold")}
+            </label>
+          ) : null}
+        </div>
         <button
           type="button"
           className="capture-property-reset"
@@ -237,129 +342,39 @@ export function AnnotationPropertiesPanel(props: Props) {
         >
           <RotateCcw size={14} aria-hidden="true" />
         </button>
-      </header>
-      <div className="capture-property-fields">
-        {(
-          [
-            "strokeWidth",
-            "fontSize",
-            "opacity",
-            "pixelSize",
-            "cornerRadius",
-          ] as NumericProperty[]
-        )
-          .filter((field) => field in values)
-          .map((field) => (
-            <NumericControl
-              key={field}
-              field={field}
-              value={Number(values[field])}
-              maximum={
-                field === "cornerRadius" ? context.radiusMaximum : undefined
-              }
-              label={t(`screenshot.properties.${field}`)}
-              compactLabel={t(`screenshot.properties.compact.${field}`)}
-              invalidLabel={t("screenshot.properties.invalid")}
-              sliderLabel={t("screenshot.properties.slider")}
-              disabled={disabled}
-              onBegin={onBegin}
-              onValue={(value) => onPatch({ [field]: value })}
-              onCommit={onCommit}
-              onCancel={onCancel}
-            />
-          ))}
       </div>
-      {"color" in values ? (
-        <div
-          className="capture-property-colors"
-          role="group"
-          aria-label={t("screenshot.properties.color")}
-        >
-          {PRESET_COLORS.map((color) => (
-            <button
-              type="button"
-              key={color}
-              aria-label={`${t("screenshot.properties.color")} ${color}`}
-              aria-pressed={values.color === color}
-              title={color}
-              disabled={disabled}
-              className="capture-color-swatch"
-              style={{ "--swatch": color } as CSSProperties}
-              onClick={() => discrete({ color })}
-            >
-              {values.color === color ? "✓" : ""}
-            </button>
-          ))}
-          <label
-            className="capture-custom-color"
-            title={t("screenshot.properties.customColor")}
-          >
-            <input
-              type="color"
-              value={String(values.color)}
-              aria-label={t("screenshot.properties.customColor")}
-              disabled={disabled}
-              onFocus={onBegin}
-              onChange={(e) => onPatch({ color: e.target.value })}
-              onBlur={onCommit}
-              onKeyDown={(e) => {
-                e.stopPropagation();
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  onCancel();
-                  e.currentTarget.blur();
+      <div className="capture-property-row capture-property-secondary">
+        <div className="capture-property-fields">
+          {(
+            [
+              "strokeWidth",
+              "fontSize",
+              "opacity",
+              "pixelSize",
+              "cornerRadius",
+            ] as NumericProperty[]
+          )
+            .filter((field) => field in values)
+            .map((field) => (
+              <NumericControl
+                key={field}
+                field={field}
+                value={Number(values[field])}
+                maximum={
+                  field === "cornerRadius" ? context.radiusMaximum : undefined
                 }
-              }}
-            />
-          </label>
+                label={t(`screenshot.properties.${field}`)}
+                compactLabel={t(`screenshot.properties.compact.${field}`)}
+                invalidLabel={t("screenshot.properties.invalid")}
+                sliderLabel={t("screenshot.properties.slider")}
+                disabled={disabled}
+                onBegin={onBegin}
+                onValue={(value) => onPatch({ [field]: value })}
+                onCommit={onCommit}
+                onCancel={onCancel}
+              />
+            ))}
         </div>
-      ) : null}
-      <div className="capture-property-options">
-        {"fillMode" in values ? (
-          <label>
-            {t("screenshot.properties.fillMode")}
-            <select
-              aria-label={t("screenshot.properties.fillMode")}
-              value={String(values.fillMode)}
-              disabled={disabled}
-              onChange={(e) => discrete({ fillMode: e.target.value })}
-            >
-              <option value="outline">
-                {t("screenshot.properties.outline")}
-              </option>
-              <option value="solid">{t("screenshot.properties.solid")}</option>
-            </select>
-          </label>
-        ) : null}
-        {"heads" in values ? (
-          <label>
-            {t("screenshot.properties.heads")}
-            <select
-              aria-label={t("screenshot.properties.heads")}
-              value={String(values.heads)}
-              disabled={disabled}
-              onChange={(e) => discrete({ heads: e.target.value })}
-            >
-              <option value="single">
-                {t("screenshot.properties.single")}
-              </option>
-              <option value="double">
-                {t("screenshot.properties.double")}
-              </option>
-            </select>
-          </label>
-        ) : null}
-        {"bold" in values ? (
-          <label>
-            <input
-              type="checkbox"
-              checked={Boolean(values.bold)}
-              disabled={disabled}
-              onChange={(e) => discrete({ bold: e.target.checked })}
-            />
-            {t("screenshot.properties.bold")}
-          </label>
-        ) : null}
       </div>
     </section>
   );

@@ -13,8 +13,8 @@ import {
   type SelectionDimension,
   type SelectionGeometry,
 } from "./captureGeometryModel";
-import type { Bounds } from "./captureCanvas";
 import type { Size } from "./captureSelectionModel";
+import type { Bounds } from "./captureCanvas";
 
 interface SelectionGeometryControlLabels {
   group: string;

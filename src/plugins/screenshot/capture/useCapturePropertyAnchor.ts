@@ -1,41 +1,55 @@
 import { useLayoutEffect, useState, type RefObject } from "react";
-import { resolveAnnotationPanelAnchor } from "./captureToolbarModel";
+import type { Size } from "./captureSelectionModel";
 import type { DrawingTool } from "./captureTypes";
-
 export function useCapturePropertyAnchor(
-  stackRef: RefObject<HTMLDivElement | null>,
+  toolbarRef: RefObject<HTMLDivElement | null>,
+  panelRef: RefObject<HTMLDivElement | null>,
   tool: DrawingTool | undefined,
+  viewport: Size,
+  contentKey: string,
 ) {
-  const [anchor, setAnchor] = useState({ left: 0, caretLeft: 24, visible: false });
+  const [anchor, setAnchor] = useState({
+    buttonOffset: 0,
+    visible: false,
+    size: { width: 0, height: 0 },
+    ready: false,
+  });
   useLayoutEffect(() => {
-    const stack = stackRef.current;
+    const stack = toolbarRef.current;
     const toolbar = stack?.querySelector<HTMLElement>(".capture-toolbar-live");
-    const panel = stack?.querySelector<HTMLElement>(".capture-property-shell");
+    const shell = panelRef.current;
+    const scroll = shell?.querySelector<HTMLElement>(
+      ".capture-property-content",
+    );
+    const panel = shell?.querySelector<HTMLElement>(
+      ".capture-annotation-properties",
+    );
     const button = toolbar?.querySelector<HTMLElement>(
       `[data-capture-tool="${tool}"]`,
     );
-    if (!stack || !toolbar || !panel || !button) return;
+    if (!stack || !toolbar || !shell || !scroll || !panel || !button) return;
     const update = () => {
-      const stackRect = stack.getBoundingClientRect();
-      const toolbarRect = toolbar.getBoundingClientRect();
-      const buttonRect = button.getBoundingClientRect();
-      const next = resolveAnnotationPanelAnchor(
-        {
-          x: buttonRect.x - stackRect.x,
-          y: 0,
-          width: buttonRect.width,
-          height: buttonRect.height,
+      if (!panel.isConnected) return;
+      const bar = stack.getBoundingClientRect(),
+        actions = toolbar.getBoundingClientRect(),
+        content = panel.getBoundingClientRect(),
+        target = button.getBoundingClientRect();
+      const center = target.x + target.width / 2;
+      const next = {
+        buttonOffset: center - bar.x,
+        visible: center >= actions.left && center <= actions.right,
+        size: {
+          width: shell.getBoundingClientRect().width,
+          height: content.height + scroll.offsetHeight - scroll.clientHeight,
         },
-        panel.getBoundingClientRect().width,
-        stackRect.width,
-      );
-      const center = buttonRect.x + buttonRect.width / 2;
-      next.visible =
-        next.visible && center >= toolbarRect.left && center <= toolbarRect.right;
+        ready: true,
+      };
       setAnchor((current) =>
-        current.left === next.left &&
-        current.caretLeft === next.caretLeft &&
-        current.visible === next.visible
+        current.buttonOffset === next.buttonOffset &&
+        current.visible === next.visible &&
+        current.size.width === next.size.width &&
+        current.size.height === next.size.height &&
+        current.ready === next.ready
           ? current
           : next,
       );
@@ -44,14 +58,14 @@ export function useCapturePropertyAnchor(
     observer.observe(stack);
     observer.observe(toolbar);
     observer.observe(panel);
+    observer.observe(shell);
+    observer.observe(scroll);
     toolbar.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
     update();
     return () => {
       observer.disconnect();
       toolbar.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
     };
-  }, [stackRef, tool]);
+  }, [toolbarRef, panelRef, tool, viewport, contentKey]);
   return anchor;
 }

@@ -13,7 +13,7 @@ try {
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.goto(
-    "http://127.0.0.1:1420/tests/fixtures/snap/annotation-pixels.html",
+    `${process.env.SNAP_TEST_ORIGIN || "http://127.0.0.1:1420"}/tests/fixtures/snap/annotation-pixels.html`,
   );
   await page.waitForFunction(() => window.snapPixelResults);
   const results = await page.evaluate(() => window.snapPixelResults);

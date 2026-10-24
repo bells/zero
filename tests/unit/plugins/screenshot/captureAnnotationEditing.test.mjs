@@ -101,7 +101,7 @@ test("patches are allowlisted per tool and colors cannot carry alpha", () => {
   );
   assert.equal(
     properties.normalizeToolStyle("pen", { color: "#ffffff80" }).color,
-    "#55f280",
+    "#ff5252",
   );
   assert.equal(
     "bold" in properties.normalizeToolStyle("arrow", { bold: true }),
@@ -426,4 +426,23 @@ test("resizing a zero-extent Pen axis translates and clamps that axis", async ()
       { x: 50, y: 0 },
     ],
   );
+});
+
+
+test("factory red keeps saved green and independent valid fields without migration", () => {
+  const fresh = defaults.readToolDefaults({getItem:()=>null});
+  for (const tool of ["rectangle","ellipse","arrow","pen","text"]) assert.equal(fresh[tool].color,"#ff5252");
+  assert.deepEqual(fresh.mosaic,{pixelSize:14});
+  let writes=0;
+  const loaded=defaults.readToolDefaults({getItem:()=>JSON.stringify({version:1,tools:{rectangle:{color:"#55f280"},text:{color:"bad",fontSize:36}}}),setItem:()=>writes++});
+  assert.equal(loaded.rectangle.color,"#55f280");
+  assert.equal(loaded.text.color,"#ff5252"); assert.equal(loaded.text.fontSize,36); assert.equal(writes,0);
+  assert.equal(rect.color,"#55f280");
+});
+
+test("compact palette has five common colors while saved non-palette colors stay valid",()=>{
+ assert.deepEqual(properties.PRESET_COLORS,["#ff5252","#ffeb3b","#55f280","#448aff","#000000"]);
+ for(const color of ["#ffffff","#ff9800","#b388ff","#112233"]){
+  assert.equal(properties.normalizeToolStyle("rectangle",{color}).color,color);
+ }
 });
