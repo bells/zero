@@ -5,7 +5,8 @@ import type { PluginHostController } from "../pluginHost/usePluginHost";
 import type { PluginMeta } from "../pluginHost/pluginTypes";
 import { PluginManagerPanel } from "../pluginHost/PluginManagerPanel";
 import type { GlobalShortcutSnapshot } from "../../services/globalShortcuts";
-import { shortcutStatusMessageKey } from "../../services/globalShortcutServiceCore";
+import { shortcutErrorMessageKey } from "../../services/globalShortcutServiceCore";
+import { ShortcutSetting, type ShortcutEditorProps } from "./ShortcutSetting";
 import type { StatusBarController } from "../../services/useStatusBar";
 import type { TranslationKey } from "./i18n";
 import type { AppPreferences, LanguagePreference } from "./preferencesModel";
@@ -297,11 +298,12 @@ export function ToolsOverviewPage({
   );
 }
 
-interface ToolPreferencesPageProps extends SharedPageProps {
+interface ToolPreferencesPageProps extends SharedPageProps, ShortcutEditorProps {
   plugin: PluginMeta;
   preferences: AppPreferences;
   record: PluginRecord;
-  shortcut: GlobalShortcutSnapshot | undefined;
+  shortcuts: GlobalShortcutSnapshot[];
+  shortcutError: ReturnType<typeof shortcutErrorMessageKey> | null;
   statusBar: StatusBarController;
   pluginHost: PluginHostController;
   onToolVisibleChange: (pluginId: string, visible: boolean) => boolean;
@@ -314,7 +316,10 @@ export function ToolPreferencesPage({
   preferences,
   record,
   runOperation,
-  shortcut,
+  shortcuts,
+  shortcutError,
+  isSaving,
+  onSetShortcut,
   statusBar,
   t,
   onToolVisibleChange,
@@ -416,8 +421,9 @@ export function ToolPreferencesPage({
           />
         )}
 
-        {shortcut ? (
-          <ShortcutSetting shortcut={shortcut} t={t} toolScoped />
+        {shortcutError ? <p className="preferences-inline-error" role="alert">{t(shortcutError)}</p> : null}
+        {shortcuts.length ? (
+          shortcuts.map(shortcut => <ShortcutSetting shortcut={shortcut} t={t} toolScoped key={shortcut.id} isSaving={isSaving} onSetShortcut={onSetShortcut} />)
         ) : (
           <ReadOnlySetting
             focusTargetId={preferencesSettingFocusTargetId(`tool.${record.name}.shortcut`)}
@@ -432,8 +438,8 @@ export function ToolPreferencesPage({
   );
 }
 
-interface ShortcutsPreferencesPageProps {
-  error: string | null;
+interface ShortcutsPreferencesPageProps extends ShortcutEditorProps {
+  error: ReturnType<typeof shortcutErrorMessageKey> | null;
   isLoading: boolean;
   shortcuts: GlobalShortcutSnapshot[];
   t: (key: TranslationKey) => string;
@@ -444,21 +450,23 @@ export function ShortcutsPreferencesPage({
   isLoading,
   shortcuts,
   t,
+  isSaving,
+  onSetShortcut,
 }: ShortcutsPreferencesPageProps) {
   return (
     <SettingsSection
       title={t("prefs.shortcuts.title")}
-      description={t("prefs.shortcuts.readOnly")}
+      description={t("prefs.shortcuts.description")}
     >
       {isLoading ? <p className="preferences-empty-copy">{t("prefs.shortcuts.loading")}</p> : null}
       {!isLoading
         ? shortcuts.map((shortcut) => (
-            <ShortcutSetting shortcut={shortcut} t={t} key={shortcut.id} />
+            <ShortcutSetting shortcut={shortcut} t={t} key={shortcut.id} isSaving={isSaving} onSetShortcut={onSetShortcut} />
           ))
         : null}
       {error ? (
         <p className="preferences-inline-error" role="alert">
-          {t("prefs.shortcuts.loadError")}: {error}
+          {t(error)}
         </p>
       ) : null}
     </SettingsSection>
@@ -473,33 +481,6 @@ export function ExtensionsPreferencesPage({
   t: (key: TranslationKey) => string;
 }) {
   return <PluginManagerPanel pluginHost={pluginHost} t={t} />;
-}
-
-function ShortcutSetting({
-  shortcut,
-  t,
-  toolScoped = false,
-}: {
-  shortcut: GlobalShortcutSnapshot;
-  t: (key: TranslationKey) => string;
-  toolScoped?: boolean;
-}) {
-  const settingId = toolScoped
-    ? `tool.${shortcut.pluginName}.shortcut`
-    : shortcut.id === "snapCapture"
-      ? "shortcuts.snap"
-      : "shortcuts.launch";
-  const title = shortcut.id === "snapCapture" ? t("prefs.shortcuts.snap") : t("prefs.shortcuts.launch");
-  return (
-    <ReadOnlySetting
-      focusTargetId={preferencesSettingFocusTargetId(settingId)}
-      title={toolScoped ? t("prefs.tool.shortcut.title") : title}
-      description={`${t("prefs.shortcuts.owner")}: ${shortcut.pluginName}`}
-      value={shortcut.accelerator}
-      status={t(shortcutStatusMessageKey(shortcut.registrationState))}
-      tone={shortcut.registrationState === "active" ? "success" : shortcut.registrationState === "conflict" ? "error" : "neutral"}
-    />
-  );
 }
 
 export function SettingsSection({

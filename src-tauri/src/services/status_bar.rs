@@ -24,6 +24,9 @@ use crate::plugins::registry::PluginRegistryState;
 #[cfg(feature = "bundled-tools")]
 use crate::services::caffeine::CaffeineState;
 
+#[cfg(any(test, target_os = "macos"))]
+mod menu_position;
+
 pub const MACOS_COMPACT_STATUS_ITEM_LENGTH: f64 = 22.0;
 const MACOS_STATUS_ITEM_ICON_SIZE: u32 = 18;
 const MACOS_STATUS_ITEM_CELL_SIZE: u32 = 22;
@@ -1101,11 +1104,42 @@ fn show_grouped_status_item_menu(
                 let status = inner.ns_status_item().ok_or("status item unavailable")?;
                 let button = status.button(mtm).ok_or("status button unavailable")?;
                 let menu = status.menu(mtm).ok_or("native menu unavailable")?;
-                let point = objc2_foundation::NSPoint::new(
-                    index as f64 * MACOS_STATUS_ITEM_CELL_SIZE as f64,
-                    0.0,
+                let window = button.window().ok_or("status window unavailable")?;
+                let screen = window.screen().ok_or("status screen unavailable")?;
+                let bounds = button.bounds();
+                let cell = objc2_foundation::NSRect::new(
+                    objc2_foundation::NSPoint::new(
+                        bounds.origin.x + index as f64 * MACOS_STATUS_ITEM_CELL_SIZE as f64,
+                        bounds.origin.y,
+                    ),
+                    objc2_foundation::NSSize::new(
+                        MACOS_STATUS_ITEM_CELL_SIZE as f64,
+                        bounds.size.height,
+                    ),
                 );
-                menu.popUpMenuPositioningItem_atLocation_inView(None, point, Some(&button));
+                let frame = window.convertRectToScreen(button.convertRect_toView(cell, None));
+                let visible = screen.visibleFrame();
+                menu.update();
+                let (x, y) = menu_position::popup_origin(
+                    menu_position::MenuRect {
+                        x: frame.origin.x,
+                        y: frame.origin.y,
+                        width: frame.size.width,
+                        height: frame.size.height,
+                    },
+                    menu_position::MenuRect {
+                        x: visible.origin.x,
+                        y: visible.origin.y,
+                        width: visible.size.width,
+                        height: visible.size.height,
+                    },
+                    menu.size().width,
+                );
+                menu.popUpMenuPositioningItem_atLocation_inView(
+                    None,
+                    objc2_foundation::NSPoint::new(x, y),
+                    None,
+                );
                 Ok::<_, String>(())
             })
             .map_err(|error| error.to_string())??;
@@ -1264,12 +1298,13 @@ fn tool_status_bar_menu(
     let mut builder = MenuBuilder::new(app);
     #[cfg(feature = "bundled-tools")]
     if item_id == "zero.snap.status" {
-        let shortcut = super::global_shortcuts::global_shortcut_snapshots(app)?
-            .into_iter()
-            .find(|shortcut| {
-                shortcut.id == super::global_shortcuts::GlobalShortcutActionId::SnapCapture
-                    && shortcut.registered
-            });
+        let shortcuts = super::global_shortcuts::global_shortcut_snapshots(app)?;
+        let accelerator = |id| {
+            shortcuts
+                .iter()
+                .find(|shortcut| shortcut.id == id && shortcut.registered && shortcut.enabled)
+                .and_then(|shortcut| shortcut.accelerator.as_deref())
+        };
         let capture = tauri::menu::MenuItem::with_id(
             app,
             "zero.snap.capture",
@@ -1279,9 +1314,7 @@ fn tool_status_bar_menu(
                 "Screenshot"
             },
             true,
-            shortcut
-                .as_ref()
-                .map(|shortcut| shortcut.accelerator.as_str()),
+            accelerator(super::global_shortcuts::GlobalShortcutActionId::SnapCapture),
         )
         .map_err(|error| error.to_string())?;
         let ocr = tauri::menu::MenuItem::with_id(
@@ -1293,7 +1326,7 @@ fn tool_status_bar_menu(
                 "Screenshot OCR"
             },
             super::ocr::capability().available,
-            None::<&str>,
+            accelerator(super::global_shortcuts::GlobalShortcutActionId::SnapOcr),
         )
         .map_err(|error| error.to_string())?;
         builder = builder.item(&capture).item(&ocr).separator();
@@ -1411,8 +1444,16 @@ fn sync_primary_status_item(
                     };
                     let app = app.clone();
                     tauri::async_runtime::spawn_blocking(move || {
+                        super::screenshot::startup::entry(&app, "menu");
+                        let dismissal_started = std::time::Instant::now();
                         // Let native menu tracking dismiss and the compositor retire its frame.
                         std::thread::sleep(std::time::Duration::from_millis(100));
+                        if let Some(trace) = app
+                            .try_state::<super::performance::PerformanceTrace>()
+                            .filter(|t| t.emits_logs())
+                        {
+                            trace.finish("snap_startup:menu_dismiss", "ok", dismissal_started);
+                        }
                         if let Err(error) =
                             super::screenshot::start_menu_screenshot(app.clone(), action.into())
                         {

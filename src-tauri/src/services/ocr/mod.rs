@@ -11,6 +11,13 @@ use tokio::sync::Semaphore;
 
 #[cfg(target_os = "macos")]
 mod macos;
+#[cfg(all(target_os = "windows", feature = "bundled-tools"))]
+mod windows;
+
+#[cfg(all(target_os = "windows", feature = "bundled-tools"))]
+pub fn configure_windows(app: &tauri::AppHandle) {
+    windows::configure(app);
+}
 
 pub const MAX_BYTES: usize = 32 * 1024 * 1024;
 pub const MAX_PIXELS: u64 = 24_000_000;
@@ -89,7 +96,14 @@ pub fn capability() -> OcrCapability {
             },
         }
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(all(target_os = "windows", feature = "bundled-tools"))]
+    {
+        windows::capability()
+    }
+    #[cfg(not(any(
+        target_os = "macos",
+        all(target_os = "windows", feature = "bundled-tools")
+    )))]
     {
         OcrCapability {
             available: false,
@@ -171,7 +185,14 @@ impl OcrState {
                 {
                     macos::recognize(bytes, languages, dimensions)
                 }
-                #[cfg(not(target_os = "macos"))]
+                #[cfg(all(target_os = "windows", feature = "bundled-tools"))]
+                {
+                    windows::recognize(bytes, languages, dimensions)
+                }
+                #[cfg(not(any(
+                    target_os = "macos",
+                    all(target_os = "windows", feature = "bundled-tools")
+                )))]
                 {
                     let _ = (bytes, languages, dimensions);
                     Err(OcrError::UnsupportedPlatform)

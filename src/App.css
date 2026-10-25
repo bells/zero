@@ -3967,3 +3967,10 @@ input:focus-visible {
   min-width: 32px;
   min-height: 32px;
 }
+
+.preferences-shortcut-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.preferences-shortcut-controls kbd { min-width: 90px; padding: 5px 8px; border: 1px solid var(--border-color, #d8ddd8); border-radius: 5px; font: inherit; font-size: 12px; text-align: center; }
+.preferences-shortcut-controls button { min-height: 30px; padding: 4px 8px; }
+.preferences-shortcut-controls button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 2px; }
+.preferences-shortcut-row { scroll-margin-block: 16px; }
+@media (max-width: 680px) { .preferences-shortcut-controls { justify-content: flex-start; } }

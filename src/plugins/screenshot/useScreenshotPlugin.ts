@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { TranslationKey } from "./i18n";
+import { screenshotFailureMessage } from "./screenshotErrors";
 
 export type ScreenshotAction = "copy" | "save" | "ocr";
 
@@ -59,7 +60,7 @@ export function useScreenshotPlugin() {
       setMessageDetail(null);
     } catch (err) {
       setMessageKey("screenshot.status.startError");
-      setMessageDetail(String(err));
+      setMessageDetail(screenshotFailureMessage(err));
     } finally {
       setIsBusy(false);
     }
@@ -68,7 +69,7 @@ export function useScreenshotPlugin() {
   useEffect(() => {
     refresh().catch((err) => {
       setMessageKey("screenshot.status.initError");
-      setMessageDetail(String(err));
+      setMessageDetail(screenshotFailureMessage(err));
     });
   }, [refresh]);
 

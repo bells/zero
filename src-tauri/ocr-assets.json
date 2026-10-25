@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "architecture": "x86_64-pc-windows-msvc",
+  "components": {
+    "paddleOcrRs": "0.6.1",
+    "models": "PP-OCRv4 (onnx_models release)",
+    "onnxRuntime": "1.22.0",
+    "vcRuntime": "14.44 x64"
+  },
+  "archives": [
+    {
+      "id": "models",
+      "url": "https://github.com/mg-chao/paddle-ocr-rs/releases/download/onnx_models/Paddle.OCR.V4.zip",
+      "bytes": 14902038,
+      "sha256": "5003ab05a41d9eb8446c805648b8c7d43b4319813f8e32b403fe6fa4059dd198"
+    },
+    {
+      "id": "onnxruntime",
+      "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-win-x64-1.22.0.zip",
+      "bytes": 72368545,
+      "sha256": "174c616efc0271194488642a72f1a514e01487da4dfe84c49296d66e40ebe0da"
+    },
+    {
+      "id": "vc-runtime",
+      "url": "https://download.visualstudio.microsoft.com/download/pr/45d3b8dd-bced-4b37-9974-142f748d710c/4aaf54db0bfc9435f7c3660e1a00237a4b556042bfeea64bde44c2e0194e6ee5/Microsoft.VC.14.44.17.14.CRT.Redist.X64.base.vsix",
+      "bytes": 3224191,
+      "sha256": "4aaf54db0bfc9435f7c3660e1a00237a4b556042bfeea64bde44c2e0194e6ee5"
+    }
+  ],
+  "files": [
+    {
+      "path": "ch_PP-OCRv4_det_infer.onnx",
+      "bytes": 4745517,
+      "sha256": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
+      "archive": "models",
+      "member": "models/ch_PP-OCRv4_det_infer.onnx"
+    },
+    {
+      "path": "ch_PP-OCRv4_rec_infer.onnx",
+      "bytes": 10857958,
+      "sha256": "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b",
+      "archive": "models",
+      "member": "models/ch_PP-OCRv4_rec_infer.onnx"
+    },
+    {
+      "path": "ch_ppocr_mobile_v2.0_cls_infer.onnx",
+      "bytes": 585532,
+      "sha256": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
+      "archive": "models",
+      "member": "models/ch_ppocr_mobile_v2.0_cls_infer.onnx"
+    },
+    {
+      "path": "ppocr_keys_v1.txt",
+      "bytes": 32873,
+      "sha256": "b22996db93ffedffa90abf62009659af14ae22df06a2da5a1ce0e6fb1117af86",
+      "archive": "models",
+      "member": "models/ppocr_keys_v1.txt"
+    },
+    {
+      "path": "onnxruntime.dll",
+      "bytes": 12418080,
+      "sha256": "579b636403983254346a5c1d80bd28f1519cd1e284cd204f8d4ff41f8d711559",
+      "archive": "onnxruntime",
+      "member": "onnxruntime-win-x64-1.22.0/lib/onnxruntime.dll"
+    },
+    {
+      "path": "onnxruntime_providers_shared.dll",
+      "bytes": 22064,
+      "sha256": "ba00ea1ef846c9b909c7854bc56c51051a20f9773b3e1153dda118d4b85d0b93",
+      "archive": "onnxruntime",
+      "member": "onnxruntime-win-x64-1.22.0/lib/onnxruntime_providers_shared.dll"
+    },
+    {
+      "path": "vcruntime140.dll",
+      "bytes": 124544,
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+      "archive": "vc-runtime",
+      "member": "Contents/VC/Redist/MSVC/14.44.35112/x64/Microsoft.VC143.CRT/vcruntime140.dll"
+    },
+    {
+      "path": "msvcp140.dll",
+      "bytes": 557728,
+      "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+      "archive": "vc-runtime",
+      "member": "Contents/VC/Redist/MSVC/14.44.35112/x64/Microsoft.VC143.CRT/msvcp140.dll"
+    },
+    {
+      "path": "vcruntime140_1.dll",
+      "bytes": 49792,
+      "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f",
+      "archive": "vc-runtime",
+      "member": "Contents/VC/Redist/MSVC/14.44.35112/x64/Microsoft.VC143.CRT/vcruntime140_1.dll"
+    },
+    {
+      "path": "msvcp140_1.dll",
+      "bytes": 35952,
+      "sha256": "bfad5aef4c63a669e3c140655cdfdf395b6c979b400a447bd5dcb65ed8826c3d",
+      "archive": "vc-runtime",
+      "member": "Contents/VC/Redist/MSVC/14.44.35112/x64/Microsoft.VC143.CRT/msvcp140_1.dll"
+    },
+    {
+      "path": "ONNX-RUNTIME-LICENSE.txt",
+      "bytes": 1073,
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+      "source": "src-tauri/ocr-licenses/ONNX-RUNTIME-LICENSE.txt"
+    },
+    {
+      "path": "PADDLE-OCR-RS-LICENSE.txt",
+      "bytes": 11358,
+      "sha256": "bcb782df7a575486f85a9b7b181902910c664dea4d537ada33e46dd96974cc1e",
+      "source": "src-tauri/ocr-licenses/PADDLE-OCR-RS-LICENSE.txt"
+    },
+    {
+      "path": "PADDLEOCR-LICENSE.txt",
+      "bytes": 11376,
+      "sha256": "3840c5c0c61c294264d2dd77b8777be6ddd90121ef4e0e64abcd22edea581d6e",
+      "source": "src-tauri/ocr-licenses/PADDLEOCR-LICENSE.txt"
+    },
+    {
+      "path": "VC-RUNTIME-NOTICE.txt",
+      "bytes": 634,
+      "sha256": "6c386aa4bcf4d98d1e6cbbaf6c28f72e6cb709f126c1c1e9d4d338688fba0279",
+      "source": "src-tauri/ocr-licenses/VC-RUNTIME-NOTICE.txt"
+    }
+  ]
+}

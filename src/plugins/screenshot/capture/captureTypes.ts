@@ -122,6 +122,7 @@ export interface CaptureDisplaySnapshot {
   sourceScaleY: number;
 }
 export interface CaptureSession {
+  editorMode: "full" | "ocr-selection";
   display: CaptureDisplaySnapshot;
   sessionId: string;
   initialAction: "copy" | "save" | "ocr";

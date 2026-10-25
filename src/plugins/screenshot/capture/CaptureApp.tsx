@@ -1,3 +1,4 @@
+import { recordCaptureStartup } from "./captureStartup";
 import {
   useCallback,
   useEffect,
@@ -247,6 +248,7 @@ export function CaptureApp() {
   const language = resolveLanguage(preferences.language, navigator.language);
   const t = useMemo(() => createCaptureTranslator(language), [language]);
   const [session, setSession] = useState<CaptureSession | null>(null);
+  const ocrSelectionOnly = session?.editorMode === "ocr-selection";
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
   const [tool, setTool] = useState<CaptureTool>("select");
@@ -329,6 +331,7 @@ export function CaptureApp() {
   useEffect(() => {
     let disposed = false;
     let objectUrl: string | null = null;
+    const mountStarted = performance.now();
     let decodedImage: HTMLImageElement | null = null;
     let receivedBytes: Uint8Array | null = null;
     let initializedSessionId: string | null = null;
@@ -340,9 +343,12 @@ export function CaptureApp() {
           {},
         );
         initializedSessionId = payload.sessionId;
+        recordCaptureStartup(payload.sessionId, "mount", mountStarted);
+        const readStarted = performance.now();
         const value = await invoke<ArrayBuffer>("read_screenshot_media", {
           input: { token: payload.media.token },
         });
+        recordCaptureStartup(payload.sessionId, "mediaRead", readStarted);
         receivedBytes = new Uint8Array(value);
         if (
           receivedBytes.byteLength === 0 ||
@@ -355,7 +361,9 @@ export function CaptureApp() {
         objectUrl = URL.createObjectURL(
           new Blob([value], { type: payload.media.mimeType }),
         );
+        const decodeStarted = performance.now();
         decodedImage = await loadImageFromObjectUrl(objectUrl);
+        recordCaptureStartup(payload.sessionId, "imageDecode", decodeStarted);
         if (disposed) {
           releaseDecodedImage(decodedImage);
           decodedImage = null;
@@ -406,7 +414,9 @@ export function CaptureApp() {
 
     void (async () => {
       try {
+        const displayDecodeStarted = performance.now();
         await imageElement.decode();
+        recordCaptureStartup(session.sessionId, "displayDecode", displayDecodeStarted);
         if (cancelled || revealedSessionIdRef.current === session.sessionId) {
           return;
         }
@@ -415,9 +425,11 @@ export function CaptureApp() {
         // Force layout after the displayed image itself has decoded. Native reveal is
         // queued onto AppKit's main thread, so no empty WebView frame is exposed.
         void document.documentElement.offsetWidth;
+        const revealStarted = performance.now();
         await invoke("reveal_screenshot_capture", {
           sessionId: session.sessionId,
         });
+        recordCaptureStartup(session.sessionId, "readyAck", revealStarted);
       } catch (error) {
         if (cancelled) {
           return;
@@ -529,7 +541,7 @@ export function CaptureApp() {
       if (
         !selectionViewportBounds ||
         !toolbarSize ||
-        propertyReservation?.key !== measurementKey
+        (!ocrSelectionOnly && propertyReservation?.key !== measurementKey)
       ) {
         return null;
       }
@@ -537,7 +549,7 @@ export function CaptureApp() {
         selectionViewportBounds,
         toolbarSize,
         viewportSize,
-        propertyReservation.size,
+        ocrSelectionOnly ? { width: 0, height: 0 } : propertyReservation!.size,
         geometryControlBounds,
       );
     }, [
@@ -547,6 +559,7 @@ export function CaptureApp() {
       propertyReservation,
       measurementKey,
       geometryControlBounds,
+      ocrSelectionOnly,
     ]);
   const propertyObject = editing.scene.find(
     (annotation): annotation is DrawingAnnotation =>
@@ -742,7 +755,7 @@ export function CaptureApp() {
   }, []);
 
   const recognizeSelection = useCallback(async () => {
-    if (!session || !selection || isCommitting || editBusy) return;
+    if (!session || !selection || !ocrAvailable || isCommitting || editBusy || pointerBusy) return;
     setIsCommitting(true);
     setError(null);
     try {
@@ -758,7 +771,7 @@ export function CaptureApp() {
     } finally {
       setIsCommitting(false);
     }
-  }, [session, selection, isCommitting, editBusy, t]);
+  }, [session, selection, ocrAvailable, isCommitting, editBusy, pointerBusy, t]);
 
   const renderCurrentFinalCanvas = useCallback((): HTMLCanvasElement => {
     if (!session || !baseImage) {
@@ -1021,21 +1034,24 @@ export function CaptureApp() {
 
       if (editableTarget) return;
 
-      const action = resolveCaptureHotkey(event);
+      const action = resolveCaptureHotkey(event, session?.editorMode);
       if (!action) {
         return;
       }
 
       event.preventDefault();
       if (action !== "cancel" && editBusy) return;
-      if (action === "undo") {
+      if (action === "recognize") {
+        if (!event.repeat) void recognizeSelection();
+      } else if (action === "undo") {
         dispatch({ type: "undo" });
       } else if (action === "redo") {
         dispatch({ type: "redo" });
       } else if (action === "removeSelected") {
         dispatch({ type: "removeSelected" });
       } else if (action === "cancel") {
-        cancelLayer();
+        if (ocrSelectionOnly) closeSession();
+        else cancelLayer();
       }
     };
 
@@ -1812,7 +1828,7 @@ export function CaptureApp() {
       ) : null}
       {!selection && imageSrc ? (
         <p className="capture-targeting-hint" role="status">
-          {t("screenshot.target.hint")}
+          {t(ocrSelectionOnly ? "ocr.selectionHint" : "screenshot.target.hint")}
         </p>
       ) : null}
       {selectionMaskPath && selectionViewportBounds ? (
@@ -1887,7 +1903,7 @@ export function CaptureApp() {
           ))}
         </div>
       ) : null}
-      {selection && activeGeometry && selectionViewportBounds ? (
+      {!ocrSelectionOnly && selection && activeGeometry && selectionViewportBounds ? (
         <SelectionGeometryControls
           geometry={activeGeometry}
           imageSize={imageSize}
@@ -2026,6 +2042,21 @@ export function CaptureApp() {
             top: toolbarPosition?.top ?? 0,
           }}
         >
+          {ocrSelectionOnly ? (
+            <nav className="capture-toolbar-live" aria-label={t("ocr.capture")}>
+              <button type="button" className="capture-tool-live danger"
+                aria-label={t("screenshot.toolbar.cancel")} title={t("screenshot.toolbar.cancel")}
+                data-capture-cancel="true" onClick={closeSession}>
+                <X aria-hidden="true" />
+              </button>
+              <button type="button" className="capture-tool-live confirm"
+                aria-label={t("ocr.capture")} title={t("ocr.selectionHint")}
+                disabled={isCommitting || editBusy || pointerBusy || !ocrAvailable}
+                onClick={() => void recognizeSelection()}>
+                <Check aria-hidden="true" />
+              </button>
+            </nav>
+          ) : <>
           <CaptureToolbarPositionControls
             moveLabel={t("screenshot.properties.move")}
             disabled={isCommitting || (pointerBusy && !toolbarDrag.dragging)}
@@ -2187,9 +2218,10 @@ export function CaptureApp() {
               </button>
             </span>
           </nav>
+          </>}
         </div>
       ) : null}
-      {selection && panelContext ? (
+      {!ocrSelectionOnly && selection && panelContext ? (
         <div
           ref={propertyPanelRef}
           className="capture-property-shell"
@@ -2230,7 +2262,7 @@ export function CaptureApp() {
           </div>
         </div>
       ) : null}
-      <CapturePropertyMeasurements t={t} onMeasure={measureProperties} />
+      {!ocrSelectionOnly ? <CapturePropertyMeasurements t={t} onMeasure={measureProperties} /> : null}
     </main>
   );
 }

@@ -22,6 +22,9 @@ const output = path.join(root, 'build', 'packages', profile.name);
 const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 const frontendDist = profile.name === 'full' ? '../dist' : `../build/frontend/${profile.name}`;
 const config = { build: { frontendDist }, ...(process.platform === 'darwin' ? { bundle: { macOS: { signingIdentity: process.env.APPLE_SIGNING_IDENTITY ?? '-' } } } : {}) };
+if (target?.includes('windows') || (!target && process.platform === 'win32')) {
+  config.bundle = { resources: profile.tools.includes('snap') ? { '../node_modules/.cache/zero-windows-ocr/resources/': 'windows-ocr/' } : [] };
+}
 const buildArgs = ['tauri', 'build', '--config', JSON.stringify(config)];
 if (profile.features.length) buildArgs.push('--features', profile.features.join(','));
 buildArgs.push(...args, '--', '--no-default-features', '--locked');
@@ -31,7 +34,7 @@ if (!pnpmCli) throw new Error('Run this script through pnpm package:desktop');
 // Invoke the package-manager JS entry directly so cmd.exe cannot strip JSON config quotes.
 const result = spawnSync(process.execPath, [pnpmCli, ...buildArgs], {
   cwd: root, stdio: 'inherit',
-  env: { ...process.env, ZERO_BUILD_PROFILE: profile.name, CARGO_TARGET_DIR: targetDir },
+  env: { ...process.env, ZERO_BUILD_PROFILE: profile.name, ...(target ? { ZERO_TARGET_TRIPLE: target } : {}), CARGO_TARGET_DIR: targetDir },
 });
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);

@@ -2,7 +2,9 @@ import { Copy, Download, ScanText } from "lucide-react";
 import { useSnapOcr } from "./useSnapOcr";
 import { SnapOcrResult } from "./SnapOcrResult";
 import { type ScreenshotAction, useScreenshotPlugin } from "./useScreenshotPlugin";
-import { SCREENSHOT_SHORTCUT, SCREENSHOT_USAGE_KEYS } from "./screenshotMeta";
+import { useGlobalShortcuts } from "../../services/useGlobalShortcuts";
+import { displayShortcut } from "../../services/globalShortcutServiceCore";
+import { SCREENSHOT_USAGE_KEYS } from "./screenshotMeta";
 import type { TranslationKey } from "./i18n";
 import "./screenshot.css";
 
@@ -21,11 +23,13 @@ export function ScreenshotPanel({ t, surface }: ScreenshotPanelProps) {
     || screenshot.messageKey === "screenshot.status.initError";
   const showFeedback = hasError || screenshot.messageKey.endsWith("Started")
     || screenshot.messageKey === "ocr.started";
-  const shortcut = screenshot.capabilities.platform === "macOS"
-    ? "⌘ + Shift + A"
-    : screenshot.capabilities.platform === "Windows"
-      ? "Ctrl + Shift + A"
-      : SCREENSHOT_SHORTCUT.display;
+  const shortcuts = useGlobalShortcuts();
+  const activeShortcut = (id: "snapCapture" | "snapOcr") => {
+    const entry = shortcuts.snapshots.find(value => value.id === id);
+    return entry?.registrationState === "active" && entry.accelerator ? displayShortcut(entry.accelerator, screenshot.capabilities.platform === "macOS") : null;
+  };
+  const shortcut = activeShortcut("snapCapture");
+  const ocrShortcut = activeShortcut("snapOcr");
   const launch = (action: ScreenshotAction) => {
     void screenshot.start(action);
   };
@@ -34,9 +38,9 @@ export function ScreenshotPanel({ t, surface }: ScreenshotPanelProps) {
     <section className={`plugin-panel screenshot-panel snap-${surface}`} aria-busy={screenshot.isBusy}>
       <header className="snap-heading">
         <h2>{t("screenshot.title")}</h2>
-        <div className="snap-shortcut" aria-label={t("screenshot.shortcut")}>
+        {shortcut ? <div className="snap-shortcut" aria-label={t("screenshot.shortcut")}>
           <kbd>{shortcut}</kbd>
-        </div>
+        </div> : null}
       </header>
       <p className="snap-hint">
         {screenshot.capabilities.custom_overlay
@@ -58,6 +62,7 @@ export function ScreenshotPanel({ t, surface }: ScreenshotPanelProps) {
         <button type="button" className="secondary-action" onClick={() => launch("ocr")} disabled={screenshot.isBusy || !ocr.capability?.available} title={ocr.capability?.available ? t("ocr.originalHint") : t("ocr.unavailable")}>
           <ScanText aria-hidden="true" />
           {t("ocr.capture")}
+          {ocrShortcut ? <kbd className="snap-action-shortcut">{ocrShortcut}</kbd> : null}
         </button>
       </div>
       {showFeedback ? <p className={`snap-feedback${hasError ? " error" : ""}`} role={hasError ? "alert" : "status"}>{message}</p> : null}

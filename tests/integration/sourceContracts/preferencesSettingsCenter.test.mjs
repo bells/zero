@@ -25,7 +25,7 @@ test("settings center exposes search, selected destination, narrow back flow, an
   assert.match(css, /prefers-reduced-motion/);
 });
 
-test("settings pages keep controls immediate and shortcuts read-only", () => {
+test("settings pages keep controls immediate and shortcut recording avoids free text", () => {
   assert.doesNotMatch(pages, />\s*(Save|Cancel|Apply|OK)\s*</i);
   assert.doesNotMatch(pages, /type="text"[^>]*shortcut|shortcut[^>]*type="text"/i);
   assert.match(pages, /role="switch"/);

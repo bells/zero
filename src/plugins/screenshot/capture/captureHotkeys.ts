@@ -3,6 +3,7 @@ export type CaptureHotkeyAction =
   | "redo"
   | "removeSelected"
   | "cancel"
+  | "recognize"
   | null;
 
 export interface KeyboardLikeEvent {
@@ -16,11 +17,20 @@ function isModifierPressed(event: KeyboardLikeEvent): boolean {
   return Boolean(event.metaKey || event.ctrlKey);
 }
 
-export function resolveCaptureHotkey(event: KeyboardLikeEvent): CaptureHotkeyAction {
+export function resolveCaptureHotkey(
+  event: KeyboardLikeEvent,
+  editorMode: "full" | "ocr-selection" = "full",
+): CaptureHotkeyAction {
   const key = event.key.toLowerCase();
 
   if (key === "escape") {
     return "cancel";
+  }
+
+  if (editorMode === "ocr-selection") {
+    return key === "enter" && !isModifierPressed(event) && !event.shiftKey
+      ? "recognize"
+      : null;
   }
 
   if (key === "delete" || key === "backspace") {

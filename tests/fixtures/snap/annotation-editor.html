@@ -23,6 +23,7 @@
         source.toBlob(async (b) => r(await b.arrayBuffer()), "image/png"),
       );
       window.snapInvocations = [];
+      const ocrOnly = new URLSearchParams(location.search).has("ocr-only");
       window.snapUploads = [];
       window.snapUploadBytes = [];
       window.__TAURI_INTERNALS__ = {
@@ -34,7 +35,8 @@
             case "init_screenshot_session":
               return {
                 sessionId: "synthetic",
-                initialAction: "copy",
+                initialAction: ocrOnly ? "ocr" : "copy",
+                editorMode: ocrOnly ? "ocr-selection" : "full",
                 media: {
                   token: "synthetic-media",
                   mimeType: "image/png",

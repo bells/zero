@@ -345,7 +345,7 @@ function PreferencesDestinationContent({
     return <StatusBarPreferencesPage feedback={feedback} plugins={localizedPlugins} records={pluginHost.records} runOperation={runOperation} statusBar={statusBar} t={t} />;
   }
   if (destinationId === "shortcuts") {
-    return <ShortcutsPreferencesPage error={shortcuts.error} isLoading={shortcuts.isLoading} shortcuts={shortcuts.snapshots} t={t} />;
+    return <ShortcutsPreferencesPage error={shortcuts.error} isLoading={shortcuts.isLoading} shortcuts={shortcuts.snapshots} isSaving={shortcuts.isSaving} onSetShortcut={shortcuts.setShortcut} t={t} />;
   }
   if (destinationId === "tools") {
     return (
@@ -375,7 +375,10 @@ function PreferencesDestinationContent({
       preferences={preferences.preferences}
       record={record}
       runOperation={runOperation}
-      shortcut={shortcuts.snapshots.find((candidate) => candidate.pluginName === record.name)}
+      shortcuts={shortcuts.snapshots.filter((candidate) => candidate.pluginName === record.name)}
+      shortcutError={shortcuts.error}
+      isSaving={shortcuts.isSaving}
+      onSetShortcut={shortcuts.setShortcut}
       statusBar={statusBar}
       t={t}
       onToolVisibleChange={preferences.setToolVisible}

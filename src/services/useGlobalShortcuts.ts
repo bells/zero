@@ -1,62 +1,80 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import {
   globalShortcutService,
+  shortcutErrorMessageKey,
+  type SetSnapShortcutInput,
   type GlobalShortcutSnapshot,
 } from "./globalShortcuts";
 
 export interface GlobalShortcutServiceApi {
   getSnapshots(): Promise<GlobalShortcutSnapshot[]>;
+  setSnapShortcut(input: SetSnapShortcutInput): Promise<GlobalShortcutSnapshot[]>;
 }
 
-export function useGlobalShortcuts(
-  refreshKey = "",
-  service: GlobalShortcutServiceApi = globalShortcutService,
-) {
+export async function reconcileShortcutFailure(
+  service: Pick<GlobalShortcutServiceApi, "getSnapshots">,
+  failure: unknown,
+): Promise<{ snapshots: GlobalShortcutSnapshot[] | null; error: ReturnType<typeof shortcutErrorMessageKey> }> {
+  const error = shortcutErrorMessageKey(failure);
+  try {
+    return { snapshots: await service.getSnapshots(), error };
+  } catch {
+    return { snapshots: null, error };
+  }
+}
+
+export function useGlobalShortcuts(refreshKey = "", service: GlobalShortcutServiceApi = globalShortcutService) {
   const [snapshots, setSnapshots] = useState<GlobalShortcutSnapshot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<ReturnType<typeof shortcutErrorMessageKey> | null>(null);
+  const revision = useRef(0);
 
   const reload = useCallback(async () => {
+    const current = ++revision.current;
     setIsLoading(true);
-    setError(null);
     try {
       const next = await service.getSnapshots();
-      setSnapshots(next);
+      if (revision.current === current) setSnapshots(next);
       return next;
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : String(loadError));
+      if (revision.current === current) setError(existing => existing ?? shortcutErrorMessageKey(loadError));
       throw loadError;
     } finally {
-      setIsLoading(false);
+      if (revision.current === current) setIsLoading(false);
     }
-  }, [refreshKey, service]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-    service
-      .getSnapshots()
-      .then((next) => {
-        if (!cancelled) {
-          setSnapshots(next);
-          setError(null);
-        }
-      })
-      .catch((loadError) => {
-        if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : String(loadError));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
   }, [service]);
 
-  return { snapshots, isLoading, error, reload };
+  const setShortcut = useCallback(async (input: SetSnapShortcutInput) => {
+    ++revision.current;
+    setIsSaving(true);
+    setError(null);
+    try {
+      const next = await service.setSnapShortcut(input);
+      ++revision.current;
+      setSnapshots(next);
+      return true;
+    } catch (saveError) {
+      const current = ++revision.current;
+      const recovery = await reconcileShortcutFailure(service, saveError);
+      if (revision.current === current && recovery.snapshots) setSnapshots(recovery.snapshots);
+      setError(recovery.error);
+      return false;
+    } finally {
+      setIsSaving(false);
+      setIsLoading(false);
+    }
+  }, [service]);
+
+  useEffect(() => {
+    void reload().catch(() => undefined);
+    return () => { ++revision.current; };
+  }, [refreshKey, reload]);
+  useEffect(() => {
+    const stop = listen("global-shortcuts-changed", () => { void reload().catch(() => undefined); });
+    return () => { void stop.then(unlisten => unlisten()).catch(() => undefined); };
+  }, [reload]);
+
+  return { snapshots, isLoading, isSaving, error, reload, setShortcut };
 }

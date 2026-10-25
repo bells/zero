@@ -12,7 +12,7 @@ Zero 是一个跨平台桌面工具箱，从状态栏 / 系统托盘快速使用
 
 | 插件 | 用途 | 当前平台边界 |
 | --- | --- | --- |
-| **Zero Snap** | 截图、窗口选区、标注与对象编辑、复制/保存/钉图、离线 OCR | macOS 自定义编辑器与 Vision OCR；Windows 调用系统截图工具 |
+| **Zero Snap** | 截图、窗口选区、标注与对象编辑、复制/保存/钉图、离线 OCR | macOS 自定义编辑器与 Vision OCR；Windows 普通截图调用系统工具，新增随包离线 OCR 选区流程（真机验收待完成） |
 | **Zero Awake** | 按时长保持屏幕与系统唤醒 | macOS、Windows 原生实现 |
 | **Zero Paper** | 浏览 Bing 每日壁纸、历史缓存、下载和设为桌面 | macOS、Windows 适配；Linux 应用壁纸取决于桌面后端 |
 | **Zero Launch** | 中英文/拼音应用与系统设置搜索、启动和聚焦 | macOS 应用包、Windows 开始菜单索引 |
@@ -22,7 +22,8 @@ Zero 是一个跨平台桌面工具箱，从状态栏 / 系统托盘快速使用
 
 - 状态栏 / 托盘提供紧凑快捷入口，主窗口提供完整工具工作区和设置视图，关于窗口独立。
 - 支持工具可见性、中文/英文/跟随系统、登录自启和可配置全局快捷键。
-- 默认截图快捷键：`CommandOrControl+Shift+A`；Launch：macOS `Option+Space`、Windows `Ctrl+Alt+Space`。
+- 默认截图快捷键：macOS `Option+A`、Windows `Alt+A`；截图 OCR 默认未分配。在“偏好设置 → 键盘快捷键”或 Zero Snap 设置中可录制、清除、恢复默认，冲突或保存失败保留原设置。Launch 仍为 macOS `Option+Space`、Windows `Ctrl+Alt+Space`，本轮保持只读。
+- Windows x64 OCR 随构建打包 CPU 引擎与中英文模型，不依赖 Python、额外 OCR 程序或系统语言包；普通截图保持系统工具。框选后点击识别或按 Enter，Esc 取消，结果可编辑并手动复制。实现与资源校验不等于已完成 Windows 安装包离线验收；开发/打包说明见 [Snap 维护指南](docs/snap.md)。
 - 打包 release 启动后会为所包含的工具创建系统应用搜索入口；入口转发到同一个 Zero 实例，不是五个独立应用安装包。详见[打包说明](docs/packaging.md)。
 
 **可插拔的实现边界：**五个内置插件各自拥有描述、界面、翻译与服务契约，由宿主统一注册和管理生命周期，并支持构建裁剪。它们的 Rust 能力随宿主编译；第三方不能动态加载 Rust。`.zplugin` 包管理与权限桥接已存在，但公开 Web Plugin API v1 runtime 仍关闭，不能把开发预览当作正式插件生态。参见[协议现状](docs/plugins/protocol-v1.md)。
@@ -130,7 +131,7 @@ The website also offers browser tools that process text, images and documents lo
 
 | Plugin | Purpose | Current platform boundary |
 | --- | --- | --- |
-| **Zero Snap** | Capture, window selection, annotations and object editing, copy/save/pin, offline OCR | Custom editor and Vision OCR on macOS; system screenshot launcher on Windows |
+| **Zero Snap** | Capture, window selection, annotations and object editing, copy/save/pin, offline OCR | Custom editor and Vision OCR on macOS; system capture plus a bundled offline OCR selection flow on Windows (device acceptance pending) |
 | **Zero Awake** | Keep the display and system awake for a chosen duration | Native macOS and Windows implementations |
 | **Zero Paper** | Bing daily wallpapers, cached history, download and desktop apply | macOS/Windows adapters; Linux apply depends on the desktop backend |
 | **Zero Launch** | English/Chinese/pinyin app and settings search, launch and focus | macOS application bundles and Windows Start Menu index |
@@ -140,7 +141,8 @@ The desktop app primarily targets macOS and Windows, with different capabilities
 
 - Compact menu bar / tray actions, a full main-window workspace with preferences, and a separate About window.
 - Tool visibility, English/Chinese/system language selection, login autostart and configurable global shortcuts.
-- Default capture shortcut: `CommandOrControl+Shift+A`; Launch: `Option+Space` on macOS and `Ctrl+Alt+Space` on Windows.
+- Default capture shortcut: `Option+A` on macOS and `Alt+A` on Windows; capture OCR is unassigned. Record, clear or reset either Snap binding in Preferences → Keyboard Shortcuts or Zero Snap settings. Registration/save failures preserve the previous setting. Launch remains read-only at `Option+Space` on macOS and `Ctrl+Alt+Space` on Windows.
+- Windows x64 builds bundle the CPU OCR engine and Chinese/English models without Python, external OCR software or system language packs; ordinary capture retains the system tool. Confirm a selection with Recognize or Enter, cancel with Esc, and edit the result before explicitly copying. Source/resource checks do not establish installed offline Windows acceptance; see the [Snap maintenance guide](docs/snap.md).
 - Packaged release builds create system application-search entries for included tools on startup. These forward to the same Zero instance; they are not five standalone application packages. See [packaging](docs/packaging.md).
 
 **What pluggable means today:** each bundled plugin owns its descriptor, UI, translations and service contracts. The host registers plugins, manages their lifecycle and supports build-time exclusion. Native Rust capabilities are compiled with the host; third parties cannot dynamically load Rust. `.zplugin` package management and permission bridges exist, but the public Web Plugin API v1 runtime remains disabled. Developer previews do not establish a released plugin ecosystem. See [protocol status](docs/plugins/protocol-v1.md).

@@ -32,8 +32,15 @@ use crate::services::surface_activity::{close_surface, hide_surface, show_surfac
 mod capture_targets;
 mod display;
 mod lifecycle;
+mod ocr_authority;
 pub mod snap_ocr;
+pub mod startup;
+mod windows_capture;
 use display::CaptureDisplaySnapshot;
+#[cfg(target_os = "windows")]
+type RequestedCaptureDisplay = windows_capture::DisplayIdentity;
+#[cfg(not(target_os = "windows"))]
+type RequestedCaptureDisplay = u32;
 #[cfg(target_os = "macos")]
 use display::DisplayFrame;
 
@@ -78,6 +85,7 @@ pub struct ScreenshotStartResult {
 pub struct CaptureSessionPayload {
     pub session_id: String,
     pub initial_action: String,
+    pub editor_mode: String,
     pub display: CaptureDisplaySnapshot,
     pub media: ScreenshotMediaDescriptor,
     pub targets: Vec<ScreenshotTargetCandidate>,
@@ -175,6 +183,7 @@ struct ScreenshotSession {
     media: ScreenshotMedia,
     targets: Vec<ScreenshotTargetCandidate>,
     revealed: bool,
+    ocr_authority: ocr_authority::OcrAuthority,
     expires_at_ms: u64,
     restore_window_label: Option<String>,
 }
@@ -207,7 +216,7 @@ pub struct ScreenshotSessionStore {
     active: Mutex<Option<ScreenshotSession>>,
     starts: lifecycle::CaptureStarts,
     window_owner: Mutex<Option<String>>,
-    menu_display: Mutex<Option<u32>>,
+    menu_display: Mutex<Option<RequestedCaptureDisplay>>,
     leases: Mutex<HashMap<String, ScreenshotCommitLease>>,
     pins: Mutex<HashMap<String, PinResource>>,
 }
@@ -242,11 +251,12 @@ impl ScreenshotSessionStore {
     }
 
     fn set_active(&self, session: ScreenshotSession) {
-        let previous = self
-            .active
-            .lock()
-            .ok()
-            .and_then(|mut active| active.replace(session));
+        let previous = self.active.lock().ok().and_then(|mut active| {
+            if let Some(previous) = active.as_ref() {
+                previous.ocr_authority.revoke();
+            }
+            active.replace(session)
+        });
         if let Some(previous) = previous {
             self.remove_session_leases(&previous.id);
             remove_owned_media(&previous.media.path);
@@ -295,7 +305,12 @@ impl ScreenshotSessionStore {
     }
 
     fn clear_active(&self) {
-        let previous = self.active.lock().ok().and_then(|mut active| active.take());
+        let previous = self.active.lock().ok().and_then(|mut active| {
+            if let Some(previous) = active.as_ref() {
+                previous.ocr_authority.revoke();
+            }
+            active.take()
+        });
         if let Some(previous) = previous {
             self.remove_session_leases(&previous.id);
             remove_owned_media(&previous.media.path);
@@ -308,6 +323,9 @@ impl ScreenshotSessionStore {
                 .as_ref()
                 .is_some_and(|session| session.id == session_id)
             {
+                if let Some(previous) = active.as_ref() {
+                    previous.ocr_authority.revoke();
+                }
                 active.take()
             } else {
                 None
@@ -471,12 +489,19 @@ pub fn start_screenshot_session(
 fn start_screenshot_session_on_display(
     app: tauri::AppHandle,
     action: String,
-    display: Option<u32>,
+    display: Option<RequestedCaptureDisplay>,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
     let store = app.state::<ScreenshotSessionStore>();
     let (flight, leader) = store.starts.claim()?;
     if !leader {
         return flight.wait();
+    }
+    let existing = store
+        .active()
+        .filter(|session| session.expires_at_ms > now_ms());
+    let already_visible = existing.as_ref().is_some_and(|session| session.revealed);
+    if existing.is_none() {
+        startup::begin(&app);
     }
     let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.snap"), "capture");
     let result = (|| {
@@ -490,6 +515,16 @@ fn start_screenshot_session_on_display(
         result.expect("operation ran under gate")
     })();
     store.starts.finish(&flight, result.clone());
+    if result.is_err() {
+        startup::finish(&app, "error");
+    } else if already_visible {
+        startup::finish(&app, "reused");
+    } else if result
+        .as_ref()
+        .is_ok_and(|result| result.mode != "custom-overlay")
+    {
+        startup::finish(&app, "system_launcher");
+    }
     diagnostic.finish(&result);
     result
 }
@@ -497,7 +532,7 @@ fn start_screenshot_session_on_display(
 fn start_screenshot_session_inner(
     app: tauri::AppHandle,
     action: String,
-    display: Option<u32>,
+    display: Option<RequestedCaptureDisplay>,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
     if !crate::plugin_is_enabled(&app, crate::brand::ZERO_SNAP_PLUGIN_ID) {
         return Err(screenshot_error(
@@ -506,11 +541,12 @@ fn start_screenshot_session_inner(
             false,
         ));
     }
+    let normalized_action = normalize_start_action(action);
     let store = app.state::<ScreenshotSessionStore>();
-    if let Some(active) = store
-        .active()
-        .filter(|active| active.expires_at_ms > now_ms())
-    {
+    if let Some(active) = store.active().filter(|active| {
+        active.expires_at_ms > now_ms()
+            && (!cfg!(target_os = "windows") || normalized_action == "ocr")
+    }) {
         if let Some(window) = app.get_webview_window(CAPTURE_WINDOW_LABEL) {
             if active.revealed {
                 let _ = window.set_focus();
@@ -533,8 +569,72 @@ fn start_screenshot_session_inner(
             .map_err(|_| screenshot_error("screenshot.closing", "无法关闭旧截图窗口", true))?;
     }
     wait_for_capture_teardown(&app)?;
-    let normalized_action = normalize_start_action(action);
     let restore_window_label = hide_visible_shell_windows(&app);
+
+    #[cfg(target_os = "windows")]
+    if normalized_action == "ocr" {
+        let prepared = (|| {
+            let root = screenshot_media_root(&app)?;
+            cleanup_stale_screenshot_media(&root, &store);
+            let session_id = random_resource_token("session")?;
+            let media_token = random_resource_token("media")?;
+            let created_at_ms = now_ms();
+            let directory = root.join(format!("session-{created_at_ms}-{session_id}"));
+            create_owner_only_directory(&directory)?;
+            let path = directory.join("capture.png");
+            let (byte_length, snapshot) = windows_capture::capture(&app, &path, display)
+                .inspect_err(|_| {
+                    let _ = fs::remove_dir_all(&directory);
+                })?;
+            Ok::<_, ScreenshotError>((
+                session_id,
+                media_token,
+                created_at_ms,
+                path,
+                byte_length,
+                snapshot,
+            ))
+        })();
+        let (session_id, media_token, created_at_ms, path, byte_length, snapshot) = match prepared {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                restore_shell_window(&app, restore_window_label.as_deref());
+                return Err(error);
+            }
+        };
+        store.set_active(ScreenshotSession {
+            id: session_id.clone(),
+            initial_action: normalized_action.clone(),
+            display: snapshot.clone(),
+            media: ScreenshotMedia {
+                token: media_token,
+                path,
+                byte_length,
+                width: snapshot.pixel_width,
+                height: snapshot.pixel_height,
+            },
+            targets: Vec::new(),
+            revealed: false,
+            ocr_authority: Default::default(),
+            expires_at_ms: created_at_ms.saturating_add(SCREENSHOT_SESSION_TTL_MS),
+            restore_window_label: restore_window_label.clone(),
+        });
+        if let Err(error) = startup::measure(&app, "snap_startup:window_prepare", || {
+            windows_capture::open_capture_window(&app, &session_id, &snapshot)
+        }) {
+            store.clear_active_if(&session_id);
+            restore_shell_window(&app, restore_window_label.as_deref());
+            return Err(error);
+        }
+        return Ok(ScreenshotStartResult {
+            mode: "custom-overlay".into(),
+            platform: "Windows".into(),
+            action: normalized_action,
+            message: "文字识别选区已打开".into(),
+            session_id: Some(session_id),
+            capture_window_label: Some(CAPTURE_WINDOW_LABEL.into()),
+        });
+    }
 
     #[cfg(target_os = "macos")]
     {
@@ -548,28 +648,33 @@ fn start_screenshot_session_inner(
             let session_directory = root.join(format!("session-{created_at_ms}-{session_id}"));
             create_owner_only_directory(&session_directory)?;
             let media_path = session_directory.join("capture.png");
-            let monitor = display
-                .and_then(|id| {
-                    xcap::Monitor::all()
-                        .ok()?
-                        .into_iter()
-                        .find(|m| m.id().ok() == Some(id))
-                })
-                .map(Ok)
-                .unwrap_or_else(|| resolve_capture_monitor(&app))?;
-            let target_snapshot = capture_targets::prepare_capture_target_snapshot(&monitor)
-                .inspect_err(|_| {
-                    crate::services::diagnostics::native(
-                        Some("zero.snap"),
-                        "targets",
-                        crate::services::diagnostics::contracts::Outcome::Failed,
-                    )
-                })
-                .ok();
-            let frozen_frame = monitor_frame(&monitor)?;
-            let capture = capture_fullscreen_png(&media_path, &monitor).inspect_err(|_error| {
-                let _ = fs::remove_dir_all(&session_directory);
+            let monitor = startup::measure(&app, "snap_startup:display", || {
+                display
+                    .and_then(|id| {
+                        xcap::Monitor::all()
+                            .ok()?
+                            .into_iter()
+                            .find(|m| m.id().ok() == Some(id))
+                    })
+                    .map(Ok)
+                    .unwrap_or_else(|| resolve_capture_monitor(&app))
             })?;
+            let target_snapshot = startup::measure(&app, "snap_startup:targets", || {
+                capture_targets::prepare_capture_target_snapshot(&monitor)
+            })
+            .inspect_err(|_| {
+                crate::services::diagnostics::native(
+                    Some("zero.snap"),
+                    "targets",
+                    crate::services::diagnostics::contracts::Outcome::Failed,
+                )
+            })
+            .ok();
+            let frozen_frame = monitor_frame(&monitor)?;
+            let capture =
+                capture_fullscreen_png(&app, &media_path, &monitor).inspect_err(|_error| {
+                    let _ = fs::remove_dir_all(&session_directory);
+                })?;
             if monitor_frame(&monitor)? != frozen_frame {
                 let _ = fs::remove_dir_all(&session_directory);
                 return Err(screenshot_error(
@@ -632,10 +737,13 @@ fn start_screenshot_session_inner(
             },
             targets,
             revealed: false,
+            ocr_authority: Default::default(),
             expires_at_ms: created_at_ms.saturating_add(SCREENSHOT_SESSION_TTL_MS),
             restore_window_label,
         });
-        if let Err(error) = open_capture_window(&app, &session_id, &monitor) {
+        if let Err(error) = startup::measure(&app, "snap_startup:window_prepare", || {
+            open_capture_window(&app, &session_id, &monitor)
+        }) {
             store.clear_active_if(&session_id);
             restore_shell_window(&app, restore_window_label_for_error.as_deref());
             return Err(error);
@@ -684,6 +792,12 @@ pub fn init_screenshot_session(
             session_id: active.id,
             display: active.display,
             initial_action: active.initial_action,
+            editor_mode: if cfg!(target_os = "windows") {
+                "ocr-selection"
+            } else {
+                "full"
+            }
+            .into(),
             media: media_descriptor(&active.media, Some(active.expires_at_ms)),
             targets: active.targets,
         })
@@ -753,9 +867,11 @@ pub fn reveal_screenshot_capture(
         Err(error) => Err(error),
     };
     if let Err(error) = reveal_result {
+        startup::finish(&app, "error");
         cleanup_failed_reveal(&app, &session_id);
         return Err(error);
     }
+    startup::finish(&app, "ok");
     Ok(())
 }
 
@@ -769,6 +885,7 @@ pub fn prepare_screenshot_commit(
     let result = (|| {
         require_capture_window(window_label)?;
         let active = validate_session(&app, Some(&input.session_id))?;
+        validate_image_commit_authority(&active)?;
         let action = normalize_commit_action(&input.action)?;
         let save_path = match action.as_str() {
             "save" => Some(resolved_save_path.ok_or_else(|| {
@@ -811,7 +928,8 @@ pub fn validate_screenshot_commit_request(
     input: &PrepareScreenshotCommitInput,
 ) -> Result<(), ScreenshotError> {
     require_capture_window(window_label)?;
-    validate_session(app, Some(&input.session_id))?;
+    let active = validate_session(app, Some(&input.session_id))?;
+    validate_image_commit_authority(&active)?;
     normalize_commit_action(&input.action)?;
     Ok(())
 }
@@ -837,7 +955,8 @@ pub fn upload_screenshot_commit(
         })?;
         let bytes =
             validate_upload_request(&lease, window_label, session_id, action, body, now_ms())?;
-        validate_session(&app, Some(&lease.session_id))?;
+        let active = validate_session(&app, Some(&lease.session_id))?;
+        validate_image_commit_authority(&active)?;
         let (width, height) = validate_png_bytes(bytes)?;
         crate::services::performance::record_media_transfer(&app, "screenshot_upload", bytes.len());
 
@@ -1086,7 +1205,7 @@ fn wait_for_capture_teardown(app: &tauri::AppHandle) -> Result<(), ScreenshotErr
     Ok(())
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 pub fn start_menu_screenshot(
     app: tauri::AppHandle,
     action: String,
@@ -1098,6 +1217,14 @@ pub fn start_menu_screenshot(
         .ok()
         .and_then(|mut d| d.take());
     start_screenshot_session_on_display(app, action, display)
+}
+
+#[cfg(target_os = "windows")]
+pub fn capture_menu_display_at(app: &tauri::AppHandle, x: f64, y: f64) {
+    let target = windows_capture::display_at_point(x, y).ok();
+    if let Ok(mut display) = app.state::<ScreenshotSessionStore>().menu_display.lock() {
+        *display = target;
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -1194,6 +1321,18 @@ fn validate_session(
         ));
     }
     Ok(active)
+}
+
+fn validate_image_commit_authority(session: &ScreenshotSession) -> Result<(), ScreenshotError> {
+    if windows_capture::permits_image_commit(cfg!(target_os = "windows"), &session.initial_action) {
+        Ok(())
+    } else {
+        Err(screenshot_error(
+            "screenshot.action_scope",
+            "文字识别选区仅允许识别或取消",
+            false,
+        ))
+    }
 }
 
 fn validate_owned_media_file(media: &ScreenshotMedia) -> Result<(), ScreenshotError> {
@@ -1565,6 +1704,7 @@ fn remove_owned_media(path: &Path) {
 
 #[cfg(target_os = "macos")]
 fn capture_fullscreen_png(
+    app: &tauri::AppHandle,
     path: &Path,
     monitor: &xcap::Monitor,
 ) -> Result<(u64, u32, u32), ScreenshotError> {
@@ -1595,12 +1735,12 @@ fn capture_fullscreen_png(
             true,
         ));
     }
-    let image = monitor
-        .capture_image()
-        .map_err(|_| screenshot_error("screenshot.capture_failed", "目标显示器截图失败", true))?;
+    let image = startup::measure(app, "snap_startup:native_capture", || {
+        monitor.capture_image()
+    })
+    .map_err(|_| screenshot_error("screenshot.capture_failed", "目标显示器截图失败", true))?;
     validate_dimensions(image.width(), image.height())?;
-    image
-        .save(path)
+    startup::measure(app, "snap_startup:png_write", || image.save(path))
         .map_err(|_| screenshot_error("screenshot.capture_write", "无法保存临时截图", true))?;
     let metadata = fs::metadata(path).map_err(|error| {
         screenshot_error(
@@ -1641,7 +1781,7 @@ fn open_capture_window(
 ) -> Result<(), ScreenshotError> {
     wait_for_capture_teardown(app)?;
     let frame = monitor_frame(monitor)?;
-    let capture_window =
+    let capture_window = startup::measure(app, "snap_startup:webview_build", || {
         tauri::WebviewWindowBuilder::new(app, CAPTURE_WINDOW_LABEL, WebviewUrl::App("".into()))
             .decorations(false)
             .resizable(false)
@@ -1651,14 +1791,18 @@ fn open_capture_window(
             .shadow(false)
             .visible(false)
             .focused(false)
+            // Startup must finish loading and decoding before this hidden view
+            // can request reveal; suspending it would make that gate circular.
+            .background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled)
             .build()
-            .map_err(|error| {
-                screenshot_error(
-                    "screenshot.capture_window",
-                    format!("打开截图编辑窗口失败: {error}"),
-                    true,
-                )
-            })?;
+    })
+    .map_err(|error| {
+        screenshot_error(
+            "screenshot.capture_window",
+            format!("打开截图编辑窗口失败: {error}"),
+            true,
+        )
+    })?;
     *app.state::<ScreenshotSessionStore>()
         .window_owner
         .lock()
@@ -1758,8 +1902,14 @@ fn reveal_capture_window_on_main_thread(
     let (sender, receiver) = mpsc::sync_channel(1);
     scheduling_window
         .run_on_main_thread(move || {
-            let result = validate_session(capture_window.app_handle(), Some(&session_id))
-                .and_then(|_| configure_and_reveal_capture_window(&capture_window));
+            let result = startup::measure(
+                capture_window.app_handle(),
+                "snap_startup:native_reveal",
+                || {
+                    validate_session(capture_window.app_handle(), Some(&session_id))
+                        .and_then(|_| configure_and_reveal_capture_window(&capture_window))
+                },
+            );
             let _ = sender.send(result);
         })
         .map_err(|error| {
@@ -2022,6 +2172,7 @@ mod tests {
             session_id: "session-1".into(),
             display: CaptureDisplaySnapshot::default(),
             initial_action: "copy".into(),
+            editor_mode: "full".into(),
             media: ScreenshotMediaDescriptor {
                 token: "media-1".into(),
                 mime_type: "image/png".into(),
@@ -2177,6 +2328,7 @@ mod tests {
             media: media(session_path, "media-session"),
             targets: Vec::new(),
             revealed: false,
+            ocr_authority: Default::default(),
             expires_at_ms: u64::MAX,
             restore_window_label: Some("tray".into()),
         });
@@ -2280,6 +2432,7 @@ mod tests {
             media: media(path, "media-session"),
             targets: Vec::new(),
             revealed: false,
+            ocr_authority: Default::default(),
             expires_at_ms: u64::MAX,
             restore_window_label: None,
         });
@@ -2310,6 +2463,7 @@ mod tests {
             media: media(path, "media-session"),
             targets: Vec::new(),
             revealed: false,
+            ocr_authority: Default::default(),
             expires_at_ms: u64::MAX,
             restore_window_label: None,
         });
@@ -2371,6 +2525,7 @@ mod tests {
                 media: media(path, &format!("media-{id}")),
                 targets: Vec::new(),
                 revealed: false,
+                ocr_authority: Default::default(),
                 expires_at_ms: u64::MAX,
                 restore_window_label: None,
             });
@@ -2409,6 +2564,7 @@ mod tests {
                 media: media(path, &format!("media-{cycle}")),
                 targets: Vec::new(),
                 revealed: false,
+                ocr_authority: Default::default(),
                 expires_at_ms: u64::MAX,
                 restore_window_label: None,
             });

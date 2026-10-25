@@ -18,13 +18,51 @@ pub fn get_screenshot_capabilities() -> ScreenshotCapabilities {
 }
 
 #[tauri::command]
+pub fn record_screenshot_startup(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    input: crate::services::screenshot::startup::FrontendMeasurement,
+) -> Result<(), ScreenshotError> {
+    crate::services::screenshot::startup::record_frontend(&app, window.label(), input)
+}
+
+#[tauri::command]
 pub async fn start_screenshot(
     app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
     action: String,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
-    tauri::async_runtime::spawn_blocking(move || start_screenshot_session(app, action))
-        .await
-        .map_err(|_| worker_error("screenshot.start_worker", "截图启动任务异常结束"))?
+    crate::services::screenshot::startup::entry(
+        &app,
+        if window.label() == "tray" {
+            "tray"
+        } else {
+            "main"
+        },
+    );
+    #[cfg(target_os = "windows")]
+    let tray_monitor = if window.label() == "tray" {
+        window.current_monitor().ok().flatten()
+    } else {
+        None
+    };
+    let _ = &window;
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "windows")]
+        if let Some(monitor) = tray_monitor {
+            let position = monitor.position();
+            let size = monitor.size();
+            crate::services::screenshot::capture_menu_display_at(
+                &app,
+                position.x as f64 + size.width as f64 / 2.0,
+                position.y as f64 + size.height as f64 / 2.0,
+            );
+            return crate::services::screenshot::start_menu_screenshot(app, action);
+        }
+        start_screenshot_session(app, action)
+    })
+    .await
+    .map_err(|_| worker_error("screenshot.start_worker", "截图启动任务异常结束"))?
 }
 
 #[tauri::command]

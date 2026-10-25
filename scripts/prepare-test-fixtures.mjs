@@ -67,6 +67,7 @@ const sources = [
   "src/plugins/screenshot/capture/captureTargetModel.ts",
   "src/plugins/screenshot/i18n.ts",
   "src/plugins/screenshot/screenshotMeta.ts",
+  "src/plugins/screenshot/screenshotErrors.ts",
   "src/components/statusBarIconSources.ts",
   "src/services/appWindowService.ts",
   "src/services/diagnosticsServiceCore.ts",

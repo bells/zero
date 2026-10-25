@@ -1,6 +1,10 @@
 # Snap capture editor
 
-macOS owns the custom editor. Windows continues to launch the system screenshot tool; these frontend modules do not establish Windows, Linux or mobile editor support.
+macOS owns the full custom editor. Windows ordinary capture continues to launch the system tool; capture OCR now has an `ocr-selection` mode with selection, explicit Recognize/Enter and Esc only. Windows native/mixed-DPI/offline-installation acceptance is still separate from source and cross-compile checks. Linux/mobile editor support is not established.
+
+The session payload carries `editorMode: "full" | "ocr-selection"`. Windows selection uses frozen physical monitor pixels and a validated native monitor identity; it cannot submit image copy/save/pin commits. The shared OCR result view remains editable and Copy is explicit. See [Snap maintenance](../../../../docs/snap.md).
+
+Startup instrumentation uses fixed stage names and bounded numeric durations via `record_screenshot_startup`; it accepts only the active capture caller/session. Set `ZERO_PERFORMANCE_TRACE=1` to collect native capture, targets, PNG write, WebView build, decode and reveal timings. macOS capture disables hidden-view throttling while waiting for decoded pixels; it does not pre-capture or reuse an earlier screenshot.
 
 | Responsibility | Entry |
 | --- | --- |

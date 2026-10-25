@@ -1,6 +1,6 @@
 export const SCREENSHOT_SHORTCUT = {
-  accelerator: "CommandOrControl+Shift+A",
-  display: "⌘/Ctrl + Shift + A",
+  accelerator: "Alt+A",
+  display: "⌥/Alt + A",
 } as const;
 
 export const SCREENSHOT_USAGE_ITEMS = [

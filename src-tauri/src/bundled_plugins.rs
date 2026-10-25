@@ -9,6 +9,7 @@ pub fn manage_states(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<taur
     ]));
     #[cfg(feature = "bundled-tools")]
     let builder = builder
+        .manage(crate::services::global_shortcuts::SnapShortcutState::default())
         .manage(crate::services::caffeine::CaffeineState::default())
         .manage(crate::services::bing_wallpaper::BingWallpaperState::default())
         .manage(crate::services::quick_launcher::QuickLauncherState::default());
@@ -181,10 +182,11 @@ pub fn sync_lifecycle(
         }
         #[cfg(feature = "bundled-tools")]
         crate::brand::ZERO_SNAP_PLUGIN_ID => {
-            crate::sync_screenshot_shortcut(app, change.enabled)?;
             if !change.enabled {
                 crate::services::screenshot::deactivate_screenshot(app);
             }
+            crate::services::global_shortcuts::sync_snap_shortcuts(app, change.enabled)
+                .map_err(|error| format!("shortcut lifecycle failed: {:?}", error.code))?;
         }
         #[cfg(feature = "bundled-tools")]
         crate::brand::ZERO_AWAKE_PLUGIN_ID if !change.enabled => {

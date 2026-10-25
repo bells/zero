@@ -1,5 +1,7 @@
 use super::{ScreenshotSourceBounds, ScreenshotTargetCandidate, ScreenshotTargetKind};
 
+mod macos_snapshot;
+
 const MINIMUM_TARGET_DIMENSION: u32 = 8;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -47,39 +49,7 @@ pub(super) fn prepare_capture_target_snapshot(
         },
     };
 
-    let windows = xcap::Window::all()
-        .map_err(|error| format!("list windows: {error}"))?
-        .into_iter()
-        .filter_map(|window| {
-            let snapshot = (|| {
-                Ok::<_, xcap::XCapError>(NativeWindowSnapshot {
-                    native_id: window.id()?,
-                    process_id: window.pid()?,
-                    app_name: window.app_name()?,
-                    title: window.title()?,
-                    bounds: NativeRect {
-                        x: window.x()? as f64,
-                        y: window.y()? as f64,
-                        width: window.width()? as f64,
-                        height: window.height()? as f64,
-                    },
-                    minimized: window.is_minimized()?,
-                })
-            })();
-            match snapshot {
-                Ok(snapshot) => Some(snapshot),
-                Err(error) => {
-                    let _ = error;
-                    crate::services::diagnostics::native(
-                        Some("zero.snap"),
-                        "targets",
-                        crate::services::diagnostics::contracts::Outcome::Failed,
-                    );
-                    None
-                }
-            }
-        })
-        .collect();
+    let windows = macos_snapshot::windows()?;
     Ok(CaptureTargetSnapshot { geometry, windows })
 }
 

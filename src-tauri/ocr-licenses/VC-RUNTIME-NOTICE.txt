@@ -1,0 +1,7 @@
+Microsoft Visual C++ Runtime 14.44 x64, from the Microsoft Visual Studio 2022 redistributable component.
+Source: Microsoft.VC.14.44.17.14.CRT.Redist.X64.base.vsix
+Redistribution is subject to Microsoft Software License Terms and licensed Visual Studio use.
+https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files?view=msvc-170
+https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution
+App-local deployment: https://learn.microsoft.com/en-us/cpp/windows/choosing-a-deployment-method?view=msvc-170
+These files have not been approved as a released Zero Windows installation by this source change.

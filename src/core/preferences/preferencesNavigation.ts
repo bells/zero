@@ -53,7 +53,8 @@ const STATIC_PREFERENCES_SETTING_DEFINITIONS = [
   setting("status-bar.launch", "status-bar", "statusBar.launch.title", "statusBar.launch.description"),
   setting("status-bar.collapsed", "status-bar", "statusBar.collapsed.title", "statusBar.collapsed.description"),
   setting("status-bar.items", "status-bar", "statusBar.items.title", "statusBar.items.description"),
-  setting("shortcuts.snap", "shortcuts", "prefs.shortcuts.snap", "prefs.shortcuts.readOnly"),
+  setting("shortcuts.snap", "shortcuts", "prefs.shortcuts.snap", "prefs.shortcuts.description"),
+  setting("shortcuts.snapOcr", "shortcuts", "prefs.shortcuts.snapOcr", "prefs.shortcuts.description"),
   setting("shortcuts.launch", "shortcuts", "prefs.shortcuts.launch", "prefs.shortcuts.readOnly"),
   setting("tools.overview", "tools", "prefs.tools.overview", "prefs.tools.description"),
   setting("extensions.market", "extensions", "extensions.market.title", "extensions.market.description"),
@@ -140,6 +141,7 @@ export function createPreferencesSettingIndex({
       setting(`tool.${tool.id}.navigation`, destinationId, "prefs.tool.navigation.title", "prefs.tool.navigation.description"),
       setting(`tool.${tool.id}.status-bar`, destinationId, "prefs.tool.statusBar.title", "prefs.tool.statusBar.description"),
       setting(`tool.${tool.id}.shortcut`, destinationId, "prefs.tool.shortcut.title", "prefs.tool.shortcut.description"),
+      ...(tool.id === "zero.snap" ? [setting(`tool.${tool.id}.shortcut.ocr`, destinationId, "prefs.shortcuts.snapOcr", "prefs.shortcuts.description")] : []),
     ].map((entry) =>
       localizeSetting(entry, destinations, t, [tool.title, tool.subtitle ?? ""]),
     );
@@ -158,6 +160,7 @@ export function createRenderedPreferencesSettingIds(
       `tool.${tool.id}.navigation`,
       `tool.${tool.id}.status-bar`,
       `tool.${tool.id}.shortcut`,
+      ...(tool.id === "zero.snap" ? [`tool.${tool.id}.shortcut.ocr`] : []),
     ]),
   ];
 }

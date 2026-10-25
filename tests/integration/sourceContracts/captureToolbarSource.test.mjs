@@ -60,7 +60,7 @@ test("keeps icon-only controls localized, stateful, and keyboard ordered", () =>
   assert.ok(captureSource.indexOf("<Redo2") < captureSource.indexOf("<Trash2"));
   assert.ok(captureSource.indexOf("<X") < captureSource.indexOf("<Download"));
   assert.ok(
-    captureSource.indexOf("<Download") < captureSource.indexOf("<Check"),
+    captureSource.indexOf("<Download") < captureSource.lastIndexOf("<Check"),
   );
 });
 

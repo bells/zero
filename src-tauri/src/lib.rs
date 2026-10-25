@@ -16,7 +16,7 @@ pub mod migration;
 pub mod plugins;
 pub mod services;
 
-pub const SCREENSHOT_SHORTCUT: &str = "CommandOrControl+Shift+A";
+pub const SCREENSHOT_SHORTCUT: &str = "Alt+A";
 #[cfg(target_os = "macos")]
 pub const QUICK_LAUNCHER_SHORTCUT: &str = "Alt+Space";
 #[cfg(not(target_os = "macos"))]
@@ -72,27 +72,6 @@ pub fn sync_quick_launcher_shortcut(app: &tauri::AppHandle, enabled: bool) -> Re
         }
         commands::quick_launcher::hide_quick_launcher_window(app.clone())
     }
-}
-
-#[cfg(feature = "bundled-tools")]
-pub fn sync_screenshot_shortcut(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> {
-    let mut diagnostic = crate::services::diagnostics::Operation::new(None, "shortcut");
-    let result = (|| {
-        let shortcuts = app.global_shortcut();
-        if enabled && !shortcuts.is_registered(SCREENSHOT_SHORTCUT) {
-            shortcuts
-                .register(SCREENSHOT_SHORTCUT)
-                .map_err(|e| e.to_string())?;
-        }
-        if !enabled && shortcuts.is_registered(SCREENSHOT_SHORTCUT) {
-            shortcuts
-                .unregister(SCREENSHOT_SHORTCUT)
-                .map_err(|e| e.to_string())?;
-        }
-        Ok(())
-    })();
-    diagnostic.finish(&result);
-    result
 }
 
 pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
@@ -211,11 +190,18 @@ pub fn run() {
                             let _ = commands::quick_launcher::toggle_quick_launcher_window(app);
                         }
                     } else if plugin_is_enabled(app, brand::ZERO_SNAP_PLUGIN_ID) {
+                        use services::global_shortcuts::GlobalShortcutActionId;
+                        let action = match services::global_shortcuts::exact_action(app, shortcut) {
+                            Some(GlobalShortcutActionId::SnapCapture) => "copy",
+                            Some(GlobalShortcutActionId::SnapOcr) => "ocr",
+                            _ => return,
+                        };
                         let screenshot_app = app.clone();
+                        services::screenshot::startup::entry(app, "shortcut");
                         tauri::async_runtime::spawn_blocking(move || {
                             let _ = services::screenshot::start_screenshot_session(
                                 screenshot_app,
-                                "copy".into(),
+                                action.into(),
                             );
                         });
                     }
@@ -226,13 +212,12 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_positioner::init())
         .setup(|app| {
+            #[cfg(all(target_os = "windows", feature = "bundled-tools"))]
+            services::ocr::configure_windows(app.handle());
             bundled_plugins::register_diagnostics(app.handle());
             services::tray_panel::register(app.handle());
             #[cfg(feature = "bundled-tools")]
-            sync_screenshot_shortcut(
-                app.handle(),
-                plugin_is_enabled(app.handle(), brand::ZERO_SNAP_PLUGIN_ID),
-            )?;
+            services::global_shortcuts::initialize(app.handle());
             #[cfg(target_os = "macos")]
             {
                 app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -329,6 +314,7 @@ pub fn run() {
             commands::status_bar::get_status_bar_items,
             commands::status_bar::run_status_bar_item_action,
             commands::shortcuts::get_global_shortcut_snapshots,
+            commands::shortcuts::set_snap_shortcut,
             #[cfg(feature = "bundled-tools")]
             commands::caffeine::get_caffeine_state,
             #[cfg(feature = "bundled-tools")]
@@ -423,6 +409,8 @@ pub fn run() {
             commands::ocr::copy_snap_ocr,
             #[cfg(feature = "bundled-tools")]
             commands::screenshot::start_screenshot,
+            #[cfg(feature = "bundled-tools")]
+            commands::screenshot::record_screenshot_startup,
             #[cfg(feature = "bundled-tools")]
             commands::screenshot::start_snap_menu_screenshot,
             #[cfg(feature = "bundled-tools")]

@@ -131,31 +131,66 @@ pub async fn start_snap_ocr(
     {
         return Err(OcrError::Unauthorized);
     }
+    let active = super::validate_session(&app, Some(&input.session_id))
+        .map_err(|_| OcrError::Unauthorized)?;
+    let permit = active.ocr_authority.claim().ok_or(OcrError::Unauthorized)?;
     let crop_app = app.clone();
     let session_id = input.session_id.clone();
     let languages = input.languages.clone();
     let bytes = tauri::async_runtime::spawn_blocking(move || crop(&crop_app, &input))
         .await
         .map_err(|_| OcrError::RecognitionFailed)??;
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut outcome = None;
+        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+            .run(crate::brand::ZERO_SNAP_PLUGIN_ID, || {
+                outcome = Some(finalize_ocr(&app, session_id, languages, bytes, permit));
+                Ok(())
+            })
+            .map_err(|_| OcrError::ProviderUnavailable)?;
+        outcome.ok_or(OcrError::ProviderUnavailable)?
+    })
+    .await
+    .map_err(|_| OcrError::RecognitionFailed)?
+}
+
+fn finalize_ocr(
+    app: &tauri::AppHandle,
+    session_id: String,
+    languages: Vec<String>,
+    bytes: Vec<u8>,
+    mut permit: super::ocr_authority::OcrPermit,
+) -> Result<OcrJobHandle, OcrError> {
+    if !crate::plugin_is_enabled(app, crate::brand::ZERO_SNAP_PLUGIN_ID) {
+        return Err(OcrError::Unauthorized);
+    }
     super::validate_session(&app, Some(&session_id)).map_err(|_| OcrError::Unauthorized)?;
     let job_id = super::random_resource_token("ocr").map_err(|_| OcrError::ProviderUnavailable)?;
     let cancel = Arc::new(AtomicBool::new(false));
     let state = app.state::<SnapOcrState>();
-    state.clear();
-    *state
-        .job
-        .lock()
-        .map_err(|_| OcrError::ProviderUnavailable)? = Some(Job {
-        cancel: cancel.clone(),
-        snapshot: SnapOcrSnapshot {
-            job_id: job_id.clone(),
-            revision: 1,
-            status: "recognizing".into(),
-            result: None,
-            error: None,
-            expires_at_ms: super::now_ms() + 600_000,
-        },
-    });
+    permit
+        .publish(|| {
+            let mut current = state
+                .job
+                .lock()
+                .map_err(|_| OcrError::ProviderUnavailable)?;
+            if let Some(old) = current.as_ref() {
+                old.cancel.store(true, Ordering::Release);
+            }
+            *current = Some(Job {
+                cancel: cancel.clone(),
+                snapshot: SnapOcrSnapshot {
+                    job_id: job_id.clone(),
+                    revision: 1,
+                    status: "recognizing".into(),
+                    result: None,
+                    error: None,
+                    expires_at_ms: super::now_ms() + 600_000,
+                },
+            });
+            Ok::<_, OcrError>(())
+        })
+        .ok_or(OcrError::Unauthorized)??;
     if super::finish_capture_session(&app, &session_id).is_err() {
         state.clear();
         return Err(OcrError::ProviderUnavailable);
@@ -165,6 +200,7 @@ pub async fn start_snap_ocr(
         return Err(OcrError::ProviderUnavailable);
     }
     let output_id = job_id.clone();
+    let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let result = app
             .state::<OcrState>()

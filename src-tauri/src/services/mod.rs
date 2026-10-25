@@ -13,6 +13,8 @@ pub mod performance;
 pub mod quick_launcher;
 #[cfg(feature = "bundled-tools")]
 pub mod screenshot;
+pub mod shortcut_transaction;
+pub mod snap_shortcut_config;
 pub mod status_bar;
 pub mod surface_activity;
 pub mod tool_windows;

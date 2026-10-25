@@ -1,0 +1,5 @@
+{
+  "bundle": {
+    "resources": { "../node_modules/.cache/zero-windows-ocr/resources/": "windows-ocr/" }
+  }
+}

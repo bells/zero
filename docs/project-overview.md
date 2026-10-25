@@ -69,13 +69,13 @@ Snap/Awake 快捷动作使用原生菜单；`snap-menu` WebView 已移除，设�
 
 | 插件 | 源码位置 | 当前实现与限制 |
 | --- | --- | --- |
-| Snap `zero.snap` | `src/plugins/screenshot/`、`services/screenshot.rs`、`services/screenshot/` | macOS 窗口候选、选区平移/尺寸/圆角、六工具属性、对象编辑、撤销重做、复制/保存/钉图、Vision OCR；Windows 仅系统截图启动器；Linux 不支持截图 |
+| Snap `zero.snap` | `src/plugins/screenshot/`、`services/screenshot.rs`、`services/screenshot/` | macOS 窗口候选、选区平移/尺寸/圆角、六工具属性、对象编辑、撤销重做、复制/保存/钉图、Vision OCR；Windows 普通截图仍为系统启动器，新增专用离线 OCR 选区源码；Windows 设备/安装包验收待完成；Linux 不支持截图 |
 | Awake `zero.awake` | `src/plugins/caffeine/`、`services/caffeine.rs` | 时长、状态与原生动作；macOS `caffeinate -d -i`、Windows `SetThreadExecutionState`，其他平台不支持 |
 | Paper `zero.paper` | `src/plugins/bingWallpaper/`、`services/bing_wallpaper/` | 最多 10 条 Bing 壁纸缓存、旧快照优先、下载与应用；Linux 应用取决于可用桌面后端，未形成完整设备支持声明 |
 | Launch `zero.launch` | `src/plugins/quickLauncher/`、`services/quick_launcher/` | 中英文/拼音模糊搜索、应用启动/聚焦、系统设置；索引 macOS 应用包与 Windows 开始菜单；Linux/mobile 不支持 |
 | File `zero.file` | `src/plugins/file/`、`services/file/`、`plugins/engine_assets.rs` | 内置 PDF→DOCX 有 macOS/Windows 路径，扫描页 OCR 仅 macOS；内置 DOCX→PDF 仅 macOS 11+；可选 LibreOffice/Word provider 独立存在 |
 
-Snap 默认 `CommandOrControl+Shift+A`；Launch 默认 macOS `Alt+Space`（Option）、Windows `Control+Alt+Space`。打包 release 启动后创建所含工具的系统搜索入口，转发到同一 Zero 实例；物理快捷键、实际搜索索引与 Windows 行为仍按设备验收。
+Snap 默认 macOS `Option+A` / Windows `Alt+A`，截图 OCR 默认未绑定，两项可在偏好设置修改（2026-10-25 实现，见 [Snap 维护](snap.md)）；Launch 默认 macOS `Alt+Space`（Option）、Windows `Control+Alt+Space`。打包 release 启动后创建所含工具的系统搜索入口，转发到同一 Zero 实例；物理快捷键、实际搜索索引与 Windows 行为仍按设备验收。
 
 搜索入口位于 macOS `~/Applications/Zero Tools/` 或当前用户 Windows `Start Menu/Programs/Zero Tools/`。Alfred、Spotlight、Raycast、Windows Search 的索引范围和时机由各工具决定；移动 Zero 后重新打开一次以更新路径。普通开发启动不安装持久入口，macOS 打包 debug 可通过 `ZERO_DESKTOP_ENTRIES_TEST_ROOT` 使用隔离测试目录。入口是转发包装，不是独立签名分发包；隐藏/禁用工具不会自动启用。卸载后仅移除 Zero 自己拥有的入口目录，勿清理其他应用。
 
