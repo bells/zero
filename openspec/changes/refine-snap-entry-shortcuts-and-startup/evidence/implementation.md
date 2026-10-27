@@ -1,5 +1,7 @@
 # Implementation ledger
 
+Startup follow-up (2026-10-27/28): see [measured findings, fixes and remaining device gates](startup-performance-2026-10-28.md). The maintainer's development-build delay was measured and improved; current menu samples are 515/429/400 ms from trigger to native show. These are development/native observations, not release or full visual acceptance.
+
 Approved scope: Q1–Q10, 2026-10-25. The maintainer subsequently authorized a scoped local commit. Push/release/archive remain unauthorized.
 
 ## Baseline

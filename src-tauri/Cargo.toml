@@ -109,3 +109,23 @@ windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
 fuzzy-matcher = "0.3"
+
+# Snap processes full-resolution pixels before showing its editor. Keep these
+# CPU-heavy dependencies optimized in dev without optimizing application code.
+[profile.dev.package.xcap]
+opt-level = 3
+
+[profile.dev.package.image]
+opt-level = 3
+
+[profile.dev.package.png]
+opt-level = 3
+
+[profile.dev.package.fdeflate]
+opt-level = 3
+
+[profile.dev.package.simd-adler32]
+opt-level = 3
+
+[profile.dev.package.crc32fast]
+opt-level = 3

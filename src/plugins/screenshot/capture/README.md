@@ -6,6 +6,10 @@ The session payload carries `editorMode: "full" | "ocr-selection"`. Windows sele
 
 Startup instrumentation uses fixed stage names and bounded numeric durations via `record_screenshot_startup`; it accepts only the active capture caller/session. Set `ZERO_PERFORMANCE_TRACE=1` to collect native capture, targets, PNG write, WebView build, decode and reveal timings. macOS capture disables hidden-view throttling while waiting for decoded pixels; it does not pre-capture or reuse an earlier screenshot.
 
+Capture resolves its existing plugin surface loader before mounting the hidden React root, avoiding a loading-fallback commit and Suspense retry delay. Other surfaces retain lazy loading. StrictMode stays enabled; disposed initialization exits before media reading/decoding, and received bytes still pass through terminal cleanup. `tests/browser/snap-startup.mjs` exercises the actual app entry with synthetic IPC, including failed module loading. These browser checks do not establish native WKWebView/compositor timing.
+
+The Cargo dev profile optimizes only the pixel/PNG dependencies used on the capture path; application code and release settings keep their existing profiles. Native menu capture explicitly releases the retained menu and falls back to the previous dismissal delay on failure. Stage durations overlap: `webview_build` returns before the frontend is mounted, and `trigger_to_reveal` begins at session admission, after menu dismissal. Compare entry timestamps through native show and the later surface-frame acknowledgement instead of summing phases or treating either event as a physical-display timestamp.
+
 | Responsibility | Entry |
 | --- | --- |
 | Session/media, crop, gesture routing and output actions | `CaptureApp.tsx` |

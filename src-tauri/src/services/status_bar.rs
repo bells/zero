@@ -1443,16 +1443,28 @@ fn sync_primary_status_item(
                         return;
                     };
                     let app = app.clone();
+                    super::screenshot::startup::entry(&app, "menu");
                     tauri::async_runtime::spawn_blocking(move || {
-                        super::screenshot::startup::entry(&app, "menu");
                         let dismissal_started = std::time::Instant::now();
-                        // Let native menu tracking dismiss and the compositor retire its frame.
-                        std::thread::sleep(std::time::Duration::from_millis(100));
+                        // Each grouped click builds its own menu. Dropping the retained
+                        // menu ends AppKit tracking without animation (muda's NsMenuRef),
+                        // and set_menu waits for that main-thread work to finish.
+                        let dismissed =
+                            app.tray_by_id(PRIMARY_STATUS_ITEM_ID).is_some_and(|tray| {
+                                tray.set_menu::<tauri::menu::Menu<tauri::Wry>>(None).is_ok()
+                            });
+                        if !dismissed {
+                            std::thread::sleep(std::time::Duration::from_millis(100));
+                        }
                         if let Some(trace) = app
                             .try_state::<super::performance::PerformanceTrace>()
                             .filter(|t| t.emits_logs())
                         {
-                            trace.finish("snap_startup:menu_dismiss", "ok", dismissal_started);
+                            trace.finish(
+                                "snap_startup:menu_dismiss",
+                                if dismissed { "ok" } else { "fallback" },
+                                dismissal_started,
+                            );
                         }
                         if let Err(error) =
                             super::screenshot::start_menu_screenshot(app.clone(), action.into())

@@ -1,0 +1,571 @@
+{
+  "date": "2026-10-28",
+  "platform": "macOS 27.0.1 arm64",
+  "build": "pnpm tauri dev; six pixel/PNG dependencies at opt-level 3; application unoptimized",
+  "operator": "maintainer",
+  "pointerCondition": "maintainer confirmed stationary-pointer automatic reveal for all three captures",
+  "timingBoundary": "snap_entry through native show return; frame acknowledgment listed separately, not physical presentation",
+  "samples": [
+    {
+      "entry": "menu",
+      "stages": {
+        "menu_dismiss": {
+          "durationMs": 3.11,
+          "outcome": "ok"
+        },
+        "display": {
+          "durationMs": 0.005,
+          "outcome": "ok"
+        },
+        "targets": {
+          "durationMs": 22.381,
+          "outcome": "ok"
+        },
+        "native_capture": {
+          "durationMs": 86.881,
+          "outcome": "ok"
+        },
+        "png_write": {
+          "durationMs": 123.873,
+          "outcome": "ok"
+        },
+        "webview_build": {
+          "durationMs": 0.268,
+          "outcome": "ok"
+        },
+        "window_prepare": {
+          "durationMs": 46.346,
+          "outcome": "ok"
+        },
+        "frontend_mount": {
+          "durationMs": 5.0,
+          "outcome": "ok"
+        },
+        "media_read": {
+          "durationMs": 2.0,
+          "outcome": "ok"
+        },
+        "image_decode": {
+          "durationMs": 48.0,
+          "outcome": "ok"
+        },
+        "display_decode": {
+          "durationMs": 0.0,
+          "outcome": "ok"
+        },
+        "native_reveal": {
+          "durationMs": 11.842,
+          "outcome": "ok"
+        },
+        "trigger_to_reveal": {
+          "durationMs": 511.908,
+          "outcome": "ok"
+        },
+        "ready_ack": {
+          "durationMs": 35.0,
+          "outcome": "ok"
+        }
+      },
+      "webviewToFrontendMs": 191.74,
+      "mediaReads": 1,
+      "entryToShowMs": 515.191,
+      "entryToFrameAckMs": 563.006
+    },
+    {
+      "entry": "menu",
+      "stages": {
+        "menu_dismiss": {
+          "durationMs": 5.741,
+          "outcome": "ok"
+        },
+        "display": {
+          "durationMs": 0.005,
+          "outcome": "ok"
+        },
+        "targets": {
+          "durationMs": 22.121,
+          "outcome": "ok"
+        },
+        "native_capture": {
+          "durationMs": 52.009,
+          "outcome": "ok"
+        },
+        "png_write": {
+          "durationMs": 125.01,
+          "outcome": "ok"
+        },
+        "webview_build": {
+          "durationMs": 0.249,
+          "outcome": "ok"
+        },
+        "window_prepare": {
+          "durationMs": 29.606,
+          "outcome": "ok"
+        },
+        "frontend_mount": {
+          "durationMs": 5.0,
+          "outcome": "ok"
+        },
+        "media_read": {
+          "durationMs": 2.0,
+          "outcome": "ok"
+        },
+        "image_decode": {
+          "durationMs": 47.0,
+          "outcome": "ok"
+        },
+        "display_decode": {
+          "durationMs": 0.0,
+          "outcome": "ok"
+        },
+        "native_reveal": {
+          "durationMs": 8.708,
+          "outcome": "ok"
+        },
+        "trigger_to_reveal": {
+          "durationMs": 417.3,
+          "outcome": "ok"
+        },
+        "ready_ack": {
+          "durationMs": 16.0,
+          "outcome": "ok"
+        }
+      },
+      "webviewToFrontendMs": 151.495,
+      "mediaReads": 1,
+      "entryToShowMs": 428.638,
+      "entryToFrameAckMs": 463.952
+    },
+    {
+      "entry": "menu",
+      "stages": {
+        "menu_dismiss": {
+          "durationMs": 2.793,
+          "outcome": "ok"
+        },
+        "display": {
+          "durationMs": 0.008,
+          "outcome": "ok"
+        },
+        "targets": {
+          "durationMs": 7.931,
+          "outcome": "ok"
+        },
+        "native_capture": {
+          "durationMs": 44.137,
+          "outcome": "ok"
+        },
+        "png_write": {
+          "durationMs": 129.013,
+          "outcome": "ok"
+        },
+        "webview_build": {
+          "durationMs": 0.25,
+          "outcome": "ok"
+        },
+        "window_prepare": {
+          "durationMs": 30.556,
+          "outcome": "ok"
+        },
+        "frontend_mount": {
+          "durationMs": 5.0,
+          "outcome": "ok"
+        },
+        "media_read": {
+          "durationMs": 2.0,
+          "outcome": "ok"
+        },
+        "image_decode": {
+          "durationMs": 46.0,
+          "outcome": "ok"
+        },
+        "display_decode": {
+          "durationMs": 0.0,
+          "outcome": "ok"
+        },
+        "native_reveal": {
+          "durationMs": 3.953,
+          "outcome": "ok"
+        },
+        "trigger_to_reveal": {
+          "durationMs": 393.193,
+          "outcome": "ok"
+        },
+        "ready_ack": {
+          "durationMs": 7.0,
+          "outcome": "ok"
+        }
+      },
+      "webviewToFrontendMs": 151.22,
+      "mediaReads": 1,
+      "entryToShowMs": 400.181,
+      "entryToFrameAckMs": 430.467
+    }
+  ],
+  "events": [
+    {
+      "sequence": 15,
+      "phase": "snap_entry:menu",
+      "outcome": "triggered",
+      "startedAtUs": 227025019,
+      "durationUs": 0
+    },
+    {
+      "sequence": 16,
+      "phase": "snap_startup:menu_dismiss",
+      "outcome": "ok",
+      "startedAtUs": 227025152,
+      "durationUs": 3110
+    },
+    {
+      "sequence": 17,
+      "phase": "snap_startup:display",
+      "outcome": "ok",
+      "startedAtUs": 227030803,
+      "durationUs": 5
+    },
+    {
+      "sequence": 18,
+      "phase": "snap_startup:targets",
+      "outcome": "ok",
+      "startedAtUs": 227030826,
+      "durationUs": 22381
+    },
+    {
+      "sequence": 19,
+      "phase": "snap_startup:native_capture",
+      "outcome": "ok",
+      "startedAtUs": 227065362,
+      "durationUs": 86881
+    },
+    {
+      "sequence": 20,
+      "phase": "snap_startup:png_write",
+      "outcome": "ok",
+      "startedAtUs": 227152273,
+      "durationUs": 123873
+    },
+    {
+      "sequence": 21,
+      "phase": "snap_startup:webview_build",
+      "outcome": "ok",
+      "startedAtUs": 227276499,
+      "durationUs": 268
+    },
+    {
+      "sequence": 22,
+      "phase": "snap_startup:window_prepare",
+      "outcome": "ok",
+      "startedAtUs": 227276494,
+      "durationUs": 46346
+    },
+    {
+      "sequence": 23,
+      "phase": "snap_startup:frontend_mount",
+      "outcome": "ok",
+      "startedAtUs": 227468239,
+      "durationUs": 5000
+    },
+    {
+      "sequence": 24,
+      "phase": "media_transfer:screenshot_read",
+      "outcome": "ok",
+      "startedAtUs": 227474017,
+      "durationUs": 0,
+      "value": 1120630,
+      "unit": "bytes"
+    },
+    {
+      "sequence": 25,
+      "phase": "snap_startup:media_read",
+      "outcome": "ok",
+      "startedAtUs": 227473023,
+      "durationUs": 2000
+    },
+    {
+      "sequence": 26,
+      "phase": "snap_startup:image_decode",
+      "outcome": "ok",
+      "startedAtUs": 227477175,
+      "durationUs": 48000
+    },
+    {
+      "sequence": 27,
+      "phase": "snap_startup:display_decode",
+      "outcome": "ok",
+      "startedAtUs": 227526678,
+      "durationUs": 0
+    },
+    {
+      "sequence": 28,
+      "phase": "snap_startup:native_reveal",
+      "outcome": "ok",
+      "startedAtUs": 227527667,
+      "durationUs": 11842
+    },
+    {
+      "sequence": 29,
+      "phase": "snap_startup:trigger_to_reveal",
+      "outcome": "ok",
+      "startedAtUs": 227028302,
+      "durationUs": 511908
+    },
+    {
+      "sequence": 30,
+      "phase": "snap_startup:ready_ack",
+      "outcome": "ok",
+      "startedAtUs": 227527389,
+      "durationUs": 35000
+    },
+    {
+      "sequence": 32,
+      "phase": "surface_reveal:capture",
+      "outcome": "ok",
+      "startedAtUs": 227527899,
+      "durationUs": 60126
+    },
+    {
+      "sequence": 33,
+      "phase": "snap_entry:menu",
+      "outcome": "triggered",
+      "startedAtUs": 233290461,
+      "durationUs": 0
+    },
+    {
+      "sequence": 34,
+      "phase": "snap_startup:menu_dismiss",
+      "outcome": "ok",
+      "startedAtUs": 233296016,
+      "durationUs": 5741
+    },
+    {
+      "sequence": 35,
+      "phase": "snap_startup:display",
+      "outcome": "ok",
+      "startedAtUs": 233302308,
+      "durationUs": 5
+    },
+    {
+      "sequence": 36,
+      "phase": "snap_startup:targets",
+      "outcome": "ok",
+      "startedAtUs": 233302326,
+      "durationUs": 22121
+    },
+    {
+      "sequence": 37,
+      "phase": "snap_startup:native_capture",
+      "outcome": "ok",
+      "startedAtUs": 233324498,
+      "durationUs": 52009
+    },
+    {
+      "sequence": 38,
+      "phase": "snap_startup:png_write",
+      "outcome": "ok",
+      "startedAtUs": 233376542,
+      "durationUs": 125010
+    },
+    {
+      "sequence": 39,
+      "phase": "snap_startup:webview_build",
+      "outcome": "ok",
+      "startedAtUs": 233501918,
+      "durationUs": 249
+    },
+    {
+      "sequence": 40,
+      "phase": "snap_startup:window_prepare",
+      "outcome": "ok",
+      "startedAtUs": 233501913,
+      "durationUs": 29606
+    },
+    {
+      "sequence": 41,
+      "phase": "snap_startup:frontend_mount",
+      "outcome": "ok",
+      "startedAtUs": 233653413,
+      "durationUs": 5000
+    },
+    {
+      "sequence": 42,
+      "phase": "media_transfer:screenshot_read",
+      "outcome": "ok",
+      "startedAtUs": 233659071,
+      "durationUs": 0,
+      "value": 1118953,
+      "unit": "bytes"
+    },
+    {
+      "sequence": 43,
+      "phase": "snap_startup:media_read",
+      "outcome": "ok",
+      "startedAtUs": 233658197,
+      "durationUs": 2000
+    },
+    {
+      "sequence": 44,
+      "phase": "snap_startup:image_decode",
+      "outcome": "ok",
+      "startedAtUs": 233661080,
+      "durationUs": 47000
+    },
+    {
+      "sequence": 45,
+      "phase": "snap_startup:display_decode",
+      "outcome": "ok",
+      "startedAtUs": 233709519,
+      "durationUs": 0
+    },
+    {
+      "sequence": 46,
+      "phase": "snap_startup:native_reveal",
+      "outcome": "ok",
+      "startedAtUs": 233710233,
+      "durationUs": 8708
+    },
+    {
+      "sequence": 47,
+      "phase": "snap_startup:trigger_to_reveal",
+      "outcome": "ok",
+      "startedAtUs": 233301799,
+      "durationUs": 417300
+    },
+    {
+      "sequence": 48,
+      "phase": "snap_startup:ready_ack",
+      "outcome": "ok",
+      "startedAtUs": 233710675,
+      "durationUs": 16000
+    },
+    {
+      "sequence": 50,
+      "phase": "surface_reveal:capture",
+      "outcome": "ok",
+      "startedAtUs": 233710445,
+      "durationUs": 43968
+    },
+    {
+      "sequence": 51,
+      "phase": "snap_entry:menu",
+      "outcome": "triggered",
+      "startedAtUs": 238457234,
+      "durationUs": 0
+    },
+    {
+      "sequence": 52,
+      "phase": "snap_startup:menu_dismiss",
+      "outcome": "ok",
+      "startedAtUs": 238461370,
+      "durationUs": 2793
+    },
+    {
+      "sequence": 53,
+      "phase": "snap_startup:display",
+      "outcome": "ok",
+      "startedAtUs": 238464943,
+      "durationUs": 8
+    },
+    {
+      "sequence": 54,
+      "phase": "snap_startup:targets",
+      "outcome": "ok",
+      "startedAtUs": 238464971,
+      "durationUs": 7931
+    },
+    {
+      "sequence": 55,
+      "phase": "snap_startup:native_capture",
+      "outcome": "ok",
+      "startedAtUs": 238472986,
+      "durationUs": 44137
+    },
+    {
+      "sequence": 56,
+      "phase": "snap_startup:png_write",
+      "outcome": "ok",
+      "startedAtUs": 238517161,
+      "durationUs": 129013
+    },
+    {
+      "sequence": 57,
+      "phase": "snap_startup:webview_build",
+      "outcome": "ok",
+      "startedAtUs": 238646638,
+      "durationUs": 250
+    },
+    {
+      "sequence": 58,
+      "phase": "snap_startup:window_prepare",
+      "outcome": "ok",
+      "startedAtUs": 238646634,
+      "durationUs": 30556
+    },
+    {
+      "sequence": 59,
+      "phase": "snap_startup:frontend_mount",
+      "outcome": "ok",
+      "startedAtUs": 238797858,
+      "durationUs": 5000
+    },
+    {
+      "sequence": 60,
+      "phase": "media_transfer:screenshot_read",
+      "outcome": "ok",
+      "startedAtUs": 238803501,
+      "durationUs": 0,
+      "value": 1119329,
+      "unit": "bytes"
+    },
+    {
+      "sequence": 61,
+      "phase": "snap_startup:media_read",
+      "outcome": "ok",
+      "startedAtUs": 238802559,
+      "durationUs": 2000
+    },
+    {
+      "sequence": 62,
+      "phase": "snap_startup:image_decode",
+      "outcome": "ok",
+      "startedAtUs": 238804682,
+      "durationUs": 46000
+    },
+    {
+      "sequence": 63,
+      "phase": "snap_startup:display_decode",
+      "outcome": "ok",
+      "startedAtUs": 238852277,
+      "durationUs": 0
+    },
+    {
+      "sequence": 64,
+      "phase": "snap_startup:native_reveal",
+      "outcome": "ok",
+      "startedAtUs": 238852954,
+      "durationUs": 3953
+    },
+    {
+      "sequence": 65,
+      "phase": "snap_startup:trigger_to_reveal",
+      "outcome": "ok",
+      "startedAtUs": 238464222,
+      "durationUs": 393193
+    },
+    {
+      "sequence": 66,
+      "phase": "snap_startup:ready_ack",
+      "outcome": "ok",
+      "startedAtUs": 238853359,
+      "durationUs": 7000
+    },
+    {
+      "sequence": 68,
+      "phase": "surface_reveal:capture",
+      "outcome": "ok",
+      "startedAtUs": 238853181,
+      "durationUs": 34520
+    }
+  ],
+  "visualConfirmation": "maintainer confirmed no residual Snap menu in captures; consecutive menu reopening succeeded"
+}

@@ -10,6 +10,7 @@
 - [x] 2.2 Instrument capture preparation, media/frontend and reveal with privacy-safe timings, and record a native baseline where available; verify fixed-field contracts and evidence boundaries.
 - [x] 2.3 Remove measured/proven repeated native window-list queries while preserving candidate filtering/coordinates; verify target tests and compare stage timings.
 - [ ] 2.4 Diagnose stationary-pointer reveal, apply minimal evidence-backed scheduling/lifecycle fixes and record first/repeated menu/shortcut/main measurements; verify actual macOS flow or explicitly retain an unexecuted device gate.
+- [x] 2.5 Follow up the measured development-build bottlenecks: optimize pixel/PNG dependencies, stop disposed frontend initialization, mount the hidden capture route without a Suspense loading fallback, and explicitly release the native menu before capture; verify automated regressions and retain the final native timing/visual matrix under 2.4.
 
 ## 3. Windows local OCR provider
 

@@ -35,4 +35,10 @@ macOS 窗口候选改为一次 CoreGraphics 快照，保留前后顺序、过滤
 
 隐藏 WKWebView 在完成 JS/图像解码前无法请求显示，因此 capture 对支持该 API 的 macOS 关闭背景节流，避免 readiness 门禁与隐藏页面调度形成循环依赖。没有预先采集屏幕或缓存旧截图。首次与重复、菜单/快捷键/main、鼠标完全静止/移动、开发/优化构建的端到端数据分别保留。
 
-本轮临时 `.app` 可验证原生设置录制、重置、重复键拒绝和默认显示；截图明确报屏幕录制权限未确认。这是验证应用身份的限制，不反证用户正常 `pnpm tauri dev` 的既有授权。未修改系统权限。菜单实际位置及静止鼠标 reveal 仍保留设备验收任务，详见 [实施记录](../openspec/changes/refine-snap-entry-shortcuts-and-startup/evidence/implementation.md)。
+2026-10-25 的临时 `.app` 可验证原生设置录制、重置、重复键拒绝和默认显示；当时截图报屏幕录制权限未确认。这是验证应用身份的限制，不反证用户正常 `pnpm tauri dev` 的既有授权。2026-10-27 使用实际开发进程和维护者触发的操作已取得成功截图计时，无需改动系统权限。`~/Applications/Zero Tools/Zero Snap.app` 是转发到主程序的搜索入口，实际截屏进程及其授权身份应分别核对。
+
+后续实测发现开发模式 PNG 编码是主要瓶颈。Cargo 仅优化六个像素/PNG 依赖；应用代码仍按原配置调试，release profile 不变。截图窗口在模块加载完成后才挂载，避免隐藏窗口先提交 loading fallback 后的 Suspense 等待；StrictMode 保持开启，已清理的初始化不会继续重复读图和解码。菜单正常路径显式释放原生菜单，不再固定等待 100 ms；释放失败仍回退原等待。没有提前采屏、常驻预热窗口或旧画面缓存。
+
+**English:** Development captures now optimize the existing pixel/PNG dependencies, skip disposed initialization, and load the hidden capture surface before mounting React to avoid the Suspense fallback delay. Menu capture explicitly releases the native menu, retaining the previous delay only as a fallback. Pixels remain freshly captured and lossless; release settings are unchanged. Native timings, browser tests and remaining device checks are recorded separately.
+
+阶段不能直接相加：`webview_build` 返回时前端尚未初始化，`trigger_to_reveal` 也不包含菜单退场时间。端到端应从 `snap_entry:*` 时间戳算到 native show 返回，并单列后续 frame acknowledgment；它们都不是物理显示器的精确呈现时刻。详细数字与最终原生验收边界见 [启动性能记录](../openspec/changes/refine-snap-entry-shortcuts-and-startup/evidence/startup-performance-2026-10-28.md)，其他变更见 [实施记录](../openspec/changes/refine-snap-entry-shortcuts-and-startup/evidence/implementation.md)。

@@ -26,7 +26,19 @@
       const ocrOnly = new URLSearchParams(location.search).has("ocr-only");
       window.snapUploads = [];
       window.snapUploadBytes = [];
+      window.snapLoadingCommits = 0;
+      new MutationObserver((records) => {
+        for (const record of records) {
+          for (const node of record.addedNodes) {
+            if (node instanceof Element && (node.matches(".app-loading") || node.querySelector(".app-loading"))) {
+              window.snapLoadingCommits += 1;
+            }
+          }
+        }
+      }).observe(document.getElementById("root"), { childList: true, subtree: true });
       window.__TAURI_INTERNALS__ = {
+        metadata: { currentWindow: { label: "capture" }, currentWebview: { label: "capture" } },
+        transformCallback: () => 1,
         invoke: async (cmd, args, options) => {
           window.snapInvocations.push({ cmd, args });
           switch (cmd) {
@@ -71,6 +83,10 @@
               window.snapUploads.push({byteLength:args.byteLength,signature:[...args.slice(0,8)],headers:options.headers});
               return { copied: true, savedPath: null, pinWindowLabel: null };
             case "reveal_screenshot_capture":
+            case "record_screenshot_startup":
+            case "emit_frontend_diagnostic":
+            case "mark_frontend_ready":
+            case "plugin:event|listen":
             case "cancel_screenshot_session":
             case "start_snap_ocr":
               return null;
@@ -79,15 +95,21 @@
           }
         },
       };
-      const React = await import("react");
-      const { createRoot } = await import("react-dom/client");
-      const { CaptureApp } = await import(
-        "/src/plugins/screenshot/capture/CaptureApp.tsx"
-      );
-      await import("/src/App.css");
-      createRoot(document.getElementById("root")).render(
-        React.createElement(CaptureApp),
-      );
+      if (new URLSearchParams(location.search).has("main")) {
+        await import("/src/main.tsx");
+      } else {
+        const React = await import("react");
+        const { createRoot } = await import("react-dom/client");
+        const { CaptureApp } = await import(
+          "/src/plugins/screenshot/capture/CaptureApp.tsx"
+        );
+        await import("/src/App.css");
+        createRoot(document.getElementById("root")).render(
+          new URLSearchParams(location.search).has("strict")
+            ? React.createElement(React.StrictMode, null, React.createElement(CaptureApp))
+            : React.createElement(CaptureApp),
+        );
+      }
     </script>
   </body>
 </html>

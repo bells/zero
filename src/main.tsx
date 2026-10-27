@@ -15,7 +15,6 @@ import {
 
 const label = getCurrentWindow().label;
 const surface = resolveAppSurface(label);
-const RoutedApp = lazy(loadRoutedApp);
 const surfacePlugin = label === "zero-file-engine" ? null
   : surface === "launcher" ? "zero.launch"
     : surface === "paper" ? "zero.paper"
@@ -45,17 +44,30 @@ function isBundledPluginSurface(
   return ["capture", "pin", "launcher", "paper"].includes(surface);
 }
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <Suspense fallback={<div className="app-loading" aria-busy="true" />}>
-      {surfacePlugin ? (
-        <DiagnosticBoundary pluginId={surfacePlugin} fallback={<div className="app-loading" role="alert">工具界面暂不可用 / Tool UI unavailable.</div>}>
-          <RoutedApp />
-        </DiagnosticBoundary>
-      ) : <RoutedApp />}
-    </Suspense>
-  </React.StrictMode>,
-);
+function renderApp(RoutedApp: ComponentType) {
+  ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+    <React.StrictMode>
+      <Suspense fallback={<div className="app-loading" aria-busy="true" />}>
+        {surfacePlugin ? (
+          <DiagnosticBoundary pluginId={surfacePlugin} fallback={<div className="app-loading" role="alert">工具界面暂不可用 / Tool UI unavailable.</div>}>
+            <RoutedApp />
+          </DiagnosticBoundary>
+        ) : <RoutedApp />}
+      </Suspense>
+    </React.StrictMode>,
+  );
+}
+
+if (surface === "capture") {
+  // This window stays hidden until its pixels are ready. Mounting a loading
+  // fallback first adds React's Suspense retry throttle to every capture.
+  void loadRoutedApp().then(
+    ({ default: CaptureApp }) => renderApp(CaptureApp),
+    (error: unknown) => renderApp(() => { throw error; }),
+  );
+} else {
+  renderApp(lazy(loadRoutedApp));
+}
 
 void listen<SurfaceActivityPayload>(SURFACE_ACTIVITY_EVENT, (event) => {
   if (event.payload.label !== label || event.payload.state !== "active") {

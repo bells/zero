@@ -342,14 +342,16 @@ export function CaptureApp() {
           "init_screenshot_session",
           {},
         );
+        if (disposed) return;
         initializedSessionId = payload.sessionId;
         recordCaptureStartup(payload.sessionId, "mount", mountStarted);
         const readStarted = performance.now();
         const value = await invoke<ArrayBuffer>("read_screenshot_media", {
           input: { token: payload.media.token },
         });
-        recordCaptureStartup(payload.sessionId, "mediaRead", readStarted);
         receivedBytes = new Uint8Array(value);
+        if (disposed) return;
+        recordCaptureStartup(payload.sessionId, "mediaRead", readStarted);
         if (
           receivedBytes.byteLength === 0 ||
           receivedBytes.byteLength !== payload.media.byteLength
