@@ -55,3 +55,23 @@
 }
 @media (pointer: coarse) { .awake-preset { min-height: 44px; } }
 @media (max-width: 340px) { .awake-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.awake-custom-entry, .awake-custom-actions button { min-height: 44px; border: 1px solid #a8b9ad; border-radius: 6px; background: #f8faf8; color: #244731; padding: 8px 12px; font: inherit; }
+.awake-custom-entry { width: 100%; text-align: start; }
+.awake-custom-editor { display: grid; gap: 10px; padding: 12px; background: #e5eee6; border: 1px solid #b9c6be; border-radius: 8px; }
+.awake-custom-editor h3 { margin: 0; font-size: 14px; }
+.awake-custom-editor label { display: grid; gap: 4px; min-width: 0; font-size: 12px; color: #304a3b; }
+.awake-custom-editor input, .awake-custom-editor select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 6px; border: 1px solid #97ad9f; border-radius: 4px; background: #fff; color: #1f3227; font: inherit; }
+.awake-custom-fields, .awake-custom-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.awake-custom-actions { position: sticky; bottom: 0; padding-top: 6px; background: #e5eee6; }
+.awake-custom-editor :focus-visible, .awake-custom-entry:focus-visible, .awake-battery-settings :focus-visible { outline: 2px solid #166b3b; outline-offset: 2px; }
+.awake-preview, .awake-notice { margin: 0; color: #43554a; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.awake-battery-settings { display: grid; gap: 16px; }
+.awake-battery-settings h3, .awake-battery-settings p { margin: 0; }
+.awake-battery-settings p { font-size: 13px; line-height: 1.6; }
+.awake-battery-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; }
+.awake-battery-row label { flex: 1; }
+.awake-battery-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #326d49; }
+.awake-battery-threshold { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
+.awake-battery-threshold input { width: 100%; min-height: 32px; accent-color: #326d49; }
+
+.caffeine-panel.editor-open .awake-actions { position: static; }

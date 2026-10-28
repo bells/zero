@@ -25,3 +25,8 @@ test('current failure propagates and the next reveal can recover', async () => {
   await assert.rejects(reader.refresh(),/offline/);
   assert.equal(await reader.refresh(),true); assert.deepEqual(accepted,[snapshot(false)]);
 });
+test('policy save reports native stop failure separately from successful persistence',async()=>{
+  const {policySaveFeedback}=await import('/private/tmp/zero-tests/plugins/caffeine/caffeineState.js');
+  assert.equal(policySaveFeedback({session:{enabled:true,action_error:{action:'disable',code:'operation_failed'}}}),'stop_failed');
+  assert.equal(policySaveFeedback({session:{enabled:false,action_error:null}}),'saved');
+});

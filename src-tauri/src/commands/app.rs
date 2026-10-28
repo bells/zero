@@ -68,6 +68,20 @@ pub fn open_main_window(app: tauri::AppHandle) -> Result<(), String> {
     )
 }
 
+#[cfg(feature = "bundled-tools")]
+pub fn open_main_tool_custom(app: &tauri::AppHandle, plugin_id: &str) -> Result<(), String> {
+    use crate::services::main_navigation::{
+        MainNavigationState, MainWindowDestination, MainWindowIntent,
+    };
+    app.state::<MainNavigationState>().request_intent(
+        MainWindowDestination::Tools,
+        Some(plugin_id.into()),
+        Some(MainWindowIntent::EditCustom),
+    )?;
+    show_app_shell_window(app, AppShellWindow::Main)?;
+    crate::services::main_navigation::publish(app)
+}
+
 pub fn open_main_tool(app: &tauri::AppHandle, plugin_id: &str) -> Result<(), String> {
     app.state::<crate::services::main_navigation::MainNavigationState>()
         .request_tool(

@@ -25,6 +25,8 @@ interface LazyPluginPanelProps {
   pluginId: string;
   language: ResolvedLanguage;
   surface: BundledPluginPanelProps["surface"];
+  editorRevision?: number;
+  onEditorIntentConsumed?: () => void;
   fallback: ReactNode;
   unavailable: ReactNode;
 }
@@ -33,6 +35,8 @@ export function LazyPluginPanel({
   pluginId,
   language,
   surface,
+  editorRevision,
+  onEditorIntentConsumed,
   fallback,
   unavailable,
 }: LazyPluginPanelProps) {
@@ -48,7 +52,7 @@ export function LazyPluginPanel({
   return (
     <DiagnosticBoundary key={pluginId} pluginId={pluginId} fallback={unavailable}>
       <Suspense fallback={fallback}>
-        <Panel language={language} surface={surface} />
+        <Panel language={language} surface={surface} editorRevision={editorRevision} onEditorIntentConsumed={onEditorIntentConsumed} />
         <PluginActivationMarker pluginId={pluginId} />
       </Suspense>
     </DiagnosticBoundary>

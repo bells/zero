@@ -299,6 +299,7 @@ export function ToolsOverviewPage({
 }
 
 interface ToolPreferencesPageProps extends SharedPageProps, ShortcutEditorProps {
+  additionalSettings?:ReactNode;
   plugin: PluginMeta;
   preferences: AppPreferences;
   record: PluginRecord;
@@ -310,6 +311,7 @@ interface ToolPreferencesPageProps extends SharedPageProps, ShortcutEditorProps 
 }
 
 export function ToolPreferencesPage({
+  additionalSettings,
   feedback,
   plugin,
   pluginHost,
@@ -433,7 +435,7 @@ export function ToolPreferencesPage({
         )}
       </SettingsSection>
 
-      <p className="preferences-empty-copy">{t("prefs.tool.noAdditionalSettings")}</p>
+      {additionalSettings??<p className="preferences-empty-copy">{t("prefs.tool.noAdditionalSettings")}</p>}
     </>
   );
 }

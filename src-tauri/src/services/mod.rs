@@ -4,6 +4,8 @@ pub mod bing_wallpaper;
 pub mod caffeine;
 #[cfg(feature = "bundled-tools")]
 pub mod caffeine_runtime;
+#[cfg(feature = "bundled-tools")]
+pub mod caffeine_schedule;
 #[cfg(feature = "file-tool")]
 pub mod file;
 pub mod global_shortcuts;
@@ -35,3 +37,12 @@ pub mod desktop_entries;
 
 #[cfg(any(feature = "bundled-tools", feature = "file-tool"))]
 pub mod ocr;
+
+#[cfg(feature = "bundled-tools")]
+pub mod awake_battery;
+
+#[cfg(feature = "bundled-tools")]
+pub mod awake_preferences;
+
+#[cfg(feature = "bundled-tools")]
+pub mod awake_power_events;

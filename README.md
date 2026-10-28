@@ -13,7 +13,7 @@ Zero 是一个跨平台桌面工具箱，从状态栏 / 系统托盘快速使用
 | 插件 | 用途 | 当前平台边界 |
 | --- | --- | --- |
 | **Zero Snap** | 截图、窗口选区、标注与对象编辑、复制/保存/钉图、离线 OCR | macOS 自定义编辑器与 Vision OCR；Windows 普通截图调用系统工具，新增随包离线 OCR 选区流程（真机验收待完成） |
-| **Zero Awake** | 按时长保持屏幕与系统唤醒 | macOS、Windows 原生实现 |
+| **Zero Awake** | 按预设、自定义时长或截止钟点保持屏幕与系统唤醒 | macOS、Windows 原生实现 |
 | **Zero Paper** | 浏览 Bing 每日壁纸、历史缓存、下载和设为桌面 | macOS、Windows 适配；Linux 应用壁纸取决于桌面后端 |
 | **Zero Launch** | 中英文/拼音应用与系统设置搜索、启动和聚焦 | macOS 应用包、Windows 开始菜单索引 |
 | **Zero File** | 本地 PDF → DOCX、DOCX → PDF | PDF → DOCX 有 macOS/Windows 实现；内置 DOCX → PDF 仅 macOS 11+，签名引擎尚未批准发布 |
@@ -27,6 +27,8 @@ Zero 是一个跨平台桌面工具箱，从状态栏 / 系统托盘快速使用
 - 打包 release 启动后会为所包含的工具创建系统应用搜索入口；入口转发到同一个 Zero 实例，不是五个独立应用安装包。详见[打包说明](docs/packaging.md)。
 
 **可插拔的实现边界：**五个内置插件各自拥有描述、界面、翻译与服务契约，由宿主统一注册和管理生命周期，并支持构建裁剪。它们的 Rust 能力随宿主编译；第三方不能动态加载 Rust。`.zplugin` 包管理与权限桥接已存在，但公开 Web Plugin API v1 runtime 仍关闭，不能把开发预览当作正式插件生态。参见[协议现状](docs/plugins/protocol-v1.md)。
+
+Awake 的“自定义…”支持 1–1440 分钟，或下一次本地结束钟点；预览后确认才会开始或替换会话，重启不会恢复会话。偏好设置 → Zero Awake 提供两个默认关闭的电池保护开关：电量阈值（10%–90%，5% 步进）和系统低电量模式。两项都只在电池供电时生效；低电量时手动开始仅豁免本次阈值，不能绕过低电量模式保护。保护停止后不会自动恢复。实现与设备验收范围见[本轮证据](openspec/changes/add-awake-custom-schedules/evidence/implementation.md)。
 
 当前源码版本为 `0.1.0`。试用打包提供 **core**（无内置工具）和 **standard**（Snap、Awake、Paper、Launch），两者均不包含 File；源码默认 full 配置包含五工具。下载入口见[官网](https://www.usezero.cn/download/)，产物与限制见[打包指南](docs/packaging.md)，不要将源码功能清单等同于每个安装包的内容。
 
@@ -132,7 +134,7 @@ The website also offers browser tools that process text, images and documents lo
 | Plugin | Purpose | Current platform boundary |
 | --- | --- | --- |
 | **Zero Snap** | Capture, window selection, annotations and object editing, copy/save/pin, offline OCR | Custom editor and Vision OCR on macOS; system capture plus a bundled offline OCR selection flow on Windows (device acceptance pending) |
-| **Zero Awake** | Keep the display and system awake for a chosen duration | Native macOS and Windows implementations |
+| **Zero Awake** | Keep the display and system awake for a preset, custom duration or end time | Native macOS and Windows implementations |
 | **Zero Paper** | Bing daily wallpapers, cached history, download and desktop apply | macOS/Windows adapters; Linux apply depends on the desktop backend |
 | **Zero Launch** | English/Chinese/pinyin app and settings search, launch and focus | macOS application bundles and Windows Start Menu index |
 | **Zero File** | Local PDF → DOCX and DOCX → PDF | PDF → DOCX implemented for macOS/Windows; built-in DOCX → PDF requires macOS 11+; signed engine release remains unapproved |
@@ -146,6 +148,8 @@ The desktop app primarily targets macOS and Windows, with different capabilities
 - Packaged release builds create system application-search entries for included tools on startup. These forward to the same Zero instance; they are not five standalone application packages. See [packaging](docs/packaging.md).
 
 **What pluggable means today:** each bundled plugin owns its descriptor, UI, translations and service contracts. The host registers plugins, manages their lifecycle and supports build-time exclusion. Native Rust capabilities are compiled with the host; third parties cannot dynamically load Rust. `.zplugin` package management and permission bridges exist, but the public Web Plugin API v1 runtime remains disabled. Developer previews do not establish a released plugin ecosystem. See [protocol status](docs/plugins/protocol-v1.md).
+
+Awake’s Custom editor accepts 1–1440 minutes or the next local end time. Preview and confirm to start or replace a session; restarting never resumes a session. Preferences → Zero Awake offers two battery protections, both off by default: a 10%–90% threshold in 5% steps and system low power mode. Both apply only on battery power. A deliberate low-charge start overrides the threshold for that session, but never low power mode protection. Protective stops do not resume automatically. See the [implementation and device evidence](openspec/changes/add-awake-custom-schedules/evidence/implementation.md).
 
 The source version is `0.1.0`. Trial packages offer **core** (no bundled tools) and **standard** (Snap, Awake, Paper, Launch); both exclude File. The default full source configuration includes all five tools. Check the [download page](https://www.usezero.cn/en/download/) and [packaging guide](docs/packaging.md) for actual artifacts and limitations; the source feature list does not describe every installer.
 

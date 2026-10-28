@@ -93,6 +93,7 @@ pub enum ToolStatusBarMenuAction {
     Quit,
     AwakeDuration(Option<u64>),
     ExitAwake,
+    AwakeCustom,
     Screenshot,
     ScreenshotOcr,
 }
@@ -578,6 +579,9 @@ pub fn tool_status_bar_menu_action(
     }
     if item_id != AWAKE_STATUS_ITEM_ID {
         return None;
+    }
+    if menu_id == "zero.awake.custom" {
+        return Some(ToolStatusBarMenuAction::AwakeCustom);
     }
     if menu_id == "zero.awake.exit" {
         return Some(ToolStatusBarMenuAction::ExitAwake);
@@ -1334,9 +1338,15 @@ fn tool_status_bar_menu(
     #[cfg(feature = "bundled-tools")]
     if item_id == AWAKE_STATUS_ITEM_ID {
         let snapshot = app.state::<CaffeineState>().snapshot()?;
-        for entry in
-            awake_duration_menu_entries(snapshot.enabled, snapshot.duration_minutes, &language)
-        {
+        for entry in awake_duration_menu_entries(
+            snapshot.enabled
+                && !matches!(
+                    snapshot.schedule,
+                    Some(super::caffeine_schedule::CaffeineSchedule::Until { .. })
+                ),
+            snapshot.duration_minutes,
+            &language,
+        ) {
             let check = tauri::menu::CheckMenuItem::with_id(
                 app,
                 entry.id,
@@ -1349,6 +1359,14 @@ fn tool_status_bar_menu(
             builder = builder.item(&check);
         }
         builder = builder
+            .text(
+                "zero.awake.custom",
+                if language.starts_with("zh") {
+                    "自定义…"
+                } else {
+                    "Custom…"
+                },
+            )
             .separator()
             .text(
                 "zero.awake.exit",
@@ -1506,6 +1524,14 @@ fn sync_primary_status_item(
                                 duration,
                             },
                         ),
+                        Some(ToolStatusBarMenuAction::AwakeCustom) => {
+                            if let Err(error) = crate::commands::app::open_main_tool_custom(
+                                &app,
+                                ZERO_AWAKE_PLUGIN_ID,
+                            ) {
+                                tracing::warn!(%error,"Awake custom navigation failed");
+                            }
+                        }
                         Some(ToolStatusBarMenuAction::ExitAwake) => {
                             dispatch_native(app.clone(), AwakeRequest::Exit)
                         }

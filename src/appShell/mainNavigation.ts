@@ -5,13 +5,14 @@ export interface MainWindowNavigationRequest {
   destination: MainWindowDestination;
   revision: number;
   pluginId?: string;
+  intent?: "editCustom";
 }
 
 export function acceptMainNavigation(
   current: MainWindowNavigationRequest,
   incoming: MainWindowNavigationRequest,
 ): MainWindowNavigationRequest {
-  return Number.isSafeInteger(incoming.revision) && incoming.revision > current.revision
+  return (incoming.intent === undefined || incoming.intent === "editCustom") && Number.isSafeInteger(incoming.revision) && incoming.revision > current.revision
     && (incoming.pluginId === undefined || (typeof incoming.pluginId === "string" && incoming.pluginId.length > 0 && incoming.pluginId.length <= 128))
     && (incoming.destination === "tools" || incoming.destination === "preferences")
     ? incoming : current;

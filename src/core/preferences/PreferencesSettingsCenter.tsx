@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
 import type { PluginMeta } from "../pluginHost/pluginTypes";
 import type { PluginHostController } from "../pluginHost/usePluginHost";
 import type { StatusBarController } from "../../services/useStatusBar";
@@ -34,6 +34,8 @@ type PreferencesController = ReturnType<typeof usePreferences>;
 
 interface PreferencesSettingsCenterProps {
   active?: boolean;
+  renderToolSettings?: (pluginId:string,enabled:boolean)=>ReactNode;
+  additionalSettings?: readonly import("./preferencesNavigation").PreferencesSettingDescriptor[];
   localizedPlugins: PluginMeta[];
   pluginHost: PluginHostController;
   preferences: PreferencesController;
@@ -49,6 +51,8 @@ const NAVIGATION_GROUP_ORDER: PreferencesNavigationGroup[] = [
 
 export function PreferencesSettingsCenter({
   active = true,
+  renderToolSettings,
+  additionalSettings,
   localizedPlugins,
   pluginHost,
   preferences,
@@ -83,8 +87,8 @@ export function PreferencesSettingsCenter({
     [tools, translateNavigation],
   );
   const settingIndex = useMemo(
-    () => createPreferencesSettingIndex({ destinations, tools, t: translateNavigation }),
-    [destinations, tools, translateNavigation],
+    () => [...createPreferencesSettingIndex({ destinations, tools, t: translateNavigation }),...(additionalSettings??[])],
+    [destinations, tools, translateNavigation,additionalSettings],
   );
   const searchResults = useMemo(
     () => filterPreferencesSettings(settingIndex, query),
@@ -106,15 +110,17 @@ export function PreferencesSettingsCenter({
   useEffect(() => {
     if (!active || !pendingFocusTarget) return;
     const targetId = pendingFocusTarget;
-    const frame = window.requestAnimationFrame(() => {
-      if (targetId) {
+    const focus=()=>{
         const target = document.getElementById(targetId);
+        if(!target)return false;
         target?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
         target?.focus({ preventScroll: true });
         setPendingFocusTarget(null);
-      }
-    });
-    return () => window.cancelAnimationFrame(frame);
+        return true;
+    };
+    const observer=new MutationObserver(()=>{if(focus())observer.disconnect();});
+    const frame=window.requestAnimationFrame(()=>{if(!focus())observer.observe(document.body,{childList:true,subtree:true});});
+    return () => {window.cancelAnimationFrame(frame);observer.disconnect();};
   }, [active, resolvedDestinationId, pendingFocusTarget, narrowPageOpen]);
 
   const runOperation = useCallback(async (
@@ -197,6 +203,7 @@ export function PreferencesSettingsCenter({
 
         <div className="preferences-content-scroll">
           <PreferencesDestinationContent
+            renderToolSettings={renderToolSettings}
             destinationId={resolvedDestinationId}
             feedback={feedback}
             localizedPlugins={localizedPlugins}
@@ -306,6 +313,7 @@ function PreferencesSidebar({
 }
 
 function PreferencesDestinationContent({
+  renderToolSettings,
   destinationId,
   feedback,
   localizedPlugins,
@@ -317,6 +325,7 @@ function PreferencesDestinationContent({
   t,
   onSelectDestination,
 }: {
+  renderToolSettings?: (pluginId:string,enabled:boolean)=>ReactNode;
   destinationId: PreferencesDestinationId;
   feedback: PreferenceFeedbackMap;
   localizedPlugins: PluginMeta[];
@@ -369,6 +378,7 @@ function PreferencesDestinationContent({
   if (!record || !plugin) return null;
   return (
     <ToolPreferencesPage
+      additionalSettings={renderToolSettings?.(record.name,record.enabled)}
       feedback={feedback}
       plugin={plugin}
       pluginHost={pluginHost}

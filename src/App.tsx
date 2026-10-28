@@ -6,7 +6,9 @@ import "./appShell/mainSettings.css";
 import {
   bundledPluginPresentation,
   bundledPluginModule,
+  BUNDLED_PLUGIN_MODULES,
 } from "./appShell/bundledPluginModules";
+import { BundledPluginSettings } from "./appShell/BundledPluginSettings";
 import { LazyPluginPanel } from "./appShell/LazyPluginPanel";
 import { ArrowLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { PluginNavigation } from "./appShell/PluginNavigation";
@@ -186,6 +188,8 @@ function pluginPanel(
   plugin: PluginMeta | undefined,
   language: ResolvedLanguage,
   surface: "tray" | "main",
+  editorRevision?: number,
+  onEditorIntentConsumed?:()=>void,
 ) {
   if (!plugin) {
     return <EmptyPluginState t={createTranslator(language)} />;
@@ -206,6 +210,8 @@ function pluginPanel(
         pluginId={plugin.id}
         language={language}
         surface={surface}
+        editorRevision={editorRevision}
+        onEditorIntentConsumed={onEditorIntentConsumed}
         fallback={
           <section className="plugin-panel system-panel" aria-busy="true">
             <div className="panel-copy">
@@ -437,7 +443,7 @@ export function MainWindowApp() {
   usePluginMessages(setMessage);
   const runAction = (action: () => Promise<void>) => runShellAction(action, setMessage, t);
   const statusBar = useStatusBar(pluginHost.records);
-  const { destination, toolRequest, navigate, error: navigationError, isReady } = useMainNavigation();
+  const { destination, toolRequest, consumeToolIntent, navigate, error: navigationError, isReady } = useMainNavigation();
   const appliedToolRevision = useRef(-1);
   useEffect(() => {
     if (!toolRequest || pluginHost.isLoading || toolRequest.revision <= appliedToolRevision.current) return;
@@ -510,13 +516,13 @@ export function MainWindowApp() {
         </aside>
 
         <section className="main-workspace" aria-label={activePlugin?.title ?? t("shell.pluginWorkspace")}>
-          {pluginPanel(activePlugin, resolvedLanguage, "main")}
+          {pluginPanel(activePlugin, resolvedLanguage, "main",toolRequest?.pluginId===activePlugin?.id && toolRequest?.intent==="editCustom"?toolRequest.revision:undefined,()=>{if(toolRequest)consumeToolIntent(toolRequest.revision);})}
         </section>
       </div>
       </PresentationActivity> : null}
       {settingsOpen || settingsVisited ? (
         <div className="main-settings-view" hidden={!settingsOpen} inert={!settingsOpen}>
-          <PreferencesSettingsCenter active={settingsOpen} localizedPlugins={localizedPlugins} pluginHost={pluginHost} preferences={preferences} statusBar={statusBar} t={t} />
+          <PreferencesSettingsCenter additionalSettings={BUNDLED_PLUGIN_MODULES.flatMap(module=>module.settingsSearch?.[resolvedLanguage]??[])} renderToolSettings={(pluginId,enabled)=>bundledPluginModule(pluginId)?.loadSettings?<BundledPluginSettings pluginId={pluginId} enabled={enabled} language={resolvedLanguage}/>:undefined} active={settingsOpen} localizedPlugins={localizedPlugins} pluginHost={pluginHost} preferences={preferences} statusBar={statusBar} t={t} />
         </div>
       ) : null}
     </main>

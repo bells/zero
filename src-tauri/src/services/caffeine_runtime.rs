@@ -1,9 +1,9 @@
-use std::time::SystemTime;
+use super::awake_battery::{AwakeBatteryPolicy, AwakePowerSnapshot};
+use super::awake_preferences::{AwakeCustomInput, AwakePreferences};
+use super::caffeine_schedule::{CaffeineSchedule, ClockReading};
 use tauri::{Emitter, Manager};
 
-use super::caffeine::{
-    CaffeineAction, CaffeineErrorCode, CaffeineExpiry, CaffeineSnapshot, CaffeineState,
-};
+use super::caffeine::{CaffeineAction, CaffeineErrorCode, CaffeineSnapshot, CaffeineState};
 use crate::brand::ZERO_AWAKE_PLUGIN_ID;
 
 pub const STATE_CHANGED_EVENT: &str = "caffeine-state-changed";
@@ -14,6 +14,10 @@ pub enum AwakeRequest {
         enabled: bool,
         duration: Option<u64>,
     },
+    Schedule {
+        schedule: CaffeineSchedule,
+        input: Option<AwakeCustomInput>,
+    },
     Toggle,
     Exit,
 }
@@ -21,7 +25,7 @@ pub enum AwakeRequest {
 impl AwakeRequest {
     fn action(self) -> CaffeineAction {
         match self {
-            Self::Set { enabled: true, .. } => CaffeineAction::Enable,
+            Self::Schedule { .. } | Self::Set { enabled: true, .. } => CaffeineAction::Enable,
             Self::Set { enabled: false, .. } => CaffeineAction::Disable,
             Self::Toggle => CaffeineAction::Toggle,
             Self::Exit => CaffeineAction::Exit,
@@ -65,6 +69,15 @@ fn execute_blocking(
     app: &tauri::AppHandle,
     request: AwakeRequest,
 ) -> Result<CaffeineSnapshot, String> {
+    let state = app.state::<CaffeineState>();
+    let power = if matches!(
+        request,
+        AwakeRequest::Exit | AwakeRequest::Set { enabled: false, .. }
+    ) {
+        AwakePowerSnapshot::unknown()
+    } else {
+        state.power_reader.read()
+    };
     app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
         .run(ZERO_AWAKE_PLUGIN_ID, || {
             let state = app.state::<CaffeineState>();
@@ -88,6 +101,37 @@ fn execute_blocking(
                         },
                     )?;
                 } else {
+                    if let AwakeRequest::Schedule { schedule, input } = request {
+                        schedule
+                            .validate(
+                                ClockReading::now()
+                                    .map_err(|_| CaffeineErrorCode::OperationFailed)?
+                                    .wall_ms,
+                            )
+                            .map_err(|_| CaffeineErrorCode::OperationFailed)?;
+                        if let Some(input) = input {
+                            input
+                                .validate()
+                                .map_err(|_| CaffeineErrorCode::OperationFailed)?;
+                            if !matches!(
+                                (schedule, input.mode),
+                                (
+                                    CaffeineSchedule::Duration { .. },
+                                    super::awake_preferences::CustomMode::Duration
+                                ) | (
+                                    CaffeineSchedule::Until { .. },
+                                    super::awake_preferences::CustomMode::Until
+                                )
+                            ) {
+                                return Err(CaffeineErrorCode::OperationFailed);
+                            }
+                            if let CaffeineSchedule::Duration { minutes } = schedule {
+                                if minutes != input.duration_minutes {
+                                    return Err(CaffeineErrorCode::OperationFailed);
+                                }
+                            }
+                        }
+                    }
                     let (enabled, duration) = match request {
                         AwakeRequest::Set { enabled, duration } => (enabled, duration),
                         AwakeRequest::Toggle => (
@@ -97,16 +141,55 @@ fn execute_blocking(
                                 .enabled,
                             None,
                         ),
+                        AwakeRequest::Schedule { .. } => (true, None),
                         AwakeRequest::Exit => unreachable!(),
                     };
                     if enabled && !crate::plugin_is_enabled(app, ZERO_AWAKE_PLUGIN_ID) {
                         return Err(CaffeineErrorCode::OperationFailed);
                     }
-                    let transition = state
-                        .set_enabled(enabled, duration)
-                        .map_err(|_| CaffeineErrorCode::OperationFailed)?;
-                    if let Some(expiry) = transition.expiry {
-                        schedule_expiry(app.clone(), expiry);
+                    if enabled {
+                        let (policy, unavailable) = effective_policy(&state);
+                        let schedule = match request {
+                            AwakeRequest::Schedule { schedule, .. } => schedule,
+                            _ => {
+                                if !super::caffeine::is_allowed_duration_minutes(duration) {
+                                    return Err(CaffeineErrorCode::OperationFailed);
+                                }
+                                duration
+                                    .map(|minutes| CaffeineSchedule::Duration { minutes })
+                                    .unwrap_or(CaffeineSchedule::Unlimited)
+                            }
+                        };
+                        state
+                            .set_schedule(schedule, policy, &power, unavailable)
+                            .map_err(|error| {
+                                if error == "low_power_mode" {
+                                    CaffeineErrorCode::LowPowerMode
+                                } else {
+                                    CaffeineErrorCode::OperationFailed
+                                }
+                            })?;
+                        if let AwakeRequest::Schedule {
+                            input: Some(input), ..
+                        } = request
+                        {
+                            let saved = state
+                                .preferences
+                                .lock()
+                                .map_err(|_| CaffeineErrorCode::PreferencesSaveFailed)?
+                                .update(|p| p.custom_input = Some(input));
+                            if saved.is_err() {
+                                state.record_action_error(
+                                    request.action(),
+                                    CaffeineErrorCode::PreferencesSaveFailed,
+                                );
+                            }
+                        }
+                        schedule_monitor(app.clone());
+                    } else {
+                        state
+                            .set_enabled(false, None)
+                            .map_err(|_| CaffeineErrorCode::OperationFailed)?;
                     }
                     observe_backend(app);
                 }
@@ -134,17 +217,19 @@ pub fn dispatch_native(app: tauri::AppHandle, request: AwakeRequest) {
 
 fn show_native_error(app: &tauri::AppHandle) {
     let zh = super::status_bar::status_bar_language(app).starts_with("zh");
-    let hide_failed = app
+    let code = app
         .state::<CaffeineState>()
         .snapshot()
         .ok()
         .and_then(|s| s.action_error)
-        .is_some_and(|e| e.code == CaffeineErrorCode::HideFailed);
-    let message = match (zh, hide_failed) {
-        (true, true) => "Awake 已关闭，但隐藏状态栏入口失败。请在设置中重试。",
-        (false, true) => "Awake stopped, but its status icon could not be hidden. Retry in Settings.",
-        (true, false) => "Awake 操作失败。请打开 Zero Awake 查看当前状态并重试。",
-        (false, false) => "Awake could not complete the action. Open Zero Awake to check its current state and retry.",
+        .map(|e| e.code);
+    let message = match (zh, code) {
+        (true,Some(CaffeineErrorCode::LowPowerMode))=>"当前使用电池且低电量模式已开启，无法开始 Awake。",
+        (false,Some(CaffeineErrorCode::LowPowerMode))=>"Cannot start Awake on battery while system low power mode is active.",
+        (true, Some(CaffeineErrorCode::HideFailed)) => "Awake 已关闭，但隐藏状态栏入口失败。请在设置中重试。",
+        (false, Some(CaffeineErrorCode::HideFailed)) => "Awake stopped, but its status icon could not be hidden. Retry in Settings.",
+        (true, _) => "Awake 操作失败。请打开 Zero Awake 查看当前状态并重试。",
+        (false, _) => "Awake could not complete the action. Open Zero Awake to check its current state and retry.",
     };
     tauri::async_runtime::spawn(async move {
         super::surface_activity::show_error_dialog("Zero Awake", message).await;
@@ -171,48 +256,74 @@ fn observe_backend(app: &tauri::AppHandle) {
 #[cfg(not(target_os = "macos"))]
 fn observe_backend(_app: &tauri::AppHandle) {}
 
-pub fn schedule_expiry(app: tauri::AppHandle, expiry: CaffeineExpiry) {
-    let task_app = app.clone();
+pub fn effective_policy(state: &CaffeineState) -> (AwakeBatteryPolicy, bool) {
+    let Ok(mut store) = state.preferences.lock() else {
+        return (AwakeBatteryPolicy::default(), true);
+    };
+    let result = store.read();
+    let unavailable = result.is_err();
+    (
+        result
+            .ok()
+            .or_else(|| store.last_good.clone())
+            .map(|p| p.battery_policy)
+            .unwrap_or_default(),
+        unavailable,
+    )
+}
+
+pub fn read_preferences(state: &CaffeineState) -> Result<AwakePreferences, String> {
+    state
+        .preferences
+        .lock()
+        .map_err(|_| "preferences_unavailable")?
+        .read()
+}
+
+fn cached_policy(state: &CaffeineState) -> (AwakeBatteryPolicy, bool) {
+    let Ok(store) = state.preferences.lock() else {
+        return (AwakeBatteryPolicy::default(), true);
+    };
+    (
+        store
+            .last_good
+            .as_ref()
+            .map(|p| p.battery_policy)
+            .unwrap_or_default(),
+        store.unavailable,
+    )
+}
+fn schedule_timer(app: tauri::AppHandle, generation: u64) {
+    let state = app.state::<CaffeineState>();
+    if !state.snapshot().is_ok_and(|s| s.remaining_ms.is_some()) {
+        return;
+    }
+    let timer_app = app.clone();
     let task = tauri::async_runtime::spawn(async move {
-        let mut delay = expiry
-            .expires_at
-            .duration_since(SystemTime::now())
-            .unwrap_or_default();
         loop {
-            tokio::time::sleep(delay).await;
-            let native_app = task_app.clone();
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            let worker = timer_app.clone();
             let result = tauri::async_runtime::spawn_blocking(move || {
-                native_app
+                worker
                     .state::<crate::plugins::lifecycle::LifecycleCoordinator>()
                     .run(ZERO_AWAKE_PLUGIN_ID, || {
-                        let state = native_app.state::<CaffeineState>();
-                        let now = SystemTime::now();
-                        // Tokio's monotonic wake and the wall-clock deadline can differ.
-                        // Re-arm an early wake instead of abandoning the finite session.
-                        if let Some(remaining) =
-                            state.expiry_delay_if_current(expiry.generation, now)?
-                        {
-                            return Ok(Some(remaining));
+                        let state = worker.state::<CaffeineState>();
+                        if state.generation() != Some(generation) {
+                            return Ok(false);
                         }
-                        match state.expire_if_current(expiry.generation, now) {
-                            Ok(false) => Ok(None),
+                        match state.expire_if_current(generation, std::time::SystemTime::now()) {
                             Ok(true) => {
-                                let result = super::status_bar::refresh_status_bar(&native_app);
-                                if result.is_err() {
-                                    state.record_action_error(
-                                        CaffeineAction::Expiry,
-                                        CaffeineErrorCode::DisplayFailed,
-                                    );
-                                }
-                                let _ = native_app.emit(STATE_CHANGED_EVENT, ());
-                                result.map(|_| None)
+                                let _ = super::status_bar::refresh_status_bar(&worker);
+                                let _ = worker.emit(STATE_CHANGED_EVENT, ());
+                                Ok(false)
                             }
+                            Ok(false) => Ok(true),
                             Err(error) => {
                                 state.record_action_error(
                                     CaffeineAction::Expiry,
                                     CaffeineErrorCode::OperationFailed,
                                 );
-                                let _ = native_app.emit(STATE_CHANGED_EVENT, ());
+                                let _ = worker.emit(STATE_CHANGED_EVENT, ());
                                 Err(error)
                             }
                         }
@@ -220,7 +331,122 @@ pub fn schedule_expiry(app: tauri::AppHandle, expiry: CaffeineExpiry) {
             })
             .await;
             match result {
-                Ok(Ok(Some(remaining))) => delay = remaining,
+                Ok(Ok(true)) => {}
+                Ok(Ok(false)) => break,
+                _ => {
+                    show_native_error(&timer_app);
+                    break;
+                }
+            }
+        }
+    });
+    state.install_expiry_task(generation, task);
+}
+
+pub fn schedule_monitor(app: tauri::AppHandle) {
+    let state = app.state::<CaffeineState>();
+    let Some(generation) = state.generation() else {
+        return;
+    };
+    schedule_timer(app.clone(), generation);
+    let (policy, unavailable) = cached_policy(&state);
+    if !policy.enabled() && !unavailable {
+        state.cancel_protection_task();
+        return;
+    }
+    let monitor_revision = state.begin_protection_monitor();
+    let task_app = app.clone();
+    let task = tauri::async_runtime::spawn(async move {
+        let _events = super::awake_power_events::NativePowerEvents::new();
+        let mut event_revision = super::awake_power_events::revision();
+        let mut last_power = AwakePowerSnapshot::unknown();
+        let mut ticks = 30u64;
+        let mut next_power_read = std::time::Instant::now();
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            let native_app = task_app.clone();
+            let previous = last_power.clone();
+            let current_revision = super::awake_power_events::revision();
+            let event_changed = current_revision != event_revision;
+            event_revision = current_revision;
+            let read_power = std::time::Instant::now() >= next_power_read
+                || event_changed
+                || ticks >= 4 && last_power.source == super::awake_battery::PowerSource::Unknown;
+            if read_power {
+                next_power_read = std::time::Instant::now() + std::time::Duration::from_secs(29);
+            }
+            let result = tauri::async_runtime::spawn_blocking(move || {
+                let state = native_app.state::<CaffeineState>();
+                if !state.is_current_monitor(generation, monitor_revision) {
+                    return Ok(None);
+                }
+                let (policy, _unavailable) = if read_power {
+                    effective_policy(&state)
+                } else {
+                    let store = state
+                        .preferences
+                        .lock()
+                        .map_err(|_| "preferences_unavailable")?;
+                    (
+                        store
+                            .last_good
+                            .as_ref()
+                            .map(|p| p.battery_policy)
+                            .unwrap_or_default(),
+                        store.unavailable,
+                    )
+                };
+                let power = if policy.enabled() && read_power {
+                    state.power_reader.read()
+                } else {
+                    previous
+                };
+                native_app
+                    .state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+                    .run(ZERO_AWAKE_PLUGIN_ID, || {
+                        if !state.is_current_monitor(generation, monitor_revision) {
+                            return Ok(None);
+                        }
+                        let (policy, unavailable) = cached_policy(&state);
+                        let before = state.snapshot()?;
+                        if let Err(error) = state.evaluate(
+                            generation,
+                            ClockReading::now()?,
+                            policy,
+                            &power,
+                            unavailable,
+                        ) {
+                            state.record_action_error(
+                                CaffeineAction::Expiry,
+                                CaffeineErrorCode::OperationFailed,
+                            );
+                            let _ = native_app.emit(STATE_CHANGED_EVENT, ());
+                            return Err(error);
+                        }
+                        let after = state.snapshot()?;
+                        if read_power
+                            || before.enabled != after.enabled
+                            || before.protection_unavailable != after.protection_unavailable
+                        {
+                            let _ = super::status_bar::refresh_status_bar(&native_app);
+                            let _ = native_app.emit(STATE_CHANGED_EVENT, ());
+                        }
+                        if !after.enabled
+                            || after.schedule == Some(CaffeineSchedule::Unlimited)
+                                && !policy.enabled()
+                                && !unavailable
+                        {
+                            return Ok(None);
+                        }
+                        Ok(Some(power))
+                    })
+            })
+            .await;
+            match result {
+                Ok(Ok(Some(power))) => {
+                    last_power = power;
+                    ticks = if read_power { 0 } else { ticks + 1 };
+                }
                 Ok(Ok(None)) => break,
                 _ => {
                     show_native_error(&task_app);
@@ -229,8 +455,51 @@ pub fn schedule_expiry(app: tauri::AppHandle, expiry: CaffeineExpiry) {
             }
         }
     });
-    app.state::<CaffeineState>()
-        .install_expiry_task(expiry.generation, task);
+    state.install_protection_task(generation, monitor_revision, task);
+}
+
+#[derive(serde::Serialize)]
+pub struct AwakeBatteryPolicyUpdate {
+    pub policy: AwakeBatteryPolicy,
+    pub session: CaffeineSnapshot,
+}
+pub async fn update_policy(
+    app: tauri::AppHandle,
+    policy: AwakeBatteryPolicy,
+) -> Result<AwakeBatteryPolicyUpdate, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        policy.validate()?;
+        let state = app.state::<CaffeineState>();
+        let power = state.power_reader.read();
+        app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
+            .run(ZERO_AWAKE_PLUGIN_ID, || {
+                state
+                    .preferences
+                    .lock()
+                    .map_err(|_| "preferences_unavailable")?
+                    .update(|p| p.battery_policy = policy)?;
+                if let Some(generation) = state.generation() {
+                    if state
+                        .evaluate(generation, ClockReading::now()?, policy, &power, false)
+                        .is_err()
+                    {
+                        state.record_action_error(
+                            CaffeineAction::Disable,
+                            CaffeineErrorCode::OperationFailed,
+                        );
+                    }
+                    schedule_monitor(app.clone());
+                }
+                let _ = super::status_bar::refresh_status_bar(&app);
+                let _ = app.emit(STATE_CHANGED_EVENT, ());
+                Ok(AwakeBatteryPolicyUpdate {
+                    policy,
+                    session: state.snapshot()?,
+                })
+            })
+    })
+    .await
+    .map_err(|_| "preferences_save_failed")?
 }
 
 #[cfg(test)]

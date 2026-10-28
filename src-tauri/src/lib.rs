@@ -319,6 +319,14 @@ pub fn run() {
             commands::caffeine::get_caffeine_state,
             #[cfg(feature = "bundled-tools")]
             commands::caffeine::toggle_keep_awake,
+            #[cfg(feature = "bundled-tools")]
+            commands::caffeine::set_caffeine_schedule,
+            #[cfg(feature = "bundled-tools")]
+            commands::caffeine::get_awake_preferences,
+            #[cfg(feature = "bundled-tools")]
+            commands::caffeine::get_awake_power_state,
+            #[cfg(feature = "bundled-tools")]
+            commands::caffeine::update_awake_battery_policy,
             #[cfg(feature = "file-tool")]
             commands::file::get_file_conversion_capabilities,
             #[cfg(feature = "file-tool")]

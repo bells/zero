@@ -43,5 +43,6 @@ export function useMainNavigation() {
     setDestination(next);
     setToolRequest(null);
   }, []);
-  return { destination, toolRequest, navigate, error, isReady };
+  const consumeToolIntent=useCallback((revision:number)=>{setToolRequest(current=>current?.revision===revision?{...current,intent:undefined}:current);},[]);
+  return { consumeToolIntent, destination, toolRequest, navigate, error, isReady };
 }

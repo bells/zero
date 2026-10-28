@@ -38,6 +38,7 @@ const sources = [
   "src/plugins/bingWallpaper/i18n.ts",
   "src/plugins/caffeine/caffeineDuration.ts",
   "src/plugins/caffeine/caffeineState.ts",
+  "src/plugins/caffeine/caffeineSchedule.ts",
   "src/plugins/caffeine/caffeinePresentation.ts",
   "src/plugins/caffeine/i18n.ts",
   "src/plugins/file/contracts.ts",

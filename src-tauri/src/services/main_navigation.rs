@@ -19,6 +19,14 @@ pub struct MainWindowNavigationRequest {
     pub revision: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub plugin_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub intent: Option<MainWindowIntent>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MainWindowIntent {
+    EditCustom,
 }
 
 #[derive(Default)]
@@ -34,6 +42,14 @@ impl MainNavigationState {
         destination: MainWindowDestination,
         plugin_id: Option<String>,
     ) -> Result<(), String> {
+        self.request_intent(destination, plugin_id, None)
+    }
+    pub fn request_intent(
+        &self,
+        destination: MainWindowDestination,
+        plugin_id: Option<String>,
+        intent: Option<MainWindowIntent>,
+    ) -> Result<(), String> {
         let mut current = self.0.lock().map_err(|_| "main navigation lock poisoned")?;
         current.revision = current
             .revision
@@ -41,6 +57,7 @@ impl MainNavigationState {
             .ok_or("main navigation revision exhausted")?;
         current.destination = destination;
         current.plugin_id = plugin_id;
+        current.intent = intent;
         Ok(())
     }
 
