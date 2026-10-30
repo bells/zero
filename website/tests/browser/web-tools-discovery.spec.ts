@@ -37,7 +37,7 @@ for (const locale of ['zh', 'en'] as const) {
 
 for (const locale of ['zh', 'en'] as const) {
   const prefix = locale === 'en' ? '/en' : '';
-  test(`${locale} category-local query stays in memory and all-search covers eight tools`, async ({ page, browser }) => {
+  test(`${locale} category-local query stays in memory and all-search covers nine tools`, async ({ page, browser }) => {
     const query = 'JSON_PRIVATE_DISCOVERY';
     await page.goto(`${prefix}/tools/?category=image&search=discarded`);
     await expect(page.locator('[data-category="image"]')).toHaveAttribute('aria-pressed', 'true');
@@ -58,17 +58,17 @@ for (const locale of ['zh', 'en'] as const) {
     expect(language).not.toContain('search=');
     expect(await page.locator('link[rel="canonical"]').getAttribute('href')).not.toContain('?');
     await page.keyboard.press('Control+k');
-    await expect(page.locator('[data-search-name]:visible')).toHaveCount(8);
+    await expect(page.locator('[data-search-name]:visible')).toHaveCount(9);
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-directory-search]')).toHaveValue(query);
     expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(query);
     await page.goto(`${prefix}/tools/?category=unknown`);
     await expect(page.locator('[data-category="all"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.wt-directory-row:visible')).toHaveCount(8);
+    await expect(page.locator('.wt-directory-row:visible')).toHaveCount(9);
     const plain = await browser.newContext({ javaScriptEnabled: false });
     const nojs = await plain.newPage();
     await nojs.goto(`${prefix}/tools/?category=image`);
-    await expect(nojs.locator('.wt-directory-row')).toHaveCount(8);
+    await expect(nojs.locator('.wt-directory-row')).toHaveCount(9);
     await expect(nojs.locator('[data-directory-search]')).toBeHidden();
     await plain.close();
   });
@@ -83,6 +83,28 @@ test('tool breadcrumbs and directory retain touch targets at 200% zoom', async (
     for (const target of await page.locator('[data-category], .wt-breadcrumb a').evaluateAll(elements => elements.map(element => ({ width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height })))) {
       expect(target.width).toBeGreaterThanOrEqual(44);
       expect(target.height).toBeGreaterThanOrEqual(44);
+    }
+  }
+});
+
+test('directory controls reserve their layout before scripts initialize', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of ['/tools/', '/en/tools/']) {
+    let resume = () => {};
+    const scripts = new Promise<void>(resolve => { resume = resolve; });
+    await page.route('**/*.js', async request => { await scripts; await request.continue(); });
+    try {
+      await page.goto(route, { waitUntil: 'commit' });
+      const directory = page.locator('.wt-directory');
+      await expect(directory).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const before = (await directory.boundingBox())!.y;
+      resume();
+      await page.locator('[data-web-tools][data-ready="true"]').waitFor();
+      expect(Math.abs((await directory.boundingBox())!.y - before)).toBeLessThanOrEqual(1);
+    } finally {
+      resume();
+      await page.unroute('**/*.js');
     }
   }
 });

@@ -6,7 +6,7 @@ Read this file, [the project overview](docs/project-overview.md), and [project m
 
 - Zero is a cross-platform desktop toolbox with independent, pluggable tools accessed quickly from the menu bar / system tray. The website also provides a browser-local online toolbox; it is an implemented product surface, not a future marketing-site proposal.
 - Desktop: `src/` + `src-tauri/`. Website: independent Astro project in `website/`. Optional feedback: independent Node service in `feedback/`. Each JavaScript project has its own package manifest and lockfile; root commands do not validate all three.
-- Current desktop modules are Snap, Awake, Paper, Launch and File. The browser catalog has eight tools across development, image and text; verify the list in `website/src/content/web-tools.ts` before changing counts.
+- Current desktop modules are Snap, Awake, Paper, Launch and File. The browser catalog has nine tools across development, image and text; verify the list in `website/src/content/web-tools.ts` before changing counts.
 - Current priority: the maintainer will experience all five desktop tools again and refine them individually. Follow concrete user feedback with bounded plugin-scoped work; do not treat this direction as authorization for a broad redesign or new tools.
 - Keep `README.md` complete in both Chinese and English. Product claims must distinguish implemented source, actual package contents, device evidence and deployed behavior.
 

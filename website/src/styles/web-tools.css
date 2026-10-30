@@ -47,6 +47,10 @@
 .wt .cm-editor { height: 100%; font: 14px/1.7 var(--mono); }
 .wt .cm-scroller { overflow: auto; }
 .wt-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.wt-unicode-options { margin-top: 16px; }
+.wt-unicode-options label { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.wt-unicode-options input { width: 18px; height: 18px; accent-color: var(--accent); }
+.wt-unicode-options p, .wt-unicode-note { color: var(--muted); font-size: 13px; margin-top: 8px; }
 .wt-status { min-height: 26px; margin-top: 14px; color: var(--muted); overflow-wrap: anywhere; }
 .wt-status[data-error='true'] { color: var(--wt-error); }
 .wt [data-manual-copy] { margin-top: 16px; }
@@ -135,6 +139,10 @@
 .wt-directory-row[hidden] { display: none; }
 .wt-directory-row > div { min-width: 0; overflow-wrap: anywhere; }
 .wt-directory-navigation, .wt-directory-settings { display: flex; align-items: center; gap: 20px; min-width: 0; }
+/* Match the reset layer's important hidden rule while reserving space for inactive controls. */
+@layer reset {
+  .wt-directory-bar [data-enhance-only][hidden] { display: flex !important; visibility: hidden; }
+}
 .wt .wt-directory-bar h1 { font-size: 20px; letter-spacing: -.02em; white-space: nowrap; }
 .wt-directory-settings { gap: 12px; }
 .wt-directory-search { display: flex; align-items: center; min-width: 0; width: 270px; border: 1px solid var(--line); border-radius: 4px; background: var(--wt-surface); }

@@ -8,11 +8,11 @@ test('category allowlist never carries user content or unknown categories', () =
   for (const value of [null, '', 'all', 'IMAGE', 'image&search=private', 'private']) assert.equal(parseCategory(value), 'all');
   for (const value of webCategories) assert.equal(parseCategory(value), value);
 });
-test('eight stable bilingual tools share category membership and feedback threads', () => {
-  assert.equal(webToolSlugs.length, 8);
+test('nine stable bilingual tools share category membership and feedback threads', () => {
+  assert.equal(webToolSlugs.length, 9);
   for (const locale of ['zh', 'en']) {
     assert.deepEqual(webTools[locale].map(tool => tool.slug), [...webToolSlugs]);
-    assert.equal(webTools[locale].filter(tool => tool.category === 'development').length, 4);
+    assert.equal(webTools[locale].filter(tool => tool.category === 'development').length, 5);
     assert.equal(webTools[locale].filter(tool => tool.category === 'image').length, 3);
     assert.deepEqual(webTools[locale].filter(tool => tool.category === 'text').map(tool => tool.slug), ['markdown']);
     for (const tool of webTools[locale]) {

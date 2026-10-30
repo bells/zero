@@ -5,7 +5,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 
 const origin = process.env.WEBSITE_ORIGIN || 'http://127.0.0.1:4321';
-const routes = ['/', '/en/', '/download/', '/en/download/', '/tools/snap/', '/guide/install/', '/en/guide/install/', '/en/faq/', ...['', 'en/'].flatMap((locale) => ['tools/', 'tools/timestamp/', 'tools/json/', 'tools/base64/', 'tools/diff/', 'tools/image-converter/', 'tools/image-watermark/', 'tools/image-compressor/', 'tools/markdown/'].map((route) => `/${locale}${route}`))];
+const routes = ['/', '/en/', '/download/', '/en/download/', '/tools/snap/', '/guide/install/', '/en/guide/install/', '/en/faq/', ...['', 'en/'].flatMap((locale) => ['tools/', 'tools/timestamp/', 'tools/json/', 'tools/base64/', 'tools/diff/', 'tools/unicode/', 'tools/image-converter/', 'tools/image-watermark/', 'tools/image-compressor/', 'tools/markdown/'].map((route) => `/${locale}${route}`))];
 await mkdir('output/performance', { recursive: true });
 const browser = await chromium.launch({ channel: process.env.WEBSITE_BROWSER_CHANNEL || undefined });
 const browserVersion = browser.version();

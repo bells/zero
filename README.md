@@ -34,7 +34,7 @@ Awake 的“自定义…”支持 1–1440 分钟，或下一次本地结束钟�
 
 ### 官网在线工具箱
 
-入口：[中文工具箱](https://www.usezero.cn/tools/) · [English tools](https://www.usezero.cn/en/tools/)。源码当前提供八项工具：
+入口：[中文工具箱](https://www.usezero.cn/tools/) · [English tools](https://www.usezero.cn/en/tools/)。源码当前提供九项工具：
 
 | 分类 | 工具 | 用途 |
 | --- | --- | --- |
@@ -42,6 +42,7 @@ Awake 的“自定义…”支持 1–1440 分钟，或下一次本地结束钟�
 | 开发 | JSON 格式化 | 校验、格式化、压缩、错误定位，保留大整数原文 |
 | 开发 | Base64 与 URL 编解码 | Unicode 文本、URL 组件和本地图片编码 |
 | 开发 | 文本 / 文件对比 | UTF-8 文本的行级/行内差异、并排/统一视图 |
+| 开发 | Unicode 转义转换 | Unicode 与文字双向转换、emoji、单层解码与错误定位 |
 | 图片 | 图片格式转换 | HEIC/HEIF 主静态图、JPEG、PNG、静态 WebP 转 JPEG/PNG/WebP |
 | 图片 | 图片文字水印 | 批量单处九宫格或平铺文字水印 |
 | 图片 | 图片压缩 | JPEG/WebP 质量压缩、PNG 无损优化、真实体积对照 |
@@ -155,7 +156,7 @@ The source version is `0.1.0`. Trial packages offer **core** (no bundled tools) 
 
 ### Browser toolbox
 
-Open [English tools](https://www.usezero.cn/en/tools/) or [中文工具箱](https://www.usezero.cn/tools/). The current source contains eight tools:
+Open [English tools](https://www.usezero.cn/en/tools/) or [中文工具箱](https://www.usezero.cn/tools/). The current source contains nine tools:
 
 | Category | Tool | Purpose |
 | --- | --- | --- |
@@ -163,6 +164,7 @@ Open [English tools](https://www.usezero.cn/en/tools/) or [中文工具箱](http
 | Development | JSON formatter | Validation, formatting, compaction and error locations, preserving large integers |
 | Development | Base64 & URL codec | Unicode text, URL components and local image encoding |
 | Development | Text / file comparison | Line and inline differences for UTF-8 text, split/unified views |
+| Development | Unicode escape converter | Text/Unicode conversion, emoji, single-layer decoding and error locations |
 | Image | Image converter | HEIC/HEIF primary stills, JPEG, PNG and static WebP to JPEG/PNG/WebP |
 | Image | Text watermark | Batch single-position or tiled text watermarks |
 | Image | Image compressor | JPEG/WebP quality compression, lossless PNG optimization and actual size comparison |
@@ -240,6 +242,6 @@ Native interactions, Windows hardware, real iPhones, signed installers and hoste
 
 ### Current focus and documentation
 
-The maintainer will run another hands-on review and refinement pass across the five desktop tools, prioritizing real entry-point, interaction, feedback and stability issues. Improvements should remain scoped and verifiable per plugin, alongside maintenance of the eight browser tools and their platform boundaries.
+The maintainer will run another hands-on review and refinement pass across the five desktop tools, prioritizing real entry-point, interaction, feedback and stability issues. Improvements should remain scoped and verifiable per plugin, alongside maintenance of the nine browser tools and their platform boundaries.
 
 [Product](PRODUCT.md) · [Project overview](docs/project-overview.md) · [Contributor instructions](AGENTS.md) · [Project memory](memory.md) · [OpenSpec context](openspec/project.md) · [Plugin development](docs/plugins/developer-guide.md) · [Plugin publishing](docs/plugins/publishing-github-releases.md) · [Diagnostics](docs/diagnostics.md)

@@ -19,7 +19,7 @@
     "prebuild": "node scripts/prepare-social.mjs && node scripts/prepare-image-codecs.mjs && node scripts/verify-markdown-resources.mjs",
     "build": "astro build",
     "preview": "astro preview --host 127.0.0.1 --port 4321 --ignore-lock",
-    "test": "node --test tests/catalog.test.mjs tests/web-tools.test.mjs tests/timestamp-batch.test.mjs tests/text-diff*.test.mjs tests/feedback.test.mjs tests/image-batch.test.mjs tests/image-engine.test.mjs tests/categories.test.mjs tests/markdown-*.test.mjs tests/image-ui-lifecycle.test.mjs scripts/prepare-image-codecs.test.mjs && tsc -p tests/tsconfig.image-domain.json",
+    "test": "node --test tests/catalog.test.mjs tests/web-tools.test.mjs tests/unicode.test.mjs tests/timestamp-batch.test.mjs tests/text-diff*.test.mjs tests/feedback.test.mjs tests/image-batch.test.mjs tests/image-engine.test.mjs tests/categories.test.mjs tests/markdown-*.test.mjs tests/image-ui-lifecycle.test.mjs scripts/prepare-image-codecs.test.mjs && tsc -p tests/tsconfig.image-domain.json",
     "test:seo": "node --test tests/discovery-output.test.mjs",
     "pretest:browser": "pnpm verify:fixtures",
     "test:browser": "playwright test",

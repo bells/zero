@@ -1,5 +1,13 @@
 # Zero 官网维护
 
+## Unicode 转义转换（2026-10-30，本地实现）
+
+在线目录新增 development 类 `unicode`，当前源码九工具、十个反馈线程；中文 `/tools/unicode/`，英文 `/en/tools/unicode/`。支持混合文本的 `\uXXXX`、`\u{...}`、emoji 代理对与文字双向转换，按原始反斜杠奇偶处理且每次只解码一层。编码默认保留可打印 ASCII，反斜杠/控制字符始终转义，可勾选全部 ASCII。非法转义/孤立代理项整次失败并报告原始 UTF-16 行列；不解析 JSON，也不生成任意语言可直接嵌入的字符串字面量。
+
+规则位于 `lib/web-tools/unicode.ts`，工作区为 `components/webTools/UnicodeWorkspace.astro`，交互为 `scripts/web-tools/unicode.ts`，静态指南与运行时文案分别在 `content/unicode-content.ts`、`unicode-copy.ts`。复用 `JobRunner`、Worker、行号和复制回退；1 MiB UTF-8 输入、8 MiB 输出、5 秒且可取消。输入/选项变化使旧结果失效；完整结果独立保留供复制和无 BOM UTF-8 TXT 下载，避免 textarea 的 CRLF 显示规范化改变导出。内容不持久化，无文件导入或历史；反馈默认关闭，只新增稳定线程 `tools/unicode`。
+
+本地验证与设备边界见[实施记录](../openspec/changes/add-web-unicode-tool/evidence/implementation.md)。下方按日期保留的八工具/九线程及旧路由数是历史基线；本地源码和浏览器自动化不代表已部署或真实 Safari/iPhone 已验收。
+
 官网在 `website/`，使用 Astro 静态输出。它有独立依赖、锁文件和构建，不使用桌面 React/Tauri、IPC、File 引擎或根项目的 prebuild。中文为 `/`、`/download/`，英文为 `/en/`、`/en/download/`。
 
 ## 当前维护基线（2026-10-23）
@@ -125,7 +133,7 @@ pnpm --dir website verify:links
 WEBSITE_BROWSER_CHANNEL=chrome pnpm --dir website verify:performance
 ```
 
-脚本用本机 Chrome 和 Lighthouse 13.5.0 检查代表产品/下载/文档页，以及双语在线目录和全部八工具页，固定 mobile simulated throttling、390×844、DPR 1，逐页清除 Lighthouse 存储。目标为 performance/accessibility ≥95、LCP ≤2500ms、CLS ≤0.1、初始内联/外部 JS gzip ≤50 KiB、首屏资源 ≤1 MiB。资源预算保守累加首屏请求的未压缩正文。结果保存在 `website/output/performance/`，属于本地实验室结果，不代表真实访客网络、服务器/CDN 或桌面原生性能。
+脚本用本机 Chrome 和 Lighthouse 13.5.0 检查代表产品/下载/文档页，以及双语在线目录和全部九工具页，固定 mobile simulated throttling、390×844、DPR 1，逐页清除 Lighthouse 存储。目标为 performance/accessibility ≥95、LCP ≤2500ms、CLS ≤0.1、初始内联/外部 JS gzip ≤50 KiB、首屏资源 ≤1 MiB。资源预算保守累加首屏请求的未压缩正文。结果保存在 `website/output/performance/`，属于本地实验室结果，不代表真实访客网络、服务器/CDN 或桌面原生性能。
 
 ## 静态部署与回退
 

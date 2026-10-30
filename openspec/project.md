@@ -1,5 +1,8 @@
 # Zero Project Context
 
+2026-10-30 Unicode 增量：官网源码新增开发类 Unicode 转义转换，当前九个在线工具、十个默认关闭的反馈线程，生成 38 个公开页面。实施与设备边界见 [Unicode 实施记录](changes/add-web-unicode-tool/evidence/implementation.md)。下方 2026-10-23 的目录数量和证据快照保留原日期。
+
+
 Updated: 2026-10-23 (desktop, browser toolbox and feedback map). Read [AGENTS.md](../AGENTS.md), [PRODUCT.md](../PRODUCT.md) and [the current project overview](../docs/project-overview.md) before proposing changes. This file describes the live source architecture; existing change artifacts can contain earlier names or superseded designs.
 
 ## Product and stack

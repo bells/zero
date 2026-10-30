@@ -61,7 +61,7 @@ test('enhanced editing, toolbar undo, find and global search remain available', 
   await page.getByRole('button', { name: 'Bold', exact: true }).click(); await expect(page.locator('[data-md-source]')).toHaveValue(/\*\*/);
   await page.getByRole('button', { name: 'Undo', exact: true }).click(); await expect(page.locator('[data-md-source]')).toHaveValue('hello');
   await page.getByRole('button', { name: 'Find and replace', exact: true }).click(); await expect(page.locator('.cm-search')).toBeVisible();
-  await page.keyboard.press('ControlOrMeta+k'); await expect(page.locator('[data-search-dialog]')).toBeVisible(); await expect(page.locator('[data-search-name]')).toHaveCount(8);
+  await page.keyboard.press('ControlOrMeta+k'); await expect(page.locator('[data-search-dialog]')).toBeVisible(); await expect(page.locator('[data-search-name]')).toHaveCount(9);
 });
 test('narrow bilingual themes, focus and accessibility', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 850 }); await open(page, 'zh');

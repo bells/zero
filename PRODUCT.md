@@ -1,6 +1,6 @@
 # Zero Product
 
-Updated: 2026-10-23. Implementation details and evidence belong in [the project overview](docs/project-overview.md); this document records product direction and design principles.
+Updated: 2026-10-30 (Unicode catalog; other product boundaries retained). Implementation details and evidence belong in [the project overview](docs/project-overview.md); this document records product direction and design principles.
 
 ## Register
 
@@ -28,10 +28,10 @@ Desktop and web serve related needs through different surfaces. The desktop host
 | Main desktop window | Full tool workspace and preferences | Richer controls, preserved tool context, tool navigation and settings |
 | Tool windows / native menus | Focused native workflows | Capture/pin, Launch, Paper and native Snap/Awake actions |
 | About window | Product identity and support | Version, website/repository links and local diagnostics |
-| Website | Product discovery and browser toolbox | Chinese/English product pages, download guidance and eight online tools |
+| Website | Product discovery and browser toolbox | Chinese/English product pages, download guidance and nine online tools |
 | Optional feedback | User-submitted product feedback | Separate, click-loaded service; moderated plain text; disabled by default |
 
-The five desktop tools are **Snap, Awake, Paper, Launch and File**. The eight browser tools are **timestamp conversion, JSON formatting, Base64/URL encoding, text/file comparison, image conversion, text watermarking, image compression and Markdown editing**. Browser categories are development, image and text.
+The five desktop tools are **Snap, Awake, Paper, Launch and File**. The nine browser tools are **timestamp conversion, JSON formatting, Base64/URL encoding, text/file comparison, Unicode escape conversion, image conversion, text watermarking, image compression and Markdown editing**. Browser categories are development, image and text.
 
 ## Independent, pluggable tools
 

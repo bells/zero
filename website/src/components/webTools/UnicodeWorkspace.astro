@@ -1,0 +1,35 @@
+---
+import type { Locale } from '../../content/site';
+import { webCopy } from '../../content/web-copy';
+import { unicodeCopy } from '../../content/unicode-copy';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const c = webCopy[locale], u = unicodeCopy[locale];
+---
+<div class="wt-editor-columns">
+  <div class="wt-editor-pane">
+    <label for="unicode-input">{c.source}</label>
+    <textarea id="unicode-input" data-numbered data-source spellcheck="false" autocomplete="off" placeholder={'\\u4F60\\u597D，Zero \\u{1F600}'} aria-describedby="unicode-limits"></textarea>
+  </div>
+  <div class="wt-editor-pane">
+    <label for="unicode-output">{c.output}</label>
+    <textarea id="unicode-output" data-numbered data-output readonly spellcheck="false" placeholder={c.ready}></textarea>
+  </div>
+</div>
+<div class="wt-unicode-options">
+  <label for="unicode-ascii"><input id="unicode-ascii" type="checkbox" data-unicode-ascii aria-describedby="unicode-ascii-hint" />{u.ascii}</label>
+  <p id="unicode-ascii-hint">{u.asciiHint}</p>
+</div>
+<div class="wt-actions">
+  <button type="button" class="wt-primary" data-unicode-action="unicode-decode">{u.decode}</button>
+  <button type="button" data-unicode-action="unicode-encode">{u.encode}</button>
+  <button type="button" data-copy-output disabled>{c.copy}</button>
+  <button type="button" data-unicode-download disabled>{u.download}</button>
+  <button type="button" data-clear>{c.clear}</button>
+  <button type="button" data-cancel hidden>{c.cancel}</button>
+</div>
+<div class="wt-actions">
+  <button type="button" data-unicode-example="decode">{u.decodeExample}</button>
+  <button type="button" data-unicode-example="encode">{u.encodeExample}</button>
+</div>
+<p id="unicode-limits" class="wt-unicode-note">{u.limits}</p>

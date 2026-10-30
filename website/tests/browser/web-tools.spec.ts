@@ -5,7 +5,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 const ready = async (page: Page, route: string) => { await page.goto(route); await expect(page.locator('[data-web-tools]')).toHaveAttribute('data-ready', 'true'); };
 for (const locale of ['zh', 'en'] as const) {
   const prefix = locale === 'zh' ? '' : 'en/';
-  for (const slug of ['', 'timestamp', 'json', 'base64', 'diff', 'image-converter', 'image-watermark', 'image-compressor', 'markdown']) {
+  for (const slug of ['', 'timestamp', 'json', 'base64', 'diff', 'unicode', 'image-converter', 'image-watermark', 'image-compressor', 'markdown']) {
     test(`${locale} web ${slug || 'directory'}: rendered, accessible, responsive and no-script guidance`, async ({ page, browser }) => {
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
@@ -42,7 +42,7 @@ for (const locale of ['zh', 'en'] as const) {
         await expect(staticPage.locator('.wt-guidance')).toBeVisible();
       }
       await expect(staticPage.locator('.wt-cta')).toContainText(locale === 'zh' ? '尚未内置桌面版' : 'not currently built into');
-      await expect(staticPage.locator(slug ? '.wt-breadcrumb a' : '.wt-directory a')).toHaveCount(slug ? 2 : 8);
+      await expect(staticPage.locator(slug ? '.wt-breadcrumb a' : '.wt-directory a')).toHaveCount(slug ? 2 : 9);
       await context.close();
       expect(errors).toEqual([]);
     });

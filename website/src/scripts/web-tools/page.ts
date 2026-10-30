@@ -61,6 +61,7 @@ if (root) {
     else if (root.dataset.tool?.startsWith('image-')) await import('./image-workspace').then((module) => module.initImageWorkspace(root, locale));
     else if (root.dataset.tool === 'markdown') (await import('./markdown-workspace')).initMarkdownWorkspace(root, locale);
     else if (root.dataset.tool === 'diff') (await import('./diff')).initDiff(ui);
+    else if (root.dataset.tool === 'unicode') (await import('./unicode')).initUnicode(ui);
     else if (root.dataset.tool === 'json' || root.dataset.tool === 'base64') (await import('./processor')).initProcessor(ui, root.dataset.tool);
     const fieldset = root.querySelector<HTMLFieldSetElement>('[data-interactive]'); if (fieldset) fieldset.disabled = false;
     root.dataset.ready = 'true';
