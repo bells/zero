@@ -1,77 +1,125 @@
-.caffeine-panel { justify-content: flex-start; gap: 16px; overflow: visible; box-shadow: none; }
-.awake-body { min-width: 0; }
-.awake-dial { display: none; }
-.awake-dial, .awake-dial-core { box-sizing: border-box; }
-.awake-content { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.caffeine-panel {
+  --awake-ink: #22342a;
+  --awake-muted: #536158;
+  --awake-line: #d9e0db;
+  --awake-accent: #286443;
+  --awake-surface: #fbfcfb;
+  justify-content: flex-start;
+  gap: 16px;
+  background: var(--awake-surface);
+  box-shadow: none;
+}
 .caffeine-panel .panel-heading { align-items: center; }
-.caffeine-panel .status-pill { flex-shrink: 0; color: #35443b; }
-.caffeine-panel .status-pill.active { color: #126b34; }
-.awake-timing { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin: 0; padding: 12px 0; border-block: 1px solid #c7d1ca; }
+.caffeine-panel .panel-heading h2 { font-size: 15px; font-weight: 650; }
+.caffeine-panel .status-pill { flex-shrink: 0; color: #48564e; background: #edf0ee; border-color: transparent; font-weight: 600; }
+.caffeine-panel .status-pill.active { color: #245c3d; background: #e4f0e8; }
+.awake-body, .awake-status, .awake-content { min-width: 0; }
+.awake-content { display: flex; flex-direction: column; gap: 12px; }
+.awake-dial { display: none; }
+.awake-timing { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin: 0; padding: 0 0 12px; border-bottom: 1px solid var(--awake-line); }
 .awake-timing div { min-width: 0; }
-.awake-timing dt, .awake-duration legend { color: #43554a; font-size: 12px; font-weight: 600; line-height: 1.5; }
-.awake-timing dd { margin: 3px 0 0; color: #1f3227; font-size: 17px; line-height: 1.3; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.awake-remaining { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; }
+.awake-timing dt, .awake-duration legend { color: var(--awake-muted); font-size: 11px; font-weight: 500; line-height: 1.5; }
+.awake-timing dd { margin: 4px 0 0; color: var(--awake-ink); font-size: 14px; line-height: 1.4; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.awake-remaining { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; }
 .awake-remaining dd { margin: 0; }
-.awake-duration { min-width: 0; margin: 0; padding: 0; border: 0; }
+.awake-duration, .awake-mode, .awake-inputs { min-width: 0; margin: 0; padding: 0; border: 0; }
 .awake-duration legend { margin-bottom: 8px; padding: 0; }
 .awake-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.awake-preset { min-height: 36px; padding: 5px 2px; border: 1px solid #b9c6be; border-radius: 6px; background: #f2f6f3; color: #304a3b; font: 600 11px/1.3 system-ui, sans-serif; }
-.awake-preset:hover:not(:disabled) { background: #e0eae3; }
-.awake-preset.selected { border: 2px solid #3e6951; padding: 4px 1px; background: #dcebe0; color: #173c27; }
-.awake-preset:active:not(:disabled) { background: #c8dfcf; }
-.awake-preset:focus-visible, .awake-actions button:focus-visible, .awake-error button:focus-visible { outline: 2px solid #166b3b; outline-offset: 2px; }
-.awake-preset:disabled, .awake-preset[aria-disabled="true"], .awake-actions button[aria-disabled="true"] { opacity: .55; cursor: wait; }
-.awake-actions { position: sticky; bottom: 0; padding-top: 4px; background: #f1f5ef; border-radius: 6px; }
-.awake-actions .primary-action { width: 100%; min-height: 44px; }
-.awake-error { display: flex; align-items: start; gap: 8px; font-size: 12px; line-height: 1.5; color: #8b2529; overflow-wrap: anywhere; }
+.awake-preset { min-height: 36px; padding: 6px 3px; border: 1px solid var(--awake-line); border-radius: 6px; background: #fff; color: #374b3f; font-size: 11px; font-weight: 500; line-height: 1.35; }
+.awake-preset.selected { border-color: #67967a; background: #eaf2ed; color: #214e34; }
+.awake-preset:hover:not(:disabled), .awake-secondary:hover:not(:disabled), .awake-custom-entry:hover:not(:disabled) { background: #eef3ef; }
+.awake-preset:active:not(:disabled), .awake-secondary:active:not(:disabled) { background: #e2ebe5; }
+.awake-custom-entry { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 34px; padding: 5px 0; background: transparent; color: var(--awake-accent); text-align: start; font-size: 12px; border-radius: 4px; }
+.awake-custom-entry svg { flex-shrink: 0; }
+.awake-actions button, .awake-custom-actions button { width: 100%; }
+.awake-custom-actions { display: flex; gap: 8px; }
+.awake-custom-actions button { flex: 1; min-width: 0; }
+.awake-primary, .awake-secondary { min-height: 36px; padding: 8px 14px; border: 1px solid transparent; border-radius: 6px; font-size: 12px; font-weight: 600; line-height: 1.4; }
+.awake-primary { background: #286443; color: #fff; }
+.awake-primary { min-height: 44px; }
+.awake-primary:hover:not(:disabled) { background: #205337; }
+.awake-primary:active:not(:disabled) { background: #19452d; }
+.awake-secondary { border-color: #d3dcd6; background: #fff; color: #354c3e; }
+.awake-stop { color: #874137; }
+.awake-custom-editor { display: flex; flex-direction: column; gap: 12px; }
+.awake-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.awake-editor-heading h3 { margin: 0; color: var(--awake-ink); font-size: 13px; font-weight: 600; }
+.awake-back { display: inline-flex; align-items: center; gap: 2px; min-height: 30px; padding: 4px; border-radius: 4px; background: transparent; color: var(--awake-muted); font-size: 11px; }
+.awake-back:hover:not(:disabled) { background: #edf1ee; color: var(--awake-ink); }
+.awake-mode { display: flex; padding: 3px; gap: 3px; border-radius: 7px; background: #edf0ee; }
+.awake-mode label { position: relative; flex: 1; min-width: 0; cursor: pointer; }
+.awake-mode input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.awake-mode span { display: flex; align-items: center; justify-content: center; min-height: 30px; padding: 3px 5px; box-sizing: border-box; border-radius: 5px; color: var(--awake-muted); font-size: 11px; font-weight: 500; text-align: center; }
+.awake-mode input:checked + span { background: #fff; color: var(--awake-ink); box-shadow: 0 1px 3px #22342a15; }
+.awake-mode input:focus-visible + span { outline: 2px solid #286443; outline-offset: 1px; }
+.awake-inputs label { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--awake-muted); font-size: 11px; }
+.awake-inputs input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 38px; padding: 7px 10px; border: 1px solid #c4cfc7; border-radius: 6px; background: #fff; color: var(--awake-ink); font: inherit; font-size: 15px; font-variant-numeric: tabular-nums; }
+.awake-inputs input[aria-invalid="true"] { border-color: #a34d43; }
+.awake-custom-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.awake-preview, .awake-notice { margin: 0; color: var(--awake-muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.awake-feedback { display: flex; flex-direction: column; gap: 8px; }
+.awake-feedback:empty { display: none; }
+.awake-notice { padding: 8px 10px; background: #f0f3f1; border-radius: 6px; }
+.awake-error { display: flex; align-items: start; gap: 8px; margin: 0; color: #903b32; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .awake-error span { flex: 1; }
-.awake-error button { min-height: 36px; padding: 4px 8px; border: 1px solid #b97477; border-radius: 6px; color: #8b2529; background: #fff; font: inherit; flex-shrink: 0; }
-.tray-plugin-content > .caffeine-panel { flex: 0 0 auto; padding: 8px; }
-.tray-plugin-content > .caffeine-panel,
-.tray-plugin-content .awake-content { gap: 6px; }
-.tray-plugin-content .awake-timing { padding-block: 6px; row-gap: 4px; }
-.main-window-shell .main-workspace > .caffeine-panel { width: 100%; flex: 1 1 0; padding: 20px; gap: 20px; overflow: auto; container-type: inline-size; }
-.main-window-shell .caffeine-panel .awake-body { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: 24px; min-height: 260px; flex: 1 0 auto; }
-.main-window-shell .caffeine-panel .awake-content { gap: 20px; }
-.main-window-shell .caffeine-panel .awake-dial { display: grid; place-items: center; width: min(100%, 260px); aspect-ratio: 1; margin: 0 auto; border-radius: 50%; padding: 14px; background: conic-gradient(#d1d7da, #f0d279, #d1d7da); }
-.main-window-shell .caffeine-panel .awake-dial.active { background: conic-gradient(#f2b84f, #53e085, #f2b84f); }
-.awake-dial-core { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; border: 10px solid rgba(255, 255, 255, .68); border-radius: 50%; background: #f2f6f3; }
-.awake-dial dt { color: #43554a; font-size: 13px; font-weight: 600; }
-.awake-dial dd { margin: 0; color: #1f3227; font-size: 32px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.main-window-shell .caffeine-panel .awake-elapsed { display: none; }
-.main-window-shell .caffeine-panel .awake-timing { grid-template-columns: 1fr; }
-.main-window-shell .caffeine-panel .awake-presets { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.main-window-shell .caffeine-panel .awake-preset { min-height: 44px; font-size: 12px; }
-.main-window-shell .caffeine-panel .awake-actions { flex: 0 0 auto; }
-@media (max-height: 560px) {
-  .main-window-shell .caffeine-panel .awake-body { min-height: 200px; }
-  .main-window-shell .caffeine-panel .awake-dial { width: min(100%, 200px); }
-}
-@container (max-width: 460px) {
-  .main-window-shell .caffeine-panel .awake-body { grid-template-columns: 1fr; gap: 16px; }
-  .main-window-shell .caffeine-panel .awake-dial { width: 160px; padding: 10px; }
-  .main-window-shell .caffeine-panel .awake-content { gap: 12px; }
-  .main-window-shell .caffeine-panel .awake-presets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-@media (pointer: coarse) { .awake-preset { min-height: 44px; } }
-@media (max-width: 340px) { .awake-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.awake-custom-entry, .awake-custom-actions button { min-height: 44px; border: 1px solid #a8b9ad; border-radius: 6px; background: #f8faf8; color: #244731; padding: 8px 12px; font: inherit; }
-.awake-custom-entry { width: 100%; text-align: start; }
-.awake-custom-editor { display: grid; gap: 10px; padding: 12px; background: #e5eee6; border: 1px solid #b9c6be; border-radius: 8px; }
-.awake-custom-editor h3 { margin: 0; font-size: 14px; }
-.awake-custom-editor label { display: grid; gap: 4px; min-width: 0; font-size: 12px; color: #304a3b; }
-.awake-custom-editor input, .awake-custom-editor select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 6px; border: 1px solid #97ad9f; border-radius: 4px; background: #fff; color: #1f3227; font: inherit; }
-.awake-custom-fields, .awake-custom-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.awake-custom-actions { position: sticky; bottom: 0; padding-top: 6px; background: #e5eee6; }
-.awake-custom-editor :focus-visible, .awake-custom-entry:focus-visible, .awake-battery-settings :focus-visible { outline: 2px solid #166b3b; outline-offset: 2px; }
-.awake-preview, .awake-notice { margin: 0; color: #43554a; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-.awake-battery-settings { display: grid; gap: 16px; }
-.awake-battery-settings h3, .awake-battery-settings p { margin: 0; }
-.awake-battery-settings p { font-size: 13px; line-height: 1.6; }
-.awake-battery-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; }
-.awake-battery-row label { flex: 1; }
-.awake-battery-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #326d49; }
-.awake-battery-threshold { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
-.awake-battery-threshold input { width: 100%; min-height: 32px; accent-color: #326d49; }
+.awake-error button { flex-shrink: 0; }
+.caffeine-panel button:focus-visible, .awake-inputs input:focus-visible, .awake-editor-heading h3:focus-visible, .awake-battery-settings :focus-visible { outline: 2px solid #286443; outline-offset: 2px; }
+.caffeine-panel button:disabled, .awake-mode:disabled, .awake-inputs:disabled, .awake-battery-settings button:disabled { opacity: .5; cursor: default; }
+.caffeine-panel button[aria-disabled="true"], .awake-battery-settings button[aria-disabled="true"] { opacity: .5; cursor: wait; }
+.awake-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 
-.caffeine-panel.editor-open .awake-actions { position: static; }
+.tray-plugin-content > .caffeine-panel { flex: 1 0 auto; padding: 8px 12px; gap: 8px; }
+.tray-plugin-content .awake-body { display: flex; flex-direction: column; gap: 8px; }
+.tray-plugin-content .awake-content { gap: 8px; }
+.tray-plugin-content .awake-custom-editor { gap: 7px; }
+.tray-plugin-content .awake-back { min-height: 24px; }
+.tray-plugin-content .has-remaining .awake-timing { grid-template-columns: 1fr 1fr 1fr; }
+.tray-plugin-content .has-remaining .awake-remaining { grid-column: auto; display: block; }
+.tray-plugin-content .has-remaining .awake-remaining dd { margin-top: 4px; }
+
+.main-window-shell .main-workspace > .caffeine-panel { width: 100%; flex: 1 1 0; padding: 24px; gap: 20px; overflow: auto; container-type: inline-size; }
+.main-window-shell .caffeine-panel .awake-body { display: grid; grid-template-columns: minmax(160px, .85fr) minmax(240px, 1.15fr); align-items: center; gap: 32px; flex: 1 0 auto; width: 100%; max-width: 780px; margin-inline: auto; }
+.main-window-shell .caffeine-panel .awake-status { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.main-window-shell .caffeine-panel .awake-dial { display: grid; place-items: center; box-sizing: border-box; width: min(100%, 184px); aspect-ratio: 1; margin: 0; padding: 5px; border: 1px solid #dce3de; border-radius: 50%; background: #e9eeeb; }
+.main-window-shell .caffeine-panel .awake-dial.active { border-color: #c5dacf; background: #dcece2; }
+.awake-dial-core { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; box-sizing: border-box; border-radius: 50%; background: #fbfcfb; }
+.awake-dial dt { color: var(--awake-muted); font-size: 11px; }
+.awake-dial dd { margin: 0; color: var(--awake-ink); font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.main-window-shell .caffeine-panel .awake-timing { width: 100%; grid-template-columns: 1fr; gap: 10px; padding: 0; border: 0; }
+.main-window-shell .caffeine-panel .awake-timing > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.main-window-shell .caffeine-panel .awake-timing dd { margin: 0; font-size: 12px; text-align: end; }
+.main-window-shell .caffeine-panel .awake-timing .awake-remaining { display: none; }
+.main-window-shell .caffeine-panel .awake-status:not(.has-remaining) .awake-elapsed { display: none; }
+.main-window-shell .caffeine-panel .awake-content { gap: 14px; }
+.main-window-shell .caffeine-panel .awake-preset { min-height: 40px; font-size: 12px; }
+.main-window-shell .caffeine-panel .awake-feedback { width: 100%; max-width: 780px; margin-inline: auto; }
+@container (max-width: 500px) {
+  .main-window-shell .caffeine-panel .awake-body { grid-template-columns: 1fr; gap: 20px; }
+  .main-window-shell .caffeine-panel .awake-status { flex-direction: row; gap: 20px; }
+  .main-window-shell .caffeine-panel .awake-dial { width: 108px; flex-shrink: 0; }
+  .main-window-shell .caffeine-panel .awake-dial dd { font-size: 20px; }
+}
+@media (max-height: 560px) {
+  .main-window-shell .main-workspace > .caffeine-panel { padding: 18px; gap: 12px; }
+  .main-window-shell .caffeine-panel .awake-dial { width: 144px; }
+}
+@media (pointer: coarse) {
+  .caffeine-panel button, .awake-mode span, .awake-inputs input { min-height: 44px; }
+}
+
+.awake-battery-settings { max-width: 720px; color: #22342a; }
+.awake-battery-settings .preferences-section-heading h3 { font-size: 14px; }
+.awake-battery-settings .preferences-section-heading p { font-size: 11px; }
+.awake-battery-settings .preferences-setting-copy label { color: #202823; font-size: 12px; font-weight: 600; line-height: 1.4; }
+.awake-battery-settings .awake-battery-threshold { padding: 0 14px 14px; border-top: 0; }
+.awake-battery-threshold-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 320px; margin-bottom: 6px; font-size: 11px; color: #536158; }
+.awake-battery-threshold output { color: #22342a; font-weight: 600; font-variant-numeric: tabular-nums; }
+.awake-battery-threshold input { display: block; width: 100%; max-width: 320px; min-height: 24px; margin: 0; accent-color: #286443; }
+.awake-battery-threshold[data-disabled="true"] { opacity: .5; }
+.awake-battery-note { margin: 10px 0 0; max-width: 70ch; color: #536158; font-size: 11px; line-height: 1.6; }
+.awake-power-state { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; color: #536158; font-size: 11px; line-height: 1.5; }
+.awake-power-state p { margin: 0; }
+.awake-settings-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e0e5e1; }
+.awake-settings-feedback { flex: 1; margin: 0; font-size: 11px; line-height: 1.5; }
+.awake-settings-actions button { flex-shrink: 0; }
+@media (max-width: 440px) { .awake-settings-actions { flex-wrap: wrap; } .awake-settings-feedback { flex-basis: 100%; } }
