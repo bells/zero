@@ -11,12 +11,13 @@ import {
 } from "./bingWallpaperController";
 import {
   createBingWallpaperNavigation,
-  resolveBingWallpaperSelection,
+  createPaperSelectionSession,
   selectNewerBingWallpaper,
   selectOlderBingWallpaper,
   sortBingWallpapers,
 } from "./bingWallpaperModel";
 import { getBingWallpaperCache } from "./bingWallpaperCache";
+import { usePaperRuntime } from "./usePaperRuntime";
 import { bingWallpaperService } from "./bingWallpaperService";
 import type { BingWallpaperService } from "./bingWallpaperServiceCore";
 import type {
@@ -35,7 +36,11 @@ export function useBingWallpaper(
   service: BingWallpaperService = bingWallpaperService,
 ) {
   const activity = useSurfaceActivity();
+  const paper = usePaperRuntime(activity === "active", service);
   const cache = useMemo(() => getBingWallpaperCache(service), [service]);
+  const selectionRef = useRef(createPaperSelectionSession());
+  const sessionGeneration = useRef(0);
+  const wasActive = useRef(false);
   const forceRefreshRef = useRef(false);
   const [snapshot, setSnapshot] = useState<BingWallpaperSnapshot | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -62,8 +67,17 @@ export function useBingWallpaper(
 
   useEffect(() => {
     if (!shouldStartBingWallpaperPresentation(activity)) {
+      wasActive.current = false;
+      sessionGeneration.current += 1;
       setIsRefreshing(false);
       return;
+    }
+    if (!wasActive.current) {
+      selectionRef.current.open();
+      setSelectedId(null);
+      setActionStatus(null);
+      sessionGeneration.current += 1;
+      wasActive.current = true;
     }
     const gate = createRequestGate();
     let snapshotCount = 0;
@@ -80,8 +94,7 @@ export function useBingWallpaper(
         snapshotCount += 1;
         const sortedItems = sortBingWallpapers(nextSnapshot.items);
         setSnapshot({ ...nextSnapshot, items: sortedItems });
-        setSelectedId((current) =>
-          resolveBingWallpaperSelection(sortedItems, current));
+        setSelectedId(selectionRef.current.accept(sortedItems));
         setIsLoading(false);
         setIsRefreshing(snapshotCount === 1);
         if (snapshotCount > 1) {
@@ -97,6 +110,17 @@ export function useBingWallpaper(
 
     return gate.dispose;
   }, [activity, cache, reloadVersion, service]);
+
+  useEffect(() => {
+    if (activity !== "active" || !paper.runtime) return;
+    const gate = createRequestGate();
+    void service.snapshot().then(next => {
+      if (!gate.isCurrent()) return;
+      setSnapshot({ ...next, items: sortBingWallpapers(next.items) });
+      setSelectedId(selectionRef.current.accept(next.items));
+    }).catch(() => undefined);
+    return gate.dispose;
+  }, [activity, service, paper.runtime?.lastSuccessfulRefreshAt]);
 
   const navigation = useMemo(
     () => createBingWallpaperNavigation(snapshot?.items ?? [], selectedId),
@@ -152,34 +176,37 @@ export function useBingWallpaper(
   }, [activity, cache, navigation.selected?.id, reloadVersion]);
 
   const selectOlder = useCallback(() => {
-    setSelectedId((current) =>
-      selectOlderBingWallpaper(snapshot?.items ?? [], current));
+    const id = selectOlderBingWallpaper(snapshot?.items ?? [], selectedId);
+    selectionRef.current.choose(id);
+    setSelectedId(id);
     setActionStatus(null);
-  }, [snapshot?.items]);
+  }, [snapshot?.items, selectedId]);
 
   const selectNewer = useCallback(() => {
-    setSelectedId((current) =>
-      selectNewerBingWallpaper(snapshot?.items ?? [], current));
+    const id = selectNewerBingWallpaper(snapshot?.items ?? [], selectedId);
+    selectionRef.current.choose(id);
+    setSelectedId(id);
     setActionStatus(null);
-  }, [snapshot?.items]);
+  }, [snapshot?.items, selectedId]);
 
   const apply = useCallback(async () => {
     const selected = navigation.selected;
     if (!selected || !actionGateRef.current.tryStart("apply")) {
       return null;
     }
+    const generation = sessionGeneration.current;
     setIsApplying(true);
     setError(null);
     setActionStatus(null);
     try {
       const result = await service.apply({ wallpaperId: selected.id });
-      if (mountedRef.current) {
+      if (mountedRef.current && generation === sessionGeneration.current) {
         setActionResult(result);
         setActionStatus("applied");
       }
       return result;
     } catch (applyError) {
-      if (mountedRef.current) {
+      if (mountedRef.current && generation === sessionGeneration.current) {
         setError(errorMessage(applyError));
       }
       return null;
@@ -196,18 +223,19 @@ export function useBingWallpaper(
     if (!selected || !actionGateRef.current.tryStart("save")) {
       return null;
     }
+    const generation = sessionGeneration.current;
     setIsSaving(true);
     setError(null);
     setActionStatus(null);
     try {
       const result = await service.save({ wallpaperId: selected.id });
-      if (mountedRef.current) {
+      if (mountedRef.current && generation === sessionGeneration.current) {
         setActionResult(result);
         setActionStatus("saved");
       }
       return result;
     } catch (saveError) {
-      if (mountedRef.current) {
+      if (mountedRef.current && generation === sessionGeneration.current) {
         setError(errorMessage(saveError));
       }
       return null;
@@ -226,6 +254,7 @@ export function useBingWallpaper(
 
   return {
     snapshot,
+    runtime: paper.runtime,
     navigation,
     preview,
     isLoading,
@@ -243,5 +272,10 @@ export function useBingWallpaper(
     apply,
     save,
     retry,
+    returnToLatest: () => {
+      selectionRef.current.latest();
+      setSelectedId(selectionRef.current.accept(snapshot?.items ?? []));
+      setActionStatus(null);
+    },
   };
 }

@@ -46,3 +46,5 @@ pub mod awake_preferences;
 
 #[cfg(feature = "bundled-tools")]
 pub mod awake_power_events;
+#[cfg(feature = "bundled-tools")]
+pub mod power_events;

@@ -189,6 +189,12 @@ pub fn sync_lifecycle(
                 .map_err(|error| format!("shortcut lifecycle failed: {:?}", error.code))?;
         }
         #[cfg(feature = "bundled-tools")]
+        crate::brand::ZERO_PAPER_PLUGIN_ID => {
+            app.state::<crate::services::bing_wallpaper::BingWallpaperState>()
+                .automation
+                .set_enabled(change.enabled);
+        }
+        #[cfg(feature = "bundled-tools")]
         crate::brand::ZERO_AWAKE_PLUGIN_ID if !change.enabled => {
             app.state::<crate::services::caffeine::CaffeineState>()
                 .set_enabled(false, None)?;
@@ -289,4 +295,20 @@ pub fn register_diagnostics(app: &tauri::AppHandle) {
             Ok(health)
         });
     }
+}
+
+#[cfg(feature = "bundled-tools")]
+pub fn start_paper(app: &tauri::AppHandle) {
+    let enabled = app
+        .state::<crate::plugins::registry::PluginRegistryState>()
+        .with_registry(|r| {
+            Ok(r.records()
+                .iter()
+                .any(|p| p.name == "zero.paper" && p.enabled))
+        })
+        .unwrap_or(false);
+    app.state::<crate::services::bing_wallpaper::BingWallpaperState>()
+        .automation
+        .set_enabled(enabled);
+    crate::services::bing_wallpaper::automation::start(app);
 }

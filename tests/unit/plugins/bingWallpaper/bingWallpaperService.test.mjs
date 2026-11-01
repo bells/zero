@@ -39,3 +39,18 @@ test("uses stable command names and camelCase wallpaperId payloads", async () =>
     [BING_WALLPAPER_COMMANDS.apply, { input: { wallpaperId: "wallpaper-1" } }],
   ]);
 });
+
+test("Paper settings and runtime commands keep typed input boundaries", async () => {
+  const calls = [];
+  const service = createBingWallpaperService(async (command, args) => { calls.push([command,args]); });
+  await service.paperSettings();
+  await service.updatePaperSettings({autoChangeDaily:true});
+  await service.paperRuntime();
+  await service.checkPaperUpdates();
+  assert.deepEqual(calls, [
+    ["get_paper_settings", undefined],
+    ["update_paper_settings", {input:{autoChangeDaily:true}}],
+    ["get_paper_runtime_snapshot", undefined],
+    ["check_paper_wallpaper_updates", undefined],
+  ]);
+});

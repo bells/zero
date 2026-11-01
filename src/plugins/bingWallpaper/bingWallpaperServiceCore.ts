@@ -1,4 +1,5 @@
 import type {
+  PaperSettings, PaperSettingsUpdate, PaperRuntimeSnapshot,
   BingWallpaperActionInput,
   BingWallpaperActionResult,
   BingWallpaperPreview,
@@ -16,10 +17,14 @@ export const BING_WALLPAPER_COMMANDS = {
   apply: "apply_bing_wallpaper",
 } as const;
 
+export const PAPER_COMMANDS = { settings: "get_paper_settings", update: "update_paper_settings", runtime: "get_paper_runtime_snapshot", check: "check_paper_wallpaper_updates" } as const;
+
 export type BingWallpaperCommand =
+  | (typeof PAPER_COMMANDS)[keyof typeof PAPER_COMMANDS]
+  |
   (typeof BING_WALLPAPER_COMMANDS)[keyof typeof BING_WALLPAPER_COMMANDS];
 export type BingWallpaperInvokeArgs = {
-  input: BingWallpaperActionInput | BingWallpaperPreviewResourceInput;
+  input: BingWallpaperActionInput | BingWallpaperPreviewResourceInput | PaperSettingsUpdate;
 };
 export type BingWallpaperInvokeBridge = <T>(
   command: BingWallpaperCommand,
@@ -28,6 +33,10 @@ export type BingWallpaperInvokeBridge = <T>(
 
 export function createBingWallpaperService(invokeCommand: BingWallpaperInvokeBridge) {
   return {
+    paperSettings: () => invokeCommand<PaperSettings>(PAPER_COMMANDS.settings),
+    updatePaperSettings: (input: PaperSettingsUpdate) => invokeCommand<PaperSettings>(PAPER_COMMANDS.update, { input }),
+    paperRuntime: () => invokeCommand<PaperRuntimeSnapshot>(PAPER_COMMANDS.runtime),
+    checkPaperUpdates: () => invokeCommand<PaperRuntimeSnapshot>(PAPER_COMMANDS.check),
     snapshot: () =>
       invokeCommand<BingWallpaperSnapshot>(BING_WALLPAPER_COMMANDS.snapshot),
     refresh: () =>

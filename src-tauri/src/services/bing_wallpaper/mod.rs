@@ -19,9 +19,11 @@ use tokio::sync::Mutex;
 
 use crate::plugins::contracts::{NativeResourceError, NetworkFetchRequest, NetworkFetchResponse};
 
-use self::wallpaper::{set_plugin_wallpaper, validate_plugin_image};
+use self::wallpaper::validate_plugin_image;
 use super::native_resources::{fetch_https, write_plugin_file, DEFAULT_STORAGE_LIMIT_BYTES};
 
+pub mod automation;
+pub mod policy;
 pub mod wallpaper;
 
 pub use self::wallpaper::{
@@ -201,6 +203,7 @@ struct BingArchiveImage {
 
 pub struct BingWallpaperState {
     root: PathBuf,
+    pub automation: automation::PaperAutomation,
     refresh_lock: Mutex<()>,
     refresh_sequence: AtomicU64,
     last_refresh: StdMutex<Option<BingWallpaperSnapshot>>,
@@ -268,8 +271,10 @@ impl BingWallpaperState {
     }
 
     pub fn with_fetcher(root: impl Into<PathBuf>, fetcher: Arc<dyn BingWallpaperFetcher>) -> Self {
+        let root = root.into();
         Self {
-            root: root.into(),
+            automation: automation::PaperAutomation::new(root.clone()),
+            root,
             refresh_lock: Mutex::new(()),
             refresh_sequence: AtomicU64::new(0),
             last_refresh: StdMutex::new(None),
@@ -314,6 +319,7 @@ impl BingWallpaperState {
         if let Ok(mut last_refresh) = self.last_refresh.lock() {
             *last_refresh = Some(snapshot.clone());
         }
+        self.automation.record_check(&snapshot);
         self.refresh_sequence.fetch_add(1, Ordering::Release);
         snapshot
     }
@@ -675,49 +681,20 @@ impl BingWallpaperState {
     pub async fn apply(
         &self,
         wallpaper_id: &str,
-        setter: &dyn WallpaperSetter,
+        setter: Arc<dyn WallpaperSetter>,
     ) -> Result<BingWallpaperActionResult, BingWallpaperError> {
-        let mut diagnostic =
-            crate::services::diagnostics::Operation::new(Some("zero.paper"), "apply");
-        let result = (async {
-            let item = self.ensure_cached(wallpaper_id).await?;
-            let path = set_plugin_wallpaper(setter, &self.root, &item.cache_file_name)
-                .map_err(BingWallpaperError::from)?;
-
-            Ok(BingWallpaperActionResult {
-                wallpaper_id: item.id,
-                path: path.to_string_lossy().into_owned(),
-                message: "Wallpaper applied.".into(),
-            })
-        })
-        .await;
-        diagnostic.finish(&result);
-        result
+        self.automation
+            .apply(self, wallpaper_id, setter, None)
+            .await
     }
 
     pub async fn apply_with_system_setter(
         &self,
         wallpaper_id: &str,
     ) -> Result<BingWallpaperActionResult, BingWallpaperError> {
-        let item = self.ensure_cached(wallpaper_id).await?;
-        let root = self.root.clone();
-        tauri::async_runtime::spawn_blocking(move || {
-            let path = set_plugin_wallpaper(&SystemWallpaperSetter, &root, &item.cache_file_name)
-                .map_err(BingWallpaperError::from)?;
-            Ok(BingWallpaperActionResult {
-                wallpaper_id: item.id,
-                path: path.to_string_lossy().into_owned(),
-                message: "Wallpaper applied.".into(),
-            })
-        })
-        .await
-        .map_err(|_| {
-            error(
-                "wallpaper.worker",
-                "The wallpaper apply worker stopped unexpectedly.",
-                true,
-            )
-        })?
+        self.automation
+            .apply(self, wallpaper_id, Arc::new(SystemWallpaperSetter), None)
+            .await
     }
 
     pub async fn save_to_downloads(

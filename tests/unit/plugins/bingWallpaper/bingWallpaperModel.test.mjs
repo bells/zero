@@ -78,3 +78,28 @@ test("handles single items and conservative display title fallback", () => {
     "Wallpaper",
   );
 });
+
+test("an opening follows new images until deliberate history navigation", async () => {
+  const { createPaperSelectionSession } = await import("/private/tmp/zero-tests/plugins/bingWallpaper/bingWallpaperModel.js");
+  const session = createPaperSelectionSession();
+  const cached = [wallpaper("oct28", "20261028"), wallpaper("oct27", "20261027")];
+  const remote = [wallpaper("oct31", "20261031"), ...cached];
+  assert.equal(session.accept(cached), "oct28");
+  assert.equal(session.accept(remote), "oct31");
+  session.choose("oct27");
+  assert.equal(session.accept(remote), "oct27");
+  session.latest();
+  assert.equal(session.accept(remote), "oct31");
+  session.choose("oct27");
+  assert.equal(session.accept([remote[0]]), "oct31");
+  session.choose("oct28");
+  session.open();
+  assert.equal(session.accept(remote), "oct31");
+});
+
+test("runtime revisions reject late snapshots across views", async () => {
+  const { acceptPaperRuntime } = await import("/private/tmp/zero-tests/plugins/bingWallpaper/bingWallpaperModel.js");
+  const newer = {revision: 9, phase:"applying"};
+  assert.equal(acceptPaperRuntime(newer, {revision:8, phase:"off"}), newer);
+  assert.deepEqual(acceptPaperRuntime(null, newer), newer);
+});

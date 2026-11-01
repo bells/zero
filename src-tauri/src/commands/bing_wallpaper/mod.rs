@@ -23,7 +23,7 @@ pub fn get_bing_wallpaper_snapshot(
 pub async fn refresh_bing_wallpapers(
     state: State<'_, BingWallpaperState>,
 ) -> Result<BingWallpaperSnapshot, BingWallpaperError> {
-    Ok(state.refresh().await)
+    Ok(state.automation.check(&state, true, false).await)
 }
 
 #[tauri::command]
@@ -88,4 +88,66 @@ pub async fn apply_bing_wallpaper(
     state: State<'_, BingWallpaperState>,
 ) -> Result<BingWallpaperActionResult, BingWallpaperError> {
     state.apply_with_system_setter(&input.wallpaper_id).await
+}
+
+use crate::services::bing_wallpaper::automation::{
+    PaperRuntimeSnapshot, PaperSettings, PaperSettingsUpdate,
+};
+fn ensure_paper_caller(label: &str) -> Result<(), BingWallpaperError> {
+    if matches!(label, "tray" | "main" | "paper") {
+        Ok(())
+    } else {
+        Err(BingWallpaperError {
+            code: "paper.caller_denied".into(),
+            message: "This window cannot access Paper settings.".into(),
+            retryable: false,
+        })
+    }
+}
+#[tauri::command]
+pub async fn get_paper_settings(
+    window: tauri::WebviewWindow,
+    state: State<'_, BingWallpaperState>,
+) -> Result<PaperSettings, BingWallpaperError> {
+    ensure_paper_caller(window.label())?;
+    state.automation.settings().await
+}
+#[tauri::command]
+pub async fn update_paper_settings(
+    input: PaperSettingsUpdate,
+    window: tauri::WebviewWindow,
+    state: State<'_, BingWallpaperState>,
+) -> Result<PaperSettings, BingWallpaperError> {
+    ensure_paper_caller(window.label())?;
+    state.automation.update(input).await
+}
+#[tauri::command]
+pub fn get_paper_runtime_snapshot(
+    window: tauri::WebviewWindow,
+    state: State<'_, BingWallpaperState>,
+) -> Result<PaperRuntimeSnapshot, BingWallpaperError> {
+    ensure_paper_caller(window.label())?;
+    Ok(state.automation.snapshot())
+}
+#[tauri::command]
+pub async fn check_paper_wallpaper_updates(
+    window: tauri::WebviewWindow,
+    state: State<'_, BingWallpaperState>,
+) -> Result<PaperRuntimeSnapshot, BingWallpaperError> {
+    ensure_paper_caller(window.label())?;
+    state.automation.check(&state, true, false).await;
+    Ok(state.automation.snapshot())
+}
+#[cfg(test)]
+mod caller_tests {
+    use super::*;
+    #[test]
+    fn only_paper_host_windows_can_access_automation() {
+        for label in ["tray", "main", "paper"] {
+            assert!(ensure_paper_caller(label).is_ok());
+        }
+        for label in ["file-engine", "plugin:test", "capture", "about", "pin-1"] {
+            assert!(ensure_paper_caller(label).is_err());
+        }
+    }
 }

@@ -657,9 +657,9 @@ fn cached_wallpaper_apply_and_download_actions_are_validated() {
     let wallpaper = item("action", "20260715", true);
     write_cached_state(root.path(), &wallpaper);
     let state = BingWallpaperState::new(root.path());
-    let setter = RecordingSetter::default();
+    let setter = Arc::new(RecordingSetter::default());
 
-    let applied = tauri::async_runtime::block_on(state.apply("action", &setter))
+    let applied = tauri::async_runtime::block_on(state.apply("action", setter.clone()))
         .expect("cached wallpaper should apply");
     assert_eq!(applied.wallpaper_id, "action");
     assert_eq!(setter.paths.lock().expect("paths lock").len(), 1);
@@ -681,7 +681,7 @@ fn wallpaper_backend_failures_and_unknown_ids_do_not_report_success() {
     let wallpaper = item("failure", "20260715", true);
     write_cached_state(root.path(), &wallpaper);
     let state = BingWallpaperState::new(root.path());
-    let setter = RecordingSetter {
+    let setter = Arc::new(RecordingSetter {
         paths: Mutex::new(Vec::new()),
         error: Some(NativeResourceError {
             operation: "system.setWallpaper".into(),
@@ -689,14 +689,14 @@ fn wallpaper_backend_failures_and_unknown_ids_do_not_report_success() {
             message: "backend rejected request".into(),
             retryable: true,
         }),
-    };
+    });
 
-    let backend_error = tauri::async_runtime::block_on(state.apply("failure", &setter))
+    let backend_error = tauri::async_runtime::block_on(state.apply("failure", setter.clone()))
         .expect_err("backend failure should propagate");
     assert_eq!(backend_error.code, "wallpaper.backend");
     assert!(backend_error.retryable);
 
-    let missing = tauri::async_runtime::block_on(state.apply("missing", &setter))
+    let missing = tauri::async_runtime::block_on(state.apply("missing", setter.clone()))
         .expect_err("unknown ID should fail");
     assert_eq!(missing.code, "wallpaper.not_found");
     assert!(!missing.retryable);
@@ -711,9 +711,9 @@ fn apply_downloads_a_missing_cached_image_before_invoking_backend() {
         "bing_wallpaper_missing_fields.json",
     )));
     let state = BingWallpaperState::with_fetcher(root.path(), fetcher.clone());
-    let setter = RecordingSetter::default();
+    let setter = Arc::new(RecordingSetter::default());
 
-    let result = tauri::async_runtime::block_on(state.apply("on-demand", &setter))
+    let result = tauri::async_runtime::block_on(state.apply("on-demand", setter.clone()))
         .expect("missing image should download before apply");
 
     assert_eq!(result.wallpaper_id, "on-demand");

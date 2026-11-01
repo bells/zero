@@ -357,8 +357,8 @@ pub fn schedule_monitor(app: tauri::AppHandle) {
     let monitor_revision = state.begin_protection_monitor();
     let task_app = app.clone();
     let task = tauri::async_runtime::spawn(async move {
-        let _events = super::awake_power_events::NativePowerEvents::new();
-        let mut event_revision = super::awake_power_events::revision();
+        let _events = super::power_events::subscribe();
+        let mut event_revision = super::power_events::revision();
         let mut last_power = AwakePowerSnapshot::unknown();
         let mut ticks = 30u64;
         let mut next_power_read = std::time::Instant::now();
@@ -366,7 +366,7 @@ pub fn schedule_monitor(app: tauri::AppHandle) {
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             let native_app = task_app.clone();
             let previous = last_power.clone();
-            let current_revision = super::awake_power_events::revision();
+            let current_revision = super::power_events::revision();
             let event_changed = current_revision != event_revision;
             event_revision = current_revision;
             let read_power = std::time::Instant::now() >= next_power_read

@@ -27,7 +27,7 @@ pub fn paper_window_options() -> PaperWindowOptions {
     PaperWindowOptions {
         label: PAPER_WINDOW_LABEL,
         width: 400.0,
-        height: 300.0,
+        height: 360.0,
         resizable: false,
         decorations: false,
         transparent: true,
@@ -134,7 +134,7 @@ mod tests {
     fn paper_window_options_are_compact_and_host_controlled() {
         let options = paper_window_options();
         assert_eq!(options.label, "paper");
-        assert_eq!((options.width, options.height), (400.0, 300.0));
+        assert_eq!((options.width, options.height), (400.0, 360.0));
         assert!(!options.resizable);
         assert!(!options.decorations);
         assert!(options.transparent);
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn paper_window_centers_under_anchor_and_clamps_to_work_area() {
-        let size = PhysicalSize::new(400, 300);
+        let size = PhysicalSize::new(400, 360);
         let work_area = PhysicalRect {
             position: PhysicalPosition::new(0, 24),
             size: PhysicalSize::new(1440, 876),

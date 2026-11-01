@@ -241,6 +241,8 @@ pub fn run() {
             #[cfg(feature = "bundled-tools")]
             services::screenshot::start_maintenance(app.handle());
             #[cfg(feature = "bundled-tools")]
+            bundled_plugins::start_paper(app.handle());
+            #[cfg(feature = "bundled-tools")]
             if quick_launcher_is_enabled(app.handle()) {
                 bundled_plugins::start_quick_launcher(app.handle());
                 let _ = sync_quick_launcher_shortcut(app.handle(), true);
@@ -380,6 +382,14 @@ pub fn run() {
             #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::apply_bing_wallpaper,
             #[cfg(feature = "bundled-tools")]
+            commands::bing_wallpaper::get_paper_settings,
+            #[cfg(feature = "bundled-tools")]
+            commands::bing_wallpaper::update_paper_settings,
+            #[cfg(feature = "bundled-tools")]
+            commands::bing_wallpaper::get_paper_runtime_snapshot,
+            #[cfg(feature = "bundled-tools")]
+            commands::bing_wallpaper::check_paper_wallpaper_updates,
+            #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::get_quick_launcher_snapshot,
             #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::refresh_quick_launcher_index,
@@ -497,6 +507,10 @@ pub fn run() {
                 "shutdown",
                 services::diagnostics::contracts::Outcome::Started,
             );
+            #[cfg(feature = "bundled-tools")]
+            app.state::<services::bing_wallpaper::BingWallpaperState>()
+                .automation
+                .stop();
             #[cfg(target_os = "macos")]
             services::status_bar_tooltips::clear(app);
             #[cfg(target_os = "macos")]

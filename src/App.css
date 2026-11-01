@@ -44,8 +44,13 @@ body {
 }
 
 .paper-window .wallpaper-content {
-  flex: 1 1 auto;
-  align-items: center;
+  flex: 0 0 auto;
+  align-items: start;
+  gap: 6px;
+}
+
+.paper-window .wallpaper-meta {
+  padding-top: 0;
 }
 
 .paper-window .wallpaper-feedback,
@@ -1442,7 +1447,8 @@ input:focus-visible {
 .wallpaper-header {
   flex: 0 0 auto;
   display: flex;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
@@ -1483,6 +1489,16 @@ input:focus-visible {
     transform 160ms ease;
 }
 
+.wallpaper-icon-action svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.wallpaper-refresh-action .is-refreshing {
+  animation: slow-spin 900ms linear infinite;
+}
+
 .wallpaper-icon-action:hover:not(:disabled) {
   background: rgba(75, 159, 234, 0.14);
   color: #1767a8;
@@ -1514,7 +1530,26 @@ input:focus-visible {
   gap: 10px;
 }
 
+.main-window-shell .bing-wallpaper-panel .wallpaper-content {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.main-window-shell .bing-wallpaper-panel .wallpaper-preview-button {
+  flex: 1 1 0;
+}
+
+.main-window-shell .bing-wallpaper-panel .wallpaper-meta {
+  flex: 0 0 clamp(200px, 25%, 320px);
+  box-sizing: border-box;
+}
+
 .wallpaper-preview-button {
+  align-self: start;
+  width: 100%;
+  box-sizing: border-box;
   min-width: 0;
   min-height: 92px;
   position: relative;
@@ -1544,7 +1579,10 @@ input:focus-visible {
   opacity: 0.78;
 }
 
+/* Keep image intrinsic sizes out of the aspect-ratio grid calculation in WebKit. */
 .wallpaper-preview-button img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -1606,6 +1644,16 @@ input:focus-visible {
   background: transparent;
   color: #716346;
   text-transform: uppercase;
+}
+
+.wallpaper-meta-topline .wallpaper-last-checked {
+  padding: 2px 0;
+  background: transparent;
+  color: #69757e;
+  font-size: 10px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .wallpaper-meta > strong {
@@ -3974,3 +4022,13 @@ input:focus-visible {
 .preferences-shortcut-controls button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 2px; }
 .preferences-shortcut-row { scroll-margin-block: 16px; }
 @media (max-width: 680px) { .preferences-shortcut-controls { justify-content: flex-start; } }
+
+.paper-runtime-status { min-width: 0; font-size: 11px; color: #596773; overflow-wrap: anywhere; }
+.paper-runtime-status p { margin: 6px 0; }
+.paper-runtime-status dl { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr); gap: 8px 16px; margin-top: 16px; }
+.paper-runtime-status dd { margin: 0; font-variant-numeric: tabular-nums; }
+.paper-settings .preferences-setting-copy { min-width: 0; }
+.paper-settings input { flex-shrink: 0; }
+.wallpaper-icon-action:focus-visible { outline: 2px solid #2776b9; outline-offset: 2px; }
+
+.paper-window > .bing-wallpaper-panel { overflow-y: auto; }

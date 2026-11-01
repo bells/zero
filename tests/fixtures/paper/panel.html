@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8" /><link rel="icon" href="data:," /><title>Paper panel regression fixture</title></head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      const params = new URLSearchParams(location.search);
+      const surface = params.get("surface") || "main";
+      const language = params.get("language") || "zh-CN";
+      const source = document.createElement("canvas");
+      source.width = 960; source.height = 540;
+      const ctx = source.getContext("2d");
+      const fill = ctx.createLinearGradient(0, 0, 960, 540);
+      fill.addColorStop(0, "#224c65"); fill.addColorStop(1, "#e3b56c");
+      ctx.fillStyle = fill; ctx.fillRect(0, 0, 960, 540);
+      ctx.fillStyle = "#fff"; ctx.font = "40px sans-serif"; ctx.fillText("Paper · local test image", 60, 300);
+      const bytes = await new Promise(resolve => source.toBlob(async blob => resolve(await blob.arrayBuffer()), "image/jpeg"));
+      const item = (id, date) => ({ id, startDate:date, title:id, attribution:"Synthetic local image / 合成图像", remoteUrl:"https://www.bing.com/test", cacheFileName:`${id}.jpg`, cached:true });
+      const items = [item("Latest image", "20261101"), item("Older image", "20261031")];
+      const snapshot = () => ({items,market:"zh-CN",stale:false,platform:{platform:"macos",supported:true}});
+      window.paperCalls = [];
+      window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
+      window.__TAURI_INTERNALS__ = {
+        metadata:{currentWindow:{label:surface === "main" ? "main" : surface === "tray" ? "tray" : "paper"},currentWebview:{label:"main"}},
+        transformCallback:() => 1,
+        invoke:async (cmd,args) => {
+          window.paperCalls.push({cmd,args});
+          switch(cmd) {
+            case "get_surface_activity": return {label:surface === "main" ? "main" : surface === "tray" ? "tray" : "paper",state:"active"};
+            case "get_bing_wallpaper_snapshot": return snapshot();
+            case "refresh_bing_wallpapers": await new Promise(resolve => setTimeout(resolve, 30)); return snapshot();
+            case "get_paper_settings": return {version:1,autoChangeDaily:false};
+            case "get_paper_runtime_snapshot": return {revision:1,phase:"off",lastCheckedAt:"2026-11-01T01:28:24Z",latestAvailableDate:"2026-11-01"};
+            case "get_bing_wallpaper_preview": return {wallpaperId:args.input.wallpaperId,token:args.input.wallpaperId,mimeType:"image/jpeg",byteLength:bytes.byteLength,width:960,height:540};
+            case "read_bing_wallpaper_preview": return bytes.slice(0);
+            case "release_bing_wallpaper_preview": return;
+            case "apply_bing_wallpaper":
+            case "save_bing_wallpaper_to_downloads": return {wallpaperId:args.input.wallpaperId,path:"/test/image.jpg",message:"done"};
+            case "plugin:event|listen": return 1;
+            case "plugin:event|unlisten": return;
+            default: throw new Error(`Unexpected Paper fixture command: ${cmd}`);
+          }
+        },
+      };
+      const React = await import("react");
+      const { createRoot } = await import("react-dom/client");
+      const { BingWallpaperPanel } = await import("/src/plugins/bingWallpaper/BingWallpaperPanel.tsx");
+      const { createBingWallpaperTranslator } = await import("/src/plugins/bingWallpaper/i18n.ts");
+      await import("/src/App.css"); await import("/src/appShell/navigation.css");
+      const h = React.createElement;
+      const { bingWallpaperPlugin } = await import("/src/plugins/bingWallpaper/plugin.tsx");
+      const LoadedPanel = (await bingWallpaperPlugin.loadPanel()).default;
+      const panel = surface === "paper"
+        ? h(BingWallpaperPanel,{t:createBingWallpaperTranslator(language)})
+        : h(LoadedPanel,{language,surface});
+      const content = surface === "main"
+        ? h("main",{className:"app-shell main-window-shell"},
+            h("header",{className:"app-header"},h("h1",null,"Zero 主界面")),
+            h("div",{className:"main-window-layout"},h("aside",{className:"main-sidebar"},"工具插件"),h("section",{className:"main-workspace"},panel)))
+        : surface === "tray"
+          ? h("main",{className:"app-shell tray-shell"},h("header",{className:"app-header"},h("h1",null,"Zero")),h("div",{className:"tray-plugin-content"},panel))
+          : h("main",{className:"paper-window"},panel);
+      createRoot(document.getElementById("root")).render(content);
+    </script>
+  </body>
+</html>

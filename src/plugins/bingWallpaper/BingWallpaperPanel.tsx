@@ -1,9 +1,16 @@
-import type { TranslationKey } from "./i18n";
+import { Check, ChevronLeft, ChevronRight, ChevronsRight, Download, RefreshCw } from "lucide-react";
+import { createBingWallpaperTranslator, type TranslationKey } from "./i18n";
+import type { BundledPluginPanelProps } from "../../core/pluginHost/pluginModule";
 import { bingWallpaperDisplayTitle } from "./bingWallpaperModel";
+import { PaperStatus } from "./PaperStatus";
 import { useBingWallpaper } from "./useBingWallpaper";
 
 interface BingWallpaperPanelProps {
   t: (key: TranslationKey) => string;
+}
+
+export function BingWallpaperPluginPanel({ language }: BundledPluginPanelProps) {
+  return <BingWallpaperPanel t={createBingWallpaperTranslator(language)} />;
 }
 
 export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
@@ -19,7 +26,7 @@ export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
         <div>
           <h2>{t("wallpaper.title")}</h2>
         </div>
-        <div className="wallpaper-actions" aria-label={t("wallpaper.actions")}>
+        <div className="wallpaper-actions" role="group" aria-label={t("wallpaper.actions")}>
           <button
             type="button"
             className="wallpaper-icon-action"
@@ -28,7 +35,7 @@ export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
             disabled={actionDisabled}
             onClick={() => void wallpaper.save()}
           >
-            {wallpaper.isSaving ? "…" : "↓"}
+            {wallpaper.isSaving ? "…" : <Download aria-hidden="true" />}
           </button>
           <button
             type="button"
@@ -38,7 +45,7 @@ export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
             disabled={actionDisabled || wallpaper.snapshot?.platform.supported === false}
             onClick={() => void wallpaper.apply()}
           >
-            {wallpaper.isApplying ? "…" : "✓"}
+            {wallpaper.isApplying ? "…" : <Check aria-hidden="true" />}
           </button>
           <button
             type="button"
@@ -48,7 +55,7 @@ export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
             disabled={!wallpaper.navigation.canSelectOlder}
             onClick={wallpaper.selectOlder}
           >
-            ‹
+            <ChevronLeft aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -58,11 +65,31 @@ export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
             disabled={!wallpaper.navigation.canSelectNewer}
             onClick={wallpaper.selectNewer}
           >
-            ›
+            <ChevronRight aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="wallpaper-icon-action"
+            aria-label={t("wallpaper.latest")}
+            title={t("wallpaper.latest")}
+            disabled={!selected}
+            onClick={wallpaper.returnToLatest}
+          >
+            <ChevronsRight aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="wallpaper-icon-action wallpaper-refresh-action"
+            aria-label={t("wallpaper.refreshNow")}
+            title={t("wallpaper.refreshNow")}
+            aria-busy={wallpaper.isRefreshing}
+            disabled={wallpaper.isRefreshing}
+            onClick={wallpaper.retry}
+          >
+            <RefreshCw aria-hidden="true" className={wallpaper.isRefreshing ? "is-refreshing" : undefined} />
           </button>
         </div>
       </div>
-
       {wallpaper.isLoading && !selected ? (
         <div className="wallpaper-empty-state">
           <span className="wallpaper-loading-orb" aria-hidden="true" />
@@ -94,6 +121,11 @@ export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
             <div className="wallpaper-meta-topline">
               <span title={t("wallpaper.dateHint")}>{formatBingDate(selected.displayDate ?? selected.startDate)}</span>
               <span className="wallpaper-source" aria-label={t("wallpaper.source")}>Bing</span>
+              {wallpaper.runtime?.lastCheckedAt ? (
+                <span className="wallpaper-last-checked" role="status">
+                  {t("paper.lastChecked")}: <time dateTime={wallpaper.runtime.lastCheckedAt}>{new Date(wallpaper.runtime.lastCheckedAt).toLocaleString()}</time>
+                </span>
+              ) : null}
               {wallpaper.isRefreshing ? <span>{t("wallpaper.refreshing")}</span> : null}
               {wallpaper.snapshot?.stale ? <span>{t("wallpaper.stale")}</span> : null}
             </div>
@@ -109,6 +141,8 @@ export function BingWallpaperPanel({ t }: BingWallpaperPanelProps) {
           </button>
         </div>
       )}
+
+      <PaperStatus runtime={wallpaper.runtime} t={t} />
 
       {wallpaper.actionStatus ? (
         <p className="wallpaper-feedback" role="status">

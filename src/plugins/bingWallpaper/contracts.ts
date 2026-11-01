@@ -55,3 +55,20 @@ export interface BingWallpaperActionResult {
   path: string;
   message: string;
 }
+
+export interface PaperSettings { version: number; autoChangeDaily: boolean }
+export interface PaperSettingsUpdate { autoChangeDaily: boolean }
+export type PaperAutomationPhase = "off" | "idle" | "checking" | "applying" | "pausedForManual" | "retryWaiting" | "unsupported" | "error";
+export interface PaperRuntimeSnapshot {
+  revision: number;
+  phase: PaperAutomationPhase;
+  lastCheckedAt?: string;
+  lastSuccessfulRefreshAt?: string;
+  latestAvailableDate?: string;
+  lastAppliedWallpaperId?: string;
+  lastAppliedDate?: string;
+  lastAppliedAt?: string;
+  manualOverrideUntil?: string;
+  nextCheckAt?: string;
+  error?: BingWallpaperError;
+}

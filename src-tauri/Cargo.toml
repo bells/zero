@@ -50,7 +50,7 @@ tauri-plugin-clipboard-manager = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "registry"] }
 tracing-appender = "0.2"
-chrono = { version = "=0.4.44", default-features = false, features = ["clock", "std"], optional = true }
+chrono = { version = "=0.4.44", default-features = false, features = ["clock", "std", "serde"], optional = true }
 time = { version = "0.3", features = ["formatting", "macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

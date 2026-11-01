@@ -74,3 +74,25 @@ export function bingWallpaperDisplayTitle(
   const attributionTitle = item?.attribution.split(" (")[0]?.trim();
   return attributionTitle || fallback;
 }
+
+export function createPaperSelectionSession() {
+  let following = true;
+  let selectedId: string | null = null;
+  return {
+    open() { following = true; selectedId = null; },
+    choose(id: string | null) { following = false; selectedId = id; },
+    latest() { following = true; },
+    accept(items: readonly BingWallpaperItem[]) {
+      if (!items.some(item => item.id === selectedId)) following = true;
+      selectedId = resolveBingWallpaperSelection(items, following ? null : selectedId);
+      return selectedId;
+    },
+  };
+}
+
+export function acceptPaperRuntime(
+  current: import("./contracts.js").PaperRuntimeSnapshot | null,
+  incoming: import("./contracts.js").PaperRuntimeSnapshot,
+) {
+  return current && current.revision > incoming.revision ? current : incoming;
+}
