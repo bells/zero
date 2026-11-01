@@ -137,3 +137,26 @@ test("activation uses only the flushed result revision and stable item id", () =
   assert.equal(resolveActivationAfterFlush("stale", "latest", result), null);
   assert.equal(resolveActivationAfterFlush(undefined, null, result), null);
 });
+
+test("numeric activation stays blocked across debounce, in-flight work and successors", async () => {
+  const fake = fakeTimeouts();
+  const transitions = [];
+  let release;
+  const scheduler = createLatestQueryScheduler(async (query) => {
+    if (query === "old") await new Promise((resolve) => { release = resolve; });
+  }, fake.scheduler, 40, (pending) => transitions.push(pending));
+  assert.equal(scheduler.isPending(), false);
+  scheduler.schedule("old");
+  assert.equal(scheduler.isPending(), true);
+  fake.fire();
+  scheduler.schedule("latest");
+  release();
+  await scheduler.flush();
+  assert.equal(scheduler.isPending(), false);
+  assert.deepEqual(transitions, [true, false]);
+
+  scheduler.schedule("cancelled");
+  scheduler.cancelPending();
+  assert.equal(scheduler.isPending(), false);
+  assert.deepEqual(transitions, [true, false, true, false]);
+});

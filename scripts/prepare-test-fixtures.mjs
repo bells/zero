@@ -53,6 +53,7 @@ const sources = [
   "src/plugins/quickLauncher/quickLauncherModel.ts",
   "src/plugins/quickLauncher/quickLauncherServiceCore.ts",
   "src/plugins/quickLauncher/quickLauncherScheduling.ts",
+  "src/plugins/quickLauncher/quickLauncherShortcuts.ts",
   "src/plugins/screenshot/capture/captureCanvas.ts",
   "src/plugins/screenshot/capture/captureAnnotationProperties.ts",
   "src/plugins/screenshot/capture/captureToolDefaults.ts",

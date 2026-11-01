@@ -15,6 +15,7 @@ export interface LatestQueryScheduler {
   flush(): Promise<void>;
   cancelPending(): void;
   dispose(): void;
+  isPending(): boolean;
   metrics(): QuerySchedulingMetrics;
 }
 
@@ -57,12 +58,21 @@ export function createLatestQueryScheduler(
   execute: (query: string) => Promise<unknown>,
   scheduler: QueryTimeoutScheduler,
   delayMs: number,
+  onPendingChange?: (pending: boolean) => void,
 ): LatestQueryScheduler {
   let pending: string | null = null;
   let timer: unknown;
   let inFlight: Promise<void> | null = null;
   let disposed = false;
   let concurrent = 0;
+  let wasPending = false;
+  const isPending = () => pending !== null || inFlight !== null;
+  const notifyPending = () => {
+    const next = isPending();
+    if (next === wasPending) return;
+    wasPending = next;
+    onPendingChange?.(next);
+  };
   const metrics: QuerySchedulingMetrics = {
     scheduled: 0,
     executed: 0,
@@ -100,6 +110,7 @@ export function createLatestQueryScheduler(
         concurrent -= 1;
         inFlight = null;
         arm();
+        notifyPending();
       });
     return inFlight;
   };
@@ -111,6 +122,7 @@ export function createLatestQueryScheduler(
       if (pending !== null) metrics.superseded += 1;
       pending = query;
       arm();
+      notifyPending();
     },
     async flush() {
       clearTimer();
@@ -123,12 +135,15 @@ export function createLatestQueryScheduler(
     cancelPending() {
       clearTimer();
       pending = null;
+      notifyPending();
     },
     dispose() {
       disposed = true;
       clearTimer();
       pending = null;
+      notifyPending();
     },
+    isPending,
     metrics: () => ({ ...metrics }),
   };
 }

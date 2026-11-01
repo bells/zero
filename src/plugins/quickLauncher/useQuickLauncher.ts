@@ -25,6 +25,7 @@ import {
   normalizeQuickLauncherError,
   quickLauncherService,
 } from "./quickLauncherService";
+import { resolveShortcutActivation, type DisplayedLauncherTarget } from "./quickLauncherShortcuts";
 
 const QUERY_COALESCE_MS = 40;
 const VISIBLE_ICON_LIMIT = 16;
@@ -51,6 +52,7 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
   const [icons, setIcons] = useState<Record<string, string | null>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRunningRefreshing, setIsRunningRefreshing] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [error, setError] = useState<QuickLauncherError | null>(null);
   const [lastAction, setLastAction] = useState<QuickLauncherActivationResult | null>(null);
@@ -63,6 +65,8 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
   const queryGenerationRef = useRef(0);
   const iconGenerationRef = useRef(0);
   const activationRef = useRef(false);
+  const refreshingRef = useRef(false);
+  const runningRefreshRef = useRef(false);
 
   activityRef.current = surfaceActivity;
   snapshotRef.current = snapshot;
@@ -97,10 +101,6 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
         setSelectedIdState(null);
         setError(normalizeQuickLauncherError(searchError));
       }
-    } finally {
-      if (mountedRef.current && generation === queryGenerationRef.current) {
-        setIsLoading(false);
-      }
     }
   }, [applySearchResult, client]);
 
@@ -111,6 +111,9 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
       clearTimeout: (timer) => window.clearTimeout(timer as number),
     },
     QUERY_COALESCE_MS,
+    (pending) => {
+      if (mountedRef.current && activityRef.current === "active") setIsLoading(pending);
+    },
   ), [runSearch]);
 
   useEffect(() => {
@@ -164,12 +167,20 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
       timer = window.setTimeout(refreshRunning, delay);
     };
     const refreshRunning = () => {
+      runningRefreshRef.current = true;
+      setIsRunningRefreshing(true);
       void client.refreshRunning()
         .then((next) => {
           if (!disposed) scheduleRefresh(next.expiresAtMs);
         })
         .catch(() => {
           if (!disposed) scheduleRefresh(Date.now() + 2_000);
+        })
+        .finally(() => {
+          if (!disposed) {
+            runningRefreshRef.current = false;
+            setIsRunningRefreshing(false);
+          }
         });
     };
 
@@ -188,6 +199,8 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
 
     return () => {
       disposed = true;
+      runningRefreshRef.current = false;
+      setIsRunningRefreshing(false);
       if (timer !== undefined) window.clearTimeout(timer);
       unlisten?.();
     };
@@ -220,6 +233,7 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
   }, [client, icons, items, surfaceActivity]);
 
   const setQuery = useCallback((nextQuery: string) => {
+    queryGenerationRef.current += 1;
     queryRef.current = nextQuery;
     setQueryState(nextQuery);
     if (activityRef.current === "active" && snapshotRef.current) {
@@ -234,7 +248,8 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
   }, []);
 
   const refresh = useCallback(async () => {
-    if (isRefreshing) return;
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     setIsRefreshing(true);
     setError(null);
     try {
@@ -248,15 +263,14 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
     } catch (refreshError) {
       if (mountedRef.current) setError(normalizeQuickLauncherError(refreshError));
     } finally {
+      refreshingRef.current = false;
       if (mountedRef.current) setIsRefreshing(false);
     }
-  }, [client, isRefreshing, queryScheduler]);
+  }, [client, queryScheduler]);
 
-  const activate = useCallback(async (requestedId?: string) => {
-    await queryScheduler.flush();
+  const executeActivation = useCallback(async (target: { itemId: string; revision: number }) => {
     const latest = latestResultRef.current;
-    const target = resolveActivationAfterFlush(requestedId, selectedIdRef.current, latest);
-    if (!target || activationRef.current
+    if (!mountedRef.current || activityRef.current !== "active" || activationRef.current
       || !canActivateLauncherItem(target.itemId, latest?.items ?? [], activatingId)) return null;
 
     activationRef.current = true;
@@ -276,7 +290,21 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
       activationRef.current = false;
       if (mountedRef.current) setActivatingId(null);
     }
-  }, [activatingId, client, queryScheduler, runSearch]);
+  }, [activatingId, client, runSearch]);
+
+  const activate = useCallback(async (requestedId?: string) => {
+    await queryScheduler.flush();
+    const target = resolveActivationAfterFlush(requestedId, selectedIdRef.current, latestResultRef.current);
+    return target ? executeActivation(target) : null;
+  }, [executeActivation, queryScheduler]);
+
+  const activateShortcut = useCallback((displayed: DisplayedLauncherTarget) => {
+    // A digit belongs to the displayed row, never to a later search's position.
+    const target = resolveShortcutActivation(displayed, latestResultRef.current, queryRef.current,
+      queryScheduler.isPending() || refreshingRef.current || runningRefreshRef.current || activationRef.current
+      || !mountedRef.current || activityRef.current !== "active");
+    return target ? executeActivation(target) : Promise.resolve(null);
+  }, [executeActivation, queryScheduler]);
 
   const moveSelection = useCallback((direction: -1 | 1) => {
     setSelectedIdState((current) => {
@@ -311,16 +339,18 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
     icons,
     isLoading,
     isRefreshing,
+    isRunningRefreshing,
     activatingId,
     error,
     lastAction,
     refresh,
     activate,
+    activateShortcut,
     moveSelection,
     resetTransient,
   }), [
     snapshot, query, setQuery, revision, items, selectedId, setSelectedId, icons,
-    isLoading, isRefreshing, activatingId, error, lastAction, refresh, activate,
+    isLoading, isRefreshing, isRunningRefreshing, activatingId, error, lastAction, refresh, activate, activateShortcut,
     moveSelection, resetTransient,
   ]);
 }

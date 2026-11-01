@@ -3728,6 +3728,27 @@ input:focus-visible {
   font-size: 10px;
 }
 
+.launcher-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.launcher-result-shortcut {
+  min-width: 2.5em;
+  color: #625b70;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.launcher-result-shortcut.unavailable {
+  opacity: 0.5;
+}
+
 .launcher-action {
   flex: 0 0 auto;
   padding: 3px 7px;
@@ -3775,7 +3796,7 @@ input:focus-visible {
     grid-template-columns: 34px minmax(0, 1fr);
   }
 
-  .launcher-action {
+  .launcher-row-actions {
     grid-column: 2;
     justify-self: start;
   }

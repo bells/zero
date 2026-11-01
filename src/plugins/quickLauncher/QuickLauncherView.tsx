@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { KeyboardEvent } from "react";
 import type { TranslationKey } from "./i18n";
 import type { QuickLauncherController } from "./useQuickLauncher";
+import { launcherResultShortcut, launcherShortcutIndex, launcherShortcutPlatform } from "./quickLauncherShortcuts";
 
 interface QuickLauncherViewProps {
   controller: QuickLauncherController;
@@ -27,6 +28,9 @@ export function QuickLauncherView({
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
   const support = controller.snapshot?.platformSupport;
+  const shortcutPlatform = launcherShortcutPlatform(navigator.platform);
+  const resultsPending = controller.isLoading || controller.isRefreshing || controller.isRunningRefreshing;
+  const shortcutsUnavailable = resultsPending || controller.activatingId !== null;
   const statusText = useMemo(() => {
     if (support === "unsupported") {
       return t("launcher.unsupported");
@@ -85,13 +89,30 @@ export function QuickLauncherView({
     }
   }
 
+  function onResultShortcut(event: KeyboardEvent<HTMLElement>) {
+    if (event.defaultPrevented) return;
+    const index = launcherShortcutIndex(event.nativeEvent, shortcutPlatform);
+    if (index === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const item = controller.items[index];
+    if (!item || shortcutsUnavailable || support === "unsupported") return;
+    void controller.activateShortcut({
+      itemId: item.id,
+      revision: controller.revision,
+      query: controller.query,
+    }).then((result) => {
+      if (result) onActivationSuccess?.();
+    });
+  }
+
   const showEmpty = !controller.isLoading &&
     support !== "unsupported" &&
     !controller.error &&
     controller.items.length === 0;
 
   return (
-    <section className={`quick-launcher-view ${surface}`} aria-label={t("launcher.title")}>
+    <section className={`quick-launcher-view ${surface}`} aria-label={t("launcher.title")} onKeyDown={onResultShortcut}>
       <div className="quick-launcher-search-shell">
         <span aria-hidden="true">⌕</span>
         <input
@@ -122,9 +143,10 @@ export function QuickLauncherView({
         </button>
       </div>
 
-      <div className="quick-launcher-results" role="listbox" aria-label={t("launcher.results")}>
-        {controller.items.map((item) => {
+      <div className="quick-launcher-results" role="listbox" aria-label={t("launcher.results")} aria-busy={resultsPending}>
+        {controller.items.map((item, index) => {
           const selected = item.id === controller.selectedId;
+          const resultShortcut = launcherResultShortcut(index, shortcutPlatform);
           const icon = controller.icons[item.id];
           const action = item.kind === "systemSetting"
             ? t("launcher.open")
@@ -137,6 +159,7 @@ export function QuickLauncherView({
               type="button"
               role="option"
               aria-selected={selected}
+              aria-keyshortcuts={resultShortcut?.ariaKeyShortcuts}
               className={`quick-launcher-row${selected ? " selected" : ""}`}
               key={item.id}
               disabled={controller.activatingId !== null}
@@ -150,8 +173,15 @@ export function QuickLauncherView({
                 <strong>{item.title}</strong>
                 <small>{item.subtitle}</small>
               </span>
-              <span className={item.running === "running" ? "launcher-action running" : "launcher-action"}>
-                {controller.activatingId === item.id ? t("launcher.activating") : action}
+              <span className="launcher-row-actions">
+                <span className={item.running === "running" ? "launcher-action running" : "launcher-action"}>
+                  {controller.activatingId === item.id ? t("launcher.activating") : action}
+                </span>
+                {resultShortcut ? (
+                  <kbd className={`launcher-result-shortcut${shortcutsUnavailable ? " unavailable" : ""}`} aria-hidden="true">
+                    {resultShortcut.label}
+                  </kbd>
+                ) : null}
               </span>
             </button>
           );
