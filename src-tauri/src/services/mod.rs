@@ -11,6 +11,7 @@ pub mod file;
 pub mod global_shortcuts;
 pub mod native_resources;
 pub mod performance;
+pub mod popover;
 #[cfg(feature = "bundled-tools")]
 pub mod quick_launcher;
 #[cfg(feature = "bundled-tools")]

@@ -7,7 +7,7 @@ use crate::services::tool_windows::{
 };
 
 pub const PAPER_WINDOW_LABEL: &str = ToolWindowKind::Paper.label();
-const PAPER_WINDOW_GAP: i32 = 6;
+const PAPER_WINDOW_GAP: i32 = 0;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PaperWindowOptions {
@@ -114,7 +114,7 @@ fn position_paper_window(
     anchor: Option<PaperWindowAnchor>,
     options: PaperWindowOptions,
 ) -> Result<(), String> {
-    position_anchored_tool_window(
+    let anchor_x = position_anchored_tool_window(
         window,
         anchor,
         ToolWindowLogicalSize {
@@ -123,7 +123,8 @@ fn position_paper_window(
         },
         PAPER_WINDOW_GAP,
         "Zero Paper",
-    )
+    )?;
+    crate::services::popover::publish(window, anchor_x)
 }
 
 #[cfg(test)]
@@ -156,11 +157,12 @@ mod tests {
                     y: 0,
                     width: 22,
                     height: 22,
+                    scale_factor: 1.0,
                 },
                 size,
                 work_area,
             ),
-            Some(PhysicalPosition::new(511, 28))
+            Some(PhysicalPosition::new(511, 24))
         );
         assert_eq!(
             paper_window_position(
@@ -169,11 +171,12 @@ mod tests {
                     y: 0,
                     width: 22,
                     height: 22,
+                    scale_factor: 1.0,
                 },
                 size,
                 work_area,
             ),
-            Some(PhysicalPosition::new(0, 28))
+            Some(PhysicalPosition::new(0, 24))
         );
         assert_eq!(
             paper_window_position(
@@ -182,11 +185,12 @@ mod tests {
                     y: 0,
                     width: 22,
                     height: 22,
+                    scale_factor: 1.0,
                 },
                 size,
                 work_area,
             ),
-            Some(PhysicalPosition::new(1040, 28))
+            Some(PhysicalPosition::new(1040, 24))
         );
     }
 
@@ -199,6 +203,7 @@ mod tests {
                     y: 0,
                     width: 0,
                     height: 22,
+                    scale_factor: 1.0,
                 },
                 PhysicalSize::new(400, 300),
                 PhysicalRect {

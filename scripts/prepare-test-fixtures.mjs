@@ -30,6 +30,7 @@ const sources = [
   "src/core/preferences/preferencesFeedback.ts",
   "src/core/preferences/preferencesStorage.ts",
   "src/core/windowing/surfaceActivityCore.ts",
+  "src/core/windowing/popoverPlacement.ts",
   "src/plugins/bingWallpaper/bingWallpaperController.ts",
   "src/plugins/bingWallpaper/bingWallpaperCache.ts",
   "src/plugins/bingWallpaper/bingWallpaperModel.ts",

@@ -26,12 +26,13 @@ impl ToolWindowKind {
 
 const TOOL_WINDOWS: [ToolWindowKind; 2] = [ToolWindowKind::Paper, ToolWindowKind::QuickLauncher];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ToolWindowAnchor {
     pub x: i32,
     pub y: i32,
     pub width: u32,
     pub height: u32,
+    pub scale_factor: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -42,23 +43,39 @@ pub struct ToolWindowLogicalSize {
 
 fn monitor_bounds_contain_anchor(
     monitor_bounds: PhysicalRect<i32, u32>,
+    monitor_scale: f64,
     anchor: ToolWindowAnchor,
 ) -> bool {
-    let center_x = i64::from(anchor.x) + i64::from(anchor.width) / 2;
-    let center_y = i64::from(anchor.y) + i64::from(anchor.height) / 2;
-    let left = i64::from(monitor_bounds.position.x);
-    let top = i64::from(monitor_bounds.position.y);
-    let right = left + i64::from(monitor_bounds.size.width);
-    let bottom = top + i64::from(monitor_bounds.size.height);
+    let (center_x, center_y) = anchor_monitor_point(anchor);
+    let bounds_scale = if cfg!(target_os = "macos") {
+        monitor_scale
+    } else {
+        1.0
+    };
+    let left = f64::from(monitor_bounds.position.x) / bounds_scale;
+    let top = f64::from(monitor_bounds.position.y) / bounds_scale;
+    let right = left + f64::from(monitor_bounds.size.width) / bounds_scale;
+    let bottom = top + f64::from(monitor_bounds.size.height) / bounds_scale;
     center_x >= left && center_x < right && center_y >= top && center_y < bottom
+}
+
+fn anchor_monitor_point(anchor: ToolWindowAnchor) -> (f64, f64) {
+    let scale = if cfg!(target_os = "macos") {
+        anchor.scale_factor
+    } else {
+        1.0
+    };
+    (
+        (f64::from(anchor.x) + f64::from(anchor.width) / 2.0) / scale,
+        (f64::from(anchor.y) + f64::from(anchor.height) / 2.0) / scale,
+    )
 }
 
 fn monitor_for_tool_window_anchor(
     window: &tauri::WebviewWindow,
     anchor: ToolWindowAnchor,
 ) -> Option<tauri::Monitor> {
-    let center_x = f64::from(anchor.x) + f64::from(anchor.width) / 2.0;
-    let center_y = f64::from(anchor.y) + f64::from(anchor.height) / 2.0;
+    let (center_x, center_y) = anchor_monitor_point(anchor);
     if let Ok(Some(monitor)) = window.monitor_from_point(center_x, center_y) {
         return Some(monitor);
     }
@@ -73,6 +90,7 @@ fn monitor_for_tool_window_anchor(
                     position: *monitor.position(),
                     size: *monitor.size(),
                 },
+                monitor.scale_factor(),
                 anchor,
             )
         })
@@ -86,6 +104,8 @@ pub fn anchored_tool_window_position(
 ) -> Option<PhysicalPosition<i32>> {
     if anchor.width == 0
         || anchor.height == 0
+        || !anchor.scale_factor.is_finite()
+        || anchor.scale_factor <= 0.0
         || window_size.width == 0
         || window_size.height == 0
         || work_area.size.width < window_size.width
@@ -114,7 +134,7 @@ pub fn position_anchored_tool_window(
     logical_size: ToolWindowLogicalSize,
     gap: i32,
     display_name: &str,
-) -> Result<(), String> {
+) -> Result<Option<f64>, String> {
     if let Some(anchor) = anchor {
         if let Some(monitor) = monitor_for_tool_window_anchor(window, anchor) {
             let scale_factor = monitor.scale_factor();
@@ -125,16 +145,39 @@ pub fn position_anchored_tool_window(
             if let Some(position) =
                 anchored_tool_window_position(anchor, window_size, *monitor.work_area(), gap)
             {
-                return window
-                    .set_position(position)
-                    .map_err(|error| format!("failed to position {display_name} window: {error}"));
+                let window_position = window_position_for_monitor(position, scale_factor);
+                window.set_position(window_position).map_err(|error| {
+                    format!("failed to position {display_name} window: {error}")
+                })?;
+                return Ok(Some(logical_anchor_offset(anchor, position, scale_factor)));
             }
         }
     }
 
     window
         .center()
-        .map_err(|error| format!("failed to center {display_name} safely: {error}"))
+        .map_err(|error| format!("failed to center {display_name} safely: {error}"))?;
+    Ok(None)
+}
+
+fn window_position_for_monitor(
+    position: PhysicalPosition<i32>,
+    scale_factor: f64,
+) -> tauri::Position {
+    // AppKit converts physical positions with the window's previous display scale.
+    if cfg!(target_os = "macos") {
+        tauri::Position::Logical(position.to_logical(scale_factor))
+    } else {
+        tauri::Position::Physical(position)
+    }
+}
+
+fn logical_anchor_offset(
+    anchor: ToolWindowAnchor,
+    position: PhysicalPosition<i32>,
+    scale_factor: f64,
+) -> f64 {
+    (f64::from(anchor.x) + f64::from(anchor.width) / 2.0 - f64::from(position.x)) / scale_factor
 }
 
 pub fn prepare_tray_window(app: &tauri::AppHandle) -> Result<(), String> {
@@ -174,6 +217,80 @@ fn peer_tool_windows(opening: ToolWindowKind) -> impl Iterator<Item = ToolWindow
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn mixed_dpi_lookup_and_movement_use_destination_logical_coordinates() {
+        let anchor = ToolWindowAnchor {
+            x: 3000,
+            y: 0,
+            width: 44,
+            height: 44,
+            scale_factor: 2.0,
+        };
+        assert_eq!(anchor_monitor_point(anchor), (1511.0, 11.0));
+        assert!(monitor_bounds_contain_anchor(
+            PhysicalRect {
+                position: PhysicalPosition::new(2880, 0),
+                size: PhysicalSize::new(2880, 1800)
+            },
+            2.0,
+            anchor,
+        ));
+        assert!(!monitor_bounds_contain_anchor(
+            PhysicalRect {
+                position: PhysicalPosition::new(0, 0),
+                size: PhysicalSize::new(1440, 900)
+            },
+            1.0,
+            anchor,
+        ));
+        for (physical, destination_scale, expected) in [
+            (
+                PhysicalPosition::new(1400, 24),
+                1.0,
+                tauri::LogicalPosition::new(1400.0, 24.0),
+            ),
+            (
+                PhysicalPosition::new(-3840, 48),
+                2.0,
+                tauri::LogicalPosition::new(-1920.0, 24.0),
+            ),
+        ] {
+            for previous_scale in [1.0, 2.0] {
+                assert_eq!(
+                    window_position_for_monitor(physical, destination_scale)
+                        .to_logical::<f64>(previous_scale),
+                    expected,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn caret_tracks_the_actual_cell_after_edge_clamping_and_dpi_conversion() {
+        for (x, window_x, scale, expected) in [
+            (700, 511, 1.0, 200.0),
+            (4, 0, 1.0, 15.0),
+            (1420, 1040, 1.0, 391.0),
+            (-1900, -1920, 2.0, 15.5),
+        ] {
+            assert_eq!(
+                logical_anchor_offset(
+                    ToolWindowAnchor {
+                        x,
+                        y: 0,
+                        width: 22,
+                        height: 22,
+                        scale_factor: scale,
+                    },
+                    PhysicalPosition::new(window_x, 24),
+                    scale,
+                ),
+                expected,
+            );
+        }
+    }
+
     #[test]
     fn tool_window_labels_are_host_owned_and_stable() {
         assert_eq!(ToolWindowKind::Paper.label(), "paper");
@@ -199,6 +316,7 @@ mod tests {
             y: -900,
             width: 22,
             height: 22,
+            scale_factor: 1.0,
         };
         let work_area = tauri::PhysicalRect {
             position: tauri::PhysicalPosition::new(-1920, -876),
@@ -229,6 +347,7 @@ mod tests {
                     y: 0,
                     width: 22,
                     height: 22,
+                    scale_factor: 1.0,
                 },
                 tauri::PhysicalSize::new(504, 184),
                 right_display,
@@ -248,6 +367,7 @@ mod tests {
                     y: 876,
                     width: 22,
                     height: 22,
+                    scale_factor: 1.0,
                 },
                 tauri::PhysicalSize::new(252, 92),
                 lower_display,
@@ -263,6 +383,7 @@ mod tests {
                     y: 0,
                     width: 22,
                     height: 22,
+                    scale_factor: 1.0,
                 },
                 tauri::PhysicalSize::new(252, 92),
                 tauri::PhysicalRect {
@@ -283,20 +404,24 @@ mod tests {
         };
         assert!(monitor_bounds_contain_anchor(
             upper_monitor,
+            1.0,
             ToolWindowAnchor {
                 x: -44,
                 y: -900,
                 width: 22,
                 height: 22,
+                scale_factor: 1.0,
             }
         ));
         assert!(!monitor_bounds_contain_anchor(
             upper_monitor,
+            1.0,
             ToolWindowAnchor {
                 x: 10,
                 y: 0,
                 width: 22,
                 height: 22,
+                scale_factor: 1.0,
             }
         ));
     }

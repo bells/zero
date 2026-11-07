@@ -75,6 +75,13 @@ pub fn sync_quick_launcher_shortcut(app: &tauri::AppHandle, enabled: bool) -> Re
 }
 
 pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
+    toggle_tray_quick_panel_at(app, None)
+}
+
+pub fn toggle_tray_quick_panel_at(
+    app: &tauri::AppHandle,
+    anchor: Option<services::tool_windows::ToolWindowAnchor>,
+) -> Result<(), String> {
     use services::surface_activity::{hide_surface, show_surface};
 
     services::tray_panel::invalidate(app);
@@ -86,11 +93,26 @@ pub fn toggle_tray_quick_panel(app: &tauri::AppHandle) -> Result<(), String> {
             hide_surface(&window).map_err(|error| format!("隐藏托盘窗口失败: {error}"))?;
         } else {
             services::tool_windows::prepare_tray_window(app)?;
-            window
-                .as_ref()
-                .window()
-                .move_window(Position::TrayCenter)
-                .map_err(|error| format!("移动托盘窗口失败: {error}"))?;
+            let anchor_x = if anchor.is_some() {
+                services::tool_windows::position_anchored_tool_window(
+                    &window,
+                    anchor,
+                    services::tool_windows::ToolWindowLogicalSize {
+                        width: 400.0,
+                        height: 500.0,
+                    },
+                    0,
+                    "Zero",
+                )?
+            } else {
+                window
+                    .as_ref()
+                    .window()
+                    .move_window(Position::TrayCenter)
+                    .map_err(|error| format!("移动托盘窗口失败: {error}"))?;
+                None
+            };
+            services::popover::publish(&window, anchor_x)?;
             show_surface(&window).map_err(|error| format!("显示托盘窗口失败: {error}"))?;
             window
                 .set_focus()
@@ -174,6 +196,7 @@ pub fn run() {
         .manage(plugins::market::PluginMarketState::default())
         .manage(services::status_bar::StatusBarState::default())
         .manage(services::tray_panel::TrayPanelState::default())
+        .manage(services::popover::PopoverState::default())
         .manage(services::main_navigation::MainNavigationState::default())
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
@@ -294,6 +317,7 @@ pub fn run() {
             commands::app::show_about_window,
             commands::app::show_main_window,
             commands::app::hide_tray_quick_panel,
+            commands::app::get_popover_placement,
             commands::app::show_preferences_window,
             commands::plugins::refresh_plugin_market,
             commands::plugins::list_market_plugins,

@@ -11,6 +11,14 @@ enum AppShellWindow {
     About,
 }
 
+#[tauri::command]
+pub fn get_popover_placement(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, crate::services::popover::PopoverState>,
+) -> Result<crate::services::popover::PopoverPlacement, String> {
+    state.snapshot(window.label())
+}
+
 struct AppShellWindowOptions {
     label: &'static str,
     title: &'static str,

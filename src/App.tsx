@@ -10,11 +10,12 @@ import {
 } from "./appShell/bundledPluginModules";
 import { BundledPluginSettings } from "./appShell/BundledPluginSettings";
 import { LazyPluginPanel } from "./appShell/LazyPluginPanel";
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ArrowLeft, Info, PanelLeftClose, PanelLeftOpen, PanelTop, Settings } from "lucide-react";
 import { PluginNavigation } from "./appShell/PluginNavigation";
 import { useCompactSidebar } from "./appShell/useCompactSidebar";
 import { useMainNavigation } from "./appShell/useMainNavigation";
 import { PresentationActivity } from "./core/windowing/PresentationActivity";
+import { AnchoredPopover } from "./core/windowing/AnchoredPopover";
 import { PRODUCT_NAME } from "./brand/identity";
 import { StatusBarGlyph } from "./components/StatusBarGlyph";
 import { ExtensionSurface } from "./core/pluginHost/ExtensionSurface";
@@ -335,100 +336,81 @@ export function TrayPanelApp() {
   );
   const [message, setMessage] = useState<ShellMessage | null>(null);
   usePluginMessages(setMessage);
-  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     const dismiss = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       event.preventDefault();
-      if (moreOpen) setMoreOpen(false);
-      else void runShellAction(appWindows.hideTrayQuickPanel, setMessage, t);
+      void runShellAction(appWindows.hideTrayQuickPanel, setMessage, t);
     };
-    const clearMenu = () => setMoreOpen(false);
     document.addEventListener("keydown", dismiss);
-    window.addEventListener("blur", clearMenu);
     return () => {
       document.removeEventListener("keydown", dismiss);
-      window.removeEventListener("blur", clearMenu);
     };
-  }, [moreOpen, resolvedLanguage]);
+  }, [resolvedLanguage]);
 
   const runAction = (action: () => Promise<void>) =>
-    runShellAction(action, setMessage, t).finally(() => setMoreOpen(false));
+    runShellAction(action, setMessage, t);
 
   return (
-    <main className="app-shell tray-shell">
-      <header className="app-header" data-tauri-drag-region>
-        <div>
-          <h1>{PRODUCT_NAME}</h1>
-        </div>
-        <span className="shell-badge">
-          {visiblePlugins.length}/{totalPluginCount} {t("app.pluginCount")}
-        </span>
-      </header>
-
-      <StatusBarFallbackRow
-        disabled={statusBar.isBusy}
-        items={statusBar.fallbackItems}
-        t={t}
-        onRunItem={(itemId) => runAction(() => statusBar.runItemAction(itemId))}
-      />
-
-      <PluginNavigation activePluginId={activePlugin?.id} plugins={visiblePlugins} variant="strip" t={t} onSelect={setSelectedPlugin} />
-
-      <div className="tray-plugin-content">{pluginPanel(activePlugin, resolvedLanguage, "tray")}</div>
-
-      {message ? <p className={`shell-message ${message.tone}`}>{message.text}</p> : null}
-
-      <footer className="tray-actions" aria-label={t("shell.systemActions")}>
-        <button
-          type="button"
-          className="tray-icon-action"
-          title={t("nav.preferences")}
-          aria-label={t("nav.preferences")}
-          onClick={() => runAction(appWindows.openPreferencesWindow)}
-        >
-          ⚙
-        </button>
-        <button
-          type="button"
-          className="tray-primary-action"
-          onClick={() => runAction(appWindows.openMainWindow)}
-        >
-          {t("shell.openZero")}
-        </button>
-        <button
-          type="button"
-          className="tray-icon-action"
-          title={t("shell.more")}
-          aria-label={t("shell.more")}
-          aria-expanded={moreOpen}
-          onClick={() => setMoreOpen((open) => !open)}
-        >
-          ⋯
-        </button>
-
-        {moreOpen ? (
-          <div className="tray-more-menu" role="menu">
+    <AnchoredPopover tone="tray">
+      <main className="app-shell tray-shell">
+        <header className="app-header" data-tauri-drag-region>
+          <div>
+            <h1>{PRODUCT_NAME}</h1>
+          </div>
+          <div className="tray-header-actions">
+            <span className="shell-badge">
+              {visiblePlugins.length}/{totalPluginCount} {t("app.pluginCount")}
+            </span>
             <button
               type="button"
-              role="menuitem"
+              className="tray-system-action"
+              title={t("nav.preferences")}
+              aria-label={t("nav.preferences")}
+              onClick={() => runAction(appWindows.openPreferencesWindow)}
+            >
+              <Settings aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="tray-system-action"
+              title={t("shell.aboutZero")}
+              aria-label={t("shell.aboutZero")}
               onClick={() => runAction(appWindows.openAboutWindow)}
             >
-              {t("shell.aboutZero")}
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="danger"
-              onClick={() => runAction(appWindows.quitApp)}
-            >
-              {t("shell.exitStatusBar")}
+              <Info aria-hidden="true" />
             </button>
           </div>
-        ) : null}
-      </footer>
-    </main>
+        </header>
+
+        <StatusBarFallbackRow
+          disabled={statusBar.isBusy}
+          items={statusBar.fallbackItems}
+          t={t}
+          onRunItem={(itemId) => runAction(() => statusBar.runItemAction(itemId))}
+        />
+
+        <div className="tray-tool-row">
+          <PluginNavigation activePluginId={activePlugin?.id} plugins={visiblePlugins} variant="strip" t={t} onSelect={setSelectedPlugin} />
+          <div className="tray-workspace-action">
+            <button
+              type="button"
+              className="tray-system-action"
+              title={t("shell.openZero")}
+              aria-label={t("shell.openZero")}
+              onClick={() => runAction(appWindows.openMainWindow)}
+            >
+              <PanelTop aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
+        <div className="tray-plugin-content">{pluginPanel(activePlugin, resolvedLanguage, "tray")}</div>
+
+        {message ? <p className={`shell-message ${message.tone}`}>{message.text}</p> : null}
+      </main>
+    </AnchoredPopover>
   );
 }
 

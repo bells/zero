@@ -5,6 +5,7 @@ import { resolveLanguage } from "../../core/preferences/i18n";
 import { normalizePreferences } from "../../core/preferences/preferencesModel";
 import { readStoredPreferences } from "../../core/preferences/preferencesStorage";
 import { createBingWallpaperTranslator } from "./i18n";
+import { AnchoredPopover } from "../../core/windowing/AnchoredPopover";
 
 export default function PaperApp() {
   const preferences = normalizePreferences(
@@ -30,8 +31,10 @@ export default function PaperApp() {
   }, [dismiss]);
 
   return (
-    <main className="paper-window">
-      <BingWallpaperPanel t={t} />
-    </main>
+    <AnchoredPopover tone="paper">
+      <main className="paper-window">
+        <BingWallpaperPanel t={t} />
+      </main>
+    </AnchoredPopover>
   );
 }

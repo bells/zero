@@ -929,7 +929,10 @@ fn run_grouped_status_item_action(
                 button_state: MouseButtonState::Up,
             },
         );
-        return crate::toggle_tray_quick_panel(app);
+        return crate::toggle_tray_quick_panel_at(
+            app,
+            grouped_tool_window_anchor(app, grouped_primary_cell_rect(rect, item_count)),
+        );
     }
 
     match native_status_bar_activation(item.plugin_name.as_deref()) {
@@ -955,7 +958,7 @@ fn run_grouped_status_item_action(
                     &item.id,
                     rect,
                 )
-                .and_then(paper_window_anchor);
+                .and_then(|rect| grouped_tool_window_anchor(app, rect));
                 crate::commands::bing_wallpaper::toggle_paper_window(app, anchor)
             }
             #[cfg(not(feature = "bundled-tools"))]
@@ -1030,16 +1033,30 @@ fn handle_grouped_status_item_event(tray: &TrayIcon, event: TrayIconEvent) -> Re
     Ok(())
 }
 
-#[cfg(feature = "bundled-tools")]
-fn paper_window_anchor(
+#[cfg(target_os = "macos")]
+fn grouped_tool_window_anchor(
+    app: &tauri::AppHandle,
     rect: tauri::Rect,
-) -> Option<crate::commands::bing_wallpaper::PaperWindowAnchor> {
-    tool_window_anchor(rect)
+) -> Option<crate::services::tool_windows::ToolWindowAnchor> {
+    let scale_factor = app
+        .tray_by_id(PRIMARY_STATUS_ITEM_ID)?
+        .with_inner_tray_icon(|inner| {
+            let mtm = objc2_foundation::MainThreadMarker::new()?;
+            Some(
+                inner
+                    .ns_status_item()?
+                    .button(mtm)?
+                    .window()?
+                    .backingScaleFactor(),
+            )
+        })
+        .ok()??;
+    tool_window_anchor(rect, scale_factor)
 }
 
-#[cfg(feature = "bundled-tools")]
 fn tool_window_anchor(
     rect: tauri::Rect,
+    scale_factor: f64,
 ) -> Option<crate::services::tool_windows::ToolWindowAnchor> {
     match (rect.position, rect.size) {
         (tauri::Position::Physical(position), tauri::Size::Physical(size)) => {
@@ -1048,6 +1065,7 @@ fn tool_window_anchor(
                 y: position.y,
                 width: size.width,
                 height: size.height,
+                scale_factor,
             })
         }
         _ => None,
@@ -1082,6 +1100,7 @@ fn show_grouped_status_item_menu(
     let app = tray.app_handle();
     let item = grouped_status_item_target(app, cursor_x, rect)?;
     let settings = ensure_status_bar_settings(app, &plugin_records(app)?)?;
+    #[cfg(feature = "bundled-tools")]
     let snap = item.plugin_name.as_deref() == Some(ZERO_SNAP_PLUGIN_ID);
     let result = (|| {
         #[cfg(feature = "bundled-tools")]
@@ -1096,12 +1115,12 @@ fn show_grouped_status_item_menu(
 
         tray.set_menu(Some(menu))
             .map_err(|error| format!("failed to update grouped status bar menu: {error}"))?;
-        if snap {
+        {
             let items = status_bar_items(app)?;
             let index = grouped_status_item_ids(&items, settings.plugin_items_collapsed)
                 .iter()
                 .position(|id| id == &item.id)
-                .ok_or("Snap cell unavailable")?;
+                .ok_or("status bar cell unavailable")?;
             tray.with_inner_tray_icon(move |inner| {
                 let mtm = objc2_foundation::MainThreadMarker::new()
                     .ok_or("menu requires native main thread")?;
@@ -1147,9 +1166,6 @@ fn show_grouped_status_item_menu(
                 Ok::<_, String>(())
             })
             .map_err(|error| error.to_string())??;
-        } else {
-            tray.with_inner_tray_icon(|inner| inner.show_menu())
-                .map_err(|error| format!("failed to show grouped status bar menu: {error}"))?;
         }
         Ok(())
     })();
@@ -2080,12 +2096,13 @@ mod tests {
         let cell = grouped_status_item_cell_rect(&items, false, "zero.snap.status", grouped_rect)
             .expect("Snap should resolve to its grouped status-bar cell");
         assert_eq!(
-            tool_window_anchor(cell),
+            tool_window_anchor(cell, 2.0),
             Some(crate::services::tool_windows::ToolWindowAnchor {
                 x: -88,
                 y: 0,
                 width: 44,
                 height: 44,
+                scale_factor: 2.0,
             })
         );
     }

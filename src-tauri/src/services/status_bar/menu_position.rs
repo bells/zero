@@ -18,6 +18,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn opens_rightward_from_each_cell_and_only_shifts_at_screen_edges() {
+        let screen = MenuRect {
+            x: -1440.0,
+            y: 0.0,
+            width: 1440.0,
+            height: 878.0,
+        };
+        for (cell_x, expected_x) in [(-1300.0, -1300.0), (-40.0, -240.0), (-1450.0, -1440.0)] {
+            let cell = MenuRect {
+                x: cell_x,
+                y: 878.0,
+                width: 22.0,
+                height: 22.0,
+            };
+            assert_eq!(popup_origin(cell, screen, 240.0), (expected_x, 874.0));
+        }
+    }
+
+    #[test]
     fn anchors_below_menu_bar_and_keeps_right_edge_visible() {
         let cell = MenuRect {
             x: 1400.0,
