@@ -1,9 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="#f7f7f2"/>
-  <path d="M68 92h1064M68 550h1064" stroke="#d9dbd6"/>
-  <g transform="translate(70 140) scale(3)" fill="#08717d"><path d="M12 2.1C9 2.1 6.48 5.29 5.04 9.14C2.64 15.41 5.28 21.24 12 21.9C18.72 21.24 21.36 15.41 18.96 9.14C17.52 5.29 15 2.1 12 2.1ZM8.54 17.34L17.34 8.54A1.32 1.32 0 0 0 15.46 6.66L6.66 15.46A1.32 1.32 0 0 0 8.54 17.34Z" fill-rule="evenodd"/></g>
-  <text x="70" y="330" font-family="sans-serif" font-size="80" font-weight="600" fill="#171a1f">Close at hand.</text>
-  <text x="70" y="430" font-family="sans-serif" font-size="80" font-weight="600" fill="#08717d">Room to work.</text>
-  <text x="70" y="510" font-family="sans-serif" font-size="23" fill="#595e63">Zero / Open-source desktop toolbox</text>
-  <text x="1080" y="165" text-anchor="end" font-family="sans-serif" font-size="40" font-weight="600" fill="#171a1f">Zero</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#f7f7f2"/><path stroke="#d9dbd6" d="M68 92h1064M68 550h1064"/><g fill="#08717d"><path fill-rule="evenodd" d="M12 2.1C9 2.1 6.48 5.29 5.04 9.14C2.64 15.41 5.28 21.24 12 21.9C18.72 21.24 21.36 15.41 18.96 9.14C17.52 5.29 15 2.1 12 2.1ZM8.54 17.34L17.34 8.54A1.32 1.32 0 0 0 15.46 6.66L6.66 15.46A1.32 1.32 0 0 0 8.54 17.34Z" transform="translate(70 140) scale(3)"/></g><text x="70" y="330" fill="#171a1f" font-family="sans-serif" font-size="80" font-weight="600">Close at hand.</text><text x="70" y="430" fill="#08717d" font-family="sans-serif" font-size="80" font-weight="600">Room to work.</text><text x="70" y="510" fill="#595e63" font-family="sans-serif" font-size="23">Zero / Open-source desktop toolbox</text><text x="1080" y="165" fill="#171a1f" font-family="sans-serif" font-size="40" font-weight="600" text-anchor="end">Zero</text></svg>
