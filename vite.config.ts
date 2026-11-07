@@ -32,6 +32,17 @@ export default defineConfig(async () => ({
   define: {
     "import.meta.env.VITE_ZERO_HAS_FILE": JSON.stringify(profile.tools.includes("file")),
   },
+  // A late optimizer reload destroys the hidden engine's active job context.
+  optimizeDeps: {
+    // Website/toolchain HTML belongs to independent projects, not this desktop entry.
+    entries: ["index.html"],
+    include: [
+      "@tauri-apps/api/core", "@tauri-apps/api/event", "@tauri-apps/api/window",
+      "react", "react-dom", "react-dom/client", "react/jsx-runtime", "react/jsx-dev-runtime",
+      "lucide-react", "semver/functions/satisfies.js", "semver/functions/valid.js",
+      ...(profile.tools.includes("file") ? ["pdfjs-dist", "docx", "docx-preview"] : []),
+    ],
+  },
   // Profile bundles must never copy stale File assets prepared by a full build.
   publicDir: profile.name === "full" ? "public" : false,
 

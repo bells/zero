@@ -42,13 +42,24 @@ impl ZeroFileBuiltInProvider {
         }
     }
 
+    pub fn docx_to_pdf_windows(app: tauri::AppHandle, bridge: Arc<FileEngineBridge>) -> Self {
+        Self {
+            app,
+            bridge,
+            provider_id: FileConversionProviderId::ZeroFileDocxToPdfWindows,
+        }
+    }
+
     fn is_platform_supported(&self) -> bool {
         match self.provider_id {
             FileConversionProviderId::ZeroFilePdfToDocx => {
                 cfg!(any(target_os = "macos", target_os = "windows"))
             }
             FileConversionProviderId::ZeroFileDocxToPdfMacos => {
-                super::native_print::native_pdf_export_available()
+                cfg!(target_os = "macos") && super::native_print::native_pdf_export_available()
+            }
+            FileConversionProviderId::ZeroFileDocxToPdfWindows => {
+                super::native_print::windows_print_prototype_enabled()
             }
             _ => false,
         }
@@ -91,7 +102,8 @@ impl FileConversionProvider for ZeroFileBuiltInProvider {
     fn supported_directions(&self) -> &[FileConversionDirection] {
         match self.provider_id {
             FileConversionProviderId::ZeroFilePdfToDocx => &PDF_TO_DOCX,
-            FileConversionProviderId::ZeroFileDocxToPdfMacos => &DOCX_TO_PDF,
+            FileConversionProviderId::ZeroFileDocxToPdfMacos
+            | FileConversionProviderId::ZeroFileDocxToPdfWindows => &DOCX_TO_PDF,
             _ => &[],
         }
     }
@@ -105,6 +117,12 @@ impl FileConversionProvider for ZeroFileBuiltInProvider {
             display_name: match self.provider_id {
                 FileConversionProviderId::ZeroFilePdfToDocx => "Zero File PDF Engine",
                 FileConversionProviderId::ZeroFileDocxToPdfMacos => "Zero File macOS Print Engine",
+                FileConversionProviderId::ZeroFileDocxToPdfWindows if supported => {
+                    "Zero File Windows Print Engine (experimental)"
+                }
+                FileConversionProviderId::ZeroFileDocxToPdfWindows => {
+                    "Zero File Windows Print Engine"
+                }
                 _ => "Zero File Engine",
             }
             .into(),
@@ -114,6 +132,9 @@ impl FileConversionProvider for ZeroFileBuiltInProvider {
             package_version: engine_version.clone().ok(),
             platform_minimum: match self.provider_id {
                 FileConversionProviderId::ZeroFileDocxToPdfMacos => Some("macOS 11".into()),
+                FileConversionProviderId::ZeroFileDocxToPdfWindows => {
+                    Some("Windows WebView2 (experimental debug prototype)".into())
+                }
                 _ => None,
             },
             quality_profiles: match self.provider_id {
@@ -121,7 +142,8 @@ impl FileConversionProvider for ZeroFileBuiltInProvider {
                 FileConversionProviderId::ZeroFilePdfToDocx => {
                     vec![FileConversionQualityProfile::EditableReconstruction]
                 }
-                FileConversionProviderId::ZeroFileDocxToPdfMacos => {
+                FileConversionProviderId::ZeroFileDocxToPdfMacos
+                | FileConversionProviderId::ZeroFileDocxToPdfWindows => {
                     vec![FileConversionQualityProfile::WebRenderedPdf]
                 }
                 _ => Vec::new(),

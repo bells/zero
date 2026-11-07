@@ -595,8 +595,10 @@ def verify_docx(path: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--ocr-only", action="store_true", help="Generate only synthetic OCR fixtures; preserve existing corpus.")
-    parser.add_argument("--editable-only", action="store_true", help="Generate the editable PDF corpus without rewriting existing fixtures.")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--ocr-only", action="store_true", help="Generate only synthetic OCR fixtures; preserve existing corpus.")
+    modes.add_argument("--editable-only", action="store_true", help="Generate the editable PDF corpus without rewriting existing fixtures.")
+    modes.add_argument("--quality-only", action="store_true", help="Generate deterministic future quality inputs/targets; preserve the legacy corpus.")
     parser.add_argument(
         "--cjk-font",
         type=Path,
@@ -611,6 +613,11 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     global PDF_FONT_PATH
     args = parse_args()
+    if args.quality_only:
+        from file_conversion_quality_fixtures import generate
+        manifest = generate(OUTPUT / "quality", OUTPUT, embed_docx_font, obfuscate_openxml_font)
+        print(f"Generated {len(manifest['cases'])} quality document cases and {len(manifest['scenarios'])} unexecuted scenario contracts.")
+        return
     if args.ocr_only:
         build_ocr_corpus()
         return

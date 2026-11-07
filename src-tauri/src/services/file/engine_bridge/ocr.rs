@@ -16,6 +16,78 @@ use tauri::Manager;
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileOcrBounds {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileOcrRegion {
+    id: u16,
+    bounds: FileOcrBounds,
+    page_width: f64,
+    page_height: f64,
+}
+#[derive(Default)]
+pub(super) struct FileOcrBudget {
+    regions: HashMap<(u32, u16), (f64, f64)>,
+    page_pixels: HashMap<u32, u64>,
+    uploaded_bytes: usize,
+}
+impl FileOcrBudget {
+    fn reserve(&mut self, input: &FilePageOcrInput) -> Result<(), OcrError> {
+        validate_input(input)?;
+        let key = (input.page_number, input.region.id);
+        if self.regions.contains_key(&key) {
+            return Err(OcrError::Unauthorized);
+        }
+        if self
+            .regions
+            .keys()
+            .filter(|(page, _)| *page == input.page_number)
+            .count()
+            >= 16
+        {
+            return Err(OcrError::ResourceLimit);
+        }
+        if self.regions.iter().any(|((page, _), size)| {
+            *page == input.page_number
+                && *size != (input.region.page_width, input.region.page_height)
+        }) {
+            return Err(OcrError::InvalidInput);
+        }
+        let pixels = u64::from(input.width) * u64::from(input.height);
+        let total = self
+            .page_pixels
+            .get(&input.page_number)
+            .copied()
+            .unwrap_or_default()
+            + pixels;
+        if total > 24_000_000 {
+            return Err(OcrError::ResourceLimit);
+        }
+        self.page_pixels.insert(input.page_number, total);
+        self.regions
+            .insert(key, (input.region.page_width, input.region.page_height));
+        Ok(())
+    }
+    fn upload(&mut self, bytes: usize) -> Result<(), OcrError> {
+        let total = self
+            .uploaded_bytes
+            .checked_add(bytes)
+            .ok_or(OcrError::ResourceLimit)?;
+        if total > 256 * 1024 * 1024 {
+            return Err(OcrError::ResourceLimit);
+        }
+        self.uploaded_bytes = total;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FilePageOcrInput {
     token: String,
     job_id: String,
@@ -23,6 +95,7 @@ pub struct FilePageOcrInput {
     page_number: u32,
     width: u32,
     height: u32,
+    region: FileOcrRegion,
 }
 struct Lease {
     input: FilePageOcrInput,
@@ -89,6 +162,37 @@ fn validate_input(input: &FilePageOcrInput) -> Result<(), OcrError> {
         return Err(OcrError::InvalidInput);
     }
     crate::services::ocr::validate_dimensions(input.width, input.height)?;
+    let region = &input.region;
+    let bounds = &region.bounds;
+    if region.id == 0
+        || region.id > 16
+        || ![
+            bounds.x,
+            bounds.y,
+            bounds.width,
+            bounds.height,
+            region.page_width,
+            region.page_height,
+        ]
+        .iter()
+        .all(|value| value.is_finite())
+        || bounds.x < 0.0
+        || bounds.y < 0.0
+        || bounds.width <= 0.0
+        || bounds.height <= 0.0
+        || region.page_width <= 0.0
+        || region.page_height <= 0.0
+        || region.page_width > 14_400.0
+        || region.page_height > 14_400.0
+        || bounds.x + bounds.width > region.page_width + 0.01
+        || bounds.y + bounds.height > region.page_height + 0.01
+        || f64::from(input.width) > bounds.width * (200.0 / 72.0) + 1.0
+        || f64::from(input.height) > bounds.height * (200.0 / 72.0) + 1.0
+        || (f64::from(input.width) / bounds.width - f64::from(input.height) / bounds.height).abs()
+            > 2.0 / bounds.width.min(bounds.height)
+    {
+        return Err(OcrError::InvalidInput);
+    }
     Ok(())
 }
 pub fn prepare_file_page_ocr(
@@ -117,9 +221,7 @@ pub fn prepare_file_page_ocr(
         .sessions
         .get_mut(&input.token)
         .ok_or(OcrError::Unauthorized)?;
-    if !session.ocr_pages.insert(input.page_number) {
-        return Err(OcrError::Unauthorized);
-    }
+    session.ocr_budget.reserve(&input)?;
     let token = super::random_token().map_err(|_| OcrError::ProviderUnavailable)?;
     let expires = parent_deadline.min(Instant::now() + Duration::from_secs(5));
     let expires_at_ms = super::now_ms()
@@ -155,6 +257,18 @@ pub async fn upload_file_page_ocr(
     }
     let bridge = Arc::clone(&app.state::<FileEngineBridgeState>().bridge);
     let parent_deadline = deadline(&bridge, &lease.input)?;
+    {
+        let mut runtime = bridge
+            .runtime
+            .lock()
+            .map_err(|_| OcrError::ProviderUnavailable)?;
+        runtime
+            .sessions
+            .get_mut(&lease.input.token)
+            .ok_or(OcrError::Unauthorized)?
+            .ocr_budget
+            .upload(bytes.len())?;
+    }
     let cancel = Arc::new(AtomicBool::new(false));
     let state = app.state::<OcrState>();
     let mut work = Box::pin(state.recognize(bytes, vec![], cancel.clone(), parent_deadline));
@@ -185,7 +299,44 @@ mod tests {
             page_number: 1,
             width: 1400,
             height: 1800,
+            region: FileOcrRegion {
+                id: 1,
+                bounds: FileOcrBounds {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 560.0,
+                    height: 720.0,
+                },
+                page_width: 560.0,
+                page_height: 720.0,
+            },
         }
+    }
+    #[test]
+    fn regions_validate_crop_geometry_and_share_page_and_document_budgets() {
+        let mut page = input();
+        assert!(validate_input(&page).is_ok());
+        page.region.bounds.x = 1.0;
+        assert_eq!(validate_input(&page), Err(OcrError::InvalidInput));
+        page.region.bounds.x = 0.0;
+        page.region.bounds.height = f64::NAN;
+        assert_eq!(validate_input(&page), Err(OcrError::InvalidInput));
+        let mut budget = FileOcrBudget::default();
+        let mut page = input();
+        assert!(budget.reserve(&page).is_ok());
+        assert_eq!(budget.reserve(&page), Err(OcrError::Unauthorized));
+        page.region.id = 2;
+        page.region.page_width = 600.0;
+        assert_eq!(budget.reserve(&page), Err(OcrError::InvalidInput));
+        page.region.page_width = 560.0;
+        for id in 2..=9 {
+            page.region.id = id;
+            assert!(budget.reserve(&page).is_ok());
+        }
+        page.region.id = 10;
+        assert_eq!(budget.reserve(&page), Err(OcrError::ResourceLimit));
+        assert!(budget.upload(256 * 1024 * 1024).is_ok());
+        assert_eq!(budget.upload(1), Err(OcrError::ResourceLimit));
     }
     #[test]
     fn leases_are_single_use_and_expire_without_exposing_paths() {
@@ -238,7 +389,8 @@ mod tests {
                 output_path: std::path::PathBuf::new(),
                 deadline: Instant::now() + Duration::from_secs(60),
                 sender,
-                ocr_pages: Default::default(),
+                ocr_budget: Default::default(),
+                print_lease: Arc::default(),
             },
         );
         assert!(deadline(&bridge, &page).is_ok());

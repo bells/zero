@@ -1,5 +1,7 @@
 tests/fixtures/fileConversion/*.pdf binary
 tests/fixtures/fileConversion/*.docx binary
+tests/fixtures/fileConversion/quality/*.pdf binary
+tests/fixtures/fileConversion/quality/*.docx binary
 tests/fixtures/ocr/*.pdf binary
 
 # Keep integrity-checked upstream license text verbatim, including trailing spaces.

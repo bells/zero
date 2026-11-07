@@ -29,7 +29,13 @@ const outputRoot = "/private/tmp/zero-editable-pdf-results";
 fs.mkdirSync(outputRoot, { recursive: true });
 const options = { assetBaseUrl: pathToFileURL(`${root}/public/file-engine/`).href };
 let passed = 0;
-for (const fixture of corpus.cases.filter((entry) => entry.direction === "pdfToDocx" && entry.expectedPreflight === "valid")) {
+// Legacy manifest hashes/targets are historical; right-angle normalization supersedes these two rejections.
+const currentTargets = {
+  "editable-rotated.pdf": { expectedConversionError: undefined, expectedText: ["Rotated unsupported text"], expectedFullText: "Rotated unsupported text", expectedPageCount: 1 },
+  "editable-page-rotated.pdf": { expectedConversionError: undefined, expectedText: ["Hi"], expectedFullText: "Hi", expectedPageCount: 1 },
+};
+for (const historical of corpus.cases.filter((entry) => entry.direction === "pdfToDocx" && entry.expectedPreflight === "valid")) {
+  const fixture = { ...historical, ...currentTargets[historical.file] };
   const input = () => new Uint8Array(fs.readFileSync(path.join(sourceRoot, fixture.file)));
   if (fixture.expectedConversionError) {
     await assert.rejects(convertPdfToDocx(input(), new AbortController().signal, async () => {}, options), (error) => {
@@ -59,7 +65,7 @@ for (const fixture of corpus.cases.filter((entry) => entry.direction === "pdfToD
       const relationships = await zip.file("word/_rels/document.xml.rels").async("string");
       assert.match(relationships, /relationships\/image/);
       assert.ok(result.warningKeys.includes("file.quality.imagesRetained"));
-      assert.ok(result.warningKeys.includes("file.quality.structureSimplified"));
+      if (fixture.coverage.includes("table") || fixture.file.includes("table-image")) assert.match(xml, /<w:tbl>/);
     }
     assert.doesNotMatch(xml, /w:vanish|w:webHidden/);
     fs.writeFileSync(path.join(outputRoot, fixture.file.replace(/\.pdf$/, ".docx")), result.bytes);

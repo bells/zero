@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { FileConversionJobSnapshot } from "./contracts";
+import type { FileConversionJobSnapshot, FileConversionCapabilitySnapshot, FileConversionQueueSnapshot } from "./contracts";
 import {
   createFileConversionService,
   type FileConversionCommand,
@@ -14,4 +14,8 @@ export const fileService = createFileConversionService(
     invoke<T>(command, args),
   async (eventName, handler) =>
     listen<FileConversionJobSnapshot>(eventName, (event) => handler(event.payload)),
+  async (eventName, handler) =>
+    listen<FileConversionCapabilitySnapshot>(eventName, (event) => handler(event.payload)),
+  async (eventName, handler) =>
+    listen<FileConversionQueueSnapshot>(eventName, (event) => handler(event.payload)),
 );

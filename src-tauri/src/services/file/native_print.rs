@@ -1,5 +1,35 @@
 use std::path::Path;
+use std::sync::{
+    atomic::{AtomicU8, Ordering},
+    Arc,
+};
 use std::time::Duration;
+
+#[derive(Default)]
+pub struct NativePrintLease(AtomicU8);
+impl NativePrintLease {
+    pub fn start(&self) -> Result<(), String> {
+        self.0
+            .compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire)
+            .map(|_| ())
+            .map_err(|_| "A native export has already been started for this engine run.".into())
+    }
+    pub fn is_active(&self) -> bool {
+        self.0.load(Ordering::Acquire) == 1
+    }
+    pub fn finish(&self) -> Result<(), String> {
+        self.0
+            .compare_exchange(1, 2, Ordering::AcqRel, Ordering::Acquire)
+            .map(|_| ())
+            .map_err(|_| "The native export authority has been revoked.".into())
+    }
+    pub fn revoke(&self) {
+        self.0.store(3, Ordering::Release);
+    }
+    pub fn is_finished(&self) -> bool {
+        self.0.load(Ordering::Acquire) == 2
+    }
+}
 
 const MAX_CAPTURED_PAGE_BYTES: usize = 32 * 1024 * 1024;
 const MAX_CAPTURED_DOCUMENT_BYTES: usize = 128 * 1024 * 1024;
@@ -116,6 +146,7 @@ pub fn print_engine_webview_to_pdf(
     output_path: &Path,
     page_rects: &[super::engine_bridge::FileEnginePageRect],
     timeout: Duration,
+    lease: Arc<NativePrintLease>,
 ) -> Result<(), String> {
     use std::sync::mpsc;
     use std::time::Instant;
@@ -133,67 +164,87 @@ pub fn print_engine_webview_to_pdf(
     if page_rects.is_empty() {
         return Err("The rendered document did not contain capturable pages.".into());
     }
-    let requested_pages = page_rects.len();
-    let rects = page_rects.to_vec();
-    let (sender, receiver) = mpsc::channel();
-    window
-        .with_webview(move |platform| {
-            let Some(main_thread_marker) = MainThreadMarker::new() else {
-                let _ = sender.send(Err(
-                    "The WebKit PDF capture did not run on the main thread.".into(),
-                ));
-                return;
-            };
-            let webview: &WKWebView = unsafe { &*platform.inner().cast() };
-            for (index, rect) in rects.into_iter().enumerate() {
-                let configuration = unsafe { WKPDFConfiguration::new(main_thread_marker) };
+    if !lease.is_active() {
+        return Err("cancelled".into());
+    }
+    let deadline = Instant::now() + timeout;
+    let mut pages = CapturedDocument::new(page_rects.len())?;
+    for (index, rect) in page_rects.iter().cloned().enumerate() {
+        if !lease.is_active() {
+            return Err("cancelled".into());
+        }
+        let (sender, receiver) = mpsc::channel::<Result<Vec<u8>, String>>();
+        let capture_lease = Arc::clone(&lease);
+        window
+            .with_webview(move |platform| {
+                let Some(marker) = MainThreadMarker::new() else {
+                    let _ = sender.send(Err("The PDF capture requires the UI thread.".into()));
+                    return;
+                };
+                if !capture_lease.is_active() {
+                    let _ = sender.send(Err("cancelled".into()));
+                    return;
+                }
+                let webview: &WKWebView = unsafe { &*platform.inner().cast() };
+                let configuration = unsafe { WKPDFConfiguration::new(marker) };
                 unsafe {
                     configuration.setRect(CGRect::new(
                         CGPoint::new(rect.x, rect.y),
                         CGSize::new(rect.width, rect.height),
                     ));
                 }
-                let page_sender = sender.clone();
-                let completion = RcBlock::new(move |data: *mut NSData, error: *mut NSError| {
+                let completed = RcBlock::new(move |data: *mut NSData, error: *mut NSError| {
                     let result = unsafe {
-                        if !error.is_null() {
-                            Err(format!(
-                                "WebKit could not capture a PDF page: {}",
-                                (&*error).localizedDescription()
-                            ))
+                        if !capture_lease.is_active() {
+                            Err("cancelled".into())
+                        } else if !error.is_null() {
+                            Err("WebKit could not capture a PDF page.".into())
                         } else if data.is_null() {
-                            Err("WebKit returned no PDF data for a rendered page.".into())
+                            Err("WebKit returned no PDF page.".into())
+                        } else if (&*data).length() > MAX_CAPTURED_PAGE_BYTES {
+                            Err("The captured page exceeded its byte limit.".into())
                         } else {
-                            let bytes = (&*data).to_vec();
-                            Ok((index, bytes))
+                            Ok((&*data).to_vec())
                         }
                     };
-                    let _ = page_sender.send(result);
+                    let _ = sender.send(result);
                 });
                 unsafe {
                     webview.createPDFWithConfiguration_completionHandler(
                         Some(&configuration),
-                        &completion,
+                        &completed,
                     );
                 }
+            })
+            .map_err(|_| "The WebKit PDF capture could not start.")?;
+        loop {
+            if !lease.is_active() {
+                return Err("cancelled".into());
             }
-        })
-        .map_err(|error| format!("The WebKit PDF capture could not start: {error}"))?;
-
-    let deadline = Instant::now() + timeout;
-    let mut pages = CapturedDocument::new(requested_pages)?;
-    for _ in 0..requested_pages {
-        let remaining = deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() {
-            return Err("The WebKit PDF capture timed out.".into());
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                lease.revoke();
+                return Err("timeout".into());
+            }
+            match receiver.recv_timeout(remaining.min(Duration::from_millis(50))) {
+                Ok(result) => {
+                    pages.accept(index, result?)?;
+                    break;
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => continue,
+                Err(_) => return Err("The WebKit PDF capture stopped.".into()),
+            }
         }
-        let (index, bytes) = receiver
-            .recv_timeout(remaining)
-            .map_err(|_| "The WebKit PDF capture timed out.".to_string())??;
-        pages.accept(index, bytes)?;
     }
     let pages = pages.finish()?;
+    if !lease.is_active() {
+        return Err("cancelled".into());
+    }
     merge_pdf_pages(&pages, output_path)?;
+    if !lease.is_active() {
+        let _ = std::fs::remove_file(output_path);
+        return Err("cancelled".into());
+    }
     validate_printed_pdf(output_path)
 }
 
@@ -248,17 +299,24 @@ fn merge_pdf_pages(pages: &[Vec<u8>], output_path: &Path) -> Result<(), String> 
     Ok(())
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub fn print_engine_webview_to_pdf(
     _app: &tauri::AppHandle,
     _output_path: &Path,
     _page_rects: &[super::engine_bridge::FileEnginePageRect],
     _timeout: Duration,
+    _lease: Arc<NativePrintLease>,
 ) -> Result<(), String> {
     Err("The built-in DOCX-to-PDF adapter requires macOS 11 or newer.".into())
 }
 
 fn validate_printed_pdf(path: &Path) -> Result<(), String> {
+    let size = std::fs::metadata(path)
+        .map_err(|_| "The native PDF output is missing.")?
+        .len();
+    if size > MAX_CAPTURED_DOCUMENT_BYTES as u64 {
+        return Err("The native PDF output exceeded its byte limit.".into());
+    }
     let bytes = std::fs::read(path).map_err(|_| "The native PDF output is missing.".to_string())?;
     if bytes.len() < 8
         || !bytes.starts_with(b"%PDF-")
@@ -274,6 +332,17 @@ mod tests {
     use std::fs;
 
     use super::*;
+
+    #[test]
+    fn native_print_lease_rejects_duplicate_start_and_late_completion() {
+        let lease = NativePrintLease::default();
+        lease.start().unwrap();
+        assert!(lease.start().is_err());
+        lease.revoke();
+        assert!(!lease.is_active());
+        assert!(lease.finish().is_err());
+        assert!(!lease.is_finished());
+    }
 
     fn pdf_bytes(size: usize) -> Vec<u8> {
         let mut bytes = b"%PDF-1.3\n/Page\n".to_vec();
@@ -369,4 +438,151 @@ mod tests {
         }
         fs::remove_file(output).unwrap();
     }
+}
+
+// Kept unavailable by capability gating until the Windows corpus is qualified on-device.
+#[cfg(target_os = "windows")]
+pub fn print_engine_webview_to_pdf(
+    app: &tauri::AppHandle,
+    output_path: &Path,
+    page_rects: &[super::engine_bridge::FileEnginePageRect],
+    timeout: Duration,
+    lease: Arc<NativePrintLease>,
+) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use std::sync::mpsc;
+    use std::time::Instant;
+    use tauri::Manager;
+    use webview2_com::{
+        Microsoft::Web::WebView2::Win32::{
+            ICoreWebView2Environment6, ICoreWebView2_7, COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE,
+            COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT,
+        },
+        PrintToPdfCompletedHandler,
+    };
+    use windows_core_webview::{Interface, PCWSTR};
+    let first = page_rects.first().ok_or("unsupportedInput")?;
+    if page_rects.iter().any(|page| {
+        (page.width - first.width).abs() > 1.0 || (page.height - first.height).abs() > 1.0
+    }) {
+        return Err("unsupportedInput".into());
+    }
+    let (paper_width, paper_height) = (first.width / 96.0, first.height / 96.0);
+    if !(1.0..=100.0).contains(&paper_width) || !(1.0..=100.0).contains(&paper_height) {
+        return Err("unsupportedInput".into());
+    }
+    let mut random = [0u8; 16];
+    getrandom::fill(&mut random)
+        .map_err(|_| "The native export staging token could not be generated.")?;
+    let name: String = random.iter().map(|byte| format!("{byte:02x}")).collect();
+    let staging = output_path.with_file_name(format!("native-{name}.pdf"));
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&staging)
+        .map_err(|_| "The private native PDF staging file could not be reserved.")?;
+    let result = (|| {
+        let window = app
+            .get_webview_window(super::engine_bridge::FILE_ENGINE_LABEL)
+            .ok_or("The File engine WebView is unavailable.")?;
+        let path: Vec<u16> = staging.as_os_str().encode_wide().chain(Some(0)).collect();
+        let callback_path = staging.clone();
+        let callback_lease = Arc::clone(&lease);
+        let (sender, receiver) = mpsc::channel::<Result<(), String>>();
+        window
+            .with_webview(move |platform| {
+                if !callback_lease.is_active() {
+                    let _ = sender.send(Err("cancelled".into()));
+                    return;
+                }
+                let started = (|| -> windows_core_webview::Result<()> {
+                    unsafe {
+                        let webview = platform
+                            .controller()
+                            .CoreWebView2()?
+                            .cast::<ICoreWebView2_7>()?;
+                        let environment =
+                            platform.environment().cast::<ICoreWebView2Environment6>()?;
+                        let settings = environment.CreatePrintSettings()?;
+                        settings.SetOrientation(if paper_width > paper_height {
+                            COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE
+                        } else {
+                            COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT
+                        })?;
+                        settings.SetPageWidth(paper_width.min(paper_height))?;
+                        settings.SetPageHeight(paper_width.max(paper_height))?;
+                        settings.SetScaleFactor(1.0)?;
+                        settings.SetMarginTop(0.0)?;
+                        settings.SetMarginBottom(0.0)?;
+                        settings.SetMarginLeft(0.0)?;
+                        settings.SetMarginRight(0.0)?;
+                        settings.SetShouldPrintBackgrounds(true)?;
+                        settings.SetShouldPrintSelectionOnly(false)?;
+                        settings.SetShouldPrintHeaderAndFooter(false)?;
+                        let completed_sender = sender.clone();
+                        let callback =
+                            PrintToPdfCompletedHandler::create(Box::new(move |status, success| {
+                                let result = if !callback_lease.is_active() {
+                                    let _ = std::fs::remove_file(&callback_path);
+                                    Err("cancelled".into())
+                                } else if status.is_err() || !success {
+                                    Err("WebView2 native PDF export failed.".into())
+                                } else {
+                                    Ok(())
+                                };
+                                let _ = completed_sender.send(result);
+                                Ok(())
+                            }));
+                        webview.PrintToPdf(PCWSTR(path.as_ptr()), &settings, &callback)?;
+                        Ok(())
+                    }
+                })();
+                if started.is_err() {
+                    let _ = sender.send(Err("engineUnavailable".into()));
+                }
+            })
+            .map_err(|_| "The WebView2 PDF export could not be scheduled.")?;
+        let deadline = Instant::now() + timeout;
+        loop {
+            if !lease.is_active() {
+                return Err("cancelled".into());
+            }
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                lease.revoke();
+                return Err("timeout".into());
+            }
+            match receiver.recv_timeout(remaining.min(Duration::from_millis(50))) {
+                Ok(result) => {
+                    result?;
+                    break;
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => continue,
+                Err(_) => return Err("The WebView2 native export callback was lost.".into()),
+            }
+        }
+        if !lease.is_active() {
+            return Err("cancelled".into());
+        }
+        validate_printed_pdf(&staging)?;
+        // hard_link preserves an existing destination and stays inside this job's private directory.
+        std::fs::hard_link(&staging, output_path).map_err(|_| {
+            "The native staging result could not be published to its private job output."
+        })?;
+        if !lease.is_active() {
+            let _ = std::fs::remove_file(output_path);
+            return Err("cancelled".into());
+        }
+        Ok(())
+    })();
+    let _ = std::fs::remove_file(&staging);
+    result
+}
+
+pub fn windows_print_prototype_enabled() -> bool {
+    cfg!(all(target_os = "windows", debug_assertions))
+        && std::env::var("ZERO_FILE_WINDOWS_PRINT_PROTOTYPE")
+            .ok()
+            .as_deref()
+            == Some("1")
 }

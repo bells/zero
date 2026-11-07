@@ -27,12 +27,12 @@ use super::provider::{
 };
 
 pub const FILE_ENGINE_LABEL: &str = "zero-file-engine";
-pub const FILE_ENGINE_VERSION: &str = "1.2.0";
+pub const FILE_ENGINE_VERSION: &str = "1.3.0";
 
 pub(super) fn supports_editable_engine(version: &str) -> bool {
     version == FILE_ENGINE_VERSION
 }
-pub const FILE_ENGINE_PROTOCOL_VERSION: u16 = 2;
+pub const FILE_ENGINE_PROTOCOL_VERSION: u16 = 3;
 const FILE_ENGINE_PLUGIN_ID: &str = ZERO_FILE_PLUGIN_ID;
 const FILE_ENGINE_RUN_EVENT: &str = "zero://file-engine/run";
 const FILE_ENGINE_CANCEL_EVENT: &str = "zero://file-engine/cancel";
@@ -57,6 +57,7 @@ pub struct FileEngineRunRequest {
     deadline_ms: u64,
     max_input_bytes: u64,
     ocr_available: bool,
+    print_platform: &'static str,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -108,9 +109,12 @@ pub struct FileEngineCompletionRequest {
     quality_profile: Option<FileConversionQualityProfile>,
     #[serde(default)]
     warning_keys: Vec<String>,
+    #[serde(default)]
+    quality_issues: Vec<super::contracts::FileConversionQualityIssue>,
     page_count: Option<u32>,
     error_code: Option<FileEngineErrorCode>,
-    diagnostic: Option<String>,
+    #[serde(rename = "diagnostic")]
+    _diagnostic: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -144,6 +148,8 @@ pub struct FileEngineRenderMeasurement {
     section_count: u32,
     measured_page_count: u32,
     page_rects: Vec<FileEnginePageRect>,
+    #[serde(default)]
+    quality_issues: Vec<super::contracts::FileConversionQualityIssue>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -164,6 +170,7 @@ enum EngineMessage {
 struct FileEngineCompletion {
     quality_profile: FileConversionQualityProfile,
     warning_keys: Vec<String>,
+    quality_issues: Vec<super::contracts::FileConversionQualityIssue>,
     page_count: Option<u32>,
 }
 
@@ -192,7 +199,8 @@ struct EngineSession {
     output_path: PathBuf,
     deadline: Instant,
     sender: Sender<EngineMessage>,
-    ocr_pages: std::collections::HashSet<u32>,
+    ocr_budget: ocr::FileOcrBudget,
+    print_lease: Arc<super::native_print::NativePrintLease>,
 }
 
 #[derive(Default)]
@@ -310,7 +318,8 @@ impl FileEngineBridge {
                         output_path: output_path.clone(),
                         deadline,
                         sender,
-                        ocr_pages: Default::default(),
+                        ocr_budget: Default::default(),
+                        print_lease: Arc::default(),
                     },
                 );
 
@@ -329,6 +338,13 @@ impl FileEngineBridge {
                     deadline_ms: now_ms().saturating_add(ENGINE_JOB_TIMEOUT.as_millis() as u64),
                     max_input_bytes: MAX_INPUT_BYTES,
                     ocr_available: crate::services::ocr::capability().available,
+                    print_platform: if cfg!(target_os = "macos") {
+                        "macos"
+                    } else if cfg!(target_os = "windows") {
+                        "windows"
+                    } else {
+                        "unsupported"
+                    },
                 },
             )
             .map_err(|_| bridge_error("The built-in engine job could not be dispatched."))?;
@@ -362,6 +378,7 @@ impl FileEngineBridge {
                 engine_version: Some(engine_version),
                 quality_profile: completion.quality_profile,
                 warning_keys: completion.warning_keys,
+                quality_issues: completion.quality_issues,
                 page_count: completion.page_count,
             }),
             Err(error) => {
@@ -450,6 +467,7 @@ impl FileEngineBridge {
             let (sender, receiver) = mpsc::sync_channel(1);
             let engine_app = app.clone();
             let bridge = Arc::clone(self);
+            let navigation_bridge = Arc::clone(self);
             let window_url = if leased_engine.installed {
                 tauri::Url::parse(&format!(
                     "{FILE_ENGINE_SCHEME}://localhost/{expected_version}/index.html"
@@ -470,11 +488,22 @@ impl FileEngineBridge {
                         window_url,
                     )
                     .title("Zero File Engine")
+                    // OCR can leave the hidden view awaiting native work long enough to suspend.
+                    .background_throttling(
+                        tauri::utils::config::BackgroundThrottlingPolicy::Disabled,
+                    )
                     .visible(false)
                     .decorations(false)
                     .skip_taskbar(true)
                     .inner_size(900.0, 1200.0)
                     .disable_drag_drop_handler()
+                    .on_page_load(move |_, payload| {
+                        if payload.event() == tauri::webview::PageLoadEvent::Started {
+                            navigation_bridge.fail_all_sessions(
+                                "The built-in engine page reloaded before conversion completed.",
+                            );
+                        }
+                    })
                     .on_navigation(|url| {
                         matches!(url.scheme(), "tauri" | "ipc" | FILE_ENGINE_SCHEME)
                             || url.host_str().is_some_and(|host| {
@@ -559,7 +588,9 @@ impl FileEngineBridge {
 
     fn revoke(&self, token: &str) {
         if let Ok(mut runtime) = self.runtime.lock() {
-            runtime.sessions.remove(token);
+            if let Some(session) = runtime.sessions.remove(token) {
+                session.print_lease.revoke();
+            }
         }
     }
 
@@ -606,6 +637,7 @@ impl FileEngineBridge {
         if let Ok(mut runtime) = self.runtime.lock() {
             runtime.reset();
             for (_, session) in runtime.sessions.drain() {
+                session.print_lease.revoke();
                 let _ = session
                     .sender
                     .send(EngineMessage::Failed(bridge_error(message)));
@@ -773,7 +805,10 @@ pub fn file_engine_progress(
 ) -> Result<(), String> {
     #[cfg(debug_assertions)]
     if std::env::var_os("ZERO_FILE_ENGINE_SMOKE_INPUT").is_some() {
-        eprintln!("ZERO_FILE_ENGINE_SMOKE progress {:?}", request.stage);
+        eprintln!(
+            "ZERO_FILE_ENGINE_SMOKE progress {:?} {:?}",
+            request.stage, request.percent
+        );
     }
     require_engine_window(&window)?;
     validate_protocol(request.protocol_version)?;
@@ -863,22 +898,39 @@ fn completion_message(
                     None,
                 )));
             }
+            if session.direction == FileConversionDirection::DocxToPdf
+                && !session.print_lease.is_finished()
+            {
+                return Err("Native PDF export has not finished for this run.".into());
+            }
             if !session.output_path.is_file() {
                 return Err("The completed File engine output is missing.".into());
             }
+            let quality_issues = super::quality::bounded_quality_issues(request.quality_issues)?;
+            let warning_keys = super::quality::compatibility_warning_keys(
+                &quality_issues,
+                bounded_warning_keys(request.warning_keys)?,
+            );
             EngineMessage::Completed(FileEngineCompletion {
                 quality_profile: profile,
-                warning_keys: bounded_warning_keys(request.warning_keys)?,
+                warning_keys,
+                quality_issues,
                 page_count: request.page_count,
             })
         }
-        FileEngineCompletionStatus::Cancelled => EngineMessage::Failed(provider_error(
-            FileConversionErrorCode::Cancelled,
-            "The conversion was cancelled.",
-            true,
-            None,
-        )),
+        FileEngineCompletionStatus::Cancelled => {
+            session.print_lease.revoke();
+            let mut error = provider_error(
+                FileConversionErrorCode::Cancelled,
+                "The conversion was cancelled.",
+                true,
+                None,
+            );
+            error.quality_issues = super::quality::bounded_quality_issues(request.quality_issues)?;
+            EngineMessage::Failed(error)
+        }
         FileEngineCompletionStatus::Failed => {
+            session.print_lease.revoke();
             let code = map_engine_error(
                 request
                     .error_code
@@ -890,7 +942,7 @@ fn completion_message(
                 true,
                 None,
             );
-            error.diagnostic = request.diagnostic.map(|value| bounded_string(&value, 512));
+            error.quality_issues = super::quality::bounded_quality_issues(request.quality_issues)?;
             EngineMessage::Failed(error)
         }
     })
@@ -906,7 +958,8 @@ pub async fn file_engine_print_rendered(
     require_engine_window(&window)?;
     validate_protocol(request.protocol_version)?;
     validate_render_measurement(&request)?;
-    let output_path = {
+    let quality_issues = super::quality::bounded_quality_issues(request.quality_issues)?;
+    let (output_path, lease, remaining) = {
         let runtime = state
             .bridge
             .runtime
@@ -921,19 +974,77 @@ pub async fn file_engine_print_rendered(
         if session.direction != FileConversionDirection::DocxToPdf {
             return Err("Native printing is not valid for this conversion direction.".into());
         }
-        session.output_path.clone()
+        session.print_lease.start()?;
+        (
+            session.output_path.clone(),
+            Arc::clone(&session.print_lease),
+            session.deadline.saturating_duration_since(Instant::now()),
+        )
     };
     let page_rects = request.page_rects;
-    tauri::async_runtime::spawn_blocking(move || {
+    let worker_lease = Arc::clone(&lease);
+    let worker_app = app.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
         super::native_print::print_engine_webview_to_pdf(
-            &app,
+            &worker_app,
             &output_path,
             &page_rects,
-            Duration::from_secs(30),
+            remaining.min(Duration::from_secs(30)),
+            worker_lease,
         )
     })
     .await
-    .map_err(|_| "The native print worker stopped unexpectedly.".to_string())?
+    .map_err(|_| "The native print worker stopped unexpectedly.".to_string())
+    .and_then(|result| result);
+    if let Err(message) = result {
+        lease.revoke();
+        let session = state
+            .bridge
+            .runtime
+            .lock()
+            .ok()
+            .and_then(|mut runtime| runtime.sessions.remove(&request.token));
+        if let Some(session) = session {
+            let _ = session
+                .sender
+                .send(EngineMessage::Failed(native_print_error(
+                    &message,
+                    quality_issues,
+                )));
+        }
+        state
+            .bridge
+            .reset_and_destroy(&app, "The native PDF export instance was retired.");
+        return Err(message);
+    }
+    lease.finish()
+}
+
+fn native_print_error(
+    message: &str,
+    quality_issues: Vec<super::contracts::FileConversionQualityIssue>,
+) -> FileConversionError {
+    let code = match message {
+        "cancelled" => FileConversionErrorCode::Cancelled,
+        "engineUnavailable" => FileConversionErrorCode::EngineUnavailable,
+        "unsupportedInput" => FileConversionErrorCode::UnsupportedInput,
+        "invalidInput" => FileConversionErrorCode::InvalidInput,
+        "timeout" => FileConversionErrorCode::Timeout,
+        _ if message.contains("timed out") => FileConversionErrorCode::Timeout,
+        _ => FileConversionErrorCode::ProviderFailed,
+    };
+    let retryable = !matches!(
+        code,
+        FileConversionErrorCode::InvalidInput | FileConversionErrorCode::UnsupportedInput
+    );
+    let mut error = provider_error(
+        code,
+        "The native PDF export did not complete.",
+        retryable,
+        None,
+    );
+    error.quality_issues = quality_issues;
+    error
 }
 
 fn validate_render_measurement(request: &FileEngineRenderMeasurement) -> Result<(), String> {
@@ -1110,11 +1221,17 @@ fn completion_wait_state(
 }
 
 fn bounded_warning_keys(keys: Vec<String>) -> Result<Vec<String>, String> {
-    if keys.len() > 8
-        || keys
-            .iter()
-            .any(|key| key.len() > 96 || !key.starts_with("file."))
-    {
+    const KNOWN: &[&str] = &[
+        "file.quality.editableReconstructionWarning",
+        "file.quality.webRenderedPdfWarning",
+        "file.quality.compatibilityProvider",
+        "file.quality.structureSimplified",
+        "file.quality.imagesRetained",
+        "file.quality.ocrUsed",
+        "file.quality.ocrLowConfidence",
+        "file.quality.ocrDownsampled",
+    ];
+    if keys.len() > 8 || keys.iter().any(|key| !KNOWN.contains(&key.as_str())) {
         return Err("The File engine warning metadata is invalid.".into());
     }
     Ok(keys)
@@ -1172,7 +1289,8 @@ mod tests {
                 output_path: root.join("provider-output.docx"),
                 deadline,
                 sender,
-                ocr_pages: Default::default(),
+                ocr_budget: Default::default(),
+                print_lease: Arc::default(),
             },
             receiver,
         )
@@ -1187,9 +1305,10 @@ mod tests {
             status: FileEngineCompletionStatus::Completed,
             quality_profile: Some(FileConversionQualityProfile::EditableReconstruction),
             warning_keys: vec!["file.quality.editableReconstructionWarning".into()],
+            quality_issues: Vec::new(),
             page_count: Some(1),
             error_code: None,
-            diagnostic: None,
+            _diagnostic: None,
         }
     }
 
@@ -1201,6 +1320,7 @@ mod tests {
             job_id: "job".into(),
             section_count: 1,
             measured_page_count: 1,
+            quality_issues: Vec::new(),
             page_rects: vec![FileEnginePageRect {
                 x: 0.0,
                 y: 0.0,
@@ -1208,6 +1328,51 @@ mod tests {
                 height: 792.0,
             }],
         }
+    }
+
+    #[test]
+    fn native_print_errors_preserve_typed_reasons_and_known_quality_facts() {
+        let issues = vec![super::super::contracts::FileConversionQualityIssue {
+            code: "fontMissing".into(),
+            page_numbers: vec![],
+            section_indexes: vec![0],
+            font_families: vec!["Synthetic Missing".into()],
+            occurrences: 1,
+            truncated: false,
+        }];
+        let error = native_print_error("unsupportedInput", issues.clone());
+        assert_eq!(error.code, FileConversionErrorCode::UnsupportedInput);
+        assert!(!error.retryable);
+        assert_eq!(error.quality_issues, issues);
+        assert_eq!(
+            native_print_error("timeout", vec![]).code,
+            FileConversionErrorCode::Timeout
+        );
+        assert_eq!(
+            native_print_error("engineUnavailable", vec![]).code,
+            FileConversionErrorCode::EngineUnavailable
+        );
+    }
+
+    #[test]
+    fn print_measurement_accepts_bounded_quality_metadata_and_legacy_omission() {
+        let base = serde_json::json!({
+            "protocolVersion": FILE_ENGINE_PROTOCOL_VERSION,
+            "token": "token", "engineVersion": FILE_ENGINE_VERSION, "jobId": "job",
+            "sectionCount": 1, "measuredPageCount": 1,
+            "pageRects": [{"x":0, "y":0, "width":612, "height":792}]
+        });
+        let legacy: FileEngineRenderMeasurement = serde_json::from_value(base.clone()).unwrap();
+        assert!(legacy.quality_issues.is_empty());
+        let mut extended = base;
+        extended["qualityIssues"] = serde_json::json!([{
+            "code": "fontInspectionIncomplete", "occurrences": 1, "truncated": false
+        }]);
+        let request: FileEngineRenderMeasurement = serde_json::from_value(extended).unwrap();
+        assert_eq!(
+            super::super::quality::bounded_quality_issues(request.quality_issues).unwrap()[0].code,
+            "fontInspectionIncomplete"
+        );
     }
 
     #[test]
@@ -1281,6 +1446,7 @@ mod tests {
             job_id: "job".into(),
             section_count: 2,
             measured_page_count: 2,
+            quality_issues: Vec::new(),
             page_rects: vec![
                 FileEnginePageRect {
                     x: 0.0,
@@ -1479,4 +1645,68 @@ mod tests {
         assert!(runtime.ready_version.is_none());
         assert!(runtime.schedule_idle_teardown().is_none());
     }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileEngineFontInspectionRequest {
+    protocol_version: u16,
+    token: String,
+    engine_version: String,
+    job_id: String,
+    #[serde(default)]
+    font_families: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn file_engine_inspect_fonts(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, FileEngineBridgeState>,
+    request: FileEngineFontInspectionRequest,
+) -> Result<super::contracts::FileFontInspection, String> {
+    require_engine_window(&window)?;
+    validate_protocol(request.protocol_version)?;
+    if request.font_families.len() > 100
+        || request
+            .font_families
+            .iter()
+            .any(|family| family.len() > 512)
+    {
+        return Err("The font inspection request exceeded its bound.".into());
+    }
+    let (input_path, direction) = {
+        let runtime = state
+            .bridge
+            .runtime
+            .lock()
+            .map_err(|_| "The File session store is unavailable.")?;
+        let session = FileEngineBridge::validate_session(
+            &runtime,
+            &request.token,
+            Some(&request.job_id),
+            Some(&request.engine_version),
+        )?;
+        (session.input_path.clone(), session.direction)
+    };
+    let inspection = tauri::async_runtime::spawn_blocking(move || {
+        if direction == FileConversionDirection::DocxToPdf {
+            super::fonts::inspect_docx(&input_path)
+        } else {
+            Ok(super::fonts::inspect_families(request.font_families))
+        }
+    })
+    .await
+    .map_err(|_| "The font inspection worker stopped.")??;
+    let runtime = state
+        .bridge
+        .runtime
+        .lock()
+        .map_err(|_| "The File session store is unavailable.")?;
+    FileEngineBridge::validate_session(
+        &runtime,
+        &request.token,
+        Some(&request.job_id),
+        Some(&request.engine_version),
+    )?;
+    Ok(inspection)
 }

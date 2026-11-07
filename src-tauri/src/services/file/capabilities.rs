@@ -41,6 +41,10 @@ pub fn provider_registry_with_engine(
         built_in.push(Arc::new(ZeroFileBuiltInProvider::docx_to_pdf_macos(
             app, bridge,
         )));
+        #[cfg(target_os = "windows")]
+        built_in.push(Arc::new(ZeroFileBuiltInProvider::docx_to_pdf_windows(
+            app, bridge,
+        )));
     }
     platform_provider_registry(built_in)
 }
@@ -72,6 +76,9 @@ pub fn capability_snapshot_from_providers(
     refreshed_at_ms: u64,
 ) -> FileConversionCapabilitySnapshot {
     FileConversionCapabilitySnapshot {
+        preference_revision: 0,
+        capability_revision: 0,
+        invalid_preference_directions: Vec::new(),
         directions: [
             FileConversionDirection::PdfToDocx,
             FileConversionDirection::DocxToPdf,
@@ -88,59 +95,71 @@ fn direction_capability(
     providers: &[FileConversionProvider],
     platform: ProviderPlatform,
 ) -> FileConversionDirectionCapability {
-    let provider_ids = provider_priority(direction, platform);
-    let relevant = provider_ids
-        .iter()
-        .filter_map(|provider_id| {
-            providers
-                .iter()
-                .find(|provider| provider.id == *provider_id)
+    let provider_ids = super::preferences::supported_providers(direction, platform);
+    let relevant = provider_ids.iter().map(|id| {
+        providers.iter().find(|provider| provider.id == *id && provider.directions.contains(&direction)).cloned().unwrap_or_else(|| FileConversionProvider {
+            id: *id,
+            display_name: match id {
+                FileConversionProviderId::ZeroFilePdfToDocx => "Zero File PDF Engine",
+                FileConversionProviderId::ZeroFileDocxToPdfMacos => "Zero File macOS Print Engine",
+                FileConversionProviderId::ZeroFileDocxToPdfWindows => "Zero File Windows Print Engine",
+                FileConversionProviderId::LibreOffice => "LibreOffice",
+                FileConversionProviderId::MicrosoftWordMacos | FileConversionProviderId::MicrosoftWordWindows => "Microsoft Word",
+            }.into(),
+            version: None, engine_version: None, package_version: None, platform_minimum: None,
+            origin: if matches!(id, FileConversionProviderId::LibreOffice | FileConversionProviderId::MicrosoftWordMacos | FileConversionProviderId::MicrosoftWordWindows) { super::contracts::FileConversionProviderOrigin::Compatibility } else { super::contracts::FileConversionProviderOrigin::BuiltIn },
+            quality_profiles: Vec::new(), directions: vec![direction],
+            availability: FileConversionProviderAvailability::Unavailable { error: provider_error(FileConversionErrorCode::EngineUnavailable, "The selected local provider is unavailable on this platform or needs repair.", true, Some(*id)) },
         })
-        .filter(|provider| provider.directions.contains(&direction))
-        .cloned()
-        .collect::<Vec<_>>();
-    let selected_provider_id = relevant.iter().find_map(|provider| {
+    }).collect::<Vec<_>>();
+    let selected_provider_id = super::preferences::default_provider(direction, platform);
+    let mut capability = FileConversionDirectionCapability {
+        direction,
+        available: false,
+        selected_provider_id,
+        preferred_provider_id: selected_provider_id,
+        providers: relevant,
+        unavailability: None,
+    };
+    apply_selection(&mut capability, selected_provider_id);
+    capability
+}
+
+pub fn apply_preferences(
+    snapshot: &mut FileConversionCapabilitySnapshot,
+    preferences: &super::preferences::FileProviderPreferences,
+) {
+    snapshot.preference_revision = preferences.revision;
+    snapshot.invalid_preference_directions = preferences.invalid_directions.clone();
+    for capability in &mut snapshot.directions {
+        apply_selection(capability, preferences.selected(capability.direction));
+    }
+}
+
+fn apply_selection(
+    capability: &mut FileConversionDirectionCapability,
+    selected: Option<FileConversionProviderId>,
+) {
+    capability.preferred_provider_id = selected;
+    let provider = capability
+        .providers
+        .iter()
+        .find(|provider| Some(provider.id) == selected);
+    capability.available = provider.is_some_and(|provider| {
         matches!(
             provider.availability,
             FileConversionProviderAvailability::Available
         )
-        .then_some(provider.id)
     });
-    let unavailability = selected_provider_id
-        .is_none()
-        .then(|| best_unavailability(&relevant, direction));
-
-    FileConversionDirectionCapability {
-        direction,
-        available: selected_provider_id.is_some(),
-        selected_provider_id,
-        providers: relevant,
-        unavailability,
-    }
-}
-
-fn provider_priority(
-    direction: FileConversionDirection,
-    platform: ProviderPlatform,
-) -> Vec<FileConversionProviderId> {
-    match (direction, platform) {
-        (
-            FileConversionDirection::PdfToDocx,
-            ProviderPlatform::Macos | ProviderPlatform::Windows,
-        ) => {
-            vec![FileConversionProviderId::ZeroFilePdfToDocx]
-        }
-        (FileConversionDirection::DocxToPdf, ProviderPlatform::Macos) => vec![
-            FileConversionProviderId::ZeroFileDocxToPdfMacos,
-            FileConversionProviderId::LibreOffice,
-            FileConversionProviderId::MicrosoftWordMacos,
-        ],
-        (FileConversionDirection::DocxToPdf, ProviderPlatform::Windows) => vec![
-            FileConversionProviderId::LibreOffice,
-            FileConversionProviderId::MicrosoftWordWindows,
-        ],
-        _ => Vec::new(),
-    }
+    capability.selected_provider_id = selected.filter(|_| capability.available);
+    capability.unavailability = if capability.available {
+        None
+    } else {
+        Some(match provider.map(|provider| &provider.availability) {
+            Some(FileConversionProviderAvailability::Unavailable { error }) => error.clone(),
+            _ => best_unavailability(&[], capability.direction),
+        })
+    };
 }
 
 fn best_unavailability(
@@ -201,7 +220,11 @@ mod tests {
             assert!(BUNDLED_FILE_CONVERSION_ENGINE_APPROVED);
         }
         assert!(!pdf.available);
-        assert!(pdf.providers.is_empty());
+        assert_eq!(pdf.providers.len(), 1);
+        assert_eq!(
+            pdf.preferred_provider_id,
+            Some(FileConversionProviderId::ZeroFilePdfToDocx)
+        );
         assert_eq!(
             pdf.unavailability.as_ref().unwrap().code,
             FileConversionErrorCode::EngineUnavailable
@@ -209,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn docx_to_pdf_selects_libreoffice_then_the_platform_word_fallback() {
+    fn docx_to_pdf_defaults_to_builtin_even_when_word_is_available() {
         let unavailable_libreoffice = provider(
             FileConversionProviderId::LibreOffice,
             FileConversionProviderAvailability::Unavailable {
@@ -236,21 +259,21 @@ mod tests {
             .find(|capability| capability.direction == FileConversionDirection::DocxToPdf)
             .unwrap();
 
-        assert!(docx.available);
+        assert!(!docx.available);
         assert_eq!(
-            docx.selected_provider_id,
-            Some(FileConversionProviderId::MicrosoftWordMacos)
+            docx.preferred_provider_id,
+            Some(FileConversionProviderId::ZeroFileDocxToPdfMacos)
         );
-        assert_eq!(docx.providers[0].id, FileConversionProviderId::LibreOffice);
+        assert_eq!(docx.providers[1].id, FileConversionProviderId::LibreOffice);
         assert_eq!(
-            docx.providers[1].id,
+            docx.providers[2].id,
             FileConversionProviderId::MicrosoftWordMacos
         );
-        assert!(docx.unavailability.is_none());
+        assert!(docx.unavailability.is_some());
     }
 
     #[test]
-    fn unsupported_or_permission_failures_are_more_actionable_than_missing_provider_reasons() {
+    fn unavailable_selected_provider_does_not_borrow_errors_from_other_providers() {
         let providers = vec![
             provider(
                 FileConversionProviderId::LibreOffice,
@@ -284,7 +307,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             docx.unavailability.as_ref().unwrap().code,
-            FileConversionErrorCode::EngineVersionUnsupported
+            FileConversionErrorCode::EngineUnavailable
         );
     }
 

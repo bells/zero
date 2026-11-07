@@ -136,6 +136,7 @@ fn output_error(
         retryable,
         provider_id: None,
         diagnostic: None,
+        quality_issues: Vec::new(),
     }
 }
 

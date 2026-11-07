@@ -27,8 +27,10 @@ pub struct FileConversionJobRecord {
 
 #[derive(Debug, Default)]
 pub struct FileConversionQueue {
+    revision: u64,
     jobs: Vec<FileConversionJobRecord>,
     pending: VecDeque<String>,
+    batch_pending: VecDeque<String>,
     active_job_id: Option<String>,
     started: bool,
 }
@@ -58,7 +60,10 @@ impl FileConversionQueue {
             ));
         }
 
+        self.revision = self.revision.saturating_add(1);
         let snapshot = FileConversionJobSnapshot {
+            queue_revision: self.revision,
+            revision: 0,
             id: draft.id.clone(),
             source_path: draft.canonical_source.to_string_lossy().into_owned(),
             source_name: draft.source_name,
@@ -79,7 +84,85 @@ impl FileConversionQueue {
         Ok(snapshot)
     }
 
+    pub fn queue_snapshot(&self) -> super::contracts::FileConversionQueueSnapshot {
+        super::contracts::FileConversionQueueSnapshot {
+            revision: self.revision,
+            jobs: self.snapshots(),
+        }
+    }
+
+    pub fn bind_pending(
+        &mut self,
+        capabilities: &super::contracts::FileConversionCapabilitySnapshot,
+        now_ms: u64,
+    ) -> Vec<FileConversionJobSnapshot> {
+        let mut updates = Vec::new();
+        for job in &mut self.jobs {
+            if !self.pending.contains(&job.snapshot.id)
+                || !matches!(job.snapshot.state, FileConversionJobState::Queued)
+            {
+                continue;
+            }
+            let capability = capabilities
+                .directions
+                .iter()
+                .find(|entry| entry.direction == job.snapshot.direction);
+            let selected = job
+                .snapshot
+                .provider_id
+                .or_else(|| capability.and_then(|entry| entry.selected_provider_id));
+            let available = capability.is_some_and(|entry| {
+                entry.providers.iter().any(|provider| {
+                    Some(provider.id) == selected
+                        && matches!(
+                            provider.availability,
+                            super::contracts::FileConversionProviderAvailability::Available
+                        )
+                })
+            });
+            if available && job.snapshot.provider_id.is_none() {
+                self.revision = self.revision.saturating_add(1);
+                job.snapshot.queue_revision = self.revision;
+                job.snapshot.provider_id = selected;
+                job.snapshot.updated_at_ms = now_ms;
+                job.snapshot.revision = job.snapshot.revision.saturating_add(1);
+                updates.push(job.snapshot.clone());
+            }
+        }
+        updates
+    }
+
+    pub fn start_bound(
+        &mut self,
+        capabilities: &super::contracts::FileConversionCapabilitySnapshot,
+        now_ms: u64,
+    ) -> Option<FileConversionJobSnapshot> {
+        let mut remaining = VecDeque::new();
+        while let Some(id) = self.pending.pop_front() {
+            let eligible = self.jobs.iter().find(|job| job.snapshot.id == id).is_some_and(|job| capabilities.directions.iter().find(|entry| entry.direction == job.snapshot.direction).is_some_and(|entry| entry.providers.iter().any(|provider| Some(provider.id) == job.snapshot.provider_id && matches!(provider.availability, super::contracts::FileConversionProviderAvailability::Available))));
+            if eligible {
+                self.batch_pending.push_back(id);
+            } else {
+                remaining.push_back(id);
+            }
+        }
+        self.pending = remaining;
+        self.started = true;
+        self.advance(now_ms)
+    }
+
+    pub fn bind_retry(
+        &mut self,
+        job_id: &str,
+        provider: FileConversionProviderId,
+    ) -> Result<FileConversionJobSnapshot, FileConversionError> {
+        let job = self.job_mut(job_id)?;
+        job.snapshot.provider_id = Some(provider);
+        Ok(job.snapshot.clone())
+    }
+
     pub fn start(&mut self, now_ms: u64) -> Option<FileConversionJobSnapshot> {
+        self.batch_pending.extend(self.pending.drain(..));
         self.started = true;
         self.advance(now_ms)
     }
@@ -107,6 +190,7 @@ impl FileConversionQueue {
         }
         job.snapshot.state = FileConversionJobState::Preparing { stage };
         job.snapshot.updated_at_ms = now_ms;
+        job.snapshot.revision = job.snapshot.revision.saturating_add(1);
         Ok(job.snapshot.clone())
     }
 
@@ -123,9 +207,19 @@ impl FileConversionQueue {
         if !matches!(job.snapshot.state, FileConversionJobState::Preparing { .. }) {
             return Err(invalid_state("Only a preparing job can begin conversion."));
         }
+        if job
+            .snapshot
+            .provider_id
+            .is_some_and(|bound| bound != provider_id)
+        {
+            return Err(invalid_state(
+                "A bound job cannot change provider while running.",
+            ));
+        }
         job.snapshot.provider_id = Some(provider_id);
         job.snapshot.state = FileConversionJobState::Running { progress };
         job.snapshot.updated_at_ms = now_ms;
+        job.snapshot.revision = job.snapshot.revision.saturating_add(1);
         Ok(job.snapshot.clone())
     }
 
@@ -143,6 +237,7 @@ impl FileConversionQueue {
         }
         job.snapshot.state = FileConversionJobState::Running { progress };
         job.snapshot.updated_at_ms = now_ms;
+        job.snapshot.revision = job.snapshot.revision.saturating_add(1);
         Ok(job.snapshot.clone())
     }
 
@@ -160,6 +255,7 @@ impl FileConversionQueue {
             }
             job.snapshot.state = FileConversionJobState::Completed { result };
             job.snapshot.updated_at_ms = now_ms;
+            job.snapshot.revision = job.snapshot.revision.saturating_add(1);
             job.snapshot.clone()
         };
         self.active_job_id = None;
@@ -183,6 +279,7 @@ impl FileConversionQueue {
             }
             job.snapshot.state = FileConversionJobState::Failed { error };
             job.snapshot.updated_at_ms = now_ms;
+            job.snapshot.revision = job.snapshot.revision.saturating_add(1);
             job.snapshot.clone()
         };
         self.active_job_id = None;
@@ -213,9 +310,11 @@ impl FileConversionQueue {
                 ),
             };
             job.snapshot.updated_at_ms = now_ms;
+            job.snapshot.revision = job.snapshot.revision.saturating_add(1);
             job.snapshot.clone()
         };
         self.pending.retain(|pending_id| pending_id != job_id);
+        self.batch_pending.retain(|pending_id| pending_id != job_id);
         if is_active {
             self.active_job_id = None;
         }
@@ -242,6 +341,8 @@ impl FileConversionQueue {
             return Err(invalid_state("An active conversion job cannot be removed."));
         }
         self.pending.retain(|pending_id| pending_id != job_id);
+        self.batch_pending.retain(|pending_id| pending_id != job_id);
+        self.revision = self.revision.saturating_add(1);
         Ok(self.jobs.remove(index).snapshot)
     }
 
@@ -254,7 +355,17 @@ impl FileConversionQueue {
             let job = self.job_mut(job_id)?;
             let retryable = match &job.snapshot.state {
                 FileConversionJobState::Failed { error }
-                | FileConversionJobState::Cancelled { error } => error.retryable,
+                | FileConversionJobState::Cancelled { error } => {
+                    error.retryable
+                        && !matches!(
+                            error.code,
+                            FileConversionErrorCode::InvalidInput
+                                | FileConversionErrorCode::UnsupportedFormat
+                                | FileConversionErrorCode::PasswordRequired
+                                | FileConversionErrorCode::InvalidProviderOutput
+                                | FileConversionErrorCode::UnsupportedInput
+                        )
+                }
                 _ => false,
             };
             if !retryable {
@@ -262,9 +373,9 @@ impl FileConversionQueue {
                     "This conversion job is not eligible for retry.",
                 ));
             }
-            job.snapshot.provider_id = None;
             job.snapshot.state = FileConversionJobState::Queued;
             job.snapshot.updated_at_ms = now_ms;
+            job.snapshot.revision = job.snapshot.revision.saturating_add(1);
             job.snapshot.clone()
         };
         self.pending.push_back(job_id.to_string());
@@ -281,6 +392,9 @@ impl FileConversionQueue {
                 true
             }
         });
+        if !removed.is_empty() {
+            self.revision = self.revision.saturating_add(1);
+        }
         removed
     }
 
@@ -320,17 +434,20 @@ impl FileConversionQueue {
         if !self.started || self.active_job_id.is_some() {
             return None;
         }
-        while let Some(job_id) = self.pending.pop_front() {
+        while let Some(job_id) = self.batch_pending.pop_front() {
             let Some(job) = self.jobs.iter_mut().find(|job| job.snapshot.id == job_id) else {
                 continue;
             };
             if !matches!(job.snapshot.state, FileConversionJobState::Queued) {
                 continue;
             }
+            self.revision = self.revision.saturating_add(1);
+            job.snapshot.queue_revision = self.revision;
             job.snapshot.state = FileConversionJobState::Preparing {
                 stage: FileConversionStage::Validating,
             };
             job.snapshot.updated_at_ms = now_ms;
+            job.snapshot.revision = job.snapshot.revision.saturating_add(1);
             self.active_job_id = Some(job_id);
             return Some(job.snapshot.clone());
         }
@@ -352,10 +469,14 @@ impl FileConversionQueue {
         &mut self,
         job_id: &str,
     ) -> Result<&mut FileConversionJobRecord, FileConversionError> {
-        self.jobs
+        let job = self
+            .jobs
             .iter_mut()
             .find(|job| job.snapshot.id == job_id)
-            .ok_or_else(unknown_job)
+            .ok_or_else(unknown_job)?;
+        self.revision = self.revision.saturating_add(1);
+        job.snapshot.queue_revision = self.revision;
+        Ok(job)
     }
 }
 
@@ -406,6 +527,7 @@ fn queue_error(
         retryable,
         provider_id: None,
         diagnostic: None,
+        quality_issues: Vec::new(),
     }
 }
 
@@ -600,6 +722,104 @@ mod tests {
         assert!(queue.snapshots().is_empty());
     }
 
+    #[test]
+    fn started_batch_freezes_second_job_and_excludes_later_intake() {
+        let mut queue = FileConversionQueue::default();
+        let mut first = draft("one", "one.docx");
+        first.direction = FileConversionDirection::DocxToPdf;
+        let mut second = draft("two", "two.docx");
+        second.direction = FileConversionDirection::DocxToPdf;
+        queue.enqueue(first, 10).unwrap();
+        queue.enqueue(second, 10).unwrap();
+        let mut capabilities = super::super::capabilities::capability_snapshot_from_providers(
+            Vec::new(),
+            super::super::provider::ProviderPlatform::Macos,
+            10,
+        );
+        for provider in &mut capabilities.directions[1].providers {
+            provider.availability =
+                super::super::contracts::FileConversionProviderAvailability::Available;
+        }
+        let mut prefs = super::super::preferences::FileProviderPreferences::defaults(
+            super::super::provider::ProviderPlatform::Macos,
+        );
+        prefs.docx_to_pdf = Some(FileConversionProviderId::LibreOffice);
+        super::super::capabilities::apply_preferences(&mut capabilities, &prefs);
+        queue.bind_pending(&capabilities, 11);
+        queue.start_bound(&capabilities, 11).unwrap();
+        prefs.docx_to_pdf = Some(FileConversionProviderId::MicrosoftWordMacos);
+        super::super::capabilities::apply_preferences(&mut capabilities, &prefs);
+        queue.bind_pending(&capabilities, 12);
+        assert_eq!(
+            queue.record("two").unwrap().snapshot.provider_id,
+            Some(FileConversionProviderId::LibreOffice)
+        );
+        let mut future = draft("future", "future.docx");
+        future.direction = FileConversionDirection::DocxToPdf;
+        queue.enqueue(future, 12).unwrap();
+        let updates = queue.fail("one", retryable_failure(), 13).unwrap();
+        assert_eq!(updates[1].id, "two");
+        queue.fail("two", retryable_failure(), 14).unwrap();
+        assert!(queue.active_job_id().is_none());
+        assert!(matches!(
+            queue.record("future").unwrap().snapshot.state,
+            FileConversionJobState::Queued
+        ));
+        queue.bind_pending(&capabilities, 15);
+        assert_eq!(
+            queue.start_bound(&capabilities, 15).unwrap().provider_id,
+            Some(FileConversionProviderId::MicrosoftWordMacos)
+        );
+        assert_eq!(
+            queue.retry("one", 15).unwrap().provider_id,
+            Some(FileConversionProviderId::LibreOffice)
+        );
+    }
+
+    #[test]
+    fn mixed_start_keeps_unavailable_direction_unstarted_without_fallback() {
+        let mut queue = FileConversionQueue::default();
+        queue.enqueue(draft("pdf", "one.pdf"), 1).unwrap();
+        let mut docx = draft("docx", "two.docx");
+        docx.direction = FileConversionDirection::DocxToPdf;
+        queue.enqueue(docx, 1).unwrap();
+        let mut capabilities = super::super::capabilities::capability_snapshot_from_providers(
+            Vec::new(),
+            super::super::provider::ProviderPlatform::Macos,
+            1,
+        );
+        capabilities.directions[0].providers[0].availability =
+            super::super::contracts::FileConversionProviderAvailability::Available;
+        capabilities.directions[0].selected_provider_id =
+            Some(FileConversionProviderId::ZeroFilePdfToDocx);
+        capabilities.directions[0].available = true;
+        queue.bind_pending(&capabilities, 2);
+        assert_eq!(queue.start_bound(&capabilities, 2).unwrap().id, "pdf");
+        assert_eq!(queue.record("docx").unwrap().snapshot.provider_id, None);
+        assert!(matches!(
+            queue.record("docx").unwrap().snapshot.state,
+            FileConversionJobState::Queued
+        ));
+        queue.fail("pdf", retryable_failure(), 3).unwrap();
+        assert!(queue.active_job_id().is_none());
+        assert_eq!(queue.record("docx").unwrap().snapshot.provider_id, None);
+    }
+
+    #[test]
+    fn changing_engine_cannot_retry_invalid_or_password_protected_input() {
+        for code in [
+            FileConversionErrorCode::InvalidInput,
+            FileConversionErrorCode::PasswordRequired,
+            FileConversionErrorCode::UnsupportedInput,
+        ] {
+            let mut queue = started_queue();
+            let mut error = retryable_failure();
+            error.code = code;
+            queue.fail("one", error, 20).unwrap();
+            assert!(queue.retry("one", 21).is_err());
+        }
+    }
+
     fn started_queue() -> FileConversionQueue {
         let mut queue = FileConversionQueue::default();
         queue.enqueue(draft("one", "one.pdf"), 10).unwrap();
@@ -631,7 +851,8 @@ mod tests {
             quality_profile: crate::services::file::contracts::FileConversionQualityProfile::CompatibilityProvider,
             warning_keys: Vec::new(),
             page_count: None,
-        }
+            quality_issues: Vec::new(),
+}
     }
 
     fn retryable_failure() -> FileConversionError {

@@ -1,3 +1,4 @@
+import { aggregateQualityIssues } from "./engine/qualityReport.js";
 import type {
   FileConversionBatchResult,
   FileConversionCandidate,
@@ -9,15 +10,24 @@ import type {
   FileConversionInspectRequest,
   FileConversionJobRequest,
   FileConversionJobSnapshot,
+  FileConversionQueueSnapshot,
+  FileConversionDirection,
+  FileConversionProviderId,
+  FileConversionProviderSelectionRequest,
+  FileConversionRetryRequest,
+  FileConversionQualityIssue,
 } from "./contracts";
 
 export const FILE_CONVERSION_COMMANDS = {
   capabilities: "get_file_conversion_capabilities",
   refreshCapabilities: "refresh_file_conversion_capabilities",
+  setProvider: "set_file_conversion_provider",
+  openConfiguration: "open_file_conversion_configuration",
   choose: "choose_file_conversion_inputs",
   inspect: "inspect_file_conversion_inputs",
   enqueue: "enqueue_file_conversions",
   list: "list_file_conversion_jobs",
+  queueSnapshot: "get_file_conversion_queue_snapshot",
   start: "start_file_conversion_queue",
   cancel: "cancel_file_conversion_job",
   remove: "remove_file_conversion_job",
@@ -27,6 +37,10 @@ export const FILE_CONVERSION_COMMANDS = {
   reveal: "reveal_file_conversion_output",
 } as const;
 
+export const FILE_CONVERSION_QUEUE_UPDATED_EVENT = "zero://file-conversion/queue-updated";
+
+export const FILE_CONVERSION_CAPABILITIES_UPDATED_EVENT = "zero://file-conversion/capabilities-updated";
+
 export const FILE_CONVERSION_JOB_UPDATED_EVENT =
   "zero://file-conversion/job-updated";
 
@@ -35,7 +49,9 @@ export type FileConversionCommand =
 export type FileConversionInvokeArgs =
   | { input: FileConversionInspectRequest }
   | { input: FileConversionEnqueueRequest }
-  | { input: FileConversionJobRequest };
+  | { input: FileConversionJobRequest }
+  | { input: FileConversionRetryRequest }
+  | { input: FileConversionProviderSelectionRequest };
 export type FileConversionUnlisten = () => void;
 
 export interface FileConversionInvokeBridge {
@@ -52,6 +68,8 @@ export interface FileConversionEventBridge {
 export function createFileConversionService(
   invokeBridge: FileConversionInvokeBridge,
   eventBridge: FileConversionEventBridge,
+  capabilityEventBridge?: (eventName: typeof FILE_CONVERSION_CAPABILITIES_UPDATED_EVENT, handler: (snapshot: FileConversionCapabilitySnapshot) => void) => Promise<FileConversionUnlisten>,
+  queueEventBridge?: (eventName: typeof FILE_CONVERSION_QUEUE_UPDATED_EVENT, handler: (snapshot: FileConversionQueueSnapshot) => void) => Promise<FileConversionUnlisten>,
 ) {
   const jobInput = (jobId: string): { input: FileConversionJobRequest } => ({
     input: { jobId },
@@ -65,6 +83,10 @@ export function createFileConversionService(
       invokeBridge<FileConversionCapabilitySnapshot>(
         FILE_CONVERSION_COMMANDS.refreshCapabilities,
       ),
+    openConfiguration: () => invokeBridge<void>(FILE_CONVERSION_COMMANDS.openConfiguration),
+    setProvider: (direction: FileConversionDirection, providerId: FileConversionProviderId, expectedRevision: number) =>
+      invokeBridge<FileConversionCapabilitySnapshot>(FILE_CONVERSION_COMMANDS.setProvider, { input: { direction, providerId, expectedRevision } }),
+    subscribeCapabilities: (handler: (snapshot: FileConversionCapabilitySnapshot) => void) => capabilityEventBridge ? capabilityEventBridge(FILE_CONVERSION_CAPABILITIES_UPDATED_EVENT, handler) : Promise.resolve(() => {}),
     chooseInputs: () =>
       invokeBridge<FileConversionCandidate[]>(FILE_CONVERSION_COMMANDS.choose),
     inspectInputs: (sourcePaths: string[]) =>
@@ -75,6 +97,8 @@ export function createFileConversionService(
       invokeBridge<FileConversionBatchResult>(FILE_CONVERSION_COMMANDS.enqueue, {
         input: { items },
       }),
+    getQueueSnapshot: () => invokeBridge<FileConversionQueueSnapshot>(FILE_CONVERSION_COMMANDS.queueSnapshot),
+    subscribeQueue: (handler: (snapshot: FileConversionQueueSnapshot) => void) => queueEventBridge ? queueEventBridge(FILE_CONVERSION_QUEUE_UPDATED_EVENT, handler) : Promise.resolve(() => {}),
     listJobs: () =>
       invokeBridge<FileConversionJobSnapshot[]>(FILE_CONVERSION_COMMANDS.list),
     start: () =>
@@ -89,10 +113,10 @@ export function createFileConversionService(
         FILE_CONVERSION_COMMANDS.remove,
         jobInput(jobId),
       ),
-    retry: (jobId: string) =>
+    retry: (jobId: string, providerId?: FileConversionProviderId) =>
       invokeBridge<FileConversionJobSnapshot>(
         FILE_CONVERSION_COMMANDS.retry,
-        jobInput(jobId),
+        { input: { jobId, ...(providerId ? { providerId } : {}) } },
       ),
     clearCompleted: () =>
       invokeBridge<FileConversionJobSnapshot[]>(
@@ -139,8 +163,18 @@ export function normalizeFileConversionError(value: unknown): FileConversionErro
     typeof value.message === "string" &&
     typeof value.retryable === "boolean"
   ) {
+    const qualityIssues: FileConversionQualityIssue[] = [];
+    if (Array.isArray(value.qualityIssues)) for (const issue of value.qualityIssues.slice(0,100)) {
+      if (!isRecord(issue) || typeof issue.code!=="string" || typeof issue.occurrences!=="number" || typeof issue.truncated!=="boolean") continue;
+      qualityIssues.push({code:issue.code,occurrences:issue.occurrences,truncated:issue.truncated,
+        ...(Array.isArray(issue.pageNumbers)?{pageNumbers:issue.pageNumbers.filter((value): value is number=>typeof value==="number")}:{}),
+        ...(Array.isArray(issue.sectionIndexes)?{sectionIndexes:issue.sectionIndexes.filter((value): value is number=>typeof value==="number")}:{}),
+        ...(Array.isArray(issue.fontFamilies)?{fontFamilies:issue.fontFamilies.filter((value): value is string=>typeof value==="string")}:{}),
+      });
+    }
     return {
       code: value.code as FileConversionErrorCode,
+      ...(qualityIssues.length ? {qualityIssues:aggregateQualityIssues(qualityIssues)} : {}),
       message: value.message,
       retryable: value.retryable,
       ...(isProviderId(value.providerId) ? { providerId: value.providerId } : {}),
@@ -160,6 +194,7 @@ function isProviderId(value: unknown): value is NonNullable<FileConversionError[
   return (
     value === "zeroFilePdfToDocx" ||
     value === "zeroFileDocxToPdfMacos" ||
+    value === "zeroFileDocxToPdfWindows" ||
     value === "libreOffice" ||
     value === "microsoftWordMacos" ||
     value === "microsoftWordWindows"

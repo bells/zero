@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { FileProviderControl } from "./FileProviderControl";
+import { FileQualityDetails } from "./FileQualityDetails";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   AlertTriangle,
@@ -146,7 +148,7 @@ export function FilePanel({ t, surface }: FilePanelProps) {
         </div>
       </header>
 
-      <ProviderStrip controller={controller} t={t} />
+      <ProviderStrip controller={controller} t={t} surface={surface} />
       <p className="file-conversion-note">{t("file.editableNote")}</p>
 
       {controller.isLoading ? (
@@ -246,29 +248,34 @@ export function FilePanel({ t, surface }: FilePanelProps) {
   );
 }
 
-function ProviderStrip({ controller, t }: { controller: FileConversionController; t: FilePanelProps["t"] }) {
+function ProviderStrip({ controller, t, surface }: { controller: FileConversionController; t: FilePanelProps["t"]; surface: FilePanelProps["surface"] }) {
   return (
     <div className="file-provider-strip" aria-label={t("file.provider")}>
       {DIRECTIONS.map((direction) => {
         const guidance = fileConversionProviderGuidance(controller.capabilities, direction);
+        const capability = controller.capabilities?.directions.find((entry) => entry.direction === direction);
         return (
           <div className={guidance.available ? "available" : "unavailable"} key={direction}>
             {guidance.available ? <CheckCircle2 aria-hidden="true" /> : <CircleDashed aria-hidden="true" />}
             <span>
               <strong>{direction === "pdfToDocx" ? "PDF → DOCX" : "DOCX → PDF"}</strong>
               <small>
-                {guidance.available
-                  ? `${guidance.providerName ?? t("provider.available")} · ${
-                      guidance.providerOrigin === "builtIn"
-                        ? t("provider.offlineReady")
-                        : t("provider.compatibility")
-                    }`
-                  : t("provider.repair")}
+                {guidance.providerId ? t(`provider.${guidance.providerId}`) : t("provider.unavailable")}
+                {guidance.available ? ` · ${guidance.providerOrigin === "builtIn" ? t("provider.offlineReady") : t("provider.compatibility")}` : ` · ${t("provider.unavailable")}`}
               </small>
+              {surface === "main" ? <FileProviderControl
+                direction={direction}
+                capability={capability}
+                invalidSavedChoice={controller.capabilities?.invalidPreferenceDirections?.includes(direction) ?? false}
+                disabled={controller.isLoading || controller.busy.provider === true}
+                onSelect={(id) => { void controller.setProvider(direction, id); }}
+                t={t}
+              /> : null}
             </span>
           </div>
         );
       })}
+      {surface === "tray" ? <button type="button" className="file-text-action" disabled={controller.busy.configuration === true} onClick={() => void controller.openConfiguration()}>{t("provider.configure")}</button> : null}
     </div>
   );
 }
@@ -335,6 +342,8 @@ function FileJobRow({ job, controller, t }: { job: FileConversionJobSnapshot; co
         : undefined;
   const isBusy = (action: FileConversionAction) => controller.busy[action] === job.id;
   const stateIcon = stateIconFor(job, stateKey);
+  const selected = controller.capabilities?.directions.find((entry) => entry.direction === job.direction);
+  const alternative = selected?.available && selected.selectedProviderId !== job.providerId ? selected.selectedProviderId : undefined;
 
   return (
     <article className={`file-job-row state-${stateKey.slice("state.".length)}`} data-state={stateKey}>
@@ -413,6 +422,8 @@ function FileJobRow({ job, controller, t }: { job: FileConversionJobSnapshot; co
         }) : null}
       </div>
 
+      <FileQualityDetails issues={job.state.status === "completed" ? job.state.result.qualityIssues : job.state.status === "failed" || job.state.status === "cancelled" ? job.state.error.qualityIssues : undefined} t={(key, values) => Object.entries(values ?? {}).reduce((text, [name, value]) => text.split(`{${name}}`).join(String(value)), t(key as TranslationKey))} />
+
       <div className="file-job-actions">
         {summary.actions.canOpen ? (
           <button type="button" disabled={isBusy("open")} onClick={() => void controller.open(job.id)}>
@@ -434,6 +445,7 @@ function FileJobRow({ job, controller, t }: { job: FileConversionJobSnapshot; co
             <RotateCcw aria-hidden="true" />{t("action.retry")}
           </button>
         ) : null}
+        {summary.actions.canRetry && alternative ? <button type="button" disabled={isBusy("retry")} onClick={() => void controller.retry(job.id, alternative)}><RotateCcw aria-hidden="true" />{t("action.retrySelected")} · {t(`provider.${alternative}`)}</button> : null}
         {summary.actions.canRemove ? (
           <button type="button" disabled={isBusy("remove")} onClick={() => void controller.remove(job.id)}>
             <Trash2 aria-hidden="true" />{t("action.remove")}

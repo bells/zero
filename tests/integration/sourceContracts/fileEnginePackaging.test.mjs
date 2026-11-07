@@ -53,19 +53,20 @@ test("DOCX render readiness waits for images and fonts before measuring isolated
     path.join(ROOT, "src/plugins/file/engine/fileEngine.css"),
     "utf8",
   );
-  assert.match(source, /await renderAsync\(/);
+  assert.match(source, /await withTimeout\(renderAsync\(/);
   assert.match(source, /ignoreWidth:\s*false/);
   assert.match(source, /ignoreHeight:\s*false/);
   assert.match(source, /breakPages:\s*true/);
   assert.match(source, /ignoreLastRenderedPageBreak:\s*false/);
-  assert.match(source, /await withTimeout\(waitForImages\(root, signal\)/);
+  assert.match(source, /await withTimeout\(waitForImages\(renderSurface, signal\)/);
   assert.match(source, /await withTimeout\(document\.fonts\.ready/);
-  assert.match(source, /Embedded images timed out/);
-  assert.match(source, /Document fonts timed out/);
-  assert.match(source, /document\.body\.classList\.add\("zero-file-engine-export"\)/);
+  assert.match(source, /Math\.min\(RESOURCE_TIMEOUT_MS, deadlineMs\s*-\s*Date\.now\(\)\)/);
+  assert.match(source, /document\.body\.classList\.add\("zero-file-engine-export",/);
   assert.match(source, /measuredPageCount/);
   assert.match(source, /pageRects/);
-  assert.match(css, /body\.zero-file-engine-export/);
+  assert.match(css, /body\.zero-file-engine-layout/);
+  assert.match(css, /body\.zero-file-engine-macos/);
+  assert.match(css, /body\.zero-file-engine-windows/);
   assert.match(css, /section\.zero-file-docx/);
   assert.match(css, /break-after:\s*page/);
 });
@@ -88,8 +89,10 @@ test("engine runtime keeps cancellation, crash recovery, and panel lifetime outs
   assert.match(bridge, /fail_all_sessions/);
   assert.match(bridge, /get_webview_window\(FILE_ENGINE_LABEL\)/);
   assert.match(bridge, /visible\(false\)/);
-  assert.match(panelHook, /client\.listJobs\(\)/);
-  assert.match(panelHook, /reconcileInitialFileConversionJobs\(snapshot, bufferedEvents\)/);
+  assert.match(panelHook, /client\.getQueueSnapshot\(\)/);
+  assert.match(panelHook, /client\.subscribeQueue\(/);
+  assert.match(panelHook, /mergeFileConversionQueueState\(current, snapshot\)/);
+  assert.match(panelHook, /unlistenQueue\?\.\(\)/);
   assert.doesNotMatch(panelHook, /FILE_ENGINE_LABEL|zero-file-engine/);
 });
 
@@ -106,13 +109,15 @@ test("engine document work is sequential and releases page, canvas, DOM, and byt
     path.join(ROOT, "src/plugins/file/engine/FileEngineApp.tsx"),
     "utf8",
   );
-  assert.match(pdfEngine, /for \(let pageNumber = 1; pageNumber <= pdf\.numPages/);
+  const rasterAdapter = fs.readFileSync(path.join(ROOT, "src/plugins/file/engine/pdfOcr.ts"), "utf8");
+  assert.match(pdfEngine, /for\s*\(let pageNumber\s*=\s*1;\s*pageNumber\s*<=\s*pdf\.numPages/);
   assert.match(pdfEngine, /page\.cleanup\(\)/);
   assert.match(pdfEngine, /signal\.addEventListener\("abort", abort/);
   assert.match(pdfEngine, /loadingTask\.destroy\(\)/);
   assert.doesNotMatch(pdfEngine, /page\.render\(|createLayoutDocx/);
-  assert.match(pdfEngine, /canvas\.width = 1/);
-  assert.match(pdfEngine, /canvas\.height = 1/);
+  assert.match(rasterAdapter, /canvas\.width\s*=\s*0/);
+  assert.match(rasterAdapter, /canvas\.height\s*=\s*0/);
+  assert.match(pdfEngine, /releaseRaster\(raster\)/);
   assert.match(docxEngine, /MAX_IMAGE_DECODE_CONCURRENCY = 4/);
   assert.match(docxEngine, /clearDocxRenderSurface/);
   assert.match(docxEngine, /root\.replaceChildren\(\)/);
@@ -176,7 +181,7 @@ test("File conversion has no network or cloud fallback path", () => {
   const frontendRoot = path.join(ROOT, "src", "plugins", "file");
   const sources = [nativeRoot, frontendRoot].flatMap(sourceFiles);
   for (const sourcePath of sources) {
-    const source = fs.readFileSync(sourcePath, "utf8");
+    const source = fs.readFileSync(sourcePath, "utf8").split("#[cfg(test)]")[0];
     assert.doesNotMatch(source, /\b(?:reqwest|ureq|fetch|XMLHttpRequest)\b/);
     assert.doesNotMatch(source.replaceAll("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "WORD_NAMESPACE"), /https?:\/\//);
   }

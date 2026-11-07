@@ -41,6 +41,7 @@ pub struct ProviderConversionOutput {
     pub engine_version: Option<String>,
     pub quality_profile: FileConversionQualityProfile,
     pub warning_keys: Vec<String>,
+    pub quality_issues: Vec<super::contracts::FileConversionQualityIssue>,
     pub page_count: Option<u32>,
 }
 
@@ -103,30 +104,62 @@ impl FileConversionProviderRegistry {
         direction: FileConversionDirection,
         platform: ProviderPlatform,
     ) -> Result<Arc<dyn FileConversionProvider>, FileConversionError> {
-        for provider_id in provider_priority(direction, platform) {
-            let Some(provider) = self.providers.iter().find(|provider| {
-                provider.id() == provider_id && provider.supported_directions().contains(&direction)
-            }) else {
-                continue;
-            };
-            let snapshot = provider.probe();
-            if snapshot.id == provider_id
-                && snapshot.directions.contains(&direction)
-                && matches!(
-                    snapshot.availability,
-                    FileConversionProviderAvailability::Available
+        let id = super::preferences::default_provider(direction, platform).ok_or_else(|| {
+            provider_error(
+                FileConversionErrorCode::EngineUnavailable,
+                "Conversion is not supported on this platform.",
+                false,
+                None,
+            )
+        })?;
+        self.select_id(direction, platform, id)
+    }
+
+    pub fn select_id(
+        &self,
+        direction: FileConversionDirection,
+        platform: ProviderPlatform,
+        id: FileConversionProviderId,
+    ) -> Result<Arc<dyn FileConversionProvider>, FileConversionError> {
+        if !super::preferences::supported_providers(direction, platform).contains(&id) {
+            return Err(provider_error(
+                FileConversionErrorCode::InvalidInput,
+                "The provider does not support this direction and platform.",
+                false,
+                Some(id),
+            ));
+        }
+        let provider = self
+            .providers
+            .iter()
+            .find(|provider| {
+                provider.id() == id && provider.supported_directions().contains(&direction)
+            })
+            .ok_or_else(|| {
+                provider_error(
+                    FileConversionErrorCode::EngineUnavailable,
+                    "The selected provider is unavailable.",
+                    true,
+                    Some(id),
                 )
-            {
-                return Ok(Arc::clone(provider));
+            })?;
+        provider.invalidate();
+        let snapshot = provider.probe();
+        if snapshot.id != id || !snapshot.directions.contains(&direction) {
+            return Err(provider_error(
+                FileConversionErrorCode::EngineUnavailable,
+                "The selected provider no longer supports this direction.",
+                true,
+                Some(id),
+            ));
+        }
+        match snapshot.availability {
+            FileConversionProviderAvailability::Available => Ok(Arc::clone(provider)),
+            FileConversionProviderAvailability::Unavailable { mut error } => {
+                error.provider_id = Some(id);
+                Err(error)
             }
         }
-
-        Err(provider_error(
-            FileConversionErrorCode::EngineUnavailable,
-            "No approved local provider is available for this conversion direction.",
-            true,
-            None,
-        ))
     }
 
     pub fn snapshots(&self) -> Vec<FileConversionProviderSnapshot> {
@@ -140,30 +173,6 @@ impl FileConversionProviderRegistry {
         for provider in &self.providers {
             provider.invalidate();
         }
-    }
-}
-
-fn provider_priority(
-    direction: FileConversionDirection,
-    platform: ProviderPlatform,
-) -> Vec<FileConversionProviderId> {
-    match (direction, platform) {
-        (
-            FileConversionDirection::PdfToDocx,
-            ProviderPlatform::Macos | ProviderPlatform::Windows,
-        ) => {
-            vec![FileConversionProviderId::ZeroFilePdfToDocx]
-        }
-        (FileConversionDirection::DocxToPdf, ProviderPlatform::Macos) => vec![
-            FileConversionProviderId::ZeroFileDocxToPdfMacos,
-            FileConversionProviderId::LibreOffice,
-            FileConversionProviderId::MicrosoftWordMacos,
-        ],
-        (FileConversionDirection::DocxToPdf, ProviderPlatform::Windows) => vec![
-            FileConversionProviderId::LibreOffice,
-            FileConversionProviderId::MicrosoftWordWindows,
-        ],
-        _ => Vec::new(),
     }
 }
 
@@ -189,6 +198,7 @@ pub fn provider_error(
         retryable,
         provider_id,
         diagnostic: None,
+        quality_issues: Vec::new(),
     }
 }
 
@@ -305,6 +315,7 @@ mod tests {
             quality_profile: FileConversionQualityProfile::CompatibilityProvider,
             warning_keys: Vec::new(),
             page_count: None,
+            quality_issues: Vec::new(),
         }
     }
 
@@ -361,7 +372,11 @@ mod tests {
 
         assert_eq!(
             registry
-                .select(FileConversionDirection::DocxToPdf, ProviderPlatform::Macos)
+                .select_id(
+                    FileConversionDirection::DocxToPdf,
+                    ProviderPlatform::Macos,
+                    FileConversionProviderId::LibreOffice
+                )
                 .unwrap()
                 .id(),
             FileConversionProviderId::LibreOffice
@@ -374,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn selection_falls_back_to_available_word_for_the_current_platform_policy() {
+    fn unavailable_builtin_never_falls_back_to_installed_word() {
         let unavailable_libreoffice = fake(
             FileConversionProviderId::LibreOffice,
             false,
@@ -389,11 +404,24 @@ mod tests {
         );
         let registry = FileConversionProviderRegistry::new(vec![unavailable_libreoffice, word]);
 
+        let error = registry
+            .select(
+                FileConversionDirection::DocxToPdf,
+                ProviderPlatform::Windows,
+            )
+            .err()
+            .unwrap();
+        assert_eq!(error.code, FileConversionErrorCode::EngineUnavailable);
+        assert_eq!(
+            error.provider_id,
+            Some(FileConversionProviderId::ZeroFileDocxToPdfWindows)
+        );
         assert_eq!(
             registry
-                .select(
+                .select_id(
                     FileConversionDirection::DocxToPdf,
-                    ProviderPlatform::Windows
+                    ProviderPlatform::Windows,
+                    FileConversionProviderId::MicrosoftWordWindows
                 )
                 .unwrap()
                 .id(),

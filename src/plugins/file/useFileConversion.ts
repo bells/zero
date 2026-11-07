@@ -6,11 +6,15 @@ import type {
   FileConversionEnqueueItem,
   FileConversionError,
   FileConversionJobSnapshot,
+  FileConversionQueueSnapshot,
+  FileConversionDirection,
+  FileConversionProviderId,
 } from "./contracts";
 import {
-  mergeFileConversionJob,
+  mergeFileConversionQueueState,
+  mergeFileConversionQueueStateJob,
+  mergeFileConversionCapabilities,
   reconcileFileConversionCandidates,
-  reconcileInitialFileConversionJobs,
 } from "./fileModel";
 import {
   fileService,
@@ -18,6 +22,8 @@ import {
 } from "./fileService";
 
 export type FileConversionAction =
+  | "configuration"
+  | "provider"
   | "choose"
   | "inspect"
   | "enqueue"
@@ -41,11 +47,15 @@ export interface FileConversionClient {
   chooseInputs(): Promise<FileConversionCandidate[]>;
   inspectInputs(sourcePaths: string[]): Promise<FileConversionCandidate[]>;
   enqueue(items: FileConversionEnqueueItem[]): Promise<FileConversionBatchResult>;
-  listJobs(): Promise<FileConversionJobSnapshot[]>;
+  getQueueSnapshot(): Promise<FileConversionQueueSnapshot>;
+  subscribeQueue(handler: (snapshot: FileConversionQueueSnapshot) => void): Promise<() => void>;
   start(): Promise<FileConversionJobSnapshot[]>;
   cancel(jobId: string): Promise<FileConversionJobSnapshot[]>;
   remove(jobId: string): Promise<FileConversionJobSnapshot>;
-  retry(jobId: string): Promise<FileConversionJobSnapshot>;
+  retry(jobId: string, providerId?: FileConversionProviderId): Promise<FileConversionJobSnapshot>;
+  openConfiguration?(): Promise<void>;
+  setProvider?(direction: FileConversionDirection, providerId: FileConversionProviderId, expectedRevision: number): Promise<FileConversionCapabilitySnapshot>;
+  subscribeCapabilities?(handler: (snapshot: FileConversionCapabilitySnapshot) => void): Promise<() => void>;
   clearCompleted(): Promise<FileConversionJobSnapshot[]>;
   open(jobId: string): Promise<void>;
   reveal(jobId: string): Promise<void>;
@@ -60,7 +70,8 @@ export function useFileConversion(
   const [capabilities, setCapabilities] =
     useState<FileConversionCapabilitySnapshot | null>(null);
   const [candidates, setCandidates] = useState<FileConversionCandidate[]>([]);
-  const [jobs, setJobs] = useState<FileConversionJobSnapshot[]>([]);
+  const [queue, setQueue] = useState<FileConversionQueueSnapshot>({ revision: -1, jobs: [] });
+  const jobs = queue.jobs;
   const [isLoading, setIsLoading] = useState(true);
   const [busy, setBusy] = useState<Partial<Record<FileConversionAction, string | true>>>({});
   const [error, setError] = useState<FileConversionError | null>(null);
@@ -71,35 +82,36 @@ export function useFileConversion(
 
   useEffect(() => {
     mountedRef.current = true;
-    let hydrated = false;
-    let bufferedEvents: FileConversionJobSnapshot[] = [];
     let disposed = false;
     let unlisten: (() => void) | undefined;
-
-    client
-      .subscribe((snapshot) => {
-        if (disposed) return;
-        if (!hydrated) {
-          bufferedEvents.push(snapshot);
-          return;
-        }
-        setJobs((current) => mergeFileConversionJob(current, snapshot));
-      })
-      .then((disposeListener) => {
-        if (disposed) {
-          disposeListener();
-          return;
-        }
-        unlisten = disposeListener;
-        return Promise.all([client.getCapabilities(), client.listJobs()]);
-      })
+    let unlistenCapabilities: (() => void) | undefined;
+    let unlistenQueue: (() => void) | undefined;
+    const capabilitiesReady = client.subscribeCapabilities?.((snapshot) => {
+      if (!disposed) setCapabilities((current) => mergeFileConversionCapabilities(current, snapshot));
+    }).then((disposeListener) => {
+      if (disposed) disposeListener();
+      else unlistenCapabilities = disposeListener;
+    }) ?? Promise.resolve();
+    const jobsReady = client.subscribe((snapshot) => {
+      if (disposed) return;
+      setQueue((current) => mergeFileConversionQueueStateJob(current, snapshot));
+    }).then((disposeListener) => {
+      if (disposed) disposeListener();
+      else unlisten = disposeListener;
+    });
+    const queueReady = client.subscribeQueue((snapshot) => {
+      if (!disposed) setQueue((current) => mergeFileConversionQueueState(current, snapshot));
+    }).then((disposeListener) => {
+      if (disposed) disposeListener();
+      else unlistenQueue = disposeListener;
+    });
+    Promise.all([capabilitiesReady, jobsReady, queueReady])
+      .then(() => disposed ? undefined : Promise.all([client.getCapabilities(), client.getQueueSnapshot()]))
       .then((loaded) => {
         if (!loaded || disposed) return;
         const [nextCapabilities, snapshot] = loaded;
-        setCapabilities(nextCapabilities);
-        setJobs(reconcileInitialFileConversionJobs(snapshot, bufferedEvents));
-        bufferedEvents = [];
-        hydrated = true;
+        setCapabilities((current) => mergeFileConversionCapabilities(current, nextCapabilities));
+        setQueue((current) => mergeFileConversionQueueState(current, snapshot));
         setError(null);
       })
       .catch((loadError: unknown) => {
@@ -114,6 +126,8 @@ export function useFileConversion(
       mountedRef.current = false;
       actionGateRef.current.clear();
       unlisten?.();
+      unlistenCapabilities?.();
+      unlistenQueue?.();
     };
   }, [client]);
 
@@ -180,8 +194,8 @@ export function useFileConversion(
     async (items: FileConversionEnqueueItem[]) => {
       const result = await runAction("enqueue", true, () => client.enqueue(items));
       if (result && mountedRef.current) {
-        setJobs((current) =>
-          result.jobs.reduce(mergeFileConversionJob, current),
+        setQueue((current) =>
+          result.jobs.reduce(mergeFileConversionQueueStateJob, current),
         );
         setCandidates(result.rejectedCandidates);
       }
@@ -193,7 +207,7 @@ export function useFileConversion(
   const start = useCallback(async () => {
     const result = await runAction("start", true, () => client.start());
     if (result && mountedRef.current) {
-      setJobs((current) => result.reduce(mergeFileConversionJob, current));
+      setQueue((current) => result.reduce(mergeFileConversionQueueStateJob, current));
     }
     return result;
   }, [client, runAction]);
@@ -202,7 +216,7 @@ export function useFileConversion(
     async (jobId: string) => {
       const result = await runAction("cancel", jobId, () => client.cancel(jobId));
       if (result && mountedRef.current) {
-        setJobs((current) => result.reduce(mergeFileConversionJob, current));
+        setQueue((current) => result.reduce(mergeFileConversionQueueStateJob, current));
       }
       return result;
     },
@@ -213,7 +227,7 @@ export function useFileConversion(
     async (jobId: string) => {
       const result = await runAction("remove", jobId, () => client.remove(jobId));
       if (result && mountedRef.current) {
-        setJobs((current) => current.filter((job) => job.id !== jobId));
+        setQueue((current) => ({ ...current, jobs: current.jobs.filter((job) => job.id !== jobId) }));
       }
       return result;
     },
@@ -221,21 +235,33 @@ export function useFileConversion(
   );
 
   const retry = useCallback(
-    async (jobId: string) => {
-      const result = await runAction("retry", jobId, () => client.retry(jobId));
+    async (jobId: string, providerId?: FileConversionProviderId) => {
+      const result = await runAction("retry", jobId, () => client.retry(jobId, providerId));
       if (result && mountedRef.current) {
-        setJobs((current) => mergeFileConversionJob(current, result));
+        setQueue((current) => mergeFileConversionQueueStateJob(current, result));
       }
       return result;
     },
     [client, runAction],
   );
 
+  const openConfiguration = useCallback(() => runAction("configuration", true, () => client.openConfiguration?.() ?? Promise.resolve()), [client, runAction]);
+
+  const setProvider = useCallback(async (direction: FileConversionDirection, providerId: FileConversionProviderId) => {
+    if (!client.setProvider) return null;
+    const result = await runAction("provider", true, () => client.setProvider!(direction, providerId, capabilities?.preferenceRevision ?? 0));
+    if (result && mountedRef.current) setCapabilities((current) => mergeFileConversionCapabilities(current, result));
+    if (!result && mountedRef.current) {
+      try { const fresh = await client.getCapabilities(); if (mountedRef.current) setCapabilities((current) => mergeFileConversionCapabilities(current, fresh)); } catch { /* Preserve the original action error. */ }
+    }
+    return result;
+  }, [client, capabilities?.preferenceRevision, runAction]);
+
   const clearCompleted = useCallback(async () => {
     const removed = await runAction("clear", true, () => client.clearCompleted());
     if (removed && mountedRef.current) {
       const removedIds = new Set(removed.map((job) => job.id));
-      setJobs((current) => current.filter((job) => !removedIds.has(job.id)));
+      setQueue((current) => ({ ...current, jobs: current.jobs.filter((job) => !removedIds.has(job.id)) }));
     }
     return removed;
   }, [client, runAction]);
@@ -266,6 +292,8 @@ export function useFileConversion(
       cancel,
       remove,
       retry,
+      setProvider,
+      openConfiguration,
       clearCompleted,
       open,
       reveal,
@@ -285,6 +313,8 @@ export function useFileConversion(
       cancel,
       remove,
       retry,
+      setProvider,
+      openConfiguration,
       clearCompleted,
       open,
       reveal,

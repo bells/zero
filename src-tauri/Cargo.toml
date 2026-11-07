@@ -91,11 +91,14 @@ window-vibrancy = "0.7.1"
 xcap = { version = "0.9.8", optional = true }
 objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "CGWindow", "CGGeometry"] }
 [target.'cfg(windows)'.dependencies]
+webview2-com = "=0.38.2"
+windows-core-webview = { package = "windows-core", version = "=0.61.2" }
 paddle-ocr-rs = { version = "=0.6.1", optional = true, default-features = false }
 ort = { version = "=2.0.0-rc.10", optional = true, default-features = false, features = ["std", "ndarray", "load-dynamic"] }
 windows = { version = "0.52", features = [
   "Win32_Foundation",
   "Win32_Graphics_Gdi",
+  "Win32_Graphics_DirectWrite",
   "Win32_Storage_FileSystem",
   "Win32_System_Com",
   "Win32_System_LibraryLoader",

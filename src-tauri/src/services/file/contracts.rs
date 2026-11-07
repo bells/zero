@@ -12,6 +12,7 @@ pub enum FileConversionDirection {
 pub enum FileConversionProviderId {
     ZeroFilePdfToDocx,
     ZeroFileDocxToPdfMacos,
+    ZeroFileDocxToPdfWindows,
     LibreOffice,
     MicrosoftWordMacos,
     MicrosoftWordWindows,
@@ -69,6 +70,8 @@ pub struct FileConversionError {
     pub provider_id: Option<FileConversionProviderId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub diagnostic: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub quality_issues: Vec<FileConversionQualityIssue>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -104,6 +107,8 @@ pub struct FileConversionDirectionCapability {
     pub available: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub selected_provider_id: Option<FileConversionProviderId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_provider_id: Option<FileConversionProviderId>,
     pub providers: Vec<FileConversionProvider>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unavailability: Option<FileConversionError>,
@@ -112,6 +117,12 @@ pub struct FileConversionDirectionCapability {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileConversionCapabilitySnapshot {
+    #[serde(default)]
+    pub preference_revision: u64,
+    #[serde(default)]
+    pub capability_revision: u64,
+    #[serde(default)]
+    pub invalid_preference_directions: Vec<FileConversionDirection>,
     pub directions: Vec<FileConversionDirectionCapability>,
     pub refreshed_at_ms: u64,
 }
@@ -164,6 +175,22 @@ pub struct FileConversionJobRequest {
     pub job_id: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileConversionProviderSelectionRequest {
+    pub direction: FileConversionDirection,
+    pub provider_id: FileConversionProviderId,
+    pub expected_revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileConversionRetryRequest {
+    pub job_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<FileConversionProviderId>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum FileConversionStage {
@@ -198,6 +225,8 @@ pub struct FileConversionResult {
     pub engine_version: Option<String>,
     pub quality_profile: FileConversionQualityProfile,
     pub warning_keys: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub quality_issues: Vec<FileConversionQualityIssue>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_count: Option<u32>,
 }
@@ -216,6 +245,10 @@ pub enum FileConversionJobState {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileConversionJobSnapshot {
+    #[serde(default)]
+    pub queue_revision: u64,
+    #[serde(default)]
+    pub revision: u64,
     pub id: String,
     pub source_path: String,
     pub source_name: String,
@@ -272,6 +305,7 @@ mod tests {
             retryable: false,
             provider_id: Some(FileConversionProviderId::LibreOffice),
             diagnostic: None,
+            quality_issues: Vec::new(),
         };
 
         assert_eq!(
@@ -306,6 +340,34 @@ mod tests {
     }
 
     #[test]
+    fn provider_selection_and_retry_serialize_only_known_identity_and_revision() {
+        let request: FileConversionProviderSelectionRequest = serde_json::from_value(
+            json!({"direction":"docxToPdf","providerId":"libreOffice","expectedRevision":7}),
+        )
+        .unwrap();
+        assert_eq!(request.expected_revision, 7);
+        assert_eq!(
+            serde_json::to_value(request).unwrap(),
+            json!({"direction":"docxToPdf","providerId":"libreOffice","expectedRevision":7})
+        );
+        let legacy: FileConversionRetryRequest =
+            serde_json::from_value(json!({"jobId":"one"})).unwrap();
+        assert_eq!(legacy.provider_id, None);
+        let explicit: FileConversionRetryRequest =
+            serde_json::from_value(json!({"jobId":"one","providerId":"microsoftWordMacos"}))
+                .unwrap();
+        assert_eq!(
+            explicit.provider_id,
+            Some(FileConversionProviderId::MicrosoftWordMacos)
+        );
+        assert!(serde_json::from_value::<FileConversionRetryRequest>(
+            json!({"jobId":"one","providerId":"/tmp/provider.exe"})
+        )
+        .is_err());
+        assert!(serde_json::from_value::<FileConversionProviderSelectionRequest>(json!({"direction":"docxToPdf","providerId":"libreOffice","expectedRevision":7,"sourcePath":"/tmp/private.docx"})).is_err());
+    }
+
+    #[test]
     fn rejects_missing_fields_unknown_result_paths_and_invalid_enums() {
         assert!(
             serde_json::from_value::<FileConversionEnqueueRequest>(json!({
@@ -320,4 +382,34 @@ mod tests {
         .is_err());
         assert!(serde_json::from_value::<FileConversionDirection>(json!("pdfToWord")).is_err());
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileConversionQualityIssue {
+    pub code: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub page_numbers: Vec<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub section_indexes: Vec<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub font_families: Vec<String>,
+    pub occurrences: u64,
+    pub truncated: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileFontInspection {
+    pub available_families: Vec<String>,
+    pub missing_families: Vec<String>,
+    pub embedded_families: Vec<String>,
+    pub incomplete: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileConversionQueueSnapshot {
+    pub revision: u64,
+    pub jobs: Vec<FileConversionJobSnapshot>,
 }

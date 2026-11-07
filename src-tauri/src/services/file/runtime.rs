@@ -74,6 +74,7 @@ pub struct FileConversionState {
     enqueue_gate: Mutex<()>,
     providers: Mutex<Option<Arc<FileConversionProviderRegistry>>>,
     capability_cache: Mutex<CapabilityCacheState>,
+    preferences: Mutex<(Option<PathBuf>, super::preferences::FileProviderPreferences)>,
     provider_initializations: AtomicU64,
     capability_refreshes: AtomicU64,
 }
@@ -85,6 +86,10 @@ impl Default for FileConversionState {
             enqueue_gate: Mutex::new(()),
             providers: Mutex::new(None),
             capability_cache: Mutex::new(CapabilityCacheState::default()),
+            preferences: Mutex::new((
+                None,
+                super::preferences::FileProviderPreferences::defaults(ProviderPlatform::current()),
+            )),
             provider_initializations: AtomicU64::new(0),
             capability_refreshes: AtomicU64::new(0),
         }
@@ -124,6 +129,9 @@ impl FileConversionState {
             for provider in snapshot.directions.iter().flat_map(|d| &d.providers) {
                 let id = match provider.id {
                     FileConversionProviderId::ZeroFilePdfToDocx => Provider::ZeroFilePdfToDocx,
+                    FileConversionProviderId::ZeroFileDocxToPdfWindows => {
+                        Provider::ZeroFileDocxToPdfWindows
+                    }
                     FileConversionProviderId::ZeroFileDocxToPdfMacos => {
                         Provider::ZeroFileDocxToPdfMacos
                     }
@@ -186,7 +194,52 @@ impl FileConversionState {
         Ok(())
     }
 
+    pub fn configure_preferences(&self, path: PathBuf) -> Result<(), FileConversionError> {
+        let mut preferences = self
+            .preferences
+            .lock()
+            .map_err(|_| runtime_error("File preferences are unavailable.", true))?;
+        if preferences.0.is_none() {
+            let loaded = super::preferences::load(&path, ProviderPlatform::current())?;
+            *preferences = (Some(path), loaded);
+        }
+        Ok(())
+    }
+
+    pub fn set_provider(
+        &self,
+        request: super::contracts::FileConversionProviderSelectionRequest,
+    ) -> Result<FileConversionCapabilitySnapshot, FileConversionError> {
+        let mut preferences = self
+            .preferences
+            .lock()
+            .map_err(|_| runtime_error("File preferences are unavailable.", true))?;
+        let next = preferences.1.replace(
+            request.direction,
+            request.provider_id,
+            request.expected_revision,
+            ProviderPlatform::current(),
+        )?;
+        let path = preferences
+            .0
+            .as_ref()
+            .ok_or_else(|| runtime_error("File preferences have not been initialized.", true))?;
+        super::preferences::save(path, &next)?;
+        preferences.1 = next;
+        let mut snapshot = self.raw_capabilities();
+        super::capabilities::apply_preferences(&mut snapshot, &preferences.1);
+        Ok(snapshot)
+    }
+
     pub fn capabilities(&self) -> FileConversionCapabilitySnapshot {
+        let mut snapshot = self.raw_capabilities();
+        if let Ok(preferences) = self.preferences.lock() {
+            super::capabilities::apply_preferences(&mut snapshot, &preferences.1);
+        }
+        snapshot
+    }
+
+    fn raw_capabilities(&self) -> FileConversionCapabilitySnapshot {
         loop {
             let generation = self.capability_generation();
             if let Ok(cache) = self.capability_cache.lock() {
@@ -202,7 +255,9 @@ impl FileConversionState {
                 .ok()
                 .and_then(|providers| providers.as_ref().map(Arc::clone))
                 .unwrap_or_else(|| Arc::new(FileConversionProviderRegistry::new(Vec::new())));
-            let snapshot = capability_snapshot(&providers, ProviderPlatform::current(), now_ms());
+            let mut snapshot =
+                capability_snapshot(&providers, ProviderPlatform::current(), now_ms());
+            snapshot.capability_revision = generation;
             let Ok(mut cache) = self.capability_cache.lock() else {
                 return snapshot;
             };
@@ -281,6 +336,7 @@ impl FileConversionState {
                     retryable: false,
                     provider_id: None,
                     diagnostic: None,
+                    quality_issues: Vec::new(),
                 });
             }
             let _enqueue = self
@@ -356,11 +412,32 @@ impl FileConversionState {
         result
     }
 
+    pub fn queue_snapshot(
+        &self,
+    ) -> Result<super::contracts::FileConversionQueueSnapshot, FileConversionError> {
+        Ok(self.lock_runtime()?.queue.queue_snapshot())
+    }
+
     pub fn snapshots(&self) -> Result<Vec<FileConversionJobSnapshot>, FileConversionError> {
         Ok(self.lock_runtime()?.queue.snapshots())
     }
 
     pub fn start(&self) -> Result<(Vec<FileConversionJobSnapshot>, bool), FileConversionError> {
+        let preferences = self
+            .preferences
+            .lock()
+            .map_err(|_| runtime_error("File preferences are unavailable.", true))?;
+        let (mut capabilities, _capability_guard) = loop {
+            let snapshot = self.raw_capabilities();
+            let cache = self
+                .capability_cache
+                .lock()
+                .map_err(|_| runtime_error("File capabilities are unavailable.", true))?;
+            if snapshot.capability_revision == cache.generation {
+                break (snapshot, cache);
+            }
+        };
+        super::capabilities::apply_preferences(&mut capabilities, &preferences.1);
         let mut runtime = self.lock_runtime()?;
         if runtime.temp_root.is_none() {
             return Err(runtime_error(
@@ -368,18 +445,17 @@ impl FileConversionState {
                 true,
             ));
         }
-        let updates = runtime
-            .queue
-            .start(now_ms())
-            .into_iter()
-            .collect::<Vec<_>>();
-        if let Some(snapshot) = updates.first() {
+        let mut updates = runtime.queue.bind_pending(&capabilities, now_ms());
+        let started = runtime.queue.start_bound(&capabilities, now_ms());
+        if let Some(snapshot) = &started {
             runtime
                 .cancellations
                 .entry(snapshot.id.clone())
                 .or_default();
+            updates.retain(|update| update.id != snapshot.id);
+            updates.push(snapshot.clone());
         }
-        let should_spawn = !updates.is_empty() && !runtime.worker_running;
+        let should_spawn = runtime.queue.active_job_id().is_some() && !runtime.worker_running;
         if should_spawn {
             runtime.worker_running = true;
         }
@@ -430,7 +506,81 @@ impl FileConversionState {
     }
 
     pub fn retry(&self, job_id: &str) -> Result<FileConversionJobSnapshot, FileConversionError> {
-        self.lock_runtime()?.queue.retry(job_id, now_ms())
+        self.retry_with_provider(job_id, None)
+    }
+
+    pub fn retry_with_provider(
+        &self,
+        job_id: &str,
+        provider_id: Option<super::contracts::FileConversionProviderId>,
+    ) -> Result<FileConversionJobSnapshot, FileConversionError> {
+        let _enqueue = self
+            .enqueue_gate
+            .lock()
+            .map_err(|_| runtime_error("The File enqueue coordinator is unavailable.", true))?;
+        let (record, active_sources) = {
+            let runtime = self.lock_runtime()?;
+            (
+                runtime
+                    .queue
+                    .record(job_id)
+                    .cloned()
+                    .ok_or_else(unknown_job)?,
+                runtime.queue.active_sources(),
+            )
+        };
+        let candidate = inspect_source(&record.canonical_source, &active_sources);
+        let direction = match candidate.validation {
+            FileConversionCandidateValidation::Valid { direction, .. }
+                if direction == record.snapshot.direction =>
+            {
+                direction
+            }
+            FileConversionCandidateValidation::Rejected { error } => return Err(error),
+            _ => {
+                return Err(super::provider::provider_error(
+                    FileConversionErrorCode::InvalidInput,
+                    "The source no longer matches the queued conversion direction.",
+                    false,
+                    provider_id,
+                ))
+            }
+        };
+        let capabilities = self.raw_capabilities();
+        let mut runtime = self.lock_runtime()?;
+        let current = runtime.queue.record(job_id).ok_or_else(unknown_job)?;
+        if current.snapshot.revision != record.snapshot.revision {
+            return Err(runtime_error(
+                "The job changed while its input was being checked. Try again.",
+                true,
+            ));
+        }
+        if let Some(id) = provider_id {
+            let provider = capabilities
+                .directions
+                .iter()
+                .find(|entry| entry.direction == direction)
+                .and_then(|entry| entry.providers.iter().find(|provider| provider.id == id));
+            if !provider.is_some_and(|provider| {
+                matches!(
+                    provider.availability,
+                    super::contracts::FileConversionProviderAvailability::Available
+                )
+            }) {
+                return Err(super::provider::provider_error(
+                    FileConversionErrorCode::EngineUnavailable,
+                    "Choose an available provider for this direction.",
+                    true,
+                    Some(id),
+                ));
+            }
+        }
+        let snapshot = runtime.queue.retry(job_id, now_ms())?;
+        if let Some(id) = provider_id {
+            runtime.queue.bind_retry(job_id, id)
+        } else {
+            Ok(snapshot)
+        }
     }
 
     pub fn clear_completed(&self) -> Result<Vec<FileConversionJobSnapshot>, FileConversionError> {
@@ -577,7 +727,13 @@ async fn execute_active_job(
         );
         return;
     };
-    let provider = match providers.select(record.snapshot.direction, ProviderPlatform::current()) {
+    let provider = match record
+        .snapshot
+        .provider_id
+        .ok_or_else(|| runtime_error("The job has no bound provider.", false))
+        .and_then(|id| {
+            providers.select_id(record.snapshot.direction, ProviderPlatform::current(), id)
+        }) {
         Ok(provider) => provider,
         Err(error) => {
             finish_with_error(app, &record.snapshot.id, error);
@@ -656,6 +812,7 @@ async fn execute_active_job(
             engine_version: output.engine_version,
             quality_profile: output.quality_profile,
             warning_keys: output.warning_keys,
+            quality_issues: output.quality_issues,
             page_count: output.page_count,
         })
     });
@@ -753,6 +910,7 @@ fn cancelled_error() -> FileConversionError {
         retryable: true,
         provider_id: None,
         diagnostic: None,
+        quality_issues: Vec::new(),
     }
 }
 
@@ -763,6 +921,7 @@ fn unknown_job() -> FileConversionError {
         retryable: false,
         provider_id: None,
         diagnostic: None,
+        quality_issues: Vec::new(),
     }
 }
 
@@ -773,6 +932,7 @@ fn runtime_error(message: &str, retryable: bool) -> FileConversionError {
         retryable,
         provider_id: None,
         diagnostic: None,
+        quality_issues: Vec::new(),
     }
 }
 
@@ -911,13 +1071,22 @@ mod tests {
             .unwrap();
         let queued_second = result.jobs[1].id.clone();
 
+        let mut capabilities = state.raw_capabilities();
+        capabilities.directions[0].providers[0].availability =
+            super::super::contracts::FileConversionProviderAvailability::Available;
+        state.capability_cache.lock().unwrap().snapshot = Some(capabilities);
         let (updates, should_spawn) = state.start().unwrap();
         assert!(should_spawn);
-        assert_eq!(updates.len(), 1);
-        assert!(matches!(
-            updates[0].state,
-            FileConversionJobState::Preparing { .. }
-        ));
+        assert_eq!(updates.len(), 2);
+        assert_eq!(
+            updates
+                .iter()
+                .filter(|job| matches!(job.state, FileConversionJobState::Preparing { .. }))
+                .count(),
+            1
+        );
+        assert!(updates.iter().all(|job| job.provider_id
+            == Some(super::super::contracts::FileConversionProviderId::ZeroFilePdfToDocx)));
 
         let cancelled = state.cancel(&queued_second).unwrap();
         assert!(matches!(
@@ -926,6 +1095,152 @@ mod tests {
         ));
         state.remove(&queued_second).unwrap();
         assert_eq!(state.snapshots().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn retry_revalidates_source_before_rebinding_and_preserves_failed_state() {
+        use super::super::contracts::FileConversionProviderId;
+        let root = TestRoot::new();
+        let source = root.0.join("source.pdf");
+        fs::write(&source, b"%PDF-1.7\nfixture").unwrap();
+        let state = FileConversionState::default();
+        state.initialize(root.0.join("temp")).unwrap();
+        let batch = state
+            .enqueue(FileConversionEnqueueRequest {
+                items: vec![FileConversionEnqueueItem {
+                    source_path: source.to_string_lossy().into_owned(),
+                    output_directory: None,
+                }],
+            })
+            .unwrap();
+        let job_id = &batch.jobs[0].id;
+        state.cancel(job_id).unwrap();
+        let mut capabilities = state.raw_capabilities();
+        capabilities.directions[0].providers[0].availability =
+            super::super::contracts::FileConversionProviderAvailability::Available;
+        state.capability_cache.lock().unwrap().snapshot = Some(capabilities);
+        fs::write(&source, b"%PDF-1.7\n1 0 obj << /Encrypt 2 0 R >> endobj").unwrap();
+        assert_eq!(
+            state
+                .retry_with_provider(job_id, Some(FileConversionProviderId::ZeroFilePdfToDocx))
+                .unwrap_err()
+                .code,
+            FileConversionErrorCode::PasswordRequired
+        );
+        assert!(matches!(
+            state.snapshots().unwrap()[0].state,
+            FileConversionJobState::Cancelled { .. }
+        ));
+        assert_eq!(state.snapshots().unwrap()[0].provider_id, None);
+    }
+
+    #[test]
+    fn concurrent_windows_cannot_save_different_choices_at_the_same_revision() {
+        use super::super::contracts::{
+            FileConversionDirection, FileConversionProviderId,
+            FileConversionProviderSelectionRequest,
+        };
+        let root = TestRoot::new();
+        let platform = ProviderPlatform::current();
+        let Some(default) = super::super::preferences::default_provider(
+            FileConversionDirection::DocxToPdf,
+            platform,
+        ) else {
+            return;
+        };
+        let path = root.0.join("preferences.json");
+        let state = Arc::new(FileConversionState::default());
+        state.configure_preferences(path.clone()).unwrap();
+        let barrier = Arc::new(std::sync::Barrier::new(2));
+        let workers = [default, FileConversionProviderId::LibreOffice].map(|provider_id| {
+            let state = Arc::clone(&state);
+            let barrier = Arc::clone(&barrier);
+            std::thread::spawn(move || {
+                barrier.wait();
+                state.set_provider(FileConversionProviderSelectionRequest {
+                    direction: FileConversionDirection::DocxToPdf,
+                    provider_id,
+                    expected_revision: 0,
+                })
+            })
+        });
+        let results = workers.map(|worker| worker.join().unwrap());
+        assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+        assert_eq!(
+            results
+                .iter()
+                .filter(|result| result
+                    .as_ref()
+                    .is_err_and(|error| error.code == FileConversionErrorCode::InvalidJobState))
+                .count(),
+            1
+        );
+        let current = state.capabilities();
+        let persisted = super::super::preferences::load(&path, platform).unwrap();
+        assert_eq!(current.preference_revision, 1);
+        assert_eq!(persisted.revision, 1);
+        assert_eq!(
+            current.directions[1].preferred_provider_id,
+            persisted.docx_to_pdf
+        );
+    }
+
+    #[test]
+    fn preference_save_failure_preserves_authoritative_revision_and_choice() {
+        use super::super::contracts::{
+            FileConversionDirection, FileConversionProviderId,
+            FileConversionProviderSelectionRequest,
+        };
+        let root = TestRoot::new();
+        let state = FileConversionState::default();
+        let path = root.0.join("settings.json");
+        state.configure_preferences(path.clone()).unwrap();
+        let selected = super::super::preferences::default_provider(
+            FileConversionDirection::DocxToPdf,
+            ProviderPlatform::current(),
+        );
+        let Some(selected) = selected else {
+            return;
+        };
+        fs::create_dir(&path).unwrap();
+        assert!(state
+            .set_provider(FileConversionProviderSelectionRequest {
+                direction: FileConversionDirection::DocxToPdf,
+                provider_id: FileConversionProviderId::LibreOffice,
+                expected_revision: 0
+            })
+            .is_err());
+        let snapshot = state.capabilities();
+        assert_eq!(snapshot.preference_revision, 0);
+        assert_eq!(snapshot.directions[1].preferred_provider_id, Some(selected));
+        fs::remove_dir(&path).unwrap();
+        let changed = state
+            .set_provider(FileConversionProviderSelectionRequest {
+                direction: FileConversionDirection::DocxToPdf,
+                provider_id: FileConversionProviderId::LibreOffice,
+                expected_revision: 0,
+            })
+            .unwrap();
+        assert_eq!(changed.preference_revision, 1);
+        assert!(state
+            .set_provider(FileConversionProviderSelectionRequest {
+                direction: FileConversionDirection::DocxToPdf,
+                provider_id: selected,
+                expected_revision: 0
+            })
+            .is_err());
+        assert_eq!(
+            state.capabilities().directions[1].preferred_provider_id,
+            Some(FileConversionProviderId::LibreOffice)
+        );
+        let restarted = FileConversionState::default();
+        restarted.configure_preferences(path).unwrap();
+        assert_eq!(restarted.capabilities().preference_revision, 1);
+        assert_eq!(
+            restarted.capabilities().directions[1].preferred_provider_id,
+            Some(FileConversionProviderId::LibreOffice)
+        );
+        assert!(restarted.snapshots().unwrap().is_empty());
     }
 
     #[test]

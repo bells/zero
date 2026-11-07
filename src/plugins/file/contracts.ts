@@ -3,6 +3,7 @@ export type FileConversionDirection = "pdfToDocx" | "docxToPdf";
 export type FileConversionProviderId =
   | "zeroFilePdfToDocx"
   | "zeroFileDocxToPdfMacos"
+  | "zeroFileDocxToPdfWindows"
   | "libreOffice"
   | "microsoftWordMacos"
   | "microsoftWordWindows";
@@ -44,6 +45,7 @@ export interface FileConversionError {
   retryable: boolean;
   providerId?: FileConversionProviderId;
   diagnostic?: string;
+  qualityIssues?: FileConversionQualityIssue[];
 }
 
 export type FileConversionProviderAvailability =
@@ -67,11 +69,15 @@ export interface FileConversionDirectionCapability {
   direction: FileConversionDirection;
   available: boolean;
   selectedProviderId?: FileConversionProviderId;
+  preferredProviderId?: FileConversionProviderId;
   providers: FileConversionProvider[];
   unavailability?: FileConversionError;
 }
 
 export interface FileConversionCapabilitySnapshot {
+  preferenceRevision?: number;
+  capabilityRevision?: number;
+  invalidPreferenceDirections?: FileConversionDirection[];
   directions: FileConversionDirectionCapability[];
   refreshedAtMs: number;
 }
@@ -128,6 +134,7 @@ export interface FileConversionResult {
   engineVersion?: string;
   qualityProfile: FileConversionQualityProfile;
   warningKeys: string[];
+  qualityIssues?: FileConversionQualityIssue[];
   pageCount?: number;
 }
 
@@ -140,6 +147,8 @@ export type FileConversionJobState =
   | { status: "cancelled"; error: FileConversionError };
 
 export interface FileConversionJobSnapshot {
+  queueRevision?: number;
+  revision?: number;
   id: string;
   sourcePath: string;
   sourceName: string;
@@ -155,4 +164,40 @@ export interface FileConversionJobSnapshot {
 export interface FileConversionBatchResult {
   jobs: FileConversionJobSnapshot[];
   rejectedCandidates: FileConversionCandidate[];
+}
+
+export type FileConversionQualityIssueCode =
+  | "fontMissing" | "fontSubstituted" | "fontInspectionIncomplete"
+  | "layoutReflowed" | "tableSimplified" | "nonEditableGraphic"
+  | "ocrUsed" | "ocrLowConfidence" | "ocrDownsampled";
+
+export interface FileConversionQualityIssue {
+  code: FileConversionQualityIssueCode | (string & {});
+  pageNumbers?: number[];
+  sectionIndexes?: number[];
+  fontFamilies?: string[];
+  occurrences: number;
+  truncated: boolean;
+}
+
+export interface FileFontInspection {
+  availableFamilies: string[];
+  missingFamilies: string[];
+  embeddedFamilies: string[];
+  incomplete: boolean;
+}
+
+export interface FileConversionProviderSelectionRequest {
+  direction: FileConversionDirection;
+  providerId: FileConversionProviderId;
+  expectedRevision: number;
+}
+
+export interface FileConversionRetryRequest extends FileConversionJobRequest {
+  providerId?: FileConversionProviderId;
+}
+
+export interface FileConversionQueueSnapshot {
+  revision: number;
+  jobs: FileConversionJobSnapshot[];
 }

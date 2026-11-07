@@ -4,7 +4,32 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import JSZip from "jszip";
-import { ocrTextSamples } from "/private/tmp/zero-tests/plugins/file/engine/pdfOcr.js";
+import { ocrTextSamples, scanResidualRegions } from "/private/tmp/zero-tests/plugins/file/engine/pdfOcr.js";
+
+test("scan residual accounting masks recognized text and retains isolated graphics or rejects unresolved ink",()=>{
+  const width=400,height=400,pixels=new Uint8ClampedArray(width*height*4).fill(255);
+  const rect=(x,y,w,h)=>{for(let row=y;row<y+h;row++)for(let col=x;col<x+w;col++){const n=(row*width+col)*4;pixels[n]=pixels[n+1]=pixels[n+2]=0;}};
+  rect(20,20,150,20);rect(40,180,250,120);
+  const result={width,height,lines:[{text:"Body",bounds:{x:20,y:20,width:150,height:20},confidence:1}],warnings:[]};
+  assert.deepEqual(scanResidualRegions({width,height,pixels},result),[{x:40,y:180,width:250,height:120}]);
+  rect(20,70,80,12);
+  assert.throws(()=>scanResidualRegions({width,height,pixels},result),/unsupportedInput/);
+});
+
+test("scan reflow keeps unrecognized glyphs and limits photo masks to their actual bounds",()=>{
+ const width=400,height=400,pixels=new Uint8ClampedArray(width*height*4).fill(255);
+ const rect=(x,y,w,h,rgb)=>{for(let row=y;row<y+h;row++)for(let col=x;col<x+w;col++){const n=(row*width+col)*4;pixels.set([...rgb,255],n);}};
+ rect(40,40,100,20,[0,0,0]);
+ rect(40,180,100,100,[40,80,160]);
+ rect(160,210,15,20,[0,0,0]);
+ rect(40,300,100,2,[50,100,70]);
+ const result={width,height,lines:[{text:"Body",bounds:{x:40,y:40,width:100,height:20},confidence:1}],warnings:[]};
+ const residual=scanResidualRegions({width,height,pixels},result,{figures:[{x:40,y:180,width:100,height:100}],reflow:true});
+ assert.deepEqual(residual,[{x:160,y:210,width:15,height:20}]);
+ // A missing white glyph cuts a real hole in a colored region and must remain unresolved.
+ rect(210,210,100,20,[40,90,65]);rect(230,215,35,10,[255,255,255]);
+ assert.ok(scanResidualRegions({width,height,pixels},result,{figures:[{x:40,y:180,width:100,height:100}],reflow:true}).some(box=>box.x===210));
+});
 
 const nativeResult = { width:1400,height:1800,warnings:["lowConfidence"],lines:[
   { text:"Zero OCR synthetic page",bounds:{x:60,y:24,width:550,height:48},confidence:.9 },

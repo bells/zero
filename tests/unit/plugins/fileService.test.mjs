@@ -73,3 +73,38 @@ test("file errors narrow structured values and safely normalize unknown failures
   assert.equal(normalizeFileConversionError(new Error("bridge failed")).code, "internal");
   assert.equal(normalizeFileConversionError({ code: "madeUp" }).code, "internal");
 });
+
+
+test("provider preferences and explicit retry carry revision and selected identity only", async () => {
+  const calls = [];
+  const service = createFileConversionService(async (command, args) => { calls.push([command, args]); return {}; }, async () => () => {});
+  await service.setProvider("docxToPdf", "libreOffice", 4);
+  await service.retry("job-2", "microsoftWordMacos");
+  assert.deepEqual(calls, [
+    ["set_file_conversion_provider", { input: { direction: "docxToPdf", providerId: "libreOffice", expectedRevision: 4 } }],
+    [FILE_CONVERSION_COMMANDS.retry, { input: { jobId: "job-2", providerId: "microsoftWordMacos" } }],
+  ]);
+});
+
+
+test("authoritative queue snapshots have a native read command and shared event subscription", async () => {
+  const calls = [];
+  let registration;
+  const snapshot = { revision: 9, jobs: [] };
+  let disposed = false;
+  const service = createFileConversionService(
+    async (command, args) => { calls.push([command, args]); return snapshot; },
+    async () => () => {},
+    undefined,
+    async (eventName, handler) => { registration = [eventName, handler]; return () => { disposed = true; }; },
+  );
+  assert.deepEqual(await service.getQueueSnapshot(), snapshot);
+  assert.deepEqual(calls, [["get_file_conversion_queue_snapshot", undefined]]);
+  let observed;
+  const unlisten = await service.subscribeQueue((update) => { observed = update; });
+  assert.equal(registration[0], "zero://file-conversion/queue-updated");
+  registration[1](snapshot);
+  assert.equal(observed, snapshot);
+  unlisten();
+  assert.equal(disposed, true);
+});

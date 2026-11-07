@@ -18,7 +18,9 @@ Zero 是一个跨平台桌面工具箱，从状态栏 / 系统托盘快速使用
 | **Zero Launch** | 中英文/拼音应用与系统设置搜索、启动和聚焦 | macOS 应用包、Windows 开始菜单索引 |
 | **Zero File** | 本地 PDF → DOCX、DOCX → PDF | PDF → DOCX 有 macOS/Windows 实现；内置 DOCX → PDF 仅 macOS 11+，签名引擎尚未批准发布 |
 
-桌面主要面向 macOS 与 Windows，各插件能力并不完全相同；Linux 尚无完整支持与设备验收，移动端未交付。macOS 原生 OCR 为 Snap 与 File 共用服务；File 扫描页 OCR 当前仅在 macOS 提供。转换以可编辑正文为目标，不承诺原版式还原。
+桌面主要面向 macOS 与 Windows，各插件能力并不完全相同；Linux 尚无完整支持与设备验收，移动端未交付。Snap 与 File 共用本地 OCR 服务：macOS 使用 Vision；Windows 共享 OCR 与 File 桥接源码已存在，仍需本地模型/DLL 与设备验证。File 源码支持有界的正文/规则表格与合并单元格、局部图形图片及混合区域 OCR 重建；不承诺任意文档或原版式保真，原生与编辑器验收另计。
+
+File 按转换方向记住显式引擎选择，默认内置；一个开始批次内的任务绑定同一快照，失败或不可用时不会自动改用 Word/LibreOffice。普通重试保留绑定，用户可明确换引擎后重试。Windows 内置打印 adapter 已有源码，但资格开关仍关闭，尚未完成真实 Windows 原型与设备验收。表格/图形/OCR 支持边界和待验项见[File 引擎指南](docs/plugins/zero-file-offline-engines.md)。
 
 - 状态栏 / 托盘提供紧凑快捷入口，主窗口提供完整工具工作区和设置视图，关于窗口独立。
 - 支持工具可见性、中文/英文/跟随系统、登录自启和可配置全局快捷键。
@@ -78,7 +80,7 @@ pnpm --dir website dev
 ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev
 ```
 
-该开关仅启用 debug 源码回退，不安装或批准签名包，release 构建不生效。File 候选为 `1.2.0`，发布门禁见[离线引擎指南](docs/plugins/zero-file-offline-engines.md)。
+该开关仅启用 debug 源码回退，不安装或批准签名包，release 构建不生效。File 源码候选为 `1.3.0` / 协议 `3`，发布门禁见[离线引擎指南](docs/plugins/zero-file-offline-engines.md)。
 
 ### 项目结构与验证
 
@@ -142,7 +144,9 @@ The website also offers browser tools that process text, images and documents lo
 | **Zero Launch** | English/Chinese/pinyin app and settings search, launch and focus | macOS application bundles and Windows Start Menu index |
 | **Zero File** | Local PDF → DOCX and DOCX → PDF | PDF → DOCX implemented for macOS/Windows; built-in DOCX → PDF requires macOS 11+; signed engine release remains unapproved |
 
-The desktop app primarily targets macOS and Windows, with different capabilities per plugin. Linux has no complete support or device acceptance; mobile is not delivered. Snap and File share native macOS OCR; File scanned-page OCR is currently macOS-only. Conversion targets editable text rather than original-layout fidelity.
+The desktop app primarily targets macOS and Windows, with different capabilities per plugin. Linux has no complete support or device acceptance; mobile is not delivered. Snap and File share local OCR: Vision on macOS; shared Windows OCR and the File bridge exist in source, subject to local model/DLL and device validation. File source supports bounded paragraph/ruled-table reconstruction with merges, local graphic pictures and mixed-region OCR. Arbitrary documents and original-layout fidelity are not promised; native and editor acceptance remain separate.
+
+File remembers an explicit engine selection per direction and defaults to built-in. Jobs in a started batch retain their provider snapshot; failure or unavailability never silently switches to Word/LibreOffice. Ordinary retry keeps that binding; users can explicitly retry with another engine. The Windows built-in print adapter exists in source but its qualification gate is closed pending the real Windows prototype and device checks. See the [File engine guide](docs/plugins/zero-file-offline-engines.md) for table/graphic/OCR support limits and pending acceptance.
 
 - Compact menu bar / tray actions, a full main-window workspace with preferences, and a separate About window.
 - Tool visibility, English/Chinese/system language selection, login autostart and configurable global shortcuts.
@@ -202,7 +206,7 @@ To debug the File source engine:
 ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev
 ```
 
-This flag enables a debug-only source fallback. It neither installs nor approves a signed package and has no effect in release builds. The File candidate is `1.2.0`; see the [offline engine guide](docs/plugins/zero-file-offline-engines.md) for release gates.
+This flag enables a debug-only source fallback. It neither installs nor approves a signed package and has no effect in release builds. The File source candidate is `1.3.0` / protocol `3`; see the [offline engine guide](docs/plugins/zero-file-offline-engines.md) for release gates.
 
 ### Structure and verification
 

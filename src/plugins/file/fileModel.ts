@@ -4,6 +4,7 @@ import type {
   FileConversionDirection,
   FileConversionDirectionCapability,
   FileConversionJobSnapshot,
+  FileConversionQueueSnapshot,
   FileConversionProviderId,
   FileConversionProviderOrigin,
   FileConversionStage,
@@ -139,13 +140,13 @@ export function fileConversionProviderGuidance(
 ): FileConversionProviderGuidance {
   const capability = fileConversionCapability(snapshot, direction);
   const provider = capability?.providers.find(
-    (item) => item.id === capability.selectedProviderId,
+    (item) => item.id === (capability.preferredProviderId ?? capability.selectedProviderId),
   );
   return {
     available: capability?.available ?? false,
     direction,
-    ...(capability?.selectedProviderId
-      ? { providerId: capability.selectedProviderId }
+    ...((capability?.preferredProviderId ?? capability?.selectedProviderId)
+      ? { providerId: capability.preferredProviderId ?? capability.selectedProviderId }
       : {}),
     ...(provider ? { providerName: provider.displayName } : {}),
     ...(provider?.origin ? { providerOrigin: provider.origin } : {}),
@@ -165,7 +166,7 @@ export function fileConversionJobActions(
     canRemove: !isActive,
     canRetry:
       (state.status === "failed" || state.status === "cancelled") &&
-      state.error.retryable,
+      state.error.retryable && !["invalidInput", "unsupportedFormat", "passwordRequired", "invalidProviderOutput", "unsupportedInput"].includes(state.error.code),
     canOpen: state.status === "completed",
     canReveal: state.status === "completed",
   } satisfies FileConversionJobActions;
@@ -179,7 +180,7 @@ export function fileConversionQueueActions(
     canStart: jobs.some(
       (job) =>
         job.state.status === "queued" &&
-        fileConversionCapability(capabilities, job.direction)?.available === true,
+        (job.providerId ? fileConversionCapability(capabilities, job.direction)?.providers.some((provider) => provider.id === job.providerId && provider.availability.kind === "available") === true : fileConversionCapability(capabilities, job.direction)?.available === true),
     ),
     canClearCompleted: jobs.some((job) => job.state.status === "completed"),
   };
@@ -191,7 +192,9 @@ export function fileConversionJobStateKey(
 ): FileConversionStateKey {
   if (
     job.state.status === "queued" &&
-    fileConversionCapability(capabilities, job.direction)?.available === false
+    (job.providerId
+      ? fileConversionCapability(capabilities, job.direction)?.providers.find((provider) => provider.id === job.providerId)?.availability.kind !== "available"
+      : fileConversionCapability(capabilities, job.direction)?.available === false)
   ) {
     return "state.engineUnavailable";
   }
@@ -238,7 +241,7 @@ export function mergeFileConversionJob(
   if (index < 0) {
     return [...jobs, update];
   }
-  if (jobs[index].updatedAtMs > update.updatedAtMs) {
+  if ((jobs[index].revision ?? 0) > (update.revision ?? 0) || ((jobs[index].revision ?? 0) === (update.revision ?? 0) && jobs[index].updatedAtMs > update.updatedAtMs)) {
     return jobs;
   }
   const next = [...jobs];
@@ -251,4 +254,37 @@ export function reconcileInitialFileConversionJobs(
   bufferedEvents: FileConversionJobSnapshot[],
 ): FileConversionJobSnapshot[] {
   return bufferedEvents.reduce(mergeFileConversionJob, snapshot);
+}
+
+export function mergeFileConversionCapabilities(current: FileConversionCapabilitySnapshot | null, update: FileConversionCapabilitySnapshot): FileConversionCapabilitySnapshot {
+  if (!current) return update;
+  const revision = current.preferenceRevision ?? 0;
+  const incomingRevision = update.preferenceRevision ?? 0;
+  return incomingRevision < revision || (incomingRevision === revision && ((update.capabilityRevision ?? 0) < (current.capabilityRevision ?? 0) || ((update.capabilityRevision ?? 0) === (current.capabilityRevision ?? 0) && update.refreshedAtMs < current.refreshedAtMs))) ? current : update;
+}
+
+export function mergeFileConversionQueueSnapshot(current: FileConversionJobSnapshot[], snapshot: FileConversionQueueSnapshot): FileConversionJobSnapshot[] {
+  const future = current.filter((job) => (job.queueRevision ?? 0) > snapshot.revision);
+  return future.reduce(mergeFileConversionJob, snapshot.jobs);
+}
+
+export function mergeFileConversionQueueJob(current: FileConversionJobSnapshot[], update: FileConversionJobSnapshot, snapshotRevision: number): FileConversionJobSnapshot[] {
+  return update.queueRevision !== undefined && update.queueRevision <= snapshotRevision ? current : mergeFileConversionJob(current, update);
+}
+
+
+export function mergeFileConversionQueueState(
+  current: FileConversionQueueSnapshot,
+  snapshot: FileConversionQueueSnapshot,
+): FileConversionQueueSnapshot {
+  if (snapshot.revision < current.revision) return current;
+  return { revision: snapshot.revision, jobs: mergeFileConversionQueueSnapshot(current.jobs, snapshot) };
+}
+
+export function mergeFileConversionQueueStateJob(
+  current: FileConversionQueueSnapshot,
+  update: FileConversionJobSnapshot,
+): FileConversionQueueSnapshot {
+  const jobs = mergeFileConversionQueueJob(current.jobs, update, current.revision);
+  return jobs === current.jobs ? current : { ...current, jobs };
 }

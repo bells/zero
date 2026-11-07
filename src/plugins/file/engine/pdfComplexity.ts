@@ -8,6 +8,9 @@ export interface PdfTextSample {
   fontFamily?: string;
   bold?: boolean;
   italic?: boolean;
+  fontSize?: number;
+  color?: string;
+  background?: string;
 }
 
 export interface PdfPageComplexityInput {
@@ -16,6 +19,7 @@ export interface PdfPageComplexityInput {
   text: PdfTextSample[];
   vectorOperationCount: number;
   imageCount: number;
+  preferRows?: boolean;
 }
 
 export class PdfReconstructionError extends Error {
@@ -25,12 +29,22 @@ export class PdfReconstructionError extends Error {
   }
 }
 
-export interface PdfEditableParagraph { runs: PdfTextSample[] }
+export interface PdfEditableParagraph {
+  runs: PdfTextSample[];
+  heading?: 1 | 2;
+  alignment?: "left" | "center" | "right";
+  indent?: number;
+  firstLine?: number;
+  rightIndent?: number;
+  spacing?: { before: number; after: number; line: number };
+  fill?: string;
+}
 export interface PdfEditablePage {
   width: number;
   height: number;
   paragraphs: PdfEditableParagraph[];
   warningKeys: string[];
+  margin?: { top: number; right: number; bottom: number; left: number };
 }
 export interface PdfComplexityDecision {
   profile: "editableReconstruction";
@@ -73,7 +87,7 @@ export function reconstructPdfPage(page: PdfPageComplexityInput): PdfEditablePag
       }
     }
   }
-  const gutter = columnGutter(items, page.width);
+  const gutter = page.preferRows ? null : columnGutter(items, page.width);
   const ordered: PdfTextSample[][] = [];
   let block: PdfTextSample[][] = [];
   const flush = () => {
@@ -93,7 +107,7 @@ export function reconstructPdfPage(page: PdfPageComplexityInput): PdfEditablePag
   flush();
   const paragraphs: PdfEditableParagraph[] = [];
   let previous: PdfTextSample[] | undefined;
-  const tableLike = page.vectorOperationCount > 16;
+  const tableLike = page.vectorOperationCount > 16 || page.preferRows;
   for (const row of ordered) {
     const first = row[0];
     const continues = previous && !tableLike && first.y > previous[0].y &&
@@ -133,8 +147,8 @@ function columnGutter(items: PdfTextSample[], width: number): number | null {
   })).filter(({ gap, middle }) => gap >= width * 0.04 && middle > width * 0.3 && middle < width * 0.7)
     .sort((a, b) => b.gap - a.gap);
   for (const { middle } of candidates) {
-    if (items.filter((item) => item.x + item.width <= middle).length >= 3 &&
-        items.filter((item) => item.x >= middle).length >= 3) return middle;
+    if (items.filter((item) => item.x + item.width <= middle).length >= 2 &&
+        items.filter((item) => item.x >= middle).length >= 2) return middle;
   }
   return null;
 }

@@ -182,6 +182,7 @@ impl FileConversionProvider for LibreOfficeProvider {
             quality_profile: FileConversionQualityProfile::CompatibilityProvider,
             warning_keys: vec!["file.quality.compatibilityProvider".into()],
             page_count: None,
+            quality_issues: Vec::new(),
         })
     }
 }

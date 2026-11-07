@@ -1,9 +1,10 @@
 import type {
   FileConversionDirection,
   FileConversionQualityProfile,
+  FileConversionQualityIssue,
 } from "../contracts";
 
-export const FILE_ENGINE_PROTOCOL_VERSION = 2;
+export const FILE_ENGINE_PROTOCOL_VERSION = 3;
 export const FILE_ENGINE_RUN_EVENT = "zero://file-engine/run";
 export const FILE_ENGINE_CANCEL_EVENT = "zero://file-engine/cancel";
 
@@ -19,6 +20,7 @@ export interface FileEngineRunRequest {
   deadlineMs: number;
   maxInputBytes: number;
   ocrAvailable: boolean;
+  printPlatform: "macos" | "windows" | "unsupported";
 }
 
 export interface FileEngineCancelRequest {
@@ -50,6 +52,7 @@ export interface FileEngineCompletionRequest {
   status: "completed" | "failed" | "cancelled";
   qualityProfile?: FileConversionQualityProfile;
   warningKeys: string[];
+  qualityIssues?: FileConversionQualityIssue[];
   pageCount?: number;
   errorCode?:
     | "passwordRequired"
@@ -71,6 +74,7 @@ export interface FileEngineRenderMeasurement {
   sectionCount: number;
   measuredPageCount: number;
   pageRects: FileEnginePageRect[];
+  qualityIssues?: FileConversionQualityIssue[];
 }
 
 export interface FileEnginePageRect {
@@ -78,4 +82,19 @@ export interface FileEnginePageRect {
   y: number;
   width: number;
   height: number;
+}
+
+
+export interface FilePageOcrInput {
+  token: string;
+  jobId: string;
+  engineVersion: string;
+  pageNumber: number;
+  width: number;
+  height: number;
+  region: import("./pdfOcr").FileOcrRegion;
+}
+export interface FilePageOcrLease {
+  leaseToken: string;
+  expiresAtMs: number;
 }

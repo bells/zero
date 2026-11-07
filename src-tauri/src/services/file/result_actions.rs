@@ -117,6 +117,7 @@ fn result_error(
         retryable,
         provider_id: None,
         diagnostic: None,
+        quality_issues: Vec::new(),
     }
 }
 
@@ -205,6 +206,8 @@ mod tests {
             canonical_source: PathBuf::from("/private/source.docx"),
             final_output: output.clone(),
             snapshot: FileConversionJobSnapshot {
+                queue_revision: 0,
+                revision: 0,
                 id: "job-1".into(),
                 source_path: "/private/source.docx".into(),
                 source_name: "source.docx".into(),
@@ -226,7 +229,8 @@ mod tests {
                         quality_profile: crate::services::file::contracts::FileConversionQualityProfile::CompatibilityProvider,
                         warning_keys: Vec::new(),
                         page_count: None,
-                    },
+                        quality_issues: Vec::new(),
+},
                 },
             },
         }

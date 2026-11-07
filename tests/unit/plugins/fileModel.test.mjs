@@ -208,3 +208,54 @@ test("provider guidance and tray/main summaries expose truthful detail", () => {
   assert.equal(summary.providerName, "LibreOffice");
   assert.equal(summary.showDetails, true);
 });
+
+
+test("job revisions reject late events even when timestamps are equal", async () => {
+  const { mergeFileConversionJob, mergeFileConversionCapabilities } = await import("/private/tmp/zero-tests/plugins/file/fileModel.js");
+  const current = { id: "one", revision: 4, updatedAtMs: 100, providerId: "libreOffice" };
+  const late = { ...current, revision: 3, providerId: "microsoftWordMacos" };
+  assert.deepEqual(mergeFileConversionJob([current], late), [current]);
+  const capability = { directions: [], preferenceRevision: 4, refreshedAtMs: 100 };
+  assert.equal(mergeFileConversionCapabilities(capability, { ...capability, preferenceRevision: 3, refreshedAtMs: 200 }), capability);
+});
+
+test("queue snapshots remove rows without allowing late events to resurrect them", async () => {
+  const { mergeFileConversionQueueSnapshot, mergeFileConversionQueueJob } = await import("/private/tmp/zero-tests/plugins/file/fileModel.js");
+  const old = { id: "removed", revision: 2, queueRevision: 5, updatedAtMs: 10 };
+  const future = { id: "new", revision: 1, queueRevision: 7, updatedAtMs: 11 };
+  assert.deepEqual(mergeFileConversionQueueSnapshot([old, future], { revision: 6, jobs: [] }), [future]);
+  assert.deepEqual(mergeFileConversionQueueJob([], old, 6), []);
+  assert.deepEqual(mergeFileConversionQueueJob([], future, 6), [future]);
+});
+
+
+test("an authoritative snapshot cannot replace newer row state or revive removed membership", async () => {
+  const { mergeFileConversionQueueState, mergeFileConversionQueueStateJob } = await import("/private/tmp/zero-tests/plugins/file/fileModel.js");
+  const old = { ...job("one", 10), revision: 1, queueRevision: 1 };
+  const running = { ...old, revision: 3, queueRevision: 3, state: { status: "running" } };
+  const current = { revision: 2, jobs: [running] };
+  const late = mergeFileConversionQueueState(current, { revision: 2, jobs: [old] });
+  assert.deepEqual(late.jobs, [running]);
+  const removed = mergeFileConversionQueueState(late, { revision: 4, jobs: [] });
+  assert.deepEqual(removed, { revision: 4, jobs: [] });
+  assert.equal(mergeFileConversionQueueState(removed, { revision: 2, jobs: [old] }), removed);
+  assert.equal(mergeFileConversionQueueStateJob(removed, running), removed);
+  const newJob = { ...job("new", 11), revision: 1, queueRevision: 5 };
+  assert.deepEqual(mergeFileConversionQueueStateJob(removed, newJob).jobs, [newJob]);
+});
+
+
+test("mount hydration and cross-window clear converge for every delivery order", async () => {
+  const { mergeFileConversionQueueState, mergeFileConversionQueueStateJob } = await import("/private/tmp/zero-tests/plugins/file/fileModel.js");
+  const queued = { ...job("one", 10), revision: 0, queueRevision: 1 };
+  const completed = { ...queued, revision: 2, queueRevision: 2, state: { status: "completed" } };
+  const events = [
+    (state) => mergeFileConversionQueueState(state, { revision: 1, jobs: [queued] }),
+    (state) => mergeFileConversionQueueStateJob(state, completed),
+    (state) => mergeFileConversionQueueState(state, { revision: 3, jobs: [] }),
+  ];
+  for (const order of [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]]) {
+    const final = order.reduce((state, index) => events[index](state), { revision: -1, jobs: [] });
+    assert.deepEqual(final, { revision: 3, jobs: [] }, `delivery order ${order}`);
+  }
+});

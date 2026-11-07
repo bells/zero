@@ -188,6 +188,7 @@ pub struct HealthSnapshot {
 pub enum Provider {
     ZeroFilePdfToDocx,
     ZeroFileDocxToPdfMacos,
+    ZeroFileDocxToPdfWindows,
     LibreOffice,
     MicrosoftWordMacos,
     MicrosoftWordWindows,

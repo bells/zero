@@ -188,6 +188,14 @@ def main() -> int:
     assert_encrypted_pdf(FIXTURES / "encrypted.pdf")
     assert_malformed_inputs()
 
+    from file_conversion_quality_fixtures import validate
+    quality_path = FIXTURES / "quality" / "expected.json"
+    if not quality_path.is_file():
+        fail("quality/expected.json: missing future acceptance contract")
+    quality = json.loads(quality_path.read_text(encoding="utf-8"))
+    documents, scenarios = validate(quality, quality_path.parent, FIXTURES)
+    print(f"Validated {documents} quality input cases and {scenarios} unexecuted scenario contracts; conversion targets were not executed.")
+
     print(f"Validated {len(cases)} file-conversion fixtures and all structural expectations.")
     return 0
 

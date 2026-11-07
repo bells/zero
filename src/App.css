@@ -4053,3 +4053,20 @@ input:focus-visible {
 .wallpaper-icon-action:focus-visible { outline: 2px solid #2776b9; outline-offset: 2px; }
 
 .paper-window > .bing-wallpaper-panel { overflow-y: auto; }
+
+.file-provider-strip select {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  color: inherit;
+  background: var(--surface-secondary, transparent);
+  border: 1px solid var(--border-color, currentColor);
+  border-radius: 6px;
+  font: inherit;
+}
+.file-provider-strip select:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.file-provider-label { display: block; margin-top: 8px; font-size: 12px; }
+
+.main-window-shell .file-provider-strip small { white-space: normal; overflow: visible; }
+.file-provider-strip > button { grid-column: 1 / -1; justify-self: start; min-height: 44px; }

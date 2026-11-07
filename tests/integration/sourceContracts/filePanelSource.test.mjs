@@ -18,11 +18,13 @@ test("host passes typed surface through the lazy boundary and tray picker keeps 
   const host = fs.readFileSync("src/App.tsx", "utf8");
   const lazy = fs.readFileSync("src/appShell/LazyPluginPanel.tsx", "utf8");
   const descriptor = fs.readFileSync("src/plugins/file/plugin.tsx", "utf8");
+  const entry = fs.readFileSync("src/plugins/file/FilePanelEntry.tsx", "utf8");
   const commands = fs.readFileSync("src-tauri/src/commands/file.rs", "utf8");
   assert.match(host, /pluginPanel\(activePlugin, resolvedLanguage, "tray"\)/);
   assert.match(host, /pluginPanel\(activePlugin, resolvedLanguage, "main"(?:,|\))/);
   assert.match(lazy, /<Panel[^>]*surface=\{surface\}/);
-  assert.match(descriptor, /<FilePanel[^>]*surface=\{surface\}/);
+  assert.match(descriptor, /loadPanel:.*import\("\.\/FilePanelEntry"\)/);
+  assert.match(entry, /<FilePanel[^>]*surface=\{surface\}/);
   assert.match(panel, /if \(surface !== "main"\) return/);
   assert.match(panel, /if \(disposed\) disposeListener\(\)/);
   assert.match(panel, /unlisten\?\.\(\)/);

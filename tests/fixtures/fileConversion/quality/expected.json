@@ -1,0 +1,3439 @@
+{
+  "schemaVersion": 1,
+  "containsUserData": false,
+  "generatedBy": "scripts/generate-file-conversion-fixtures.py --quality-only",
+  "status": "futureAcceptanceTargetsNotEngineResults",
+  "coordinateSpace": "PDF unrotated top-left points; bbox=[x,y,width,height]; source Rotate separately",
+  "font": {
+    "source": "../rich-layout.docx#word/fonts/Noto Sans SC.odttf",
+    "license": "../assets/OFL.txt",
+    "sha256": "6c4ab802169096fc5216c04df65aa80f98c972b115098c7287234905ef4b6e62"
+  },
+  "legacyManifestSha256": "ca0cb5020a5ae23eb19d004b7a0d29ba737298d1fa74acdb7839a1c9d7d8cc2f",
+  "cases": [
+    {
+      "id": "P01",
+      "kind": "document",
+      "file": "P01.pdf",
+      "sha256": "f3b6983655d9255f99ff0fbe83527c296640809357209b180dab5b6a90644d98",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P01 Heading one\nP01 Heading two\nEnglish body. 中文测试内容\nP01 Right aligned\nP01 Indented body\n"
+        ],
+        "imageCountByPage": [
+          0
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P01 Heading one",
+          "P01 Heading two",
+          "English body. 中文测试内容",
+          "P01 Right aligned",
+          "P01 Indented body"
+        ],
+        "fullEditableText": "P01 Heading one\nP01 Heading two\nEnglish body. 中文测试内容\nP01 Right aligned\nP01 Indented body",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "paragraphs": [
+          {
+            "heading": 1
+          },
+          {
+            "heading": 2
+          },
+          {
+            "alignment": "left"
+          },
+          {
+            "alignment": "right"
+          },
+          {
+            "leftIndentPt": 24
+          }
+        ],
+        "pageSizesPt": [
+          [
+            612,
+            792
+          ]
+        ]
+      }
+    },
+    {
+      "id": "P02",
+      "kind": "document",
+      "file": "P02.pdf",
+      "sha256": "06971033245345d3d6752c208e9f2a7e0d9ce025ef987f80e5817cdf620ce610",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P02 Header\nP02 Spanning title\nP02 Left one\nP02 Right one\nP02 Left two\nP02 Right two\nP02 Page 1\n"
+        ],
+        "imageCountByPage": [
+          0
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P02 Header",
+          "P02 Spanning title",
+          "P02 Left one",
+          "P02 Left two",
+          "P02 Right one",
+          "P02 Right two",
+          "P02 Page 1"
+        ],
+        "fullEditableText": "P02 Header\nP02 Spanning title\nP02 Left one\nP02 Left two\nP02 Right one\nP02 Right two\nP02 Page 1",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "regions": [
+          {
+            "role": "leftColumn",
+            "bboxPt": [
+              54,
+              140,
+              220,
+              100
+            ]
+          },
+          {
+            "role": "rightColumn",
+            "bboxPt": [
+              340,
+              140,
+              218,
+              100
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "P03",
+      "kind": "document",
+      "file": "P03.pdf",
+      "sha256": "c4491af3ca5df5b333d7179634b9b6d484683d339bbff88b88e72b7594a81606",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P03 Merged header\nP03 H3\nP03 Vertical\nP03 R1C1\nP03 R1C2\nP03 R2C1\nP03 R2C2\n"
+        ],
+        "imageCountByPage": [
+          0
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P03 Merged header",
+          "P03 H3",
+          "P03 Vertical",
+          "P03 R1C1",
+          "P03 R1C2",
+          "P03 R2C1",
+          "P03 R2C2"
+        ],
+        "fullEditableText": "P03 Merged header\nP03 H3\nP03 Vertical\nP03 R1C1\nP03 R1C2\nP03 R2C1\nP03 R2C2",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "table": {
+          "rows": 3,
+          "columns": 3,
+          "bboxPt": [
+            54,
+            170,
+            480,
+            108
+          ],
+          "columnWidthsPt": [
+            160,
+            160,
+            160
+          ],
+          "cells": [
+            {
+              "row": 0,
+              "column": 0,
+              "rowSpan": 1,
+              "columnSpan": 2,
+              "text": "P03 Merged header"
+            },
+            {
+              "row": 0,
+              "column": 2,
+              "rowSpan": 1,
+              "columnSpan": 1,
+              "text": "P03 H3"
+            },
+            {
+              "row": 1,
+              "column": 0,
+              "rowSpan": 2,
+              "columnSpan": 1,
+              "text": "P03 Vertical"
+            },
+            {
+              "row": 1,
+              "column": 1,
+              "rowSpan": 1,
+              "columnSpan": 1,
+              "text": "P03 R1C1"
+            },
+            {
+              "row": 1,
+              "column": 2,
+              "rowSpan": 1,
+              "columnSpan": 1,
+              "text": "P03 R1C2"
+            },
+            {
+              "row": 2,
+              "column": 1,
+              "rowSpan": 1,
+              "columnSpan": 1,
+              "text": "P03 R2C1"
+            },
+            {
+              "row": 2,
+              "column": 2,
+              "rowSpan": 1,
+              "columnSpan": 1,
+              "text": "P03 R2C2"
+            }
+          ],
+          "requiredOOXML": [
+            "w:tbl",
+            "w:gridSpan=2",
+            "w:vMerge=restart",
+            "w:vMerge=continue"
+          ],
+          "uniqueText": true
+        }
+      }
+    },
+    {
+      "id": "P04",
+      "kind": "document",
+      "file": "P04.pdf",
+      "sha256": "c828172bab9fe00eb23fea7963723ee31291e63e68cf04b5be7176746bce1093",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P04 R0C0\nP04 R0C1\nP04 R0C2\nP04 R1C0\nP04 R1C1\nP04 R1C2\nP04 R2C0\nP04 R2C1\nP04 R2C2\n"
+        ],
+        "imageCountByPage": [
+          0
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P04 R0C0",
+          "P04 R0C1",
+          "P04 R0C2",
+          "P04 R1C0",
+          "P04 R1C1",
+          "P04 R1C2",
+          "P04 R2C0",
+          "P04 R2C1",
+          "P04 R2C2"
+        ],
+        "fullEditableText": "P04 R0C0\nP04 R0C1\nP04 R0C2\nP04 R1C0\nP04 R1C1\nP04 R1C2\nP04 R2C0\nP04 R2C1\nP04 R2C2",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [
+          {
+            "code": "tableSimplified",
+            "sourcePage": 1
+          }
+        ],
+        "error": null,
+        "noPartialCommit": true,
+        "tableReadingOrder": "rowMajor",
+        "nativeTableRequired": false
+      }
+    },
+    {
+      "id": "P05",
+      "kind": "document",
+      "file": "P05.pdf",
+      "sha256": "9ecde00701b4afba98109aeac1d9c9b441c14bf3b3842d14fa9327bf0a47b1c0",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P05 Before figure\nP05 After figure\n"
+        ],
+        "imageCountByPage": [
+          1
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P05 Before figure",
+          "P05 After figure"
+        ],
+        "fullEditableText": "P05 Before figure\nP05 After figure",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "contentOrder": [
+          "paragraph:0",
+          "figure:0",
+          "paragraph:1"
+        ],
+        "figures": [
+          {
+            "bboxPt": [
+              54,
+              270,
+              240,
+              120
+            ],
+            "aspectRatio": 2,
+            "tolerancePt": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "P06",
+      "kind": "document",
+      "file": "P06.pdf",
+      "sha256": "e694438c1735215c723c55cce3162421425882ed2b329fb5130cdfaa8afbb151",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P06 Before graphic\nLegend A: 2, 9, 6, 12\nx + 1\ny\nP06 After graphic\n"
+        ],
+        "imageCountByPage": [
+          0
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P06 Before graphic",
+          "P06 After graphic"
+        ],
+        "fullEditableText": "P06 Before graphic\nP06 After graphic",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [
+          {
+            "code": "nonEditableGraphic",
+            "sourcePage": 1
+          }
+        ],
+        "error": null,
+        "noPartialCommit": true,
+        "figures": [
+          {
+            "bboxPt": [
+              48,
+              174,
+              414,
+              190
+            ],
+            "labels": [
+              "Legend A: 2, 9, 6, 12",
+              "x + 1",
+              "y"
+            ],
+            "editable": false
+          }
+        ],
+        "forbidden": [
+          "wholePageImage",
+          "hiddenText",
+          "OMML",
+          "nativeChart"
+        ]
+      }
+    },
+    {
+      "id": "P07",
+      "kind": "document",
+      "file": "P07.pdf",
+      "sha256": "f3095e24635e1a79e858ca2c9c857f06fdcac6691cd4185721f73b6a7009ce54",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P07 Before graphic\nLegend A: 2, 9, 6, 12\nx + 1\ny\nP07 Overlapping required body\nP07 After graphic\n"
+        ],
+        "imageCountByPage": [
+          0
+        ]
+      },
+      "target": {
+        "orderedEditableText": [],
+        "fullEditableText": "",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": "unsupportedInput",
+        "noPartialCommit": true,
+        "figures": [
+          {
+            "bboxPt": [
+              48,
+              174,
+              414,
+              190
+            ],
+            "labels": [
+              "Legend A: 2, 9, 6, 12",
+              "x + 1",
+              "y"
+            ],
+            "editable": false
+          }
+        ],
+        "forbidden": [
+          "wholePageImage",
+          "hiddenText",
+          "OMML",
+          "nativeChart"
+        ]
+      }
+    },
+    {
+      "id": "P14",
+      "kind": "document",
+      "file": "P14.pdf",
+      "sha256": "2b32231901987988a919d5dab3a93cf29b3597b3f363a34449a0762d179cdee0",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "Legend A: 2, 9, 6, 12\nx + 1\ny\n"
+        ],
+        "imageCountByPage": [
+          0
+        ]
+      },
+      "target": {
+        "orderedEditableText": [],
+        "fullEditableText": "",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": "unsupportedInput",
+        "noPartialCommit": true,
+        "figures": [
+          {
+            "bboxPt": [
+              48,
+              174,
+              414,
+              190
+            ],
+            "labels": [
+              "Legend A: 2, 9, 6, 12",
+              "x + 1",
+              "y"
+            ],
+            "editable": false
+          }
+        ],
+        "forbidden": [
+          "wholePageImage",
+          "hiddenText",
+          "OMML",
+          "nativeChart"
+        ]
+      }
+    },
+    {
+      "id": "P08",
+      "kind": "document",
+      "file": "P08.pdf",
+      "sha256": "2facb1e82266e2fd581e34ab2dde5de03f88c92a665a125a1e8494ba4c1d8f0c",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ],
+          [
+            612.0,
+            792.0
+          ],
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          90,
+          180,
+          270
+        ],
+        "fullTextByPage": [
+          "P08 Digital 90\n",
+          "P08 Digital 180\n",
+          "P08 Digital 270\n"
+        ],
+        "imageCountByPage": [
+          1,
+          1,
+          1
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P08 Digital 90",
+          "P08 Scan 90",
+          "P08 Digital 180",
+          "P08 Scan 180",
+          "P08 Digital 270",
+          "P08 Scan 270"
+        ],
+        "fullEditableText": "P08 Digital 90\nP08 Scan 90\nP08 Digital 180\nP08 Scan 180\nP08 Digital 270\nP08 Scan 270",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [
+          {
+            "code": "ocrUsed",
+            "sourcePage": 1
+          },
+          {
+            "code": "ocrUsed",
+            "sourcePage": 2
+          },
+          {
+            "code": "ocrUsed",
+            "sourcePage": 3
+          }
+        ],
+        "error": null,
+        "noPartialCommit": true,
+        "outputRotations": [
+          0,
+          0,
+          0
+        ],
+        "coordinateSpace": "unrotated top-left points",
+        "regions": [
+          {
+            "sourcePage": 1,
+            "bboxPt": [
+              54,
+              160,
+              500,
+              240
+            ],
+            "text": [
+              "P08 Scan 90"
+            ]
+          },
+          {
+            "sourcePage": 2,
+            "bboxPt": [
+              54,
+              160,
+              500,
+              240
+            ],
+            "text": [
+              "P08 Scan 180"
+            ]
+          },
+          {
+            "sourcePage": 3,
+            "bboxPt": [
+              54,
+              160,
+              500,
+              240
+            ],
+            "text": [
+              "P08 Scan 270"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "P09",
+      "kind": "document",
+      "file": "P09.pdf",
+      "sha256": "74981618a79a86a3aac8b533699791dc310ff7875253fefbbb8617d0c897cfca",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ],
+          [
+            612.0,
+            792.0
+          ],
+          [
+            612.0,
+            792.0
+          ],
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "fullTextByPage": [
+          "P09 Before blank\n",
+          "",
+          "",
+          "P09 After blank\n"
+        ],
+        "imageCountByPage": [
+          0,
+          0,
+          1,
+          0
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P09 Before blank",
+          "P09 After blank"
+        ],
+        "fullEditableText": "P09 Before blank\nP09 After blank",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "pageSizesPt": [
+          [
+            612,
+            792
+          ],
+          [
+            612,
+            792
+          ],
+          [
+            612,
+            792
+          ],
+          [
+            612,
+            792
+          ]
+        ],
+        "blankPages": [
+          2,
+          3
+        ],
+        "allBlankCompanion": {
+          "file": "../editable-blank.pdf",
+          "sha256": "4477ff7be2fd5926823e7a0ee896ce51af44664013fd1e29eb40c33ebd76fca9",
+          "error": "unsupportedInput"
+        }
+      }
+    },
+    {
+      "id": "P10",
+      "kind": "document",
+      "file": "P10.pdf",
+      "sha256": "c620eef3dcd83d4fd1bde64ec7540c667a9352ebfa110002198a96f37b3bb63e",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P10 Digital heading\n"
+        ],
+        "imageCountByPage": [
+          2
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P10 Digital heading",
+          "P10 Scanned body. 中文测试内容"
+        ],
+        "fullEditableText": "P10 Digital heading\nP10 Scanned body. 中文测试内容",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [
+          {
+            "code": "ocrUsed",
+            "sourcePage": 1
+          }
+        ],
+        "error": null,
+        "noPartialCommit": true,
+        "regions": [
+          {
+            "role": "requiredBody",
+            "bboxPt": [
+              54,
+              160,
+              500,
+              240
+            ],
+            "expectedText": [
+              "P10 Scanned body. 中文测试内容"
+            ]
+          }
+        ],
+        "contentOrder": [
+          "paragraph:0",
+          "paragraph:1",
+          "figure:0"
+        ],
+        "uniqueText": true,
+        "injection": null
+      }
+    },
+    {
+      "id": "P11",
+      "kind": "document",
+      "file": "P11.pdf",
+      "sha256": "205ce96142adc8ec1a9cd82cda9bcea5d3285cbbed1baa5b6d4dff939e8020ad",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P11 Digital heading\nP11 Scanned body. 中文测试内容\n"
+        ],
+        "imageCountByPage": [
+          2
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P11 Digital heading",
+          "P11 Scanned body. 中文测试内容"
+        ],
+        "fullEditableText": "P11 Digital heading\nP11 Scanned body. 中文测试内容",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "regions": [
+          {
+            "role": "requiredBody",
+            "bboxPt": [
+              54,
+              160,
+              500,
+              240
+            ],
+            "expectedText": [
+              "P11 Scanned body. 中文测试内容"
+            ]
+          }
+        ],
+        "contentOrder": [
+          "paragraph:0",
+          "paragraph:1",
+          "figure:0"
+        ],
+        "uniqueText": true,
+        "injection": null
+      }
+    },
+    {
+      "id": "P12",
+      "kind": "document",
+      "file": "P12.pdf",
+      "sha256": "11c0fe68ceb08fc4c9db3dcf3a09c50d861c630283294e44003ab2e5120561c4",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "Legend A: 2, 9, 6, 12\nx + 1\ny\n"
+        ],
+        "imageCountByPage": [
+          1
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "P12 Scanned body. 中文测试内容"
+        ],
+        "fullEditableText": "P12 Scanned body. 中文测试内容",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [
+          {
+            "code": "ocrUsed",
+            "sourcePage": 1
+          },
+          {
+            "code": "nonEditableGraphic",
+            "sourcePage": 1
+          }
+        ],
+        "error": null,
+        "noPartialCommit": true,
+        "regions": [
+          {
+            "role": "requiredBody",
+            "bboxPt": [
+              54,
+              160,
+              500,
+              240
+            ],
+            "expectedText": [
+              "P12 Scanned body. 中文测试内容"
+            ]
+          }
+        ],
+        "contentOrder": [
+          "paragraph:0",
+          "figure:0"
+        ],
+        "uniqueText": true,
+        "injection": null
+      }
+    },
+    {
+      "id": "P13",
+      "kind": "document",
+      "file": "P13.pdf",
+      "sha256": "84a3ceca42556b597da22b739882c0bb26d25dcf7e12b9b92ebdc9f588c705ce",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P13 Digital heading\n"
+        ],
+        "imageCountByPage": [
+          2
+        ]
+      },
+      "target": {
+        "orderedEditableText": [],
+        "fullEditableText": "",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": "ocrRequired",
+        "noPartialCommit": true,
+        "regions": [
+          {
+            "role": "requiredBody",
+            "bboxPt": [
+              54,
+              160,
+              500,
+              240
+            ],
+            "expectedText": [
+              "P13 Scanned body. 中文测试内容"
+            ]
+          }
+        ],
+        "contentOrder": [
+          "paragraph:0",
+          "paragraph:1",
+          "figure:0"
+        ],
+        "uniqueText": true,
+        "injection": "OCR provider unavailable or required region failure"
+      }
+    },
+    {
+      "id": "P15",
+      "kind": "document",
+      "file": "P15.pdf",
+      "sha256": "abdda986033b847a577ea51e53d623a6ac8a9ac64a746d081f310ff5f18890ab",
+      "source": {
+        "pageSizesPt": [
+          [
+            612.0,
+            792.0
+          ]
+        ],
+        "pageRotations": [
+          0
+        ],
+        "fullTextByPage": [
+          "P15 Ambiguous first\nP15 Ambiguous second\n"
+        ],
+        "imageCountByPage": [
+          0
+        ]
+      },
+      "target": {
+        "orderedEditableText": [],
+        "fullEditableText": "",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": "unsupportedInput",
+        "noPartialCommit": true,
+        "forbidden": [
+          "partialCommit",
+          "wholePageImage"
+        ]
+      }
+    },
+    {
+      "id": "P16",
+      "kind": "invalidDocuments",
+      "inputs": [
+        {
+          "file": "../encrypted.pdf",
+          "sha256": "17b162eeb704072b2916d359cae25166c5b83be0f62925d563dcd8429d9b914d",
+          "error": "passwordRequired"
+        },
+        {
+          "file": "../malformed.pdf",
+          "sha256": "9ff9364f4cb3371403cb130153cd3ea7b8889b966b9589286f1ae8cafa0ce13a",
+          "error": "invalidInput"
+        }
+      ],
+      "target": {
+        "orderedEditableText": [],
+        "fullEditableText": "",
+        "warnings": [],
+        "noPartialCommit": true,
+        "forbidden": [
+          "imageFallback",
+          "network",
+          "modelDownload"
+        ]
+      }
+    },
+    {
+      "id": "F01",
+      "kind": "document",
+      "file": "F01.docx",
+      "sha256": "052c072ff4366454dc24703ebbae3baec7ea971253dfcfc698695fcf577c38b6",
+      "source": {
+        "fullTextByPart": {
+          "word/document.xml": [
+            "F01 Missing family body. 中文测试内容"
+          ]
+        },
+        "sectionSizesTwips": [
+          "12240",
+          "15840"
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "F01 Missing family body. 中文测试内容"
+        ],
+        "fullEditableText": "F01 Missing family body. 中文测试内容",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [
+          {
+            "code": "fontMissing",
+            "family": "ZeroFixtureDefinitelyMissingFamily20261103",
+            "sourceSection": 1
+          }
+        ],
+        "error": null,
+        "noPartialCommit": true,
+        "substitution": {
+          "onlyNameWhenKnown": true,
+          "neverDownload": true
+        }
+      }
+    },
+    {
+      "id": "F02",
+      "kind": "document",
+      "file": "F02.docx",
+      "sha256": "6e8d2f6909f60fbb88a12895a552f65464da6288abaefd0096141e97a7f93814",
+      "source": {
+        "fullTextByPart": {
+          "word/document.xml": [
+            "F02 Embedded font. 中文测试内容"
+          ]
+        },
+        "sectionSizesTwips": [
+          "12240",
+          "15840"
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "F02 Embedded font. 中文测试内容"
+        ],
+        "fullEditableText": "F02 Embedded font. 中文测试内容",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "embeddedFont": {
+          "family": "Noto Sans SC",
+          "usableRouteRequired": true
+        },
+        "subsetPdf": {
+          "file": "P01.pdf",
+          "ignoreSubsetPrefix": true
+        },
+        "themeFont": "minorHAnsi"
+      }
+    },
+    {
+      "id": "D01",
+      "kind": "document",
+      "file": "D01.docx",
+      "sha256": "b3174b7b6e257be44f0d4cfb66e3cfd50757c05312081165ad7d8d1e76c5527d",
+      "source": {
+        "fullTextByPart": {
+          "word/document.xml": [
+            "D01 First page. 中文测试内容",
+            "D01 Second page"
+          ],
+          "word/endnotes.xml": [
+            "D01 Endnote"
+          ],
+          "word/footer1.xml": [
+            "D01 Footer"
+          ],
+          "word/footnotes.xml": [
+            "D01 Footnote"
+          ],
+          "word/header1.xml": [
+            "D01 Header"
+          ]
+        },
+        "sectionSizesTwips": [
+          "12240",
+          "15840"
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "D01 First page. 中文测试内容",
+          "D01 Second page",
+          "D01 Footnote",
+          "D01 Endnote"
+        ],
+        "fullEditableText": "D01 First page. 中文测试内容\nD01 Second page\nD01 Footnote\nD01 Endnote",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "pageSizesPt": [
+          [
+            612,
+            792
+          ],
+          [
+            612,
+            792
+          ]
+        ],
+        "pageCount": 2,
+        "pageCountRule": null,
+        "unsupportedMixedSectionsMayReject": false,
+        "requiredFurniture": [
+          "D01 Header",
+          "D01 Footer"
+        ],
+        "resourceFaults": [],
+        "table": null,
+        "fullPdfTextByPage": [
+          [
+            "D01 Header",
+            "D01 First page. 中文测试内容",
+            "D01 Footnote",
+            "D01 Footer"
+          ],
+          [
+            "D01 Header",
+            "D01 Second page",
+            "D01 Endnote",
+            "D01 Footer"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "D02",
+      "kind": "document",
+      "file": "D02.docx",
+      "sha256": "fc5bdd77d767b5d7994f51a09bbb9dfe67bee26a0bb75fc2d9d43aecf15e0ef0",
+      "source": {
+        "fullTextByPart": {
+          "word/document.xml": [
+            "D02 Long table",
+            "D02 R00C0",
+            "D02 R00C1",
+            "D02 R00C2",
+            "D02 R01C0",
+            "D02 R01C1",
+            "D02 R01C2",
+            "D02 R02C0",
+            "D02 R02C1",
+            "D02 R02C2",
+            "D02 R03C0",
+            "D02 R03C1",
+            "D02 R03C2",
+            "D02 R04C0",
+            "D02 R04C1",
+            "D02 R04C2",
+            "D02 R05C0",
+            "D02 R05C1",
+            "D02 R05C2",
+            "D02 R06C0",
+            "D02 R06C1",
+            "D02 R06C2",
+            "D02 R07C0",
+            "D02 R07C1",
+            "D02 R07C2",
+            "D02 R08C0",
+            "D02 R08C1",
+            "D02 R08C2",
+            "D02 R09C0",
+            "D02 R09C1",
+            "D02 R09C2",
+            "D02 R10C0",
+            "D02 R10C1",
+            "D02 R10C2",
+            "D02 R11C0",
+            "D02 R11C1",
+            "D02 R11C2",
+            "D02 R12C0",
+            "D02 R12C1",
+            "D02 R12C2",
+            "D02 R13C0",
+            "D02 R13C1",
+            "D02 R13C2",
+            "D02 R14C0",
+            "D02 R14C1",
+            "D02 R14C2",
+            "D02 R15C0",
+            "D02 R15C1",
+            "D02 R15C2",
+            "D02 R16C0",
+            "D02 R16C1",
+            "D02 R16C2",
+            "D02 R17C0",
+            "D02 R17C1",
+            "D02 R17C2",
+            "D02 R18C0",
+            "D02 R18C1",
+            "D02 R18C2",
+            "D02 R19C0",
+            "D02 R19C1",
+            "D02 R19C2",
+            "D02 R20C0",
+            "D02 R20C1",
+            "D02 R20C2",
+            "D02 R21C0",
+            "D02 R21C1",
+            "D02 R21C2",
+            "D02 R22C0",
+            "D02 R22C1",
+            "D02 R22C2",
+            "D02 R23C0",
+            "D02 R23C1",
+            "D02 R23C2",
+            "D02 R24C0",
+            "D02 R24C1",
+            "D02 R24C2",
+            "D02 R25C0",
+            "D02 R25C1",
+            "D02 R25C2",
+            "D02 R26C0",
+            "D02 R26C1",
+            "D02 R26C2",
+            "D02 R27C0",
+            "D02 R27C1",
+            "D02 R27C2",
+            "D02 R28C0",
+            "D02 R28C1",
+            "D02 R28C2",
+            "D02 R29C0",
+            "D02 R29C1",
+            "D02 R29C2",
+            "D02 R30C0",
+            "D02 R30C1",
+            "D02 R30C2",
+            "D02 R31C0",
+            "D02 R31C1",
+            "D02 R31C2",
+            "D02 R32C0",
+            "D02 R32C1",
+            "D02 R32C2",
+            "D02 R33C0",
+            "D02 R33C1",
+            "D02 R33C2",
+            "D02 R34C0",
+            "D02 R34C1",
+            "D02 R34C2",
+            "D02 R35C0",
+            "D02 R35C1",
+            "D02 R35C2",
+            "D02 R36C0",
+            "D02 R36C1",
+            "D02 R36C2",
+            "D02 R37C0",
+            "D02 R37C1",
+            "D02 R37C2",
+            "D02 R38C0",
+            "D02 R38C1",
+            "D02 R38C2",
+            "D02 R39C0",
+            "D02 R39C1",
+            "D02 R39C2",
+            "D02 R40C0",
+            "D02 R40C1",
+            "D02 R40C2",
+            "D02 R41C0",
+            "D02 R41C1",
+            "D02 R41C2",
+            "D02 R42C0",
+            "D02 R42C1",
+            "D02 R42C2",
+            "D02 R43C0",
+            "D02 R43C1",
+            "D02 R43C2",
+            "D02 R44C0",
+            "D02 R44C1",
+            "D02 R44C2",
+            "D02 R45C0",
+            "D02 R45C1",
+            "D02 R45C2",
+            "D02 R46C0",
+            "D02 R46C1",
+            "D02 R46C2",
+            "D02 R47C0",
+            "D02 R47C1",
+            "D02 R47C2",
+            "D02 R48C0",
+            "D02 R48C1",
+            "D02 R48C2",
+            "D02 R49C0",
+            "D02 R49C1",
+            "D02 R49C2",
+            "D02 R50C0",
+            "D02 R50C1",
+            "D02 R50C2",
+            "D02 R51C0",
+            "D02 R51C1",
+            "D02 R51C2",
+            "D02 R52C0",
+            "D02 R52C1",
+            "D02 R52C2",
+            "D02 R53C0",
+            "D02 R53C1",
+            "D02 R53C2",
+            "D02 R54C0",
+            "D02 R54C1",
+            "D02 R54C2",
+            "D02 R55C0",
+            "D02 R55C1",
+            "D02 R55C2",
+            "D02 R56C0",
+            "D02 R56C1",
+            "D02 R56C2",
+            "D02 R57C0",
+            "D02 R57C1",
+            "D02 R57C2",
+            "D02 R58C0",
+            "D02 R58C1",
+            "D02 R58C2",
+            "D02 R59C0",
+            "D02 R59C1",
+            "D02 R59C2",
+            "D02 R60C0",
+            "D02 R60C1",
+            "D02 R60C2",
+            "D02 R61C0",
+            "D02 R61C1",
+            "D02 R61C2",
+            "D02 R62C0",
+            "D02 R62C1",
+            "D02 R62C2",
+            "D02 R63C0",
+            "D02 R63C1",
+            "D02 R63C2",
+            "D02 R64C0",
+            "D02 R64C1",
+            "D02 R64C2",
+            "D02 After blank and edge image"
+          ]
+        },
+        "sectionSizesTwips": [
+          "12240",
+          "15840"
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "D02 Long table",
+          "D02 R00C0",
+          "D02 R00C1",
+          "D02 R00C2",
+          "D02 R01C0",
+          "D02 R01C1",
+          "D02 R01C2",
+          "D02 R02C0",
+          "D02 R02C1",
+          "D02 R02C2",
+          "D02 R03C0",
+          "D02 R03C1",
+          "D02 R03C2",
+          "D02 R04C0",
+          "D02 R04C1",
+          "D02 R04C2",
+          "D02 R05C0",
+          "D02 R05C1",
+          "D02 R05C2",
+          "D02 R06C0",
+          "D02 R06C1",
+          "D02 R06C2",
+          "D02 R07C0",
+          "D02 R07C1",
+          "D02 R07C2",
+          "D02 R08C0",
+          "D02 R08C1",
+          "D02 R08C2",
+          "D02 R09C0",
+          "D02 R09C1",
+          "D02 R09C2",
+          "D02 R10C0",
+          "D02 R10C1",
+          "D02 R10C2",
+          "D02 R11C0",
+          "D02 R11C1",
+          "D02 R11C2",
+          "D02 R12C0",
+          "D02 R12C1",
+          "D02 R12C2",
+          "D02 R13C0",
+          "D02 R13C1",
+          "D02 R13C2",
+          "D02 R14C0",
+          "D02 R14C1",
+          "D02 R14C2",
+          "D02 R15C0",
+          "D02 R15C1",
+          "D02 R15C2",
+          "D02 R16C0",
+          "D02 R16C1",
+          "D02 R16C2",
+          "D02 R17C0",
+          "D02 R17C1",
+          "D02 R17C2",
+          "D02 R18C0",
+          "D02 R18C1",
+          "D02 R18C2",
+          "D02 R19C0",
+          "D02 R19C1",
+          "D02 R19C2",
+          "D02 R20C0",
+          "D02 R20C1",
+          "D02 R20C2",
+          "D02 R21C0",
+          "D02 R21C1",
+          "D02 R21C2",
+          "D02 R22C0",
+          "D02 R22C1",
+          "D02 R22C2",
+          "D02 R23C0",
+          "D02 R23C1",
+          "D02 R23C2",
+          "D02 R24C0",
+          "D02 R24C1",
+          "D02 R24C2",
+          "D02 R25C0",
+          "D02 R25C1",
+          "D02 R25C2",
+          "D02 R26C0",
+          "D02 R26C1",
+          "D02 R26C2",
+          "D02 R27C0",
+          "D02 R27C1",
+          "D02 R27C2",
+          "D02 R28C0",
+          "D02 R28C1",
+          "D02 R28C2",
+          "D02 R29C0",
+          "D02 R29C1",
+          "D02 R29C2",
+          "D02 R30C0",
+          "D02 R30C1",
+          "D02 R30C2",
+          "D02 R31C0",
+          "D02 R31C1",
+          "D02 R31C2",
+          "D02 R32C0",
+          "D02 R32C1",
+          "D02 R32C2",
+          "D02 R33C0",
+          "D02 R33C1",
+          "D02 R33C2",
+          "D02 R34C0",
+          "D02 R34C1",
+          "D02 R34C2",
+          "D02 R35C0",
+          "D02 R35C1",
+          "D02 R35C2",
+          "D02 R36C0",
+          "D02 R36C1",
+          "D02 R36C2",
+          "D02 R37C0",
+          "D02 R37C1",
+          "D02 R37C2",
+          "D02 R38C0",
+          "D02 R38C1",
+          "D02 R38C2",
+          "D02 R39C0",
+          "D02 R39C1",
+          "D02 R39C2",
+          "D02 R40C0",
+          "D02 R40C1",
+          "D02 R40C2",
+          "D02 R41C0",
+          "D02 R41C1",
+          "D02 R41C2",
+          "D02 R42C0",
+          "D02 R42C1",
+          "D02 R42C2",
+          "D02 R43C0",
+          "D02 R43C1",
+          "D02 R43C2",
+          "D02 R44C0",
+          "D02 R44C1",
+          "D02 R44C2",
+          "D02 R45C0",
+          "D02 R45C1",
+          "D02 R45C2",
+          "D02 R46C0",
+          "D02 R46C1",
+          "D02 R46C2",
+          "D02 R47C0",
+          "D02 R47C1",
+          "D02 R47C2",
+          "D02 R48C0",
+          "D02 R48C1",
+          "D02 R48C2",
+          "D02 R49C0",
+          "D02 R49C1",
+          "D02 R49C2",
+          "D02 R50C0",
+          "D02 R50C1",
+          "D02 R50C2",
+          "D02 R51C0",
+          "D02 R51C1",
+          "D02 R51C2",
+          "D02 R52C0",
+          "D02 R52C1",
+          "D02 R52C2",
+          "D02 R53C0",
+          "D02 R53C1",
+          "D02 R53C2",
+          "D02 R54C0",
+          "D02 R54C1",
+          "D02 R54C2",
+          "D02 R55C0",
+          "D02 R55C1",
+          "D02 R55C2",
+          "D02 R56C0",
+          "D02 R56C1",
+          "D02 R56C2",
+          "D02 R57C0",
+          "D02 R57C1",
+          "D02 R57C2",
+          "D02 R58C0",
+          "D02 R58C1",
+          "D02 R58C2",
+          "D02 R59C0",
+          "D02 R59C1",
+          "D02 R59C2",
+          "D02 R60C0",
+          "D02 R60C1",
+          "D02 R60C2",
+          "D02 R61C0",
+          "D02 R61C1",
+          "D02 R61C2",
+          "D02 R62C0",
+          "D02 R62C1",
+          "D02 R62C2",
+          "D02 R63C0",
+          "D02 R63C1",
+          "D02 R63C2",
+          "D02 R64C0",
+          "D02 R64C1",
+          "D02 R64C2",
+          "D02 After blank and edge image"
+        ],
+        "fullEditableText": "D02 Long table\nD02 R00C0\nD02 R00C1\nD02 R00C2\nD02 R01C0\nD02 R01C1\nD02 R01C2\nD02 R02C0\nD02 R02C1\nD02 R02C2\nD02 R03C0\nD02 R03C1\nD02 R03C2\nD02 R04C0\nD02 R04C1\nD02 R04C2\nD02 R05C0\nD02 R05C1\nD02 R05C2\nD02 R06C0\nD02 R06C1\nD02 R06C2\nD02 R07C0\nD02 R07C1\nD02 R07C2\nD02 R08C0\nD02 R08C1\nD02 R08C2\nD02 R09C0\nD02 R09C1\nD02 R09C2\nD02 R10C0\nD02 R10C1\nD02 R10C2\nD02 R11C0\nD02 R11C1\nD02 R11C2\nD02 R12C0\nD02 R12C1\nD02 R12C2\nD02 R13C0\nD02 R13C1\nD02 R13C2\nD02 R14C0\nD02 R14C1\nD02 R14C2\nD02 R15C0\nD02 R15C1\nD02 R15C2\nD02 R16C0\nD02 R16C1\nD02 R16C2\nD02 R17C0\nD02 R17C1\nD02 R17C2\nD02 R18C0\nD02 R18C1\nD02 R18C2\nD02 R19C0\nD02 R19C1\nD02 R19C2\nD02 R20C0\nD02 R20C1\nD02 R20C2\nD02 R21C0\nD02 R21C1\nD02 R21C2\nD02 R22C0\nD02 R22C1\nD02 R22C2\nD02 R23C0\nD02 R23C1\nD02 R23C2\nD02 R24C0\nD02 R24C1\nD02 R24C2\nD02 R25C0\nD02 R25C1\nD02 R25C2\nD02 R26C0\nD02 R26C1\nD02 R26C2\nD02 R27C0\nD02 R27C1\nD02 R27C2\nD02 R28C0\nD02 R28C1\nD02 R28C2\nD02 R29C0\nD02 R29C1\nD02 R29C2\nD02 R30C0\nD02 R30C1\nD02 R30C2\nD02 R31C0\nD02 R31C1\nD02 R31C2\nD02 R32C0\nD02 R32C1\nD02 R32C2\nD02 R33C0\nD02 R33C1\nD02 R33C2\nD02 R34C0\nD02 R34C1\nD02 R34C2\nD02 R35C0\nD02 R35C1\nD02 R35C2\nD02 R36C0\nD02 R36C1\nD02 R36C2\nD02 R37C0\nD02 R37C1\nD02 R37C2\nD02 R38C0\nD02 R38C1\nD02 R38C2\nD02 R39C0\nD02 R39C1\nD02 R39C2\nD02 R40C0\nD02 R40C1\nD02 R40C2\nD02 R41C0\nD02 R41C1\nD02 R41C2\nD02 R42C0\nD02 R42C1\nD02 R42C2\nD02 R43C0\nD02 R43C1\nD02 R43C2\nD02 R44C0\nD02 R44C1\nD02 R44C2\nD02 R45C0\nD02 R45C1\nD02 R45C2\nD02 R46C0\nD02 R46C1\nD02 R46C2\nD02 R47C0\nD02 R47C1\nD02 R47C2\nD02 R48C0\nD02 R48C1\nD02 R48C2\nD02 R49C0\nD02 R49C1\nD02 R49C2\nD02 R50C0\nD02 R50C1\nD02 R50C2\nD02 R51C0\nD02 R51C1\nD02 R51C2\nD02 R52C0\nD02 R52C1\nD02 R52C2\nD02 R53C0\nD02 R53C1\nD02 R53C2\nD02 R54C0\nD02 R54C1\nD02 R54C2\nD02 R55C0\nD02 R55C1\nD02 R55C2\nD02 R56C0\nD02 R56C1\nD02 R56C2\nD02 R57C0\nD02 R57C1\nD02 R57C2\nD02 R58C0\nD02 R58C1\nD02 R58C2\nD02 R59C0\nD02 R59C1\nD02 R59C2\nD02 R60C0\nD02 R60C1\nD02 R60C2\nD02 R61C0\nD02 R61C1\nD02 R61C2\nD02 R62C0\nD02 R62C1\nD02 R62C2\nD02 R63C0\nD02 R63C1\nD02 R63C2\nD02 R64C0\nD02 R64C1\nD02 R64C2\nD02 After blank and edge image",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "pageSizesPt": null,
+        "pageCount": null,
+        "pageCountRule": "at least three; no row split/duplicate; one explicit blank before final image",
+        "unsupportedMixedSectionsMayReject": false,
+        "requiredFurniture": [],
+        "resourceFaults": [],
+        "table": {
+          "rows": 65,
+          "columns": 3,
+          "cells": [
+            {
+              "row": 0,
+              "column": 0,
+              "text": "D02 R00C0"
+            },
+            {
+              "row": 0,
+              "column": 1,
+              "text": "D02 R00C1"
+            },
+            {
+              "row": 0,
+              "column": 2,
+              "text": "D02 R00C2"
+            },
+            {
+              "row": 1,
+              "column": 0,
+              "text": "D02 R01C0"
+            },
+            {
+              "row": 1,
+              "column": 1,
+              "text": "D02 R01C1"
+            },
+            {
+              "row": 1,
+              "column": 2,
+              "text": "D02 R01C2"
+            },
+            {
+              "row": 2,
+              "column": 0,
+              "text": "D02 R02C0"
+            },
+            {
+              "row": 2,
+              "column": 1,
+              "text": "D02 R02C1"
+            },
+            {
+              "row": 2,
+              "column": 2,
+              "text": "D02 R02C2"
+            },
+            {
+              "row": 3,
+              "column": 0,
+              "text": "D02 R03C0"
+            },
+            {
+              "row": 3,
+              "column": 1,
+              "text": "D02 R03C1"
+            },
+            {
+              "row": 3,
+              "column": 2,
+              "text": "D02 R03C2"
+            },
+            {
+              "row": 4,
+              "column": 0,
+              "text": "D02 R04C0"
+            },
+            {
+              "row": 4,
+              "column": 1,
+              "text": "D02 R04C1"
+            },
+            {
+              "row": 4,
+              "column": 2,
+              "text": "D02 R04C2"
+            },
+            {
+              "row": 5,
+              "column": 0,
+              "text": "D02 R05C0"
+            },
+            {
+              "row": 5,
+              "column": 1,
+              "text": "D02 R05C1"
+            },
+            {
+              "row": 5,
+              "column": 2,
+              "text": "D02 R05C2"
+            },
+            {
+              "row": 6,
+              "column": 0,
+              "text": "D02 R06C0"
+            },
+            {
+              "row": 6,
+              "column": 1,
+              "text": "D02 R06C1"
+            },
+            {
+              "row": 6,
+              "column": 2,
+              "text": "D02 R06C2"
+            },
+            {
+              "row": 7,
+              "column": 0,
+              "text": "D02 R07C0"
+            },
+            {
+              "row": 7,
+              "column": 1,
+              "text": "D02 R07C1"
+            },
+            {
+              "row": 7,
+              "column": 2,
+              "text": "D02 R07C2"
+            },
+            {
+              "row": 8,
+              "column": 0,
+              "text": "D02 R08C0"
+            },
+            {
+              "row": 8,
+              "column": 1,
+              "text": "D02 R08C1"
+            },
+            {
+              "row": 8,
+              "column": 2,
+              "text": "D02 R08C2"
+            },
+            {
+              "row": 9,
+              "column": 0,
+              "text": "D02 R09C0"
+            },
+            {
+              "row": 9,
+              "column": 1,
+              "text": "D02 R09C1"
+            },
+            {
+              "row": 9,
+              "column": 2,
+              "text": "D02 R09C2"
+            },
+            {
+              "row": 10,
+              "column": 0,
+              "text": "D02 R10C0"
+            },
+            {
+              "row": 10,
+              "column": 1,
+              "text": "D02 R10C1"
+            },
+            {
+              "row": 10,
+              "column": 2,
+              "text": "D02 R10C2"
+            },
+            {
+              "row": 11,
+              "column": 0,
+              "text": "D02 R11C0"
+            },
+            {
+              "row": 11,
+              "column": 1,
+              "text": "D02 R11C1"
+            },
+            {
+              "row": 11,
+              "column": 2,
+              "text": "D02 R11C2"
+            },
+            {
+              "row": 12,
+              "column": 0,
+              "text": "D02 R12C0"
+            },
+            {
+              "row": 12,
+              "column": 1,
+              "text": "D02 R12C1"
+            },
+            {
+              "row": 12,
+              "column": 2,
+              "text": "D02 R12C2"
+            },
+            {
+              "row": 13,
+              "column": 0,
+              "text": "D02 R13C0"
+            },
+            {
+              "row": 13,
+              "column": 1,
+              "text": "D02 R13C1"
+            },
+            {
+              "row": 13,
+              "column": 2,
+              "text": "D02 R13C2"
+            },
+            {
+              "row": 14,
+              "column": 0,
+              "text": "D02 R14C0"
+            },
+            {
+              "row": 14,
+              "column": 1,
+              "text": "D02 R14C1"
+            },
+            {
+              "row": 14,
+              "column": 2,
+              "text": "D02 R14C2"
+            },
+            {
+              "row": 15,
+              "column": 0,
+              "text": "D02 R15C0"
+            },
+            {
+              "row": 15,
+              "column": 1,
+              "text": "D02 R15C1"
+            },
+            {
+              "row": 15,
+              "column": 2,
+              "text": "D02 R15C2"
+            },
+            {
+              "row": 16,
+              "column": 0,
+              "text": "D02 R16C0"
+            },
+            {
+              "row": 16,
+              "column": 1,
+              "text": "D02 R16C1"
+            },
+            {
+              "row": 16,
+              "column": 2,
+              "text": "D02 R16C2"
+            },
+            {
+              "row": 17,
+              "column": 0,
+              "text": "D02 R17C0"
+            },
+            {
+              "row": 17,
+              "column": 1,
+              "text": "D02 R17C1"
+            },
+            {
+              "row": 17,
+              "column": 2,
+              "text": "D02 R17C2"
+            },
+            {
+              "row": 18,
+              "column": 0,
+              "text": "D02 R18C0"
+            },
+            {
+              "row": 18,
+              "column": 1,
+              "text": "D02 R18C1"
+            },
+            {
+              "row": 18,
+              "column": 2,
+              "text": "D02 R18C2"
+            },
+            {
+              "row": 19,
+              "column": 0,
+              "text": "D02 R19C0"
+            },
+            {
+              "row": 19,
+              "column": 1,
+              "text": "D02 R19C1"
+            },
+            {
+              "row": 19,
+              "column": 2,
+              "text": "D02 R19C2"
+            },
+            {
+              "row": 20,
+              "column": 0,
+              "text": "D02 R20C0"
+            },
+            {
+              "row": 20,
+              "column": 1,
+              "text": "D02 R20C1"
+            },
+            {
+              "row": 20,
+              "column": 2,
+              "text": "D02 R20C2"
+            },
+            {
+              "row": 21,
+              "column": 0,
+              "text": "D02 R21C0"
+            },
+            {
+              "row": 21,
+              "column": 1,
+              "text": "D02 R21C1"
+            },
+            {
+              "row": 21,
+              "column": 2,
+              "text": "D02 R21C2"
+            },
+            {
+              "row": 22,
+              "column": 0,
+              "text": "D02 R22C0"
+            },
+            {
+              "row": 22,
+              "column": 1,
+              "text": "D02 R22C1"
+            },
+            {
+              "row": 22,
+              "column": 2,
+              "text": "D02 R22C2"
+            },
+            {
+              "row": 23,
+              "column": 0,
+              "text": "D02 R23C0"
+            },
+            {
+              "row": 23,
+              "column": 1,
+              "text": "D02 R23C1"
+            },
+            {
+              "row": 23,
+              "column": 2,
+              "text": "D02 R23C2"
+            },
+            {
+              "row": 24,
+              "column": 0,
+              "text": "D02 R24C0"
+            },
+            {
+              "row": 24,
+              "column": 1,
+              "text": "D02 R24C1"
+            },
+            {
+              "row": 24,
+              "column": 2,
+              "text": "D02 R24C2"
+            },
+            {
+              "row": 25,
+              "column": 0,
+              "text": "D02 R25C0"
+            },
+            {
+              "row": 25,
+              "column": 1,
+              "text": "D02 R25C1"
+            },
+            {
+              "row": 25,
+              "column": 2,
+              "text": "D02 R25C2"
+            },
+            {
+              "row": 26,
+              "column": 0,
+              "text": "D02 R26C0"
+            },
+            {
+              "row": 26,
+              "column": 1,
+              "text": "D02 R26C1"
+            },
+            {
+              "row": 26,
+              "column": 2,
+              "text": "D02 R26C2"
+            },
+            {
+              "row": 27,
+              "column": 0,
+              "text": "D02 R27C0"
+            },
+            {
+              "row": 27,
+              "column": 1,
+              "text": "D02 R27C1"
+            },
+            {
+              "row": 27,
+              "column": 2,
+              "text": "D02 R27C2"
+            },
+            {
+              "row": 28,
+              "column": 0,
+              "text": "D02 R28C0"
+            },
+            {
+              "row": 28,
+              "column": 1,
+              "text": "D02 R28C1"
+            },
+            {
+              "row": 28,
+              "column": 2,
+              "text": "D02 R28C2"
+            },
+            {
+              "row": 29,
+              "column": 0,
+              "text": "D02 R29C0"
+            },
+            {
+              "row": 29,
+              "column": 1,
+              "text": "D02 R29C1"
+            },
+            {
+              "row": 29,
+              "column": 2,
+              "text": "D02 R29C2"
+            },
+            {
+              "row": 30,
+              "column": 0,
+              "text": "D02 R30C0"
+            },
+            {
+              "row": 30,
+              "column": 1,
+              "text": "D02 R30C1"
+            },
+            {
+              "row": 30,
+              "column": 2,
+              "text": "D02 R30C2"
+            },
+            {
+              "row": 31,
+              "column": 0,
+              "text": "D02 R31C0"
+            },
+            {
+              "row": 31,
+              "column": 1,
+              "text": "D02 R31C1"
+            },
+            {
+              "row": 31,
+              "column": 2,
+              "text": "D02 R31C2"
+            },
+            {
+              "row": 32,
+              "column": 0,
+              "text": "D02 R32C0"
+            },
+            {
+              "row": 32,
+              "column": 1,
+              "text": "D02 R32C1"
+            },
+            {
+              "row": 32,
+              "column": 2,
+              "text": "D02 R32C2"
+            },
+            {
+              "row": 33,
+              "column": 0,
+              "text": "D02 R33C0"
+            },
+            {
+              "row": 33,
+              "column": 1,
+              "text": "D02 R33C1"
+            },
+            {
+              "row": 33,
+              "column": 2,
+              "text": "D02 R33C2"
+            },
+            {
+              "row": 34,
+              "column": 0,
+              "text": "D02 R34C0"
+            },
+            {
+              "row": 34,
+              "column": 1,
+              "text": "D02 R34C1"
+            },
+            {
+              "row": 34,
+              "column": 2,
+              "text": "D02 R34C2"
+            },
+            {
+              "row": 35,
+              "column": 0,
+              "text": "D02 R35C0"
+            },
+            {
+              "row": 35,
+              "column": 1,
+              "text": "D02 R35C1"
+            },
+            {
+              "row": 35,
+              "column": 2,
+              "text": "D02 R35C2"
+            },
+            {
+              "row": 36,
+              "column": 0,
+              "text": "D02 R36C0"
+            },
+            {
+              "row": 36,
+              "column": 1,
+              "text": "D02 R36C1"
+            },
+            {
+              "row": 36,
+              "column": 2,
+              "text": "D02 R36C2"
+            },
+            {
+              "row": 37,
+              "column": 0,
+              "text": "D02 R37C0"
+            },
+            {
+              "row": 37,
+              "column": 1,
+              "text": "D02 R37C1"
+            },
+            {
+              "row": 37,
+              "column": 2,
+              "text": "D02 R37C2"
+            },
+            {
+              "row": 38,
+              "column": 0,
+              "text": "D02 R38C0"
+            },
+            {
+              "row": 38,
+              "column": 1,
+              "text": "D02 R38C1"
+            },
+            {
+              "row": 38,
+              "column": 2,
+              "text": "D02 R38C2"
+            },
+            {
+              "row": 39,
+              "column": 0,
+              "text": "D02 R39C0"
+            },
+            {
+              "row": 39,
+              "column": 1,
+              "text": "D02 R39C1"
+            },
+            {
+              "row": 39,
+              "column": 2,
+              "text": "D02 R39C2"
+            },
+            {
+              "row": 40,
+              "column": 0,
+              "text": "D02 R40C0"
+            },
+            {
+              "row": 40,
+              "column": 1,
+              "text": "D02 R40C1"
+            },
+            {
+              "row": 40,
+              "column": 2,
+              "text": "D02 R40C2"
+            },
+            {
+              "row": 41,
+              "column": 0,
+              "text": "D02 R41C0"
+            },
+            {
+              "row": 41,
+              "column": 1,
+              "text": "D02 R41C1"
+            },
+            {
+              "row": 41,
+              "column": 2,
+              "text": "D02 R41C2"
+            },
+            {
+              "row": 42,
+              "column": 0,
+              "text": "D02 R42C0"
+            },
+            {
+              "row": 42,
+              "column": 1,
+              "text": "D02 R42C1"
+            },
+            {
+              "row": 42,
+              "column": 2,
+              "text": "D02 R42C2"
+            },
+            {
+              "row": 43,
+              "column": 0,
+              "text": "D02 R43C0"
+            },
+            {
+              "row": 43,
+              "column": 1,
+              "text": "D02 R43C1"
+            },
+            {
+              "row": 43,
+              "column": 2,
+              "text": "D02 R43C2"
+            },
+            {
+              "row": 44,
+              "column": 0,
+              "text": "D02 R44C0"
+            },
+            {
+              "row": 44,
+              "column": 1,
+              "text": "D02 R44C1"
+            },
+            {
+              "row": 44,
+              "column": 2,
+              "text": "D02 R44C2"
+            },
+            {
+              "row": 45,
+              "column": 0,
+              "text": "D02 R45C0"
+            },
+            {
+              "row": 45,
+              "column": 1,
+              "text": "D02 R45C1"
+            },
+            {
+              "row": 45,
+              "column": 2,
+              "text": "D02 R45C2"
+            },
+            {
+              "row": 46,
+              "column": 0,
+              "text": "D02 R46C0"
+            },
+            {
+              "row": 46,
+              "column": 1,
+              "text": "D02 R46C1"
+            },
+            {
+              "row": 46,
+              "column": 2,
+              "text": "D02 R46C2"
+            },
+            {
+              "row": 47,
+              "column": 0,
+              "text": "D02 R47C0"
+            },
+            {
+              "row": 47,
+              "column": 1,
+              "text": "D02 R47C1"
+            },
+            {
+              "row": 47,
+              "column": 2,
+              "text": "D02 R47C2"
+            },
+            {
+              "row": 48,
+              "column": 0,
+              "text": "D02 R48C0"
+            },
+            {
+              "row": 48,
+              "column": 1,
+              "text": "D02 R48C1"
+            },
+            {
+              "row": 48,
+              "column": 2,
+              "text": "D02 R48C2"
+            },
+            {
+              "row": 49,
+              "column": 0,
+              "text": "D02 R49C0"
+            },
+            {
+              "row": 49,
+              "column": 1,
+              "text": "D02 R49C1"
+            },
+            {
+              "row": 49,
+              "column": 2,
+              "text": "D02 R49C2"
+            },
+            {
+              "row": 50,
+              "column": 0,
+              "text": "D02 R50C0"
+            },
+            {
+              "row": 50,
+              "column": 1,
+              "text": "D02 R50C1"
+            },
+            {
+              "row": 50,
+              "column": 2,
+              "text": "D02 R50C2"
+            },
+            {
+              "row": 51,
+              "column": 0,
+              "text": "D02 R51C0"
+            },
+            {
+              "row": 51,
+              "column": 1,
+              "text": "D02 R51C1"
+            },
+            {
+              "row": 51,
+              "column": 2,
+              "text": "D02 R51C2"
+            },
+            {
+              "row": 52,
+              "column": 0,
+              "text": "D02 R52C0"
+            },
+            {
+              "row": 52,
+              "column": 1,
+              "text": "D02 R52C1"
+            },
+            {
+              "row": 52,
+              "column": 2,
+              "text": "D02 R52C2"
+            },
+            {
+              "row": 53,
+              "column": 0,
+              "text": "D02 R53C0"
+            },
+            {
+              "row": 53,
+              "column": 1,
+              "text": "D02 R53C1"
+            },
+            {
+              "row": 53,
+              "column": 2,
+              "text": "D02 R53C2"
+            },
+            {
+              "row": 54,
+              "column": 0,
+              "text": "D02 R54C0"
+            },
+            {
+              "row": 54,
+              "column": 1,
+              "text": "D02 R54C1"
+            },
+            {
+              "row": 54,
+              "column": 2,
+              "text": "D02 R54C2"
+            },
+            {
+              "row": 55,
+              "column": 0,
+              "text": "D02 R55C0"
+            },
+            {
+              "row": 55,
+              "column": 1,
+              "text": "D02 R55C1"
+            },
+            {
+              "row": 55,
+              "column": 2,
+              "text": "D02 R55C2"
+            },
+            {
+              "row": 56,
+              "column": 0,
+              "text": "D02 R56C0"
+            },
+            {
+              "row": 56,
+              "column": 1,
+              "text": "D02 R56C1"
+            },
+            {
+              "row": 56,
+              "column": 2,
+              "text": "D02 R56C2"
+            },
+            {
+              "row": 57,
+              "column": 0,
+              "text": "D02 R57C0"
+            },
+            {
+              "row": 57,
+              "column": 1,
+              "text": "D02 R57C1"
+            },
+            {
+              "row": 57,
+              "column": 2,
+              "text": "D02 R57C2"
+            },
+            {
+              "row": 58,
+              "column": 0,
+              "text": "D02 R58C0"
+            },
+            {
+              "row": 58,
+              "column": 1,
+              "text": "D02 R58C1"
+            },
+            {
+              "row": 58,
+              "column": 2,
+              "text": "D02 R58C2"
+            },
+            {
+              "row": 59,
+              "column": 0,
+              "text": "D02 R59C0"
+            },
+            {
+              "row": 59,
+              "column": 1,
+              "text": "D02 R59C1"
+            },
+            {
+              "row": 59,
+              "column": 2,
+              "text": "D02 R59C2"
+            },
+            {
+              "row": 60,
+              "column": 0,
+              "text": "D02 R60C0"
+            },
+            {
+              "row": 60,
+              "column": 1,
+              "text": "D02 R60C1"
+            },
+            {
+              "row": 60,
+              "column": 2,
+              "text": "D02 R60C2"
+            },
+            {
+              "row": 61,
+              "column": 0,
+              "text": "D02 R61C0"
+            },
+            {
+              "row": 61,
+              "column": 1,
+              "text": "D02 R61C1"
+            },
+            {
+              "row": 61,
+              "column": 2,
+              "text": "D02 R61C2"
+            },
+            {
+              "row": 62,
+              "column": 0,
+              "text": "D02 R62C0"
+            },
+            {
+              "row": 62,
+              "column": 1,
+              "text": "D02 R62C1"
+            },
+            {
+              "row": 62,
+              "column": 2,
+              "text": "D02 R62C2"
+            },
+            {
+              "row": 63,
+              "column": 0,
+              "text": "D02 R63C0"
+            },
+            {
+              "row": 63,
+              "column": 1,
+              "text": "D02 R63C1"
+            },
+            {
+              "row": 63,
+              "column": 2,
+              "text": "D02 R63C2"
+            },
+            {
+              "row": 64,
+              "column": 0,
+              "text": "D02 R64C0"
+            },
+            {
+              "row": 64,
+              "column": 1,
+              "text": "D02 R64C1"
+            },
+            {
+              "row": 64,
+              "column": 2,
+              "text": "D02 R64C2"
+            }
+          ]
+        },
+        "pageGeometryRule": {
+          "allPagesSizePt": [
+            612,
+            792
+          ],
+          "minimumPageCount": 4,
+          "explicitBlankPageCount": 1,
+          "tolerancePt": 1
+        }
+      }
+    },
+    {
+      "id": "D03",
+      "kind": "document",
+      "file": "D03.docx",
+      "sha256": "77290a909de4a0efd6bce15deb63f82700b3994a79ae3c7f3dbce075e3443518",
+      "source": {
+        "fullTextByPart": {
+          "word/document.xml": [
+            "D03 Section 1 11906x16838 twips",
+            "D03 Section 2 12240x15840 twips",
+            "D03 Section 3 16838x11906 twips",
+            "D03 Section 4 15840x12240 twips"
+          ]
+        },
+        "sectionSizesTwips": [
+          "11906",
+          "16838",
+          "12240",
+          "15840",
+          "16838",
+          "11906",
+          "15840",
+          "12240"
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "D03 Section 1 11906x16838 twips",
+          "D03 Section 2 12240x15840 twips",
+          "D03 Section 3 16838x11906 twips",
+          "D03 Section 4 15840x12240 twips"
+        ],
+        "fullEditableText": "D03 Section 1 11906x16838 twips\nD03 Section 2 12240x15840 twips\nD03 Section 3 16838x11906 twips\nD03 Section 4 15840x12240 twips",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "pageSizesPt": [
+          [
+            595.3,
+            841.9
+          ],
+          [
+            612.0,
+            792.0
+          ],
+          [
+            841.9,
+            595.3
+          ],
+          [
+            792.0,
+            612.0
+          ]
+        ],
+        "pageCount": null,
+        "pageCountRule": null,
+        "unsupportedMixedSectionsMayReject": true,
+        "requiredFurniture": [],
+        "resourceFaults": [],
+        "table": null
+      }
+    },
+    {
+      "id": "D04",
+      "kind": "document",
+      "file": "D04.docx",
+      "sha256": "e5ee1fa2c774974a9de627162233a2a3a2fa81c69407025119fb780d99df8f1a",
+      "source": {
+        "fullTextByPart": {
+          "word/document.xml": [
+            "D04 Required image and resource failures"
+          ]
+        },
+        "sectionSizesTwips": [
+          "12240",
+          "15840"
+        ]
+      },
+      "target": {
+        "orderedEditableText": [
+          "D04 Required image and resource failures"
+        ],
+        "fullEditableText": "D04 Required image and resource failures",
+        "normalization": "NFC; whitespace runs to one space; trim lines; preserve every non-whitespace character",
+        "warnings": [],
+        "error": null,
+        "noPartialCommit": true,
+        "pageSizesPt": null,
+        "pageCount": null,
+        "pageCountRule": null,
+        "unsupportedMixedSectionsMayReject": false,
+        "requiredFurniture": [],
+        "resourceFaults": [
+          "imageDecodeFailure",
+          "fontLoadDeadline",
+          "externalRelationshipBlocked"
+        ],
+        "table": null,
+        "faultScenarios": [
+          {
+            "injection": "replace required image bytes with invalid PNG",
+            "expectedError": "invalidInput",
+            "noPartialCommit": true,
+            "externalRequestCount": 0
+          },
+          {
+            "injection": "font readiness never resolves until deadline",
+            "expectedError": "timeout",
+            "noPartialCommit": true,
+            "externalRequestCount": 0
+          },
+          {
+            "injection": "replace required image relationship by external URL",
+            "expectedError": "unsupportedInput",
+            "noPartialCommit": true,
+            "externalRequestCount": 0
+          }
+        ]
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "F03",
+      "kind": "faultScenario",
+      "fixtureRefs": [
+        "F01"
+      ],
+      "scenarioType": "fontInspection",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "font enumerator throws",
+        "family count exceeds bounded limit"
+      ],
+      "assertions": [
+        "readable output may continue",
+        "fontInspectionIncomplete",
+        "never assert complete match",
+        "no font download"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    },
+    {
+      "id": "F04",
+      "kind": "faultScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "qualityAggregation",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "emit 125 unique issues plus duplicate of first location",
+        "switch locale zh/en"
+      ],
+      "assertions": [
+        "issue details length <= 100",
+        "totalIssues=125",
+        "truncated=true",
+        "duplicate location counted once",
+        "unknown code readable",
+        "no document text or private path"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true,
+      "injectedIssues": [
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 1
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 2
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 3
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 4
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 5
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 6
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 7
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 8
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 9
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 10
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 11
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 12
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 13
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 14
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 15
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 16
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 17
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 18
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 19
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 20
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 21
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 22
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 23
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 24
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 25
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 26
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 27
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 28
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 29
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 30
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 31
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 32
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 33
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 34
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 35
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 36
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 37
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 38
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 39
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 40
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 41
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 42
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 43
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 44
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 45
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 46
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 47
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 48
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 49
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 50
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 51
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 52
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 53
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 54
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 55
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 56
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 57
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 58
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 59
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 60
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 61
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 62
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 63
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 64
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 65
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 66
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 67
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 68
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 69
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 70
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 71
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 72
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 73
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 74
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 75
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 76
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 77
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 78
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 79
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 80
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 81
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 82
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 83
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 84
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 85
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 86
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 87
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 88
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 89
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 90
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 91
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 92
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 93
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 94
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 95
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 96
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 97
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 98
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 99
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 100
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 101
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 102
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 103
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 104
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 105
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 106
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 107
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 108
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 109
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 110
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 111
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 112
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 113
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 114
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 115
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 116
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 117
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 118
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 119
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 120
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 121
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 122
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 123
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 124
+        },
+        {
+          "code": "fixtureUnknownQualityCode",
+          "sourcePage": 125
+        },
+        {
+          "code": "nonEditableGraphic",
+          "sourcePage": 1
+        }
+      ],
+      "expectedAggregate": {
+        "totalIssues": 125,
+        "detailCount": 100,
+        "truncated": true
+      }
+    },
+    {
+      "id": "E01",
+      "kind": "lifecycleScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "providerSelection",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "clear synthetic preferences",
+        "LO available; built-in unavailable",
+        "start DOCX input"
+      ],
+      "assertions": [
+        "built-in remains selected",
+        "unavailable reason visible",
+        "LO launch count=0"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    },
+    {
+      "id": "E02",
+      "kind": "lifecycleScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "preferencePersistence",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "select Word for DOCX",
+        "switch main/tray and locale",
+        "restart host"
+      ],
+      "assertions": [
+        "direction selection preserved",
+        "localized labels",
+        "no document paths or queue persisted"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    },
+    {
+      "id": "E03",
+      "kind": "lifecycleScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "batchAvailability",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "PDF direction selected provider unavailable",
+        "DOCX direction available",
+        "start mixed queue"
+      ],
+      "assertions": [
+        "only DOCX binds",
+        "PDF reason visible",
+        "no fallback"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    },
+    {
+      "id": "E04",
+      "kind": "lifecycleScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "batchBinding",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "enqueue two DOCX inputs",
+        "start batch with provider A",
+        "change preference to B before second task",
+        "enqueue future batch"
+      ],
+      "assertions": [
+        "first and second bind A",
+        "future batch binds B",
+        "stale revision rejected"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    },
+    {
+      "id": "E05",
+      "kind": "lifecycleScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "retryBinding",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "inject Word permissionDenied, notActivated, uninstalled, timeout separately",
+        "ordinary retry",
+        "explicit retry with LO"
+      ],
+      "assertions": [
+        "distinct typed reasons",
+        "ordinary retry stays Word",
+        "only explicit retry binds LO",
+        "no implicit fallback"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    },
+    {
+      "id": "E06",
+      "kind": "lifecycleScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "preferenceValidation",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "inject atomic preference write failure",
+        "load unknown provider ID",
+        "load opposite-platform provider ID"
+      ],
+      "assertions": [
+        "write failure not reported saved",
+        "invalid IDs normalize default with notice",
+        "no arbitrary command"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    },
+    {
+      "id": "E07",
+      "kind": "lifecycleScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "generationIsolation",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "cancel or timeout at OCR, packaging, printing separately",
+        "deliver expired region/lease/native callback",
+        "start next task"
+      ],
+      "assertions": [
+        "no final output",
+        "stale generation rejected",
+        "busy native instance not reused",
+        "next task can run after teardown"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    },
+    {
+      "id": "E08",
+      "kind": "lifecycleScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "safeCommit",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "unreadable synthetic source",
+        "existing destination sentinel",
+        "deny staging commit permission",
+        "retry with invalid direction/provider separately"
+      ],
+      "assertions": [
+        "source and sentinel hashes unchanged",
+        "typed recoverable error",
+        "no partial final output",
+        "retry validation enforced"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    },
+    {
+      "id": "E09",
+      "kind": "lifecycleScenario",
+      "fixtureRefs": [
+        "D01",
+        "P01"
+      ],
+      "scenarioType": "callerBoundary",
+      "setup": "isolated synthetic preferences, staging and event clock; never user data",
+      "steps": [
+        "call get/set File preferences from engine and unrelated window",
+        "call same IPC from authorized main/tray"
+      ],
+      "assertions": [
+        "unauthorized caller denied",
+        "authorized narrow settings only",
+        "no file/process capability gained"
+      ],
+      "executionStatus": "contractOnly",
+      "requiresHarness": true
+    }
+  ]
+}

@@ -334,6 +334,10 @@ pub fn run() {
             #[cfg(feature = "file-tool")]
             commands::file::refresh_file_conversion_capabilities,
             #[cfg(feature = "file-tool")]
+            commands::file::set_file_conversion_provider,
+            #[cfg(feature = "file-tool")]
+            commands::file::open_file_conversion_configuration,
+            #[cfg(feature = "file-tool")]
             commands::file::choose_file_conversion_inputs,
             #[cfg(feature = "file-tool")]
             commands::file::inspect_file_conversion_inputs,
@@ -341,6 +345,8 @@ pub fn run() {
             commands::file::enqueue_file_conversions,
             #[cfg(feature = "file-tool")]
             commands::file::list_file_conversion_jobs,
+            #[cfg(feature = "file-tool")]
+            commands::file::get_file_conversion_queue_snapshot,
             #[cfg(feature = "file-tool")]
             commands::file::start_file_conversion_queue,
             #[cfg(feature = "file-tool")]
@@ -367,6 +373,8 @@ pub fn run() {
             services::file::engine_bridge::file_engine_complete,
             #[cfg(feature = "file-tool")]
             services::file::engine_bridge::file_engine_print_rendered,
+            #[cfg(feature = "file-tool")]
+            services::file::engine_bridge::file_engine_inspect_fonts,
             #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::get_bing_wallpaper_snapshot,
             #[cfg(feature = "bundled-tools")]

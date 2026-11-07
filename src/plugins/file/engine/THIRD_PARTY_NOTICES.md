@@ -39,3 +39,11 @@ The `docx` and `docx-preview` browser bundles resolve the following pinned runti
 `@types/node` is a type-only dependency of `docx` and is not emitted into the runtime engine bundle. PDF.js's optional Node canvas dependency is not installed into or copied to the browser engine bundle.
 
 No Python runtime, PyMuPDF, OpenCV, LibreOffice, ONLYOFFICE, Chromium, or Microsoft Office component is redistributed by Zero File.
+
+## Host system adapters
+
+Candidate 1.3.0 / host protocol 3 uses macOS WebKit/PDFKit for native PDF capture and CoreText/CoreFoundation for local font-family probing. Windows font probing uses DirectWrite through the existing `windows` 0.52.0 host binding (MIT OR Apache-2.0). These system frameworks and installed system fonts are not copied into the File engine assets; missing fonts are not downloaded automatically.
+
+The staged Windows printing adapter uses the already locked `webview2-com` 0.38.2 host binding (MIT), with its `windows` 0.61.3 dependency (MIT OR Apache-2.0). The adapter depends on the installed system WebView2 runtime, which is not redistributed by this package. Its device qualification gate remains closed; the presence of these bindings is not a Windows export support claim.
+
+OCR remains the shared host service: Apple Vision on macOS and the existing local Windows adapter subject to separately provisioned model/DLL assets and their own notices. This refinement adds no recognition model or OCR runtime to the File browser asset bundle. Fixture-only Python libraries and the synthetic corpus are test tooling, not redistributed production conversion components.

@@ -114,6 +114,7 @@ pub fn classify_provider_failure(
         retryable,
         provider_id,
         diagnostic,
+        quality_issues: Vec::new(),
     }
 }
 

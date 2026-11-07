@@ -72,6 +72,7 @@ pub fn validate_editable_docx(path: &Path) -> Result<(), FileConversionError> {
         retryable: false,
         provider_id: None,
         diagnostic: None,
+        quality_issues: Vec::new(),
     })
 }
 
