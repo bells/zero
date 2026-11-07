@@ -35,3 +35,13 @@ test("saving disables the native keyboard-operable provider control", () => {
   const html = renderToStaticMarkup(createElement(FileProviderControl, { ...props, disabled: true, t: createFileTranslator("en-US") }));
   assert.match(html, /<select[^>]*disabled=""/);
 });
+
+test("optional engine diagnostics stay collapsed while the selected engine warning remains visible", () => {
+  const html = renderToStaticMarkup(createElement(FileProviderControl, { ...props, t: createFileTranslator("en-US") }));
+  const detailsStart = html.indexOf('<details class="file-provider-diagnostics">');
+  assert.ok(detailsStart > 0);
+  assert.ok(html.indexOf('role="status"') < detailsStart);
+  assert.match(html.slice(detailsStart), /<summary>Other engine availability<\/summary>/);
+  assert.match(html.slice(detailsStart), /Microsoft Word/);
+  assert.doesNotMatch(html, /<details[^>]*\bopen(?:=|\s|>)/);
+});

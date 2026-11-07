@@ -122,17 +122,13 @@ export function FilePanel({ t, surface }: FilePanelProps) {
   }, [inspectPaths, surface]);
 
   return (
-    <section className="plugin-panel file-panel accent-file" aria-labelledby="file-panel-title">
+    <section className={`plugin-panel file-panel file-panel-${surface} accent-file`} aria-labelledby="file-panel-title">
       <header className="file-panel-header">
         <div>
           <h2 id="file-panel-title">{t("file.title")}</h2>
         </div>
         <div className="file-header-actions">
-          <span className="status-pill">
-            {controller.jobs.length > 0
-              ? `${controller.jobs.length} ${t("file.queueCount")}`
-              : t("file.formats")}
-          </span>
+          {controller.jobs.length > 0 ? <span className="status-pill">{controller.jobs.length} {t("file.queueCount")}</span> : null}
           {controller.jobs.length > 0 ? (
             <button
               type="button"
@@ -149,7 +145,16 @@ export function FilePanel({ t, surface }: FilePanelProps) {
       </header>
 
       <ProviderStrip controller={controller} t={t} surface={surface} />
-      <p className="file-conversion-note">{t("file.editableNote")}</p>
+      <div className="file-options-row">
+        <details className="file-conversion-details">
+          <summary>{t("file.conversionDetails")}</summary>
+          <p>{t("file.editableNote")}</p>
+          <p>{t("file.localNote")}</p>
+        </details>
+        {surface === "tray" ? (
+          <button type="button" className="file-text-action" disabled={controller.busy.configuration === true} onClick={() => void controller.openConfiguration()}>{t("provider.configure")}</button>
+        ) : null}
+      </div>
 
       {controller.isLoading ? (
         <QueueSkeleton t={t} />
@@ -178,7 +183,7 @@ export function FilePanel({ t, surface }: FilePanelProps) {
             </div>
           ) : null}
 
-          <div className="file-queue-region" data-testid="file-queue-region">
+          <div className="file-queue-region" data-testid="file-queue-region" data-empty={controller.jobs.length === 0 && controller.candidates.length === 0}>
             {controller.candidates.length > 0 ? (
               <CandidateFeedback
                 candidates={controller.candidates}
@@ -215,7 +220,7 @@ export function FilePanel({ t, surface }: FilePanelProps) {
       <footer className="file-panel-footer">
         <div className="file-privacy-note">
           <ShieldCheck aria-hidden="true" />
-          <span>{t("file.localNote")}</span>
+          <span>{t("file.localSummary")}</span>
         </div>
         <div className="file-batch-actions">
           <button
@@ -254,28 +259,32 @@ function ProviderStrip({ controller, t, surface }: { controller: FileConversionC
       {DIRECTIONS.map((direction) => {
         const guidance = fileConversionProviderGuidance(controller.capabilities, direction);
         const capability = controller.capabilities?.directions.find((entry) => entry.direction === direction);
+        const readyLabel = guidance.providerOrigin === "builtIn" ? t("provider.offlineReady") : t("provider.compatibility");
+        const statusLabel = controller.isLoading ? t("provider.checking") : guidance.available ? readyLabel : t("provider.unavailable");
         return (
-          <div className={guidance.available ? "available" : "unavailable"} key={direction}>
-            {guidance.available ? <CheckCircle2 aria-hidden="true" /> : <CircleDashed aria-hidden="true" />}
-            <span>
+          <div className={`file-provider-card ${guidance.available ? "available" : "unavailable"}`} key={direction}>
+            <div className="file-provider-heading">
               <strong>{direction === "pdfToDocx" ? "PDF → DOCX" : "DOCX → PDF"}</strong>
-              <small>
-                {guidance.providerId ? t(`provider.${guidance.providerId}`) : t("provider.unavailable")}
-                {guidance.available ? ` · ${guidance.providerOrigin === "builtIn" ? t("provider.offlineReady") : t("provider.compatibility")}` : ` · ${t("provider.unavailable")}`}
-              </small>
-              {surface === "main" ? <FileProviderControl
+              <span className="file-provider-status" title={guidance.providerId ? t(`provider.${guidance.providerId}`) : undefined}>
+                {guidance.available ? <CheckCircle2 aria-hidden="true" /> : <CircleDashed aria-hidden="true" />}
+                {statusLabel}
+              </span>
+            </div>
+            {surface === "main" ? (
+              <FileProviderControl
                 direction={direction}
                 capability={capability}
                 invalidSavedChoice={controller.capabilities?.invalidPreferenceDirections?.includes(direction) ?? false}
                 disabled={controller.isLoading || controller.busy.provider === true}
                 onSelect={(id) => { void controller.setProvider(direction, id); }}
                 t={t}
-              /> : null}
-            </span>
+              />
+            ) : !guidance.available && !controller.isLoading ? (
+              <p className="file-provider-warning" role="status">{t(fileErrorTranslationKey(capability?.unavailability?.code ?? "engineUnavailable"))}</p>
+            ) : null}
           </div>
         );
       })}
-      {surface === "tray" ? <button type="button" className="file-text-action" disabled={controller.busy.configuration === true} onClick={() => void controller.openConfiguration()}>{t("provider.configure")}</button> : null}
     </div>
   );
 }

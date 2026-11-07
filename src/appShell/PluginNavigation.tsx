@@ -77,7 +77,7 @@ export function PluginNavigation({ plugins, activePluginId, onSelect, t, variant
             onBlur={() => setHint(null)}
           >
             <span className="tool-entry-icon">
-              {plugin.navigationIcon === "file" ? <FileText aria-hidden="true" /> : <StatusBarGlyph icon={plugin.navigationIcon ?? "extension"} />}
+              {plugin.navigationIcon === "file" ? <span className="status-bar-glyph tool-file-glyph" aria-hidden="true"><FileText /></span> : <StatusBarGlyph icon={plugin.navigationIcon ?? "extension"} />}
               <span className={`tool-health ${plugin.health}`} aria-hidden="true" />
             </span>
             {variant === "sidebar" && !collapsed ? <span className="tool-entry-name">{plugin.title}</span> : null}

@@ -9,6 +9,7 @@
 .tool-entry-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 22px; height: 24px; flex: 0 0 22px; }
 .tool-entry-icon svg, .sidebar-toggle svg, .tool-scroll-control svg { width: 20px; height: 20px; }
 .tool-entry-icon .status-bar-glyph { width: 22px; height: 22px; }
+.tool-entry-icon .tool-file-glyph svg { width: 16px; height: 16px; stroke-width: 2; }
 .tool-health { position: absolute; right: -3px; bottom: 0; width: 6px; height: 6px; border-radius: 50%; }
 .tool-health.active { background: #168549; border: 1px solid #fff; }
 .tool-health.error, .tool-health.incompatible { background: #b42d32; border: 1px solid #fff; }
@@ -23,7 +24,7 @@
 .tray-shell .shell-badge { font-size: 11px; background: transparent; border: 0; padding: 3px; }
 .tray-plugin-content { min-height: 0; flex: 1 1 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; border-radius: 12px; }
 .tray-plugin-content > .plugin-panel { flex: 1 0 auto; box-sizing: border-box; box-shadow: none; }
-.tray-plugin-content > .file-panel { min-height: 340px; }
+.tray-plugin-content > .file-panel { min-height: 300px; }
 .tray-shell .tray-actions { min-height: 48px; grid-template-columns: 44px minmax(0, 1fr) 44px; padding: 4px; background: #d9e0da; }
 .tray-shell .tray-icon-action, .tray-shell .tray-primary-action { height: 44px; }
 .tray-shell .tray-more-menu { bottom: 68px; }
