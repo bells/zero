@@ -1,3 +1,4 @@
+import { everydayGuides } from './everyday-content.ts';
 import { markdownGuides } from './markdown-content.ts';
 import { unicodeGuides } from './unicode-content.ts';
 import type { Locale } from './site.ts';
@@ -22,6 +23,7 @@ function imageGuide(locale: Locale, operation: 'convert' | 'watermark' | 'compre
 }
 export const webToolGuides: Record<Locale, Record<WebTool, WebToolGuide>> = {
   zh: {
+    ...everydayGuides('zh'),
     unicode: unicodeGuides.zh,
     markdown: markdownGuides.zh,
     'image-converter': /* @__PURE__ */ imageGuide('zh', 'convert'),
@@ -78,6 +80,7 @@ export const webToolGuides: Record<Locale, Record<WebTool, WebToolGuide>> = {
     },
   },
   en: {
+    ...everydayGuides('en'),
     unicode: unicodeGuides.en,
     markdown: markdownGuides.en,
     'image-converter': /* @__PURE__ */ imageGuide('en', 'convert'),
@@ -138,7 +141,7 @@ export const webToolGuides: Record<Locale, Record<WebTool, WebToolGuide>> = {
 export const guideCopy = {
   zh: {
     directoryTitle: '在线开发、图片与文本工具：JSON、时间戳、Base64、对比与 Markdown',
-    description: '九项免费在线工具：Unicode 转义转换、JSON 格式化、时间戳批量转换、Base64 / URL 编解码、文本对比、图片转换、水印、压缩和 Markdown 编辑。默认浏览器本地处理；Markdown 可主动开启本机草稿与外部图片。',
+    description: '十七项免费在线工具，涵盖 JSON、Base64、Unicode、二维码、图片、文本整理、哈希、正则、SQL、日期、密码、Cron、Markdown 与时间戳。默认浏览器本地处理；Markdown 可主动开启本机草稿与外部图片。',
     steps: '操作步骤', examples: '输入与输出示例', input: '示例输入', output: '预期输出', limits: '格式与限制',
     agent: '浏览器 Agent 使用说明', actions: '支持的操作', agentInput: '输入方式', agentOutput: '读取结果',
     runtime: '这是浏览器交互工具，不是 HTTP 计算 API。计算需要 JavaScript，首次页面和按需资源加载需要网络。',
@@ -147,7 +150,7 @@ export const guideCopy = {
   },
   en: {
     directoryTitle: 'Online developer, image and text tools: JSON, timestamps, Base64, diff and Markdown',
-    description: 'Nine free online tools: Unicode escape conversion, JSON formatting, batch timestamps, Base64 / URL encoding, text diff, image conversion, watermarks, compression and Markdown editing. Local by default; Markdown offers opt-in browser drafts and external images.',
+    description: 'Seventeen free online tools for JSON, Base64, Unicode, QR, images, text, hashes, regex, SQL, dates, passwords, Cron and Markdown. Local by default; Markdown offers opt-in drafts and external images.',
     steps: 'How to use', examples: 'Input and output examples', input: 'Example input', output: 'Expected output', limits: 'Formats and limits',
     agent: 'Browser agent usage', actions: 'Supported operations', agentInput: 'Input method', agentOutput: 'Reading results',
     runtime: 'These are interactive browser tools, not HTTP computation APIs. Computation requires JavaScript; initial page and on-demand asset loading need a network.',

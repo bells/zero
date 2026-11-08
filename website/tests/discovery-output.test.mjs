@@ -4,21 +4,21 @@ import { readFile, access, readdir } from 'node:fs/promises';
 import { webTools } from '../src/content/web-tools.ts';
 
 const origin = 'https://www.usezero.cn';
-const docs = ['tools', 'tools/timestamp', 'tools/json', 'tools/base64', 'tools/diff', 'tools/unicode', 'tools/image-converter', 'tools/image-watermark', 'tools/image-compressor', 'tools/markdown', 'tools/snap', 'tools/launch', 'tools/awake', 'tools/paper', 'tools/file', 'guide/install', 'faq'];
+const docs = ['tools', 'tools/timestamp', 'tools/json', 'tools/base64', 'tools/diff', 'tools/unicode', 'tools/image-converter', 'tools/image-watermark', 'tools/image-compressor', 'tools/markdown', 'tools/qrcode', 'tools/text-cleanup', 'tools/hash', 'tools/regex', 'tools/sql', 'tools/date-calculator', 'tools/password', 'tools/cron', 'tools/snap', 'tools/launch', 'tools/awake', 'tools/paper', 'tools/file', 'guide/install', 'faq'];
 const routes = ['', 'download', ...docs].flatMap((page) => [page ? `/${page}/` : '/', `/en/${page ? `${page}/` : ''}`]);
 const output = new URL('../dist/', import.meta.url);
 const htmlFor = (route) => readFile(new URL(`${route.slice(1)}index.html`, output), 'utf8');
 const graphFor = (html) => JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)?.[1] || 'null');
 
-test('static delivery contains exactly 38 public pages and two localized error pages', async () => {
+test('static delivery contains exactly 54 public pages and two localized error pages', async () => {
   const files = (await readdir(output, { recursive: true })).filter((file) => file.endsWith('.html') && !file.startsWith('image-codecs/materials/'));
   const expected = [...routes.map((route) => `${route.slice(1)}index.html`), '404.html', 'en/404/index.html'];
-  assert.equal(files.length, 40);
+  assert.equal(files.length, 56);
   assert.deepEqual(files.sort(), expected.sort());
 });
 
 test('all public pages have useful, unique titles and reciprocal language metadata', async () => {
-  assert.equal(routes.length, 38);
+  assert.equal(routes.length, 54);
   const titles = new Set();
   for (const route of routes) {
     const html = await htmlFor(route);
@@ -50,11 +50,11 @@ test('JSON-LD connects each page to stable software, website and source entities
     const page = nodes.find((node) => node['@type'] === 'WebPage' || node['@type'] === 'CollectionPage');
     assert.equal(page.url, `${origin}${route}`);
     assert.equal(page.inLanguage, route.startsWith('/en/') ? 'en' : 'zh-CN');
-    const web = /\/tools\/(timestamp|json|base64|diff|unicode|image-converter|image-watermark|image-compressor|markdown)\//.test(route);
+    const web = /\/tools\/(timestamp|json|base64|diff|unicode|image-converter|image-watermark|image-compressor|markdown|qrcode|text-cleanup|hash|regex|sql|date-calculator|password|cron)\//.test(route);
     const directory = /\/tools\/$/.test(route);
     assert.equal(page.about['@id'], web ? `${origin}${route}#tool` : directory ? `${origin}${route}#list` : software['@id']);
     if (web) assert.equal(nodes.find((node) => node['@type'] === 'WebApplication').browserRequirements, 'JavaScript');
-    if (directory) assert.equal(nodes.find((node) => node['@type'] === 'ItemList').itemListElement.length, 9);
+    if (directory) assert.equal(nodes.find((node) => node['@type'] === 'ItemList').itemListElement.length, 17);
     assert.equal(page.isPartOf['@id'], `${origin}/#website`);
   }
 });
@@ -76,7 +76,7 @@ test('web tool discovery includes searchable capabilities and shared executable 
     for (const tool of webTools[locale]) {
       assert.ok(tool.guide, `${locale}/${tool.slug}: shared guide missing`);
       const html = await htmlFor(`${prefix}/tools/${tool.slug}/`);
-      assert.ok(html.includes(`<title>${tool.guide.searchTitle} | Zero</title>`));
+      assert.ok(html.includes(`<title>${tool.guide.searchTitle.replaceAll('&', '&amp;')} | Zero</title>`));
       for (const anchor of ['usage', 'steps', 'examples', 'agent-usage']) assert.ok(html.includes(`id="${anchor}"`));
       for (const step of tool.guide.steps) assert.ok(full.includes(step), `${tool.slug}: step absent from AI index`);
       for (const example of tool.guide.examples) {

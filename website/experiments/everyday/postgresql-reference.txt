@@ -1,0 +1,15 @@
+[
+  {
+    version: 'PostgreSQL 18.6 (PGlite 0.5.10) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.5 (1db513782be24469589d7cb8a1f1834e9a33f271), 32-bit'
+  }
+]
+format "SELECT $$two  spaces$$ AS \"quoted  name\", 2+3 AS sum;" PASS
+compact "SELECT $$two  spaces$$ AS \"quoted  name\", 2+3 AS sum;" PASS
+format "SELECT 'one'\n 'two' AS joined;" PASS
+compact "SELECT 'one'\n 'two' AS joined;" PASS
+format "SELECT 1 -- retain\n + 2 AS n;" PASS
+compact "SELECT 1 -- retain\n + 2 AS n;" PASS
+format "SELECT E'it\\'s  intact' AS s, 1 /* outer /* nested */ keep */ + 2 AS n;" PASS
+compact "SELECT E'it\\'s  intact' AS s, 1 /* outer /* nested */ keep */ + 2 AS n;" PASS
+format "SELECT 'quoted  text' AS \"quoted  name\";" PASS
+compact "SELECT 'quoted  text' AS \"quoted  name\";" PASS

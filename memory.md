@@ -1,5 +1,12 @@
 # Zero Memory
 
+## 2026-11-08 日常在线工具源码增量
+
+- 当前源码为 17 工具，开发／图片／文本／日期与计算 10/4/2/1，54 个公开页面及 2 个错误页，18 个默认关闭反馈线程。八个新增 slug 为 qrcode、text-cleanup、hash、regex、sql、date-calculator、password、cron。
+- 实现入口为 `website/src/content/everyday-*`、`components/webTools/EverydayWorkspace.astro`、`lib/web-tools/everyday-contracts.ts` 与逐工具规则、`scripts/web-tools/everyday-*` 和 `qrcode-process.ts`。沿用 Result/JobRunner，按需依赖、主线程预检与 Worker 权威校验、revision 和资源释放。
+- 维护者确认 Spring L-n 首版限定 n=1–27，避免 7.0.10 参考实现的大偏移非递增行为。SQL 实库、Safari/iPhone 与自动化状态分别见 [实施记录](openspec/changes/add-web-everyday-tools/evidence/implementation.md)。macOS 27.2 / Safari 27.2 已完成八工具原生代表性验收，真实 iPhone 仍待完成。下方旧数量保留历史日期。
+
+
 更新：**2026-10-23**，源码核对基线 `b3e9ebf`。这里保留当前工作地图与稳定决策，不堆叠旧测试数字或提交状态。完整来源、任务数量和历史验收链接见 [项目全景](docs/project-overview.md)；协作要求见 [AGENTS.md](AGENTS.md)。
 
 ## 产品方向

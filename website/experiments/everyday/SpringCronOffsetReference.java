@@ -1,0 +1,2 @@
+import java.time.*;import org.springframework.scheduling.support.CronExpression;
+class SpringCronOffsetReference {public static void main(String[]args){for(String x:args)try{var c=CronExpression.parse("0 0 9 "+x+" * *");var t=ZonedDateTime.parse("2026-01-01T00:00:00Z");for(int i=0;i<3;i++){t=c.next(t);System.out.println(x+" "+t);if(t==null)break;}}catch(Exception e){System.out.println(x+" rejected");}}}

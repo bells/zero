@@ -1,0 +1,153 @@
+{
+  "capturedAt": "2026-11-08T12:44:14.108Z",
+  "browser": "156.0.8078.82",
+  "node": "v24.20.0",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "measurements": {
+    "qrGeneration": {
+      "milliseconds": 105,
+      "rssBefore": 1377042432,
+      "rssPeak": 1377042432,
+      "rssAfter": 1399357440
+    },
+    "qr11_56MPDecode": {
+      "milliseconds": 339,
+      "rssBefore": 1426669568,
+      "rssPeak": 1675313152,
+      "rssAfter": 1441841152
+    },
+    "qrAfterClearRss": 1441988608,
+    "hash256MiB": {
+      "milliseconds": 1361,
+      "rssBefore": 1719107584,
+      "rssPeak": 1919926272,
+      "rssAfter": 1731969024
+    },
+    "hashCancelMs": 35,
+    "hashAfterClearRss": 1732345856,
+    "regexPathologicalDeadline": {
+      "milliseconds": 5057,
+      "rssBefore": 1743077376,
+      "rssPeak": 1797570560,
+      "rssAfter": 1468383232
+    },
+    "sparseCron50Years": {
+      "milliseconds": 73,
+      "rssBefore": 1476558848,
+      "rssPeak": 1476558848,
+      "rssAfter": 1477656576
+    },
+    "cronResult": "spring · 0 0 0 29 FEB MON · second 0 · minute 0 · hour 0 · day 29 · month FEB · weekday MON · Day of month AND day of week\nTimezone UTC\nBaseline 2026-01-01T00:00:00.000Z\nHorizon 2076-01-01T00:00:00.000Z\nCount 2\n2044-02-29T00:00:00.000Z | 2044-02-29T00:00:00 +00:00\n2072-02-29T00:00:00.000Z | 2072-02-29T00:00:00 +00:00"
+  },
+  "onDemand": {
+    "qrGeneration": {
+      "bytes": 44428,
+      "gzipBytes": 16925,
+      "assets": [
+        {
+          "path": "/_astro/everyday-worker-BoED0whp.js",
+          "bytes": 1939,
+          "gzipBytes": 836
+        },
+        {
+          "path": "/_astro/qrcode-process-DuCnFRxg.js",
+          "bytes": 41900,
+          "gzipBytes": 15721
+        },
+        {
+          "path": "/_astro/rolldown-runtime-CbXtAM7H.js",
+          "bytes": 589,
+          "gzipBytes": 368
+        }
+      ]
+    },
+    "qr11_56MPDecode": {
+      "bytes": 88381,
+      "gzipBytes": 27382,
+      "assets": [
+        {
+          "path": "/_astro/everyday-worker-BoED0whp.js",
+          "bytes": 1939,
+          "gzipBytes": 836
+        },
+        {
+          "path": "/_astro/qrcode-process-DuCnFRxg.js",
+          "bytes": 41900,
+          "gzipBytes": 15721
+        },
+        {
+          "path": "/_astro/rolldown-runtime-CbXtAM7H.js",
+          "bytes": 589,
+          "gzipBytes": 368
+        },
+        {
+          "path": "/_astro/qr-scanner-worker.min-BZBicAwX.js",
+          "bytes": 43953,
+          "gzipBytes": 10457
+        }
+      ]
+    },
+    "hash256MiB": {
+      "bytes": 52089,
+      "gzipBytes": 19363,
+      "assets": [
+        {
+          "path": "/_astro/everyday-worker-BoED0whp.js",
+          "bytes": 1939,
+          "gzipBytes": 836
+        },
+        {
+          "path": "/_astro/hash-DW3y58Oq.js",
+          "bytes": 50150,
+          "gzipBytes": 18527
+        }
+      ]
+    },
+    "regexPathologicalDeadline": {
+      "bytes": 3836,
+      "gzipBytes": 1768,
+      "assets": [
+        {
+          "path": "/_astro/everyday-worker-BoED0whp.js",
+          "bytes": 1939,
+          "gzipBytes": 836
+        },
+        {
+          "path": "/_astro/regex-BQ5SKOqu.js",
+          "bytes": 1897,
+          "gzipBytes": 932
+        }
+      ]
+    },
+    "sparseCron50Years": {
+      "bytes": 37742,
+      "gzipBytes": 12203,
+      "assets": [
+        {
+          "path": "/_astro/everyday-worker-BoED0whp.js",
+          "bytes": 1939,
+          "gzipBytes": 836
+        },
+        {
+          "path": "/_astro/cron-BAM4ekyV.js",
+          "bytes": 35803,
+          "gzipBytes": 11367
+        }
+      ]
+    }
+  },
+  "notes": [
+    "Chrome process-tree RSS is sampled at 100ms and includes browser/renderers/files. It is not physical footprint or iPhone evidence. File construction itself allocates source storage before the hash baseline.",
+    "Hash app reads remain capped at 1MiB per slice. Cancellation terminates the Worker. Clear disposes source references and URLs; OS reclamation is asynchronous.",
+    "Initial resources are independently budgeted by verify:performance. These resource lists count only on-demand same-origin script bodies."
+  ],
+  "initialBudget": {
+    "routes": 44,
+    "minimumPerformance": 99,
+    "maximumPerformance": 100,
+    "minimumAccessibility": 100,
+    "maximumJsGzip": 24626,
+    "maximumFirstViewportBytes": 217036
+  }
+}

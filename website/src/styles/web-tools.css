@@ -169,3 +169,24 @@
   .wt-directory-local { text-align: left; }
 }
 @media (max-width: 560px) { .wt-directory { grid-template-columns: minmax(0, 1fr); } }
+
+.wt-everyday { min-width: 0; }
+.wt-everyday-options { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 16px; }
+.wt-everyday-options > label { display: flex; flex-direction: column; gap: 6px; flex: 1 1 180px; min-width: 0; }
+.wt-everyday-options > label:has(input[type=checkbox]) { flex-direction: row; align-items: center; align-self: center; min-height: 44px; }
+.wt-everyday-options input:not([type=checkbox]) { padding: 10px; width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px; }
+.wt-everyday-options input[type=checkbox] { flex: 0 0 auto; width: 20px; height: 20px; }
+.wt-everyday-options .wt-everyday-wide { flex-basis: 300px; }
+.wt-everyday-result-only { grid-template-columns: minmax(0, 1fr); }
+.wt-everyday-qr { margin: 20px 0; }
+.wt-everyday-qr img { width: 300px; max-width: 100%; height: auto; image-rendering: pixelated; background: #fff; }
+.wt-everyday pre { max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; border: 1px solid var(--line); }
+.wt-everyday mark { background: #f4cf70; color: #25221b; }
+.wt-password-list > div { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.wt-password-list code { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+.wt-everyday-options > label:has(input:checked) { background: transparent; }
+.wt-directory-navigation { flex-wrap: wrap; }
+@media (max-width: 1100px) {
+  .wt-directory-navigation, .wt-directory-settings { flex-basis: 100%; }
+}

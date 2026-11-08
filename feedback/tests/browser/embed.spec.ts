@@ -259,3 +259,37 @@ test("UTF-8 file names and content stay out of feedback connections and frame me
     fullPage: true,
   });
 });
+
+for (const tool of ['qrcode','text-cleanup','hash','regex','sql','date-calculator','password','cron']) for (const locale of ['zh','en']) {
+  test(`${tool} ${locale} feedback uses only stable context and keeps exports available`,async({page})=>{
+    const requests:{url:string;body:string}[]=[];
+    page.on('request',request=>{if(request.url().startsWith('http://127.0.0.1:4323'))requests.push({url:request.url(),body:request.postData()??''});});
+    await page.goto(`${parentOrigin}/feedback-review/${locale==='en'?'en/':''}tools/${tool}/`);
+    await expect(page.locator('[data-web-tools]')).toHaveAttribute('data-ready','true');
+    await page.locator('[data-everyday-example]').click();
+    await page.locator('[data-everyday-run="format"]').click();
+    await expect(page.locator('[data-everyday-download]')).toBeEnabled();
+    const output=await page.locator('[data-output]').inputValue();
+    expect(output.length).toBeGreaterThan(0);
+    expect(requests).toEqual([]);
+    await page.locator('[data-feedback-open]').click();
+    await expect(page.locator('iframe')).toHaveAttribute('src',`http://127.0.0.1:4323/?threadId=tools%2F${tool}&locale=${locale}`);
+    await expect.poll(()=>requests.length).toBeGreaterThan(0);
+    const query=new URL(requests[0]!.url).searchParams;
+    expect([...query.keys()].sort()).toEqual(['locale','threadId']);
+    expect(requests[0]!.body).toBe('');
+    expect(requests[0]!.url).toBe(`http://127.0.0.1:4323/?threadId=tools%2F${tool}&locale=${locale}`);
+    await page.locator('[data-feedback-close]').click();
+    await expect(page.locator('[data-output]')).toHaveValue(output);
+    await expect(page.locator('[data-everyday-download]')).toBeEnabled();
+  });
+}
+test('password feedback failure preserves generation and complete export',async({page})=>{
+  await page.route('http://127.0.0.1:4323/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><script>parent.postMessage({version:1,type:"error",code:"unavailable"},"http://127.0.0.1:4321")</script>'}));
+  await page.goto(`${parentOrigin}/feedback-review/en/tools/password/`);
+  await page.locator('[data-everyday-run]').click();await expect(page.locator('[data-everyday-download]')).toBeEnabled();
+  const password=await page.locator('[data-output]').inputValue();
+  await page.locator('[data-feedback-open]').click();await expect(page.locator('[data-feedback-retry]')).toBeVisible();
+  await expect(page.locator('[data-output]')).toHaveValue(password);
+  await expect(page.locator('[data-everyday-download]')).toBeEnabled();
+});

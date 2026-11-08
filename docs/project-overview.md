@@ -1,5 +1,14 @@
 # Zero 项目全景与维护地图
 
+## 当前源码增量（2026-11-08）
+
+新增二维码、文本整理、哈希、JavaScript 正则、SQL、日期计算、安全随机密码及 Cron 八工具。当前注册表为 17 工具，开发／图片／文本／日期与计算分别为 10/4/2/1，生成 54 个公开页面及 2 个错误页，独立反馈为 18 个默认关闭的稳定线程。下方按日期保留的旧数量属于历史快照。
+
+规则和显式契约位于 `website/src/lib/web-tools/`，新工作区为 `EverydayWorkspace.astro`，生命周期与按需 Worker 在 `scripts/web-tools/everyday-*`、`qrcode-process.ts`，双语内容为 `content/everyday-*`。QR 和哈希复用固定开源依赖，SQL 词法适配保留上游 MIT 许可，Cron 使用真实 Spring 7.0.10 与已定义 Unix DST 夹具。维护者确认 Spring 月末偏移支持 L-1 至 L-27。输入与结果仅保留在页面内存，初始资产及按需代码仍需网络。
+
+[实施与验收记录](../openspec/changes/add-web-everyday-tools/evidence/implementation.md) 分别记录源码、自动化与真实设备证据。macOS 27.2 / Safari 27.2 已完成八工具代表性输入、复制、下载、时区、取消及文件边界的原生验收；真实 iPhone 验收仍待完成。网站上线状态独立核验。
+
+
 2026-10-30 Unicode 增量：官网源码新增开发类 Unicode 转义转换，当前九个在线工具、十个默认关闭的反馈线程，生成 38 个公开页面。实施与设备边界见 [Unicode 实施记录](../openspec/changes/add-web-unicode-tool/evidence/implementation.md)。下方 2026-10-23 的目录数量和证据快照保留原日期。
 
 

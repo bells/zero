@@ -29,6 +29,15 @@ for (const root of document.querySelectorAll<HTMLElement>("[data-feedback]")) {
       "tools/image-watermark",
       "tools/image-compressor",
       "tools/markdown",
+  "tools/qrcode",
+  "tools/text-cleanup",
+  "tools/hash",
+  "tools/regex",
+  "tools/sql",
+  "tools/date-calculator",
+  "tools/password",
+  "tools/cron",
+
     ].includes(thread || "") ||
     !["zh", "en"].includes(locale || "")
   )

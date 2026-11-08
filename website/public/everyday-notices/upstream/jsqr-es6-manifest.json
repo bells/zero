@@ -1,0 +1,71 @@
+{
+  "package": "jsqr-es6",
+  "version": "1.4.0-1",
+  "license": "Apache-2.0",
+  "source": "https://registry.npmjs.org/jsqr-es6/-/jsqr-es6-1.4.0-1.tgz",
+  "licenseSha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+  "embeddedSourceMatches": [
+    {
+      "path": "src/BitMatrix.ts",
+      "exact": true,
+      "sha256": "9e2bd08843aad46f8a033179401139a8d3d443ec5aa85393613e2fe4d3988120"
+    },
+    {
+      "path": "src/binarizer/index.ts",
+      "exact": true,
+      "sha256": "514e0aff51a2a8d0906f161232aaa1108efc74111aed2b13a1eb0ca9defca376"
+    },
+    {
+      "path": "src/decoder/decodeData/BitStream.ts",
+      "exact": true,
+      "sha256": "d89c825b416232a2ec48d47e1cb5a276a65a0478d03e440adfddbb37b5aba367"
+    },
+    {
+      "path": "src/decoder/decodeData/index.ts",
+      "exact": true,
+      "sha256": "7ac0f5e67c5d611099d1261a48ed98d15187870afaebdb1309b6b266da49bbd3"
+    },
+    {
+      "path": "src/decoder/reedsolomon/GenericGFPoly.ts",
+      "exact": true,
+      "sha256": "50e095f12862451ad115f5bcfeb4112b552b5c83db1fb721cf5b9c35a1763e21"
+    },
+    {
+      "path": "src/decoder/reedsolomon/GenericGF.ts",
+      "exact": true,
+      "sha256": "e656ea39c507cbbe501abc352104e255c43ef9383b68767fb53153a1dba11a57"
+    },
+    {
+      "path": "src/decoder/reedsolomon/index.ts",
+      "exact": true,
+      "sha256": "aaf733b8baa27bcb001af1937e15e8995df4a72cddb0da4eb9c29ca26a653f02"
+    },
+    {
+      "path": "src/decoder/version.ts",
+      "exact": true,
+      "sha256": "edfae707e882ee393488253feb4687390660083a450f9fcbfb6c3d1345edadfd"
+    },
+    {
+      "path": "src/decoder/decoder.ts",
+      "exact": true,
+      "sha256": "a6604972be8ab7653ee5e280ab1f51d8064bb6e9803331c0b98db8a7dffdeb88"
+    },
+    {
+      "path": "src/extractor/index.ts",
+      "exact": true,
+      "sha256": "aef4eb71992dbe9d450abd6042ad9d96e23a8b6a4a9032bf32d5c1fc2fe3df66"
+    },
+    {
+      "path": "src/locator/index.ts",
+      "exact": true,
+      "sha256": "b96c361733b4bf3250516d4c13d480c8d8f74411ffdf9dec9587785c4a337d94"
+    },
+    {
+      "path": "src/index.ts",
+      "exact": true,
+      "sha256": "e367a162142b1e263297eee533f948d25f72c01746042e91fc8943b276703dca"
+    }
+  ],
+  "upstreamLicenseSha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+  "licenseNormalization": "LF line endings and exactly one terminal newline. Complete legal text retained."
+}

@@ -1,13 +1,14 @@
+import { everydayContent } from './everyday-content.ts';
 import type { Locale } from './site.ts';
 import { markdownContent } from './markdown-content.ts';
 import { unicodeContent } from './unicode-content.ts';
 import { webToolGuides, type WebToolGuide } from './web-tool-guides.ts';
-export const webReviewedAt = '2026-10-22';
-export const webToolSlugs = ['timestamp', 'json', 'base64', 'diff', 'unicode', 'image-converter', 'image-watermark', 'image-compressor', 'markdown'] as const;
+export const webReviewedAt = '2026-11-08';
+export const webToolSlugs = ['timestamp', 'json', 'base64', 'diff', 'unicode', 'image-converter', 'image-watermark', 'image-compressor', 'markdown', 'qrcode', 'text-cleanup', 'hash', 'regex', 'sql', 'date-calculator', 'password', 'cron'] as const;
 export type WebTool = typeof webToolSlugs[number];
 import { type WebCategory } from '../lib/web-tools/categories.ts';
 export { webCategories, categoryLabels, parseCategory, type WebCategory, type CategoryFilter } from '../lib/web-tools/categories.ts';
-export const toolCategories: Record<WebTool, WebCategory> = { timestamp: 'development', json: 'development', base64: 'development', diff: 'development', unicode: 'development', 'image-converter': 'image', 'image-watermark': 'image', 'image-compressor': 'image', markdown: 'text' };
+export const toolCategories: Record<WebTool, WebCategory> = { timestamp: 'development', json: 'development', base64: 'development', diff: 'development', unicode: 'development', 'image-converter': 'image', 'image-watermark': 'image', 'image-compressor': 'image', markdown: 'text', qrcode: 'image', 'text-cleanup': 'text', hash: 'development', regex: 'development', sql: 'development', 'date-calculator': 'date-calculation', password: 'development', cron: 'development' };
 export interface WebToolContent { slug: WebTool; category: WebCategory; title: string; description: string; example: string; notes: string[]; faq: { question: string; answer: string }[]; guide: WebToolGuide }
 const imageNotes = {
   zh: ['输入 JPEG、PNG、静态 WebP 和可解码的 HEIC/HEIF 主静态图；输出 JPEG、PNG 或 WebP，不输出 HEIC。拒绝动画和不支持的容器。', '每张源文件 16 MiB、12,200,000 像素、最长边 8192；每批最多 10 张、源文件合计 64 MiB。结果每张 16 MiB、合计 32 MiB，预览最多 400,000 像素，每张处理最多 60 秒；ZIP 最多 32 MiB、10 秒。超限明确拒绝，不暗中缩图。', 'JPEG/WebP 默认质量 75；JPEG/PNG/WebP 默认保持格式，HEIC 默认 JPEG。最长边默认关闭，仅显式缩小、不放大。PNG 无损优化不提供有损质量控制；缩放、水印不是原像素无损操作，结果可能更大。', '处理后的输出移除源 GPS、EXIF、XMP 和拍摄设备信息；PNG 输出也移除源 iCCP/ICC 配置，不保留其中的描述信息；可能保留 sRGB/gAMA/cHRM/sBIT 等纯数值渲染信息，不承诺源色彩配置或 HDR 保真。保留原图动作下载原始字节，仍含原始元数据。PNG/WebP 保留透明；JPEG 默认白底，可自选背景色。', '仅普通静态输出，不承诺 HDR、Live Photo、深度或原色域保真。尚未完成全部 iPhone 原片与真实 Safari 下载/内存验收；不保证所有照片可处理或保存到相册。'],
@@ -24,6 +25,7 @@ const content: Record<Locale, Omit<WebToolContent, 'guide' | 'category'>[]> = {
     {"slug": "image-watermark", "title": "图片文字水印", "description": "为本地图片批量添加九宫格单处或平铺文字水印。", "example": "Zero · 2026", "notes": [...imageNotes.zh, "文字最多 200 个 Unicode 码点；单处九宫格或平铺，字号、透明度、旋转、边距和间距有界。"], "faq": [{"question": "会上传照片或自动处理吗？", "answer": "不会。选择文件只建立本地队列；点击处理才运行，修改设置使旧下载失效。取消保留当前设置下已成功的结果；清空或离页释放文件和结果。"}]},
     {"slug": "image-compressor", "title": "图片压缩", "description": "本地 JPEG/WebP 质量压缩与 PNG 无损优化，展示真实体积变化。", "example": "JPEG / WebP · 75", "notes": [...imageNotes.zh], "faq": [{"question": "会上传照片或自动处理吗？", "answer": "不会。选择文件只建立本地队列；点击处理才运行，修改设置使旧下载失效。取消保留当前设置下已成功的结果；清空或离页释放文件和结果。"}]},
     markdownContent.zh,
+    ...everydayContent('zh'),
   ],
   en: [
     { slug: 'timestamp', title: 'Timestamp converter', description: 'Inspect the live Unix clock and convert timestamps, Beijing time and UTC, individually or in batches.', example: '1700000000 → 2023-11-15 06:13:20.000 UTC+08:00', notes: ['Auto detects 10-digit integers as seconds and 13-digit integers as milliseconds. Choose a unit for other lengths; negative timestamps are supported.', 'Unzoned dates use YYYY-MM-DD HH:mm:ss with optional 1–3 fractional digits, defaulting to fixed UTC+08:00. ISO dates with Z or ±HH:mm are supported.', 'Single input: 256 characters. Batch: one value per line, up to 1,000 lines and 1 MiB, with 256 characters per line. LF/CRLF/CR are supported; blank lines are skipped. Rows preserve source numbers and errors. Copy or download complete JSON, including failed rows, regardless of pagination. Results are fixed per run without relative time. Invalid dates, fractional timestamps and scientific notation are rejected; seconds round toward negative infinity.'], faq: [{ question: 'How does Beijing time relate to UTC?', answer: 'Beijing time here is fixed UTC+08:00, eight hours ahead of UTC, without historical daylight-saving rules.' }, { question: 'What gets copied while paused?', answer: 'Pause freezes both clock values and the relative-time reference. Copy uses the frozen displayed value.' }] },
@@ -35,6 +37,7 @@ const content: Record<Locale, Omit<WebToolContent, 'guide' | 'category'>[]> = {
     {"slug": "image-watermark", "title": "Image text watermark", "description": "Add a single nine-anchor or tiled text watermark to local image batches.", "example": "Zero · 2026", "notes": [...imageNotes.en, "Up to 200 Unicode code points; single nine-anchor or tiled layout, with bounded size, opacity, rotation, margins and spacing."], "faq": [{"question": "Are photos uploaded or processed automatically?", "answer": "No. File selection builds a local queue; explicit processing starts work. Settings changes invalidate old downloads. Cancel preserves current successful results; clear or leave releases files and results."}]},
     {"slug": "image-compressor", "title": "Image compressor", "description": "Compress JPEG/WebP quality or optimize PNG losslessly, showing actual byte changes.", "example": "JPEG / WebP · 75", "notes": [...imageNotes.en], "faq": [{"question": "Are photos uploaded or processed automatically?", "answer": "No. File selection builds a local queue; explicit processing starts work. Settings changes invalidate old downloads. Cancel preserves current successful results; clear or leave releases files and results."}]},
     markdownContent.en,
+    ...everydayContent('en'),
   ],
 };
 export const webTools: Record<Locale, WebToolContent[]> = {

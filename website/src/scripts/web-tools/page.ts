@@ -1,3 +1,4 @@
+import { isEverydayTool } from '../../lib/web-tools/everyday-contracts';
 import { parseCategory, type CategoryFilter } from '../../lib/web-tools/categories';
 import { createUI, element } from './ui';
 import { initLineNumbers } from './line-numbers';
@@ -54,7 +55,8 @@ if (root) {
   root.querySelectorAll<HTMLElement>('[data-enhance-only]').forEach((item) => { item.hidden = false; });
   initLineNumbers(root);
   const initialize = async () => {
-    if (root.dataset.tool === 'timestamp') {
+    if (isEverydayTool(root.dataset.tool)) (await import('./everyday-workspace')).initEveryday(ui, root.dataset.tool);
+    else if (root.dataset.tool === 'timestamp') {
       (await import('./time')).initTimestamp(ui);
       (await import('./timestamp-batch')).initTimestampBatch(ui);
     }

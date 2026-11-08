@@ -8,13 +8,14 @@ test('category allowlist never carries user content or unknown categories', () =
   for (const value of [null, '', 'all', 'IMAGE', 'image&search=private', 'private']) assert.equal(parseCategory(value), 'all');
   for (const value of webCategories) assert.equal(parseCategory(value), value);
 });
-test('nine stable bilingual tools share category membership and feedback threads', () => {
-  assert.equal(webToolSlugs.length, 9);
+test('seventeen stable bilingual tools share category membership and feedback threads', () => {
+  assert.equal(webToolSlugs.length, 17);
   for (const locale of ['zh', 'en']) {
     assert.deepEqual(webTools[locale].map(tool => tool.slug), [...webToolSlugs]);
-    assert.equal(webTools[locale].filter(tool => tool.category === 'development').length, 5);
-    assert.equal(webTools[locale].filter(tool => tool.category === 'image').length, 3);
-    assert.deepEqual(webTools[locale].filter(tool => tool.category === 'text').map(tool => tool.slug), ['markdown']);
+    assert.equal(webTools[locale].filter(tool => tool.category === 'development').length, 10);
+    assert.equal(webTools[locale].filter(tool => tool.category === 'image').length, 4);
+    assert.deepEqual(webTools[locale].filter(tool => tool.category === 'text').map(tool => tool.slug), ['markdown', 'text-cleanup']);
+    assert.equal(webTools[locale].filter(tool => tool.category === 'date-calculation').length, 1);
     for (const tool of webTools[locale]) {
       const thread = `tools/${tool.slug}`;
       assert.equal(isThread(thread), true);

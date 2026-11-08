@@ -1,0 +1,9 @@
+3.54.0 2026-04-09 12:25:13 8fa8248e303219400c646a885e36dfc52eae33d83f4412e3f369b2be5373aapl (64-bit)
+PASS format "SELECT 'two  spaces' AS \"quoted  name\", 2 + 3;"
+PASS compact "SELECT 'two  spaces' AS \"quoted  name\", 2 + 3;"
+PASS format "SELECT 1 -- retain comment\n + 2;"
+PASS compact "SELECT 1 -- retain comment\n + 2;"
+PASS format "SELECT x'1234', 'it''s  intact', 1 /* keep  comment */ + 2;"
+PASS compact "SELECT x'1234', 'it''s  intact', 1 /* keep  comment */ + 2;"
+PASS format "SELECT [quoted  name] FROM (SELECT 'value  here' AS [quoted  name]);"
+PASS compact "SELECT [quoted  name] FROM (SELECT 'value  here' AS [quoted  name]);"

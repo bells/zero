@@ -38,7 +38,7 @@ Paper 的每日自动更换默认关闭，在主窗口的 Paper 工具设置中�
 
 ### 官网在线工具箱
 
-入口：[中文工具箱](https://www.usezero.cn/tools/) · [English tools](https://www.usezero.cn/en/tools/)。源码当前提供九项工具：
+入口：[中文工具箱](https://www.usezero.cn/tools/) · [English tools](https://www.usezero.cn/en/tools/)。源码当前提供十七项工具，开发／图片／文本／日期与计算数量为 10/4/2/1：
 
 | 分类 | 工具 | 用途 |
 | --- | --- | --- |
@@ -51,6 +51,14 @@ Paper 的每日自动更换默认关闭，在主窗口的 Paper 工具设置中�
 | 图片 | 图片文字水印 | 批量单处九宫格或平铺文字水印 |
 | 图片 | 图片压缩 | JPEG/WebP 质量压缩、PNG 无损优化、真实体积对照 |
 | 文本 | Markdown 编辑器 | 源码/预览/分屏，下载 Markdown、独立 HTML、文字型中文 PDF |
+| 图片 | 二维码生成与识别 | 精确 UTF-8 文字、PNG/SVG 导出、本地静态图片识别 |
+| 文本 | 文本整理 | ASCII 空白、大小写、空行、去重和 UTF-16 排序 |
+| 开发 | 文本／文件哈希 | 四种算法、预期摘要校验、256 MiB 分块文件处理 |
+| 开发 | 正则表达式测试 | JavaScript 匹配、捕获组、UTF-16 位置与替换 |
+| 开发 | SQL 格式化 | MySQL/PostgreSQL/SQLite 格式化与保守压缩 |
+| 日期与计算 | 日期计算 | 公历日期差、整数加减与可选周末排除 |
+| 开发 | 随机密码生成 | 安全随机、字符组保证与批量复制 |
+| 开发 | Cron 表达式工具 | Unix/Spring、IANA 时区、未来十次时间与 DST 规则 |
 
 工具输入在浏览器本地计算，不上传到计算服务。首次加载和按需下载算法、编解码器、字体仍需要网络；这不等于完整离线应用。Markdown 草稿默认关闭，开启后仅在当前浏览器保存一篇；外部图片须主动授权才请求来源。图片、文档和导出都有资源限额，详见各工具说明。
 
@@ -164,7 +172,7 @@ The source version is `0.1.0`. Trial packages offer **core** (no bundled tools) 
 
 ### Browser toolbox
 
-Open [English tools](https://www.usezero.cn/en/tools/) or [中文工具箱](https://www.usezero.cn/tools/). The current source contains nine tools:
+Open [English tools](https://www.usezero.cn/en/tools/) or [中文工具箱](https://www.usezero.cn/tools/). The current source contains seventeen tools across Development, Images, Text and Dates & calculations (10/4/2/1):
 
 | Category | Tool | Purpose |
 | --- | --- | --- |
@@ -177,6 +185,14 @@ Open [English tools](https://www.usezero.cn/en/tools/) or [中文工具箱](http
 | Image | Text watermark | Batch single-position or tiled text watermarks |
 | Image | Image compressor | JPEG/WebP quality compression, lossless PNG optimization and actual size comparison |
 | Text | Markdown editor | Source/preview/split views; Markdown, standalone HTML and searchable Chinese-text PDF downloads |
+| Images | QR generator & reader | Exact UTF-8, PNG/SVG exports and local still-image reading |
+| Text | Text cleanup | ASCII whitespace, case, empty lines, deduplication and UTF-16 sorting |
+| Development | Text & file hash | Four algorithms, expected digests and incremental files up to 256 MiB |
+| Development | Regex tester | JavaScript matches, captures, UTF-16 offsets and replacement |
+| Development | SQL formatter | MySQL/PostgreSQL/SQLite formatting and conservative compaction |
+| Dates & calculations | Date calculator | Gregorian differences, integer shifts and optional weekend exclusion |
+| Development | Password generator | Secure randomness, group guarantees and batch copy |
+| Development | Cron tool | Unix/Spring, IANA zones, ten future instants and explicit DST rules |
 
 Tool inputs are processed in the browser without uploading them to a computation service. Initial loads and on-demand algorithms, codecs and fonts still need a network connection; this is not a fully offline app. Markdown draft saving is off by default and stores one document in the current browser when enabled. External images require explicit permission before contacting their origin. Images, documents and exports have resource limits described on each tool page.
 
@@ -250,6 +266,6 @@ Native interactions, Windows hardware, real iPhones, signed installers and hoste
 
 ### Current focus and documentation
 
-The maintainer will run another hands-on review and refinement pass across the five desktop tools, prioritizing real entry-point, interaction, feedback and stability issues. Improvements should remain scoped and verifiable per plugin, alongside maintenance of the nine browser tools and their platform boundaries.
+The maintainer will run another hands-on review and refinement pass across the five desktop tools, prioritizing real entry-point, interaction, feedback and stability issues. Improvements should remain scoped and verifiable per plugin, alongside maintenance of the seventeen browser tools and their platform boundaries.
 
 [Product](PRODUCT.md) · [Project overview](docs/project-overview.md) · [Contributor instructions](AGENTS.md) · [Project memory](memory.md) · [OpenSpec context](openspec/project.md) · [Plugin development](docs/plugins/developer-guide.md) · [Plugin publishing](docs/plugins/publishing-github-releases.md) · [Diagnostics](docs/diagnostics.md)

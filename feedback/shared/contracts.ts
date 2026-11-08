@@ -9,6 +9,15 @@ export const threads = [
   "tools/image-watermark",
   "tools/image-compressor",
   "tools/markdown",
+  "tools/qrcode",
+  "tools/text-cleanup",
+  "tools/hash",
+  "tools/regex",
+  "tools/sql",
+  "tools/date-calculator",
+  "tools/password",
+  "tools/cron",
+
 ] as const;
 export type ThreadId = (typeof threads)[number];
 export type Locale = "zh" | "en";

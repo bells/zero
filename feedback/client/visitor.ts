@@ -123,6 +123,15 @@ if (
         "tools/image-watermark": "图片文字水印",
         "tools/image-compressor": "图片压缩",
         "tools/markdown": "Markdown 编辑器",
+        "tools/qrcode": "二维码生成与识别",
+        "tools/text-cleanup": "文本整理",
+        "tools/hash": "文本／文件哈希",
+        "tools/regex": "正则表达式测试",
+        "tools/sql": "SQL 格式化",
+        "tools/date-calculator": "日期计算",
+        "tools/password": "随机密码生成",
+        "tools/cron": "Cron 表达式工具",
+
       }
     : {
         tools: "Toolbox suggestions and new tools",
@@ -135,6 +144,15 @@ if (
         "tools/image-watermark": "Image text watermark",
         "tools/image-compressor": "Image compressor",
         "tools/markdown": "Markdown editor",
+        "tools/qrcode": "QR code generator & reader",
+        "tools/text-cleanup": "Text cleanup",
+        "tools/hash": "Text & file hash",
+        "tools/regex": "Regular expression tester",
+        "tools/sql": "SQL formatter",
+        "tools/date-calculator": "Date calculator",
+        "tools/password": "Random password generator",
+        "tools/cron": "Cron expression tool",
+
       };
   root.append(
     element("p", subjects[subject]),
