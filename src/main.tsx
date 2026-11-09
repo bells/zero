@@ -9,12 +9,31 @@ import { resolveAppSurface } from "./appShell/appSurface";
 import { bundledPluginSurfaceLoader } from "./appShell/bundledPluginModules";
 import type { BundledPluginSurface } from "./core/pluginHost/pluginModule";
 import {
+  dispatchNativeMenuEdit,
+  NATIVE_MENU_EDIT_EVENT,
+  type NativeMenuEditPayload,
+} from "./core/windowing/nativeMenuEditing";
+import {
   SURFACE_ACTIVITY_EVENT,
   type SurfaceActivityPayload,
 } from "./core/windowing/surfaceActivityCore";
 
 const label = getCurrentWindow().label;
 const surface = resolveAppSurface(label);
+if (label !== "zero-file-engine") {
+  let disposed = false;
+  let stopEditingListener: (() => void) | undefined;
+  window.addEventListener("beforeunload", () => {
+    disposed = true;
+    stopEditingListener?.();
+  }, { once: true });
+  void listen<NativeMenuEditPayload>(NATIVE_MENU_EDIT_EVENT, ({ payload }) => {
+    if (document.hasFocus()) dispatchNativeMenuEdit(payload);
+  }).then((stop) => {
+    if (disposed) stop();
+    else stopEditingListener = stop;
+  }).catch(() => undefined);
+}
 const surfacePlugin = label === "zero-file-engine" ? null
   : surface === "launcher" ? "zero.launch"
     : surface === "paper" ? "zero.paper"

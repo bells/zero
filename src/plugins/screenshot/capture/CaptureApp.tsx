@@ -53,6 +53,11 @@ import {
 } from "./captureExport";
 import { resolveCaptureHotkey } from "./captureHotkeys";
 import {
+  EDITOR_MENU_EDIT_EVENT,
+  isTextEditingElement,
+  type NativeMenuEditPayload,
+} from "../../../core/windowing/nativeMenuEditing";
+import {
   captureReducer,
   createId,
   initialHistoryState,
@@ -988,6 +993,13 @@ export function CaptureApp() {
   }
 
   useEffect(() => {
+    const handleMenuEdit = (event: Event) => {
+      if (isTextEditingElement(document.activeElement)) return;
+      event.preventDefault();
+      if (editBusy || compositionRef.current || ocrSelectionOnly) return;
+      const { action } = (event as CustomEvent<NativeMenuEditPayload>).detail;
+      if (action === "undo" || action === "redo") dispatch({ type: action });
+    };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.isComposing || compositionRef.current) return;
       const target = event.target;
@@ -1058,7 +1070,11 @@ export function CaptureApp() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener(EDITOR_MENU_EDIT_EVENT, handleMenuEdit);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener(EDITOR_MENU_EDIT_EVENT, handleMenuEdit);
+    };
   });
 
   function createDraft(start: Point, point: Point): AnnotationObject {

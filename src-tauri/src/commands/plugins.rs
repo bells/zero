@@ -75,6 +75,8 @@ pub fn get_plugin_registry_snapshot(
 }
 
 fn publish_registry(app: &tauri::AppHandle, ids: Vec<String>, reason: &str) {
+    #[cfg(target_os = "macos")]
+    let _ = crate::services::app_menu::refresh(app);
     if let Ok(revision) = app
         .state::<PluginRegistryState>()
         .with_registry(|r| Ok(r.revision()))

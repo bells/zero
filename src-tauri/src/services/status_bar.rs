@@ -484,6 +484,8 @@ pub fn set_status_bar_language(app: &tauri::AppHandle, language: String) -> Resu
         .language
         .lock()
         .map_err(|_| "status bar language lock poisoned")? = Some(language);
+    #[cfg(target_os = "macos")]
+    crate::services::app_menu::refresh(app)?;
     Ok(())
 }
 

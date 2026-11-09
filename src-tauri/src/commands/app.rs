@@ -106,8 +106,12 @@ pub fn show_preferences_window(
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     crate::services::main_navigation::ensure_shell_caller(window.label())?;
+    open_preferences_window(&app)
+}
+
+pub fn open_preferences_window(app: &tauri::AppHandle) -> Result<(), String> {
     show_main_destination(
-        &app,
+        app,
         crate::services::main_navigation::MainWindowDestination::Preferences,
     )
 }

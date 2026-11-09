@@ -24,6 +24,8 @@ pub mod tool_windows;
 
 pub mod diagnostics;
 
+#[cfg(any(target_os = "macos", test))]
+pub mod app_menu;
 pub mod main_navigation;
 pub mod status_bar_highlight_model;
 pub mod tray_panel;

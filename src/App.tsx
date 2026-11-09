@@ -14,6 +14,7 @@ import { ArrowLeft, Info, PanelLeftClose, PanelLeftOpen, PanelTop, Settings } fr
 import { PluginNavigation } from "./appShell/PluginNavigation";
 import { useCompactSidebar } from "./appShell/useCompactSidebar";
 import { useMainNavigation } from "./appShell/useMainNavigation";
+import { isToolVisibleInNavigation } from "./appShell/mainNavigation";
 import { PresentationActivity } from "./core/windowing/PresentationActivity";
 import { AnchoredPopover } from "./core/windowing/AnchoredPopover";
 import { PRODUCT_NAME } from "./brand/identity";
@@ -50,7 +51,7 @@ function usePluginMessages(setMessage: (message: ShellMessage) => void) {
   }, [setMessage]);
 }
 
-function useLocalizedPlugins() {
+function useLocalizedPlugins(requestedPluginId?: string) {
   const pluginHost = usePluginHost();
   const preferencePlugins = useMemo(
     () => pluginHost.records.map(pluginRecordToMeta),
@@ -83,7 +84,7 @@ function useLocalizedPlugins() {
   const visiblePlugins = navigationPlugins.map((plugin) =>
     localizePluginMeta(plugin, resolvedLanguage),
   ).filter((plugin) =>
-    preferences.visiblePluginIds.includes(plugin.id),
+    isToolVisibleInNavigation(plugin.id, preferences.visiblePluginIds, requestedPluginId),
   );
 
   useEffect(() => {
@@ -415,7 +416,12 @@ export function TrayPanelApp() {
 }
 
 export function MainWindowApp() {
-  const { pluginHost, preferences, t, resolvedLanguage, localizedPlugins, visiblePlugins, totalPluginCount } = useLocalizedPlugins();
+  const { destination, toolRequest, consumeToolIntent, navigate, error: navigationError, isReady } = useMainNavigation();
+  const [revealedPluginId, setRevealedPluginId] = useState<string>();
+  useEffect(() => {
+    if (toolRequest?.pluginId) setRevealedPluginId(toolRequest.pluginId);
+  }, [toolRequest?.pluginId]);
+  const { pluginHost, preferences, t, resolvedLanguage, localizedPlugins, visiblePlugins, totalPluginCount } = useLocalizedPlugins(toolRequest?.pluginId ?? revealedPluginId);
   const { activePlugin, setSelectedPlugin } = useSelectedPlugin(
     visiblePlugins,
     pluginHost.selectedPluginName,
@@ -425,7 +431,6 @@ export function MainWindowApp() {
   usePluginMessages(setMessage);
   const runAction = (action: () => Promise<void>) => runShellAction(action, setMessage, t);
   const statusBar = useStatusBar(pluginHost.records);
-  const { destination, toolRequest, consumeToolIntent, navigate, error: navigationError, isReady } = useMainNavigation();
   const appliedToolRevision = useRef(-1);
   useEffect(() => {
     if (!toolRequest || pluginHost.isLoading || toolRequest.revision <= appliedToolRevision.current) return;

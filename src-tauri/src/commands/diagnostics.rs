@@ -20,8 +20,8 @@ pub fn get_about_info(
     Ok(AboutInfo {
         app_name: "Zero".into(),
         app_version: app.package_info().version.to_string(),
-        github_url: "https://github.com/bells/zero".into(),
-        website_url: "https://www.usezero.cn/".into(),
+        github_url: crate::brand::GITHUB_URL.into(),
+        website_url: crate::brand::WEBSITE_URL.into(),
         issues_url: "https://github.com/bells/zero/issues/new/choose".into(),
     })
 }

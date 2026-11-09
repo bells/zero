@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
 pub const PRODUCT_NAME: &str = "Zero";
+pub const WEBSITE_URL: &str = "https://www.usezero.cn/";
+pub const GITHUB_URL: &str = "https://github.com/bells/zero";
 pub const PRIMARY_STATUS_ITEM_ID: &str = "zero.primary";
 pub const ZERO_LAUNCH_PLUGIN_ID: &str = "zero.launch";
 pub const ZERO_SNAP_PLUGIN_ID: &str = "zero.snap";

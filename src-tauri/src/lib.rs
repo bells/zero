@@ -192,6 +192,8 @@ pub fn run() {
         .manage(performance_trace.clone());
 
     let tauri_setup_started = performance_trace.begin();
+    #[cfg(target_os = "macos")]
+    let builder = builder.manage(services::app_menu::AppMenuState::default());
     let app = builder
         .manage(plugins::market::PluginMarketState::default())
         .manage(services::status_bar::StatusBarState::default())
@@ -244,6 +246,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                services::app_menu::initialize(app.handle())?;
             }
 
             let status_bar_started = app

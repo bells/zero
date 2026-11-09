@@ -1,6 +1,14 @@
 export const MAIN_NAVIGATION_EVENT = "zero://main-navigation";
 export type MainWindowDestination = "tools" | "preferences";
 
+export function isToolVisibleInNavigation(
+  pluginId: string,
+  visiblePluginIds: readonly string[],
+  requestedPluginId?: string,
+): boolean {
+  return visiblePluginIds.includes(pluginId) || pluginId === requestedPluginId;
+}
+
 export interface MainWindowNavigationRequest {
   destination: MainWindowDestination;
   revision: number;
