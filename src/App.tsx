@@ -520,14 +520,7 @@ export function AboutWindowApp() {
   const { t, localizedPlugins, pluginSummary } = useLocalizedPlugins();
 
   return (
-    <main className="app-shell standalone-shell about-window-shell">
-      <header className="standalone-header" data-tauri-drag-region>
-        <div>
-          <h1>{t("about.title")}</h1>
-          <p>{t("shell.aboutSubtitle")}</p>
-        </div>
-      </header>
-
+    <main className="app-shell standalone-shell about-window-shell" aria-label={t("about.title")}>
       <AboutPanel plugins={localizedPlugins} summary={pluginSummary} t={t} />
     </main>
   );

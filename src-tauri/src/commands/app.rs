@@ -48,7 +48,7 @@ impl AppShellWindow {
                 height: 560.0,
                 min_width: 420.0,
                 min_height: 360.0,
-                resizable: false,
+                resizable: true,
             },
         }
     }
@@ -261,6 +261,8 @@ mod tests {
         assert!(main.width > about.width);
         assert!(main.height > about.height);
         assert!(main.resizable);
-        assert!(!about.resizable);
+        assert!(about.resizable);
+        assert_eq!((about.width, about.height), (500.0, 560.0));
+        assert_eq!((about.min_width, about.min_height), (420.0, 360.0));
     }
 }

@@ -51,7 +51,7 @@ Full source builds include five tools; standard includes four without File, and 
 
 - `tray`: initially hidden 400 × 500 quick panel defined in `tauri.conf.json`.
 - `main`: 920 × 660 (minimum 760 × 520) tool home/settings view created by `commands/app.rs`; `show_preferences_window` redirects here through retained revisioned navigation.
-- `about`: 500 × 560 (minimum 420 × 360) identity surface.
+- `about`: resizable 500 × 560 (minimum 420 × 360) identity surface, with compact default content and expandable details.
 - `capture`, `pin-*`: macOS screenshot editing and pinned results.
 - `launcher`, `paper`: dedicated tool surfaces. Snap/Awake use native menus; the old `snap-menu` WebView is removed.
 - `zero-file-engine`: hidden isolated document engine, with separate `file-engine.json` capabilities.

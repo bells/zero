@@ -22,20 +22,20 @@ export function AboutPanel({ plugins, summary, t }: AboutPanelProps) {
     ["about.failed", summary?.failed ?? 0], ["about.incompatible", summary?.incompatible ?? 0],
   ] as const;
   return (
-    <section className="plugin-panel system-panel about-panel" aria-busy={busy}>
-      <div className="about-identity">
+    <section className="plugin-panel system-panel about-panel" aria-labelledby="about-name" aria-busy={busy}>
+      <header className="about-identity" data-tauri-drag-region>
         <div className="about-mark"><StatusBarGlyph icon="zero" /></div>
-        <div><h2>Zero</h2><span className="about-version">{d.info ? `v${d.info.appVersion}` : t("diagnostics.loading")}</span></div>
-      </div>
-      <div className="panel-copy about-description">
-        <strong>{t("about.descriptionTitle")}</strong><span>{t("about.description")}</span>
-      </div>
+        <div>
+          <div className="about-name"><h1 id="about-name">Zero</h1><span className="about-version">{d.info ? `v${d.info.appVersion}` : t("diagnostics.loading")}</span></div>
+          <p className="about-description">{t("about.descriptionTitle")}</p>
+        </div>
+      </header>
       <div className="about-project-actions" aria-label={t("about.projectLinks")}>
         <button className="about-action" type="button" disabled={busy} onClick={() => void d.openLink("github")}>
-          <Code size={18} aria-hidden="true" /><span className="about-project-label"><strong>GitHub</strong>{d.info && <small>{d.info.githubUrl.replace(/^https:\/\//, "")}</small>}</span><ArrowUpRight size={15} aria-hidden="true" />
+          <Code size={18} aria-hidden="true" /><span>GitHub</span><ArrowUpRight size={15} aria-hidden="true" />
         </button>
         <button className="about-action" type="button" disabled={busy} onClick={() => void d.openLink("website")}>
-          <Globe size={18} aria-hidden="true" /><span className="about-project-label"><strong>{t("about.website")}</strong>{d.info && <small>{d.info.websiteUrl.replace(/^https:\/\//, "")}</small>}</span><ArrowUpRight size={15} aria-hidden="true" />
+          <Globe size={18} aria-hidden="true" /><span>{t("about.website")}</span><ArrowUpRight size={15} aria-hidden="true" />
         </button>
       </div>
       <div className="about-support">
@@ -74,6 +74,7 @@ export function AboutPanel({ plugins, summary, t }: AboutPanelProps) {
         </div>
       </details>
       <details className="about-details"><summary>{t("about.pluginDetails")} <span>{summary?.total ?? plugins.length}</span></summary>
+        <p className="about-runtime-description">{t("about.description")}</p>
         <div className="about-grid">{counts.map(([key, count]) => <div className="about-stat" key={key}><span>{t(key)}</span><strong>{count}</strong></div>)}<div className="about-stat"><span>{t("about.runtime")}</span><strong>{t("about.trayRuntime")}</strong></div></div>
       </details>
     </section>

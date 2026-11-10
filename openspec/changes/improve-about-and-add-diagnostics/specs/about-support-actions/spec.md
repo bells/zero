@@ -55,6 +55,16 @@ Report Issue SHALL open the fixed repository issue-creation chooser. It MUST NOT
 ### Requirement: Support UI remains accessible at compact sizes
 All About labels, state counts and feedback SHALL support Chinese and English. Actions SHALL have visible keyboard focus, logical tab order, accessible names, at least 40 CSS-pixel target height and local pending/success/error announcements. All content SHALL remain reachable through reflow or internal scrolling at the supported minimum window size and increased text scale.
 
+The About window SHALL open at 500 × 560 logical pixels and allow resizing down to 420 × 360. With both detail sections collapsed, identity, version, a short description, project links, support actions and both detail entries SHALL fit the default window without scrolling in Chinese and English. Architecture descriptions SHALL appear within Tools & runtime.
+
+#### Scenario: Default About surface fits one screen
+- **WHEN** About opens at its default size in Chinese or English
+- **THEN** both detail sections are collapsed and all primary content and detail entries are visible without scrolling
+
+#### Scenario: About is resized or details are expanded
+- **WHEN** the user shrinks About or expands either detail section
+- **THEN** internal scrolling keeps all content reachable while controls retain at least 40 CSS-pixel target height
+
 #### Scenario: Compact About surface
 - **WHEN** About is rendered at its minimum supported dimensions or enlarged text scale
 - **THEN** grouped actions reflow as needed and diagnostic actions remain reachable without horizontal clipping or overlap

@@ -72,7 +72,7 @@ full 源码配置含五工具，standard 含 Snap/Awake/Paper/Launch，core 无�
 | --- | --- |
 | `tray` | 默认隐藏的 400 × 500 快捷面板；`tauri.conf.json` |
 | `main` | 920 × 660（最小 760 × 520）工具/设置；`show_preferences_window` 转向主窗口设置视图，返回保留已访问工具上下文 |
-| `about` | 500 × 560（最小 420 × 360）独立关于与诊断入口 |
+| `about` | 默认 500 × 560（最小 420 × 360，可调整大小）独立关于与诊断入口 |
 | `launcher` / `paper` | Launch 浮窗 / Paper 专用窗口 |
 | `capture` / `pin-*` | macOS 截图编辑 / 钉图 |
 | `zero-file-engine` | 隐藏转换引擎，仅使用独立 `capabilities/file-engine.json` |
