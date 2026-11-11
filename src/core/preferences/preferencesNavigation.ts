@@ -44,6 +44,7 @@ interface PreferencesSettingIndexInput {
   destinations: PreferencesDestination[];
   tools: PreferencesToolDescriptor[];
   t: PreferencesTranslate;
+  additionalSettings?: readonly PreferencesSettingDescriptor[];
 }
 
 const STATIC_PREFERENCES_SETTING_DEFINITIONS = [
@@ -96,7 +97,7 @@ export function createPreferencesDestinations(
       t("prefs.nav.shortcuts"),
       t("prefs.shortcuts.description"),
     ),
-    destination("tools", "tools", t("prefs.nav.tools"), t("prefs.tools.description")),
+    destination("tools", "tools", t("prefs.tools.overview"), t("prefs.tools.description")),
     ...tools.map<PreferencesDestination>((tool) => ({
       id: toolPreferencesDestinationId(tool.id),
       group: "tools",
@@ -129,6 +130,7 @@ export function createPreferencesSettingIndex({
   destinations,
   tools,
   t,
+  additionalSettings = [],
 }: PreferencesSettingIndexInput): PreferencesSettingDescriptor[] {
   const staticSettings = STATIC_PREFERENCES_SETTING_DEFINITIONS.map((entry) =>
     localizeSetting(entry, destinations, t),
@@ -147,7 +149,14 @@ export function createPreferencesSettingIndex({
     );
   });
 
-  return [...staticSettings, ...toolSettings];
+  const pluginSettings = additionalSettings.map((entry) => {
+    const owner = destinations.find((candidate) => candidate.id === entry.destinationId);
+    return {
+      ...entry,
+      keywords: [...entry.keywords, owner?.title ?? ""].filter(Boolean),
+    };
+  });
+  return [...staticSettings, ...toolSettings, ...pluginSettings];
 }
 
 export function createRenderedPreferencesSettingIds(

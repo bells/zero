@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, useId, type ReactElement, type ReactNode } from "react";
 import { StatusBarGlyph } from "../../components/StatusBarGlyph";
 import type { PluginRecord } from "../pluginHost/contracts";
 import type { PluginHostController } from "../pluginHost/usePluginHost";
@@ -44,7 +44,7 @@ export function GeneralPreferencesPage({
   onLaunchAtLoginChange,
 }: GeneralPreferencesPageProps) {
   return (
-    <SettingsSection title={t("prefs.general.title")}>
+    <SettingsSection title={t("prefs.general.title")} hideHeading>
       <SettingRow
         title={t("prefs.launchAtLogin.title")}
         description={t("prefs.launchAtLogin.description")}
@@ -106,7 +106,7 @@ export function StatusBarPreferencesPage({
 
   return (
     <>
-      <SettingsSection title={t("statusBar.title")}>
+      <SettingsSection title={t("prefs.statusBar.display")}>
         <SettingRow
           title={t("statusBar.enabled.title")}
           description={t("statusBar.enabled.description")}
@@ -261,6 +261,7 @@ export function ToolsOverviewPage({
     <SettingsSection
       title={t("prefs.tools.overview")}
       description={t("prefs.tools.description")}
+      hideHeading
       focusTargetId={preferencesSettingFocusTargetId("tools.overview")}
     >
       {records.map((record) => {
@@ -300,7 +301,6 @@ export function ToolsOverviewPage({
 
 interface ToolPreferencesPageProps extends SharedPageProps, ShortcutEditorProps {
   additionalSettings?:ReactNode;
-  plugin: PluginMeta;
   preferences: AppPreferences;
   record: PluginRecord;
   shortcuts: GlobalShortcutSnapshot[];
@@ -313,7 +313,6 @@ interface ToolPreferencesPageProps extends SharedPageProps, ShortcutEditorProps 
 export function ToolPreferencesPage({
   additionalSettings,
   feedback,
-  plugin,
   pluginHost,
   preferences,
   record,
@@ -341,7 +340,7 @@ export function ToolPreferencesPage({
         <Metadata label={t("prefs.tool.health")} value={localizedHealth(record.health, t)} />
       </dl>
 
-      <SettingsSection title={plugin.title} description={plugin.subtitle}>
+      <SettingsSection title={t("prefs.tool.availability")}>
         <SettingRow
           title={t("prefs.tool.enabled.title")}
           description={t("prefs.tool.enabled.description")}
@@ -459,6 +458,7 @@ export function ShortcutsPreferencesPage({
     <SettingsSection
       title={t("prefs.shortcuts.title")}
       description={t("prefs.shortcuts.description")}
+      hideHeading
     >
       {isLoading ? <p className="preferences-empty-copy">{t("prefs.shortcuts.loading")}</p> : null}
       {!isLoading
@@ -490,18 +490,20 @@ export function SettingsSection({
   description,
   focusTargetId,
   title,
+  hideHeading = false,
 }: {
   children: ReactNode;
   description?: string;
   focusTargetId?: string;
   title: string;
+  hideHeading?: boolean;
 }) {
   return (
-    <section className="preferences-section" id={focusTargetId} tabIndex={focusTargetId ? -1 : undefined}>
-      <div className="preferences-section-heading">
+    <section className="preferences-section" aria-label={title} id={focusTargetId} tabIndex={focusTargetId ? -1 : undefined}>
+      {!hideHeading ? <div className="preferences-section-heading">
         <h3>{title}</h3>
         {description ? <p>{description}</p> : null}
-      </div>
+      </div> : null}
       <div className="preferences-settings-group">{children}</div>
     </section>
   );
@@ -516,7 +518,7 @@ function SettingRow({
   t,
   title,
 }: {
-  children: ReactNode;
+  children: ReactElement<{ id?: string; "aria-describedby"?: string }>;
   description: string;
   feedback?: PreferenceFeedback;
   hint?: string;
@@ -524,15 +526,22 @@ function SettingRow({
   t: (key: TranslationKey) => string;
   title: string;
 }) {
+  const generatedId = useId();
+  const controlId = children.props.id ?? generatedId;
+  const descriptionId = `${generatedId}-description`;
+  const hintId = `${generatedId}-hint`;
   return (
     <div className="preferences-setting-row">
       <div className="preferences-setting-copy">
-        <span className="preferences-setting-title">{icon}{<strong>{title}</strong>}</span>
-        <small>{description}</small>
-        {hint ? <small className="preferences-setting-hint">{hint}</small> : null}
+        <span className="preferences-setting-title">{icon}<label htmlFor={controlId}><strong>{title}</strong></label></span>
+        <small id={descriptionId}>{description}</small>
+        {hint ? <small id={hintId} className="preferences-setting-hint">{hint}</small> : null}
         <PreferenceFeedbackText feedback={feedback} t={t} />
       </div>
-      <div className="preferences-setting-control">{children}</div>
+      <div className="preferences-setting-control">{cloneElement(children, {
+        id: controlId,
+        "aria-describedby": [children.props["aria-describedby"], descriptionId, hint ? hintId : null].filter(Boolean).join(" "),
+      })}</div>
     </div>
   );
 }

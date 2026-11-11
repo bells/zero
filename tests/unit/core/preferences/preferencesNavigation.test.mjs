@@ -95,6 +95,13 @@ test("resolves missing destinations to General and preserves available destinati
   assert.equal(resolvePreferencesDestination("status-bar", destinations), "status-bar");
 });
 
+test("uses a distinct overview title and preserves full tool names", () => {
+  const destinations = createPreferencesDestinations(tools, t);
+  assert.equal(destinations.find((entry) => entry.id === "tools").title, "工具概览");
+  assert.equal(destinations.find((entry) => entry.id === "tool:zero.snap").title, "Zero Snap");
+  assert.equal(destinations.find((entry) => entry.id === "tool:zero.awake").title, "Zero Awake");
+});
+
 test("searches localized titles, descriptions, categories, and tool names", () => {
   const destinations = createPreferencesDestinations(tools, t);
   const index = createPreferencesSettingIndex({ destinations, tools, t });
@@ -112,6 +119,26 @@ test("searches localized titles, descriptions, categories, and tool names", () =
   );
   assert.deepEqual(filterPreferencesSettings(index, "does-not-exist"), []);
   assert.deepEqual(filterPreferencesSettings(index, ""), []);
+});
+
+test("indexes plugin-owned settings by full tool name without changing their target", () => {
+  const destinations = createPreferencesDestinations(tools, t);
+  const setting = {
+    id: "tool.zero.awake.battery.threshold",
+    destinationId: "tool:zero.awake",
+    title: "电池保护",
+    description: "电量较低时停止",
+    path: "Battery protection",
+    keywords: ["battery"],
+    focusTargetId: "preference-setting-tool-zero-awake-battery-threshold",
+  };
+  const index = createPreferencesSettingIndex({ destinations, tools, t, additionalSettings: [setting] });
+  const result = filterPreferencesSettings(index, "Zero Awake").find((entry) => entry.id === setting.id);
+  assert.ok(result);
+  assert.equal(result.destinationId, setting.destinationId);
+  assert.equal(result.focusTargetId, setting.focusTargetId);
+  assert.ok(filterPreferencesSettings(index, "Zero Awake").some((entry) => entry.id === setting.id));
+  assert.deepEqual(setting.keywords, ["battery"]);
 });
 
 test("creates stable focus targets and recognizes Escape clearing", () => {

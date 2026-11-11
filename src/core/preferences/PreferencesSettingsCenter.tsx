@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
+import { ArrowLeft, Search } from "lucide-react";
 import type { PluginMeta } from "../pluginHost/pluginTypes";
 import type { PluginHostController } from "../pluginHost/usePluginHost";
 import type { StatusBarController } from "../../services/useStatusBar";
@@ -87,8 +88,8 @@ export function PreferencesSettingsCenter({
     [tools, translateNavigation],
   );
   const settingIndex = useMemo(
-    () => [...createPreferencesSettingIndex({ destinations, tools, t: translateNavigation }),...(additionalSettings??[])],
-    [destinations, tools, translateNavigation,additionalSettings],
+    () => createPreferencesSettingIndex({ destinations, tools, t: translateNavigation, additionalSettings }),
+    [destinations, tools, translateNavigation, additionalSettings],
   );
   const searchResults = useMemo(
     () => filterPreferencesSettings(settingIndex, query),
@@ -190,7 +191,7 @@ export function PreferencesSettingsCenter({
               window.requestAnimationFrame(() => searchInputRef.current?.focus());
             }}
           >
-            <span aria-hidden="true">‹</span>
+            <ArrowLeft aria-hidden="true" />
             {t("prefs.back")}
           </button>
           <div>
@@ -247,7 +248,7 @@ function PreferencesSidebar({
       </div>
       <label className="preferences-search">
         <span className="sr-only">{t("prefs.search.label")}</span>
-        <span aria-hidden="true" className="preferences-search-icon">⌕</span>
+        <Search aria-hidden="true" className="preferences-search-icon" />
         <input
           ref={searchInputRef}
           type="search"
@@ -287,11 +288,14 @@ function PreferencesSidebar({
         ) : (
           NAVIGATION_GROUP_ORDER.map((group) => {
             const groupDestinations = destinations.filter((candidate) => candidate.group === group);
+            if (groupDestinations.length === 0) return null;
             return (
               <div className="preferences-navigation-group" key={group}>
-                <span className="preferences-navigation-label">
-                  {group === "zero" ? t("prefs.nav.zero") : group === "tools" ? t("prefs.nav.tools") : t("prefs.nav.extensions")}
-                </span>
+                {group !== "extensions" ? (
+                  <span className="preferences-navigation-label">
+                    {t(group === "zero" ? "prefs.nav.zero" : "prefs.nav.tools")}
+                  </span>
+                ) : null}
                 {groupDestinations.map((candidate) => (
                   <button
                     type="button"
@@ -380,7 +384,6 @@ function PreferencesDestinationContent({
     <ToolPreferencesPage
       additionalSettings={renderToolSettings?.(record.name,record.enabled)}
       feedback={feedback}
-      plugin={plugin}
       pluginHost={pluginHost}
       preferences={preferences.preferences}
       record={record}
