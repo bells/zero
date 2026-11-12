@@ -115,6 +115,15 @@ pub async fn refresh_quick_launcher_running_state(
 }
 
 #[tauri::command]
+pub async fn get_quick_launcher_running_items(
+    input: crate::services::quick_launcher::contracts::QuickLauncherRunningItemsInput,
+    app: tauri::AppHandle,
+) -> Result<crate::services::quick_launcher::contracts::QuickLauncherRunningItems, QuickLauncherError>
+{
+    run_initialized(app, move |state| state.running_items(input)).await
+}
+
+#[tauri::command]
 pub async fn activate_quick_launcher_item(
     input: QuickLauncherActivateInput,
     app: tauri::AppHandle,

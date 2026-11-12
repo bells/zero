@@ -2,8 +2,8 @@ use tauri::{Manager, PhysicalPosition, PhysicalRect, PhysicalSize, WebviewUrl, W
 
 use crate::services::surface_activity::{hide_surface, show_surface};
 use crate::services::tool_windows::{
-    anchored_tool_window_position, hide_tool_window, position_anchored_tool_window,
-    prepare_tool_window, ToolWindowAnchor, ToolWindowKind, ToolWindowLogicalSize,
+    anchored_tool_window_position, hide_tool_window, position_popover_window, prepare_tool_window,
+    ToolWindowAnchor, ToolWindowKind, ToolWindowLogicalSize,
 };
 
 pub const PAPER_WINDOW_LABEL: &str = ToolWindowKind::Paper.label();
@@ -114,14 +114,13 @@ fn position_paper_window(
     anchor: Option<PaperWindowAnchor>,
     options: PaperWindowOptions,
 ) -> Result<(), String> {
-    let anchor_x = position_anchored_tool_window(
+    let anchor_x = position_popover_window(
         window,
         anchor,
         ToolWindowLogicalSize {
             width: options.width,
             height: options.height,
         },
-        PAPER_WINDOW_GAP,
         "Zero Paper",
     )?;
     crate::services::popover::publish(window, anchor_x)

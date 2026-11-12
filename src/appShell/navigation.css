@@ -22,9 +22,15 @@
 .tray-shell .app-header { align-items: center; }
 .tray-shell .app-header h1 { font-family: inherit; font-size: 19px; }
 .tray-shell .shell-badge { font-size: 11px; background: transparent; border: 0; padding: 3px; }
-.tray-plugin-content { min-height: 0; flex: 1 1 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; border-radius: 12px; }
-.tray-plugin-content > .plugin-panel { flex: 1 0 auto; box-sizing: border-box; box-shadow: none; }
-.tray-plugin-content > .file-panel { min-height: 300px; }
+.tray-plugin-content { min-height: 0; flex: 0 1 auto; overflow-y: auto; overscroll-behavior: contain; border-radius: 12px; }
+.tray-natural-content { display: flow-root; }
+.tray-natural-content > .plugin-panel { height: auto; min-height: 0; flex: none; box-sizing: border-box; box-shadow: none; }
+.tray-natural-content .quick-launcher-view { overflow: visible; flex: none; }
+.tray-natural-content .quick-launcher-results { flex: none; max-height: none; overflow: visible; }
+.tray-natural-content .file-queue-region { flex: none; overflow: visible; }
+.tray-shell .tray-natural-content > .caffeine-panel { flex: none; }
+.anchored-popover.tray-popover > .tray-shell { height: auto; max-height: calc(var(--tray-max-height, 500px) - 8px); }
+.anchored-popover.tray-popover[data-anchored="false"] > .tray-shell { max-height: var(--tray-max-height, 500px); }
 .tray-header-actions { display: flex; align-items: center; gap: 2px; }
 .tray-system-action { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 8px; background: transparent; color: #4a5851; }
 .tray-system-action svg { width: 18px; height: 18px; stroke-width: 1.8; }

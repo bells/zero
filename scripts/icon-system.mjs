@@ -251,13 +251,13 @@ export function validateGeneratedAssets(root = PROJECT_ROOT) {
     const metadata = readPngFile(filePath, issues, `tray ${id}`);
     if (
       metadata &&
-      (metadata.width !== 18 ||
-        metadata.height !== 18 ||
+      (metadata.width !== 22 ||
+        metadata.height !== 22 ||
         metadata.bitDepth !== 8 ||
         !metadata.hasAlpha)
     ) {
       issues.push(
-        `${file}: expected an 18x18 8-bit PNG with alpha, received ${JSON.stringify(metadata)}`,
+        `${file}: expected a 22x22 8-bit PNG with alpha, received ${JSON.stringify(metadata)}`,
       );
     }
   }
@@ -431,8 +431,8 @@ function generateTrayIcons() {
     for (const spec of TRAY_ICON_SPECS) {
       const temporaryOutput = path.join(temporaryRoot, spec.id);
       fs.mkdirSync(temporaryOutput, { recursive: true });
-      runTauriIcon(path.join(ICON_DIR, spec.file), temporaryOutput, ["18"]);
-      const generated = path.join(temporaryOutput, "18x18.png");
+      runTauriIcon(path.join(ICON_DIR, spec.file), temporaryOutput, ["22"]);
+      const generated = path.join(temporaryOutput, "22x22.png");
       const destination = path.join(outputDir, TRAY_OUTPUT_FILES[spec.id]);
       fs.copyFileSync(generated, destination);
       console.log(

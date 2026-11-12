@@ -93,23 +93,31 @@ pub fn toggle_tray_quick_panel_at(
             hide_surface(&window).map_err(|error| format!("隐藏托盘窗口失败: {error}"))?;
         } else {
             services::tool_windows::prepare_tray_window(app)?;
+            let height = services::tray_layout::prepare_open(&window, anchor)
+                .map_err(|e| format!("{e:?}"))?;
             let anchor_x = if anchor.is_some() {
-                services::tool_windows::position_anchored_tool_window(
+                services::tool_windows::position_popover_window(
                     &window,
                     anchor,
                     services::tool_windows::ToolWindowLogicalSize {
                         width: 400.0,
-                        height: 500.0,
+                        height,
                     },
-                    0,
                     "Zero",
                 )?
             } else {
-                window
-                    .as_ref()
-                    .window()
-                    .move_window(Position::TrayCenter)
-                    .map_err(|error| format!("移动托盘窗口失败: {error}"))?;
+                if cfg!(target_os = "macos") {
+                    window
+                        .center()
+                        .map_err(|error| format!("移动托盘窗口失败: {error}"))?;
+                } else {
+                    window
+                        .as_ref()
+                        .window()
+                        .move_window(Position::TrayCenter)
+                        .map_err(|error| format!("移动托盘窗口失败: {error}"))?;
+                }
+                services::tool_windows::clamp_window_to_work_area(&window)?;
                 None
             };
             services::popover::publish(&window, anchor_x)?;
@@ -199,6 +207,7 @@ pub fn run() {
         .manage(services::status_bar::StatusBarState::default())
         .manage(services::tray_panel::TrayPanelState::default())
         .manage(services::popover::PopoverState::default())
+        .manage(services::tray_layout::TrayLayoutState::default())
         .manage(services::main_navigation::MainNavigationState::default())
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
@@ -321,6 +330,8 @@ pub fn run() {
             commands::app::show_main_window,
             commands::app::hide_tray_quick_panel,
             commands::app::get_popover_placement,
+            commands::app::begin_tray_layout,
+            commands::app::update_tray_layout,
             commands::app::show_preferences_window,
             commands::plugins::refresh_plugin_market,
             commands::plugins::list_market_plugins,
@@ -436,6 +447,8 @@ pub fn run() {
             commands::quick_launcher::get_quick_launcher_icons,
             #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::refresh_quick_launcher_running_state,
+            #[cfg(feature = "bundled-tools")]
+            commands::quick_launcher::get_quick_launcher_running_items,
             #[cfg(feature = "bundled-tools")]
             commands::quick_launcher::activate_quick_launcher_item,
             #[cfg(feature = "bundled-tools")]

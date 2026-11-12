@@ -1,3 +1,22 @@
+import type { QuickLauncherSearchResult } from "./contracts";
+
+export function mergeLauncherRunningResult(
+  displayed: QuickLauncherSearchResult,
+  refreshed: QuickLauncherSearchResult,
+): QuickLauncherSearchResult | null {
+  if (displayed.revision !== refreshed.revision || displayed.query !== refreshed.query) return null;
+  const running = new Map(refreshed.items.map((item) => [item.id, item.running]));
+  if (displayed.items.some((item) => !running.has(item.id))) return null;
+  let changed = false;
+  const items = displayed.items.map((item) => {
+    const next = running.get(item.id)!;
+    if (item.running === next) return item;
+    changed = true;
+    return { ...item, running: next };
+  });
+  return changed ? { ...displayed, items } : displayed;
+}
+
 export interface QueryTimeoutScheduler {
   setTimeout(callback: () => void, delayMs: number): unknown;
   clearTimeout(timer: unknown): void;

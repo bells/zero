@@ -8,6 +8,8 @@ import type {
   QuickLauncherIconResult,
   QuickLauncherIndexSnapshot,
   QuickLauncherRunningSnapshot,
+  QuickLauncherRunningItems,
+  QuickLauncherRunningItemsInput,
   QuickLauncherSearchInput,
   QuickLauncherSearchResult,
 } from "./contracts";
@@ -19,6 +21,7 @@ export const QUICK_LAUNCHER_COMMANDS = {
   icon: "get_quick_launcher_icon",
   icons: "get_quick_launcher_icons",
   refreshRunning: "refresh_quick_launcher_running_state",
+  runningItems: "get_quick_launcher_running_items",
   activate: "activate_quick_launcher_item",
   showWindow: "show_quick_launcher_window",
   hideWindow: "hide_quick_launcher_window",
@@ -30,7 +33,8 @@ export type QuickLauncherInvokeArgs =
   | { input: QuickLauncherSearchInput }
   | { input: QuickLauncherIconInput }
   | { input: QuickLauncherIconBatchInput }
-  | { input: QuickLauncherActivateInput };
+  | { input: QuickLauncherActivateInput }
+  | { input: QuickLauncherRunningItemsInput };
 
 export interface QuickLauncherInvokeBridge {
   <T>(command: QuickLauncherCommand, args?: QuickLauncherInvokeArgs): Promise<T>;
@@ -58,6 +62,7 @@ export function createQuickLauncherService(invokeBridge: QuickLauncherInvokeBrid
       invokeBridge<QuickLauncherRunningSnapshot>(
         QUICK_LAUNCHER_COMMANDS.refreshRunning,
       ),
+    getRunningItems: (itemIds: string[]) => invokeBridge<QuickLauncherRunningItems>(QUICK_LAUNCHER_COMMANDS.runningItems, { input: { itemIds } }),
     activate: (itemId: string, revision: number) =>
       invokeBridge<QuickLauncherActivationResult>(QUICK_LAUNCHER_COMMANDS.activate, {
         input: buildActivateInput(itemId, revision),

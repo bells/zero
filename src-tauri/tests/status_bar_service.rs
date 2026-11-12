@@ -568,7 +568,7 @@ fn status_bar_icon_assets_are_transparent_monochrome_rgba() {
 
     for icon in icons {
         let image = image::load_from_memory(status_bar_icon_png_bytes(&icon)).unwrap();
-        assert_eq!((image.width(), image.height()), (18, 18), "{icon:?}");
+        assert_eq!((image.width(), image.height()), (22, 22), "{icon:?}");
 
         let rgba = image.to_rgba8();
         assert!(rgba.pixels().any(|pixel| pixel.0[3] == 0), "{icon:?}");

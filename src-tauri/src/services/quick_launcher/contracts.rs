@@ -138,6 +138,19 @@ pub struct QuickLauncherRunningSnapshot {
     pub expires_at_ms: u64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QuickLauncherRunningItemsInput {
+    pub item_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QuickLauncherRunningItems {
+    pub index_revision: u64,
+    pub states: std::collections::HashMap<String, QuickLauncherRunningState>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QuickLauncherError {

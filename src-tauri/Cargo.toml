@@ -83,7 +83,7 @@ cocoa = "0.26.1"
 objc = "0.2"
 objc2 = "0.6.4"
 objc2-vision = { optional = true, version = "=0.3.2", default-features = false, features = ["std", "VNRequest", "VNRequestHandler", "VNRecognizeTextRequest", "VNObservation", "VNTypes", "objc2-core-foundation", "objc2-core-graphics", "objc2-image-io"] }
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSResponder", "NSMenu", "NSMenuItem", "NSWindow", "NSView", "NSStatusItem", "NSStatusBarButton", "NSButton", "NSControl", "NSButtonCell", "NSActionCell", "NSCell", "NSColor", "NSBezierPath"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSResponder", "NSMenu", "NSMenuItem", "NSWindow", "NSView", "NSStatusItem", "NSStatusBarButton", "NSButton", "NSControl", "NSButtonCell", "NSActionCell", "NSCell", "NSColor", "NSBezierPath", "NSImage"] }
 objc2-core-foundation = { version = "0.3.2", features = ["CFCGTypes", "objc2"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSData", "NSError", "NSString", "NSObject", "NSGeometry"] }
 objc2-web-kit = { optional = true, version = "0.3.2", default-features = false, features = ["std", "WKWebView", "WKPDFConfiguration", "block2", "objc2-core-foundation"] }

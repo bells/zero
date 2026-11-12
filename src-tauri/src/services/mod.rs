@@ -28,6 +28,7 @@ pub mod diagnostics;
 pub mod app_menu;
 pub mod main_navigation;
 pub mod status_bar_highlight_model;
+pub mod tray_layout;
 pub mod tray_panel;
 
 #[cfg(target_os = "macos")]

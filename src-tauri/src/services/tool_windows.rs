@@ -71,13 +71,22 @@ fn anchor_monitor_point(anchor: ToolWindowAnchor) -> (f64, f64) {
     )
 }
 
-fn monitor_for_tool_window_anchor(
+pub(crate) fn monitor_for_tool_window_anchor(
     window: &tauri::WebviewWindow,
     anchor: ToolWindowAnchor,
 ) -> Option<tauri::Monitor> {
     let (center_x, center_y) = anchor_monitor_point(anchor);
     if let Ok(Some(monitor)) = window.monitor_from_point(center_x, center_y) {
-        return Some(monitor);
+        if monitor_bounds_contain_anchor(
+            PhysicalRect {
+                position: *monitor.position(),
+                size: *monitor.size(),
+            },
+            monitor.scale_factor(),
+            anchor,
+        ) {
+            return Some(monitor);
+        }
     }
 
     window
@@ -160,6 +169,79 @@ pub fn position_anchored_tool_window(
     Ok(None)
 }
 
+pub fn position_popover_window(
+    window: &tauri::WebviewWindow,
+    anchor: Option<ToolWindowAnchor>,
+    logical_size: ToolWindowLogicalSize,
+    display_name: &str,
+) -> Result<Option<f64>, String> {
+    if cfg!(target_os = "macos") {
+        if let Some(anchor) = anchor {
+            if let Some(monitor) = monitor_for_tool_window_anchor(window, anchor) {
+                let scale = monitor.scale_factor();
+                let (area, gap) = popover_area(*monitor.work_area(), monitor.position().y, scale);
+                if let Some(position) = anchored_tool_window_position(
+                    anchor,
+                    PhysicalSize::new(
+                        (logical_size.width * scale).round() as u32,
+                        (logical_size.height * scale).round() as u32,
+                    ),
+                    area,
+                    gap,
+                ) {
+                    window
+                        .set_position(window_position_for_monitor(position, scale))
+                        .map_err(|e| e.to_string())?;
+                    return Ok(Some(logical_anchor_offset(anchor, position, scale)));
+                }
+            }
+        }
+    }
+    position_anchored_tool_window(window, anchor, logical_size, 0, display_name)
+}
+
+fn popover_area(
+    mut area: PhysicalRect<i32, u32>,
+    monitor_top: i32,
+    scale: f64,
+) -> (PhysicalRect<i32, u32>, i32) {
+    let overlap = (8.0 * scale).round() as i32;
+    let top = (area.position.y - overlap).max(monitor_top);
+    area.size.height += (area.position.y - top) as u32;
+    area.position.y = top;
+    (area, -overlap)
+}
+
+fn clamped_position(
+    position: PhysicalPosition<i32>,
+    size: PhysicalSize<u32>,
+    area: PhysicalRect<i32, u32>,
+) -> PhysicalPosition<i32> {
+    let max_x = i64::from(area.position.x) + i64::from(area.size.width.saturating_sub(size.width));
+    let max_y =
+        i64::from(area.position.y) + i64::from(area.size.height.saturating_sub(size.height));
+    PhysicalPosition::new(
+        i64::from(position.x).clamp(i64::from(area.position.x), max_x) as i32,
+        i64::from(position.y).clamp(i64::from(area.position.y), max_y) as i32,
+    )
+}
+
+pub fn clamp_window_to_work_area(window: &tauri::WebviewWindow) -> Result<(), String> {
+    let monitor = window
+        .current_monitor()
+        .map_err(|e| e.to_string())?
+        .ok_or("monitor unavailable")?;
+    let area = monitor.work_area();
+    let size = window.outer_size().map_err(|e| e.to_string())?;
+    let position = window.outer_position().map_err(|e| e.to_string())?;
+    window
+        .set_position(window_position_for_monitor(
+            clamped_position(position, size, *area),
+            monitor.scale_factor(),
+        ))
+        .map_err(|e| e.to_string())
+}
+
 fn window_position_for_monitor(
     position: PhysicalPosition<i32>,
     scale_factor: f64,
@@ -216,6 +298,31 @@ fn peer_tool_windows(opening: ToolWindowKind) -> impl Iterator<Item = ToolWindow
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn caret_overlap_and_taskbar_clamp_preserve_work_area_edges() {
+        for (scale, monitor_top) in [(1.0, 0), (2.0, -1800)] {
+            let work = PhysicalRect {
+                position: PhysicalPosition::new(-1920, monitor_top + (24.0 * scale) as i32),
+                size: PhysicalSize::new(1920, 1000),
+            };
+            let (area, gap) = popover_area(work, monitor_top, scale);
+            assert_eq!(work.position.y - area.position.y, (8.0 * scale) as i32);
+            assert_eq!(gap, -(8.0 * scale) as i32);
+            assert_eq!(
+                area.position.y + area.size.height as i32,
+                work.position.y + work.size.height as i32
+            );
+            assert_eq!(
+                clamped_position(
+                    PhysicalPosition::new(-50, 3000),
+                    PhysicalSize::new(400, 500),
+                    work
+                ),
+                PhysicalPosition::new(-400, work.position.y + 500)
+            );
+        }
+    }
 
     #[cfg(target_os = "macos")]
     #[test]

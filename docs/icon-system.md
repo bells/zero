@@ -22,8 +22,10 @@ Zero uses a Modern Terminal Minimalist icon language: monochrome geometry, decis
 - Primary geometry uses whole or half coordinates and keeps about two view-box units of clear space.
 - The Zero foreground uses one centered solid Bézier egg, enlarged to a fuller "fat duck egg" envelope while remaining narrower above and heavier below, with a rounded transparent bottom-left to top-right 45° cut. The same normalized compound path is used by status, React, and application masters.
 - Launch follows that diagonal direction with a sparse body, two fin cues, and one exhaust stroke; Awake reallocates the former steam area to its cup body.
-- Required review sizes are 16px, 18px, 22px, and 24px. The 18px rendering is the native tray derivative.
+- Required review sizes are 16px, 18px, 22px, and 24px. The 22px rendering is the native tray derivative, filling the existing 22pt macOS cell while retaining the SVG artwork's own optical inset.
 - `zero-app-icon.svg` is the 512×512 application master. It keeps the same `Ø` proportions on a `#111318` container.
+
+The macOS host explicitly restores the grouped NSImage to 22pt height after creation and each icon update because the tray-icon dependency otherwise normalizes it to 18pt. The native image width remains exactly the total width of its 22pt cells.
 
 The SVG files are the source of truth. Native tray PNGs, the React mask map, the main-window and About marks, the contact sheet, and application bundle icons must be regenerated or rendered from these sources rather than redrawn. React brand surfaces use the canonical `zero.svg` CSS mask and never substitute a text `Z`.
 

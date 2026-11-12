@@ -32,6 +32,7 @@ const sources = [
   "src/core/windowing/surfaceActivityCore.ts",
   "src/core/windowing/nativeMenuEditing.ts",
   "src/core/windowing/popoverPlacement.ts",
+  "src/core/windowing/trayLayout.ts",
   "src/plugins/bingWallpaper/bingWallpaperController.ts",
   "src/plugins/bingWallpaper/bingWallpaperCache.ts",
   "src/plugins/bingWallpaper/bingWallpaperModel.ts",

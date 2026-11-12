@@ -17,6 +17,7 @@ import { useMainNavigation } from "./appShell/useMainNavigation";
 import { isToolVisibleInNavigation } from "./appShell/mainNavigation";
 import { PresentationActivity } from "./core/windowing/PresentationActivity";
 import { AnchoredPopover } from "./core/windowing/AnchoredPopover";
+import { useTrayLayout } from "./core/windowing/useTrayLayout";
 import { PRODUCT_NAME } from "./brand/identity";
 import { StatusBarGlyph } from "./components/StatusBarGlyph";
 import { ExtensionSurface } from "./core/pluginHost/ExtensionSurface";
@@ -336,6 +337,7 @@ export function TrayPanelApp() {
     pluginHost.setSelectedPluginName,
   );
   const [message, setMessage] = useState<ShellMessage | null>(null);
+  const { shellRef, contentRef } = useTrayLayout(activePlugin?.id);
   usePluginMessages(setMessage);
 
   useEffect(() => {
@@ -355,7 +357,7 @@ export function TrayPanelApp() {
 
   return (
     <AnchoredPopover tone="tray">
-      <main className="app-shell tray-shell">
+      <main ref={shellRef} className="app-shell tray-shell">
         <header className="app-header" data-tauri-drag-region>
           <div>
             <h1>{PRODUCT_NAME}</h1>
@@ -407,7 +409,7 @@ export function TrayPanelApp() {
           </div>
         </div>
 
-        <div className="tray-plugin-content">{pluginPanel(activePlugin, resolvedLanguage, "tray")}</div>
+        <div className="tray-plugin-content"><div ref={contentRef} className="tray-natural-content">{pluginPanel(activePlugin, resolvedLanguage, "tray")}</div></div>
 
         {message ? <p className={`shell-message ${message.tone}`}>{message.text}</p> : null}
       </main>

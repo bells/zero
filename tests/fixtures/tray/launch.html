@@ -1,0 +1,74 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="icon" href="data:,"><title>Launch quiet refresh regression</title></head>
+<body><div id="fixture" style="width:400px;height:500px"></div><pre id="report" style="white-space:pre-wrap"></pre>
+<script type="module">
+  Object.defineProperty(navigator, "platform", {value: new URLSearchParams(location.search).get("platform") || "MacIntel"});
+  const callbacks = new Map(), listeners = new Map(); let callbackId = 0;
+  window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
+  window.__TAURI_INTERNALS__ = {
+    metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main" } },
+    transformCallback: callback => { callbacks.set(++callbackId, callback); return callbackId; },
+    invoke: async (command, args) => {
+      if (command === "get_surface_activity") return { label: "main", state: "active" };
+      if (command === "get_global_shortcut_snapshots") return [];
+      if (command === "plugin:event|listen") { listeners.set(args.event, args.handler); return args.handler; }
+      if (command === "plugin:event|unlisten") return;
+      throw Error(`Unexpected fixture command: ${command}`);
+    }
+  };
+  const React = await import("react");
+  const { createRoot } = await import("react-dom/client");
+  const { useQuickLauncher } = await import("/src/plugins/quickLauncher/useQuickLauncher.ts");
+  const { QuickLauncherView } = await import("/src/plugins/quickLauncher/QuickLauncherView.tsx");
+  const { createQuickLauncherTranslator } = await import("/src/plugins/quickLauncher/i18n.ts");
+  await import("/src/App.css");
+  const language = new URLSearchParams(location.search).get("language") || "zh-CN";
+  let controller, searches = 0, polls = 0, batches = 0, revision = 7;
+  const snapshot = () => ({ revision, source: "scan", refreshing: false, itemCount: 30, platformSupport: "supported", diagnostics: [] });
+  const item = (id, query) => ({ id: `${query}-${id}`, kind: "application", title: `Very long 应用名称 ${id}`, subtitle: `/Applications/A very long path/多语言目录/${id}/Example application.app`, running: "notRunning", matchedField: "title" });
+  const client = {
+    getSnapshot: async () => snapshot(), refresh: async () => snapshot(),
+    search: async query => { searches++; return { revision, query, elapsedMicros: 1, items: Array.from({ length:24 }, (_,id) => item(id, query)) }; },
+    getIcons: async () => ({ results: [] }),
+    refreshRunning: async () => {
+      const next = { indexRevision:revision, runningRevision:++polls, expiresAtMs:Date.now()+250 };
+      const listener = listeners.get("zero://quick-launcher/running-state-updated");
+      if (listener) callbacks.get(listener)({event:"zero://quick-launcher/running-state-updated",id:listener,payload:next});
+      return next;
+    },
+    getRunningItems: async ids => {
+      batches++;
+      await new Promise(resolve => setTimeout(resolve, 20));
+      return { indexRevision:revision, states:Object.fromEntries(ids.map(id => [id,polls%2 ? "running" : "notRunning"])) };
+    },
+    activate: async (itemId) => ({itemId,action:"focused",usageCount:1,activatedAt:Date.now()})
+  };
+  const h = React.createElement;
+  function Harness() { controller = useQuickLauncher(client); return h("section",{className:"plugin-panel",style:{height:"100%",boxSizing:"border-box"}},h(QuickLauncherView,{controller,surface:"panel",t:createQuickLauncherTranslator(language)})); }
+  createRoot(document.getElementById("fixture")).render(h(Harness));
+  const report = document.getElementById("report");
+  const assert = (ok, message) => { if (!ok) throw Error(message); report.textContent += `PASS ${message}\n`; };
+  const until = async predicate => { const end=performance.now()+3500; while(!predicate()) { if(performance.now()>end) throw Error("Timed out"); await new Promise(requestAnimationFrame); } };
+  try {
+    await until(() => controller?.items.length === 24 && !controller.isLoading);
+    const first = controller.items[0].id;
+    let flash = false;
+    const observer = new MutationObserver(() => { if (controller.isLoading || document.querySelector(".launcher-result-shortcut.unavailable")) flash = true; });
+    observer.observe(document.getElementById("fixture"),{subtree:true,attributes:true,childList:true,characterData:true});
+    await until(() => batches >= 3);
+    assert(!flash && searches === 1, "multiple running polls do not toggle visible loading or rerun ranked search");
+    assert(controller.items[0].id === first, "background updates preserve displayed numeric identity");
+    const row = document.querySelector(".quick-launcher-row"), actions = row.querySelector(".launcher-row-actions"), copy = row.querySelector(".launcher-copy");
+    const a=actions.getBoundingClientRect(), c=copy.getBoundingClientRect(), r=row.getBoundingClientRect();
+    assert(a.left >= c.right - 1 && a.bottom <= r.bottom && row.scrollWidth <= row.clientWidth, "400px long CJK/English paths keep actions on the right without overflow");
+    observer.disconnect();
+    controller.setQuery("new");
+    await until(() => controller.items.every(item => item.id.startsWith("new-")) && !controller.isLoading);
+    await until(() => batches >= 4);
+    assert(controller.items.every(item => item.id.startsWith("new-")), "background completion cannot overwrite a newer query");
+    const target = {itemId:controller.items[0].id,revision:controller.revision,query:controller.query};
+    const result=await controller.activateShortcut(target);
+    assert(result?.itemId === target.itemId, "numeric shortcut activates the displayed ID during quiet polling");
+    report.textContent += "ALL CHECKS PASSED\n";
+  } catch(error) { report.textContent += `FAIL ${error.stack}\n`; }
+</script></body></html>

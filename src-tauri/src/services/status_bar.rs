@@ -28,7 +28,7 @@ use crate::services::caffeine::CaffeineState;
 mod menu_position;
 
 pub const MACOS_COMPACT_STATUS_ITEM_LENGTH: f64 = 22.0;
-const MACOS_STATUS_ITEM_ICON_SIZE: u32 = 18;
+const MACOS_STATUS_ITEM_ICON_SIZE: u32 = 22;
 const MACOS_STATUS_ITEM_CELL_SIZE: u32 = 22;
 pub const PRIMARY_STATUS_ITEM_COLLAPSE_MENU_ID: &str = "zero.status-bar.toggle-tool-items";
 pub const PRIMARY_STATUS_ITEM_QUIT_MENU_ID: &str = "zero.status-bar.quit";
@@ -1442,12 +1442,24 @@ fn sync_primary_status_item(
         if let TrayIconEvent::Click {
             button: MouseButton::Left,
             button_state: MouseButtonState::Up,
+            rect,
             ..
         } = event
         {
             let state = app_handle.state::<StatusBarState>();
             if state.should_accept_primary_toggle(std::time::Instant::now()) {
-                let _ = crate::toggle_tray_quick_panel(app_handle);
+                let position = rect.position.to_physical::<i32>(1.0);
+                let size = rect.size.to_physical::<u32>(1.0);
+                let _ = crate::toggle_tray_quick_panel_at(
+                    app_handle,
+                    Some(crate::services::tool_windows::ToolWindowAnchor {
+                        x: position.x,
+                        y: position.y,
+                        width: size.width,
+                        height: size.height,
+                        scale_factor: 1.0,
+                    }),
+                );
             }
         }
     });
@@ -1608,6 +1620,16 @@ fn apply_native_status_item_length<R: Runtime>(
                     .ns_status_item()
                     .ok_or_else(|| "macOS status item is unavailable".to_string())?;
                 status_item.setLength(length);
+                let mtm = objc2_foundation::MainThreadMarker::new()
+                    .ok_or("status image requires native main thread")?;
+                let button = status_item.button(mtm).ok_or("status button unavailable")?;
+                let image = button.image().ok_or("status image unavailable")?;
+                // tray-icon normalizes every image to 18pt; restore our exact cell geometry.
+                image.setSize(objc2_foundation::NSSize::new(
+                    length,
+                    f64::from(MACOS_STATUS_ITEM_ICON_SIZE),
+                ));
+                objc2_app_kit::NSView::setNeedsDisplay(&button, true);
                 Ok(())
             })
             .map_err(|error| format!("failed to access macOS status item: {error}"))?;
@@ -2024,7 +2046,7 @@ mod tests {
             StatusBarIconId::Extension,
         ] {
             let image = decoded_status_bar_icon(&icon);
-            assert_eq!(image.dimensions(), (18, 18));
+            assert_eq!(image.dimensions(), (22, 22));
             assert!(image.pixels().any(|pixel| pixel[3] == 0));
             assert!(image.pixels().any(|pixel| pixel[3] > 0));
             assert!(

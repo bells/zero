@@ -29,7 +29,7 @@ export function QuickLauncherView({
   const selectedRef = useRef<HTMLButtonElement>(null);
   const support = controller.snapshot?.platformSupport;
   const shortcutPlatform = launcherShortcutPlatform(navigator.platform);
-  const resultsPending = controller.isLoading || controller.isRefreshing || controller.isRunningRefreshing;
+  const resultsPending = controller.isLoading || controller.isRefreshing;
   const shortcutsUnavailable = resultsPending || controller.activatingId !== null;
   const statusText = useMemo(() => {
     if (support === "unsupported") {
@@ -161,6 +161,8 @@ export function QuickLauncherView({
               aria-selected={selected}
               aria-keyshortcuts={resultShortcut?.ariaKeyShortcuts}
               className={`quick-launcher-row${selected ? " selected" : ""}`}
+              title={item.subtitle}
+              aria-description={item.subtitle}
               key={item.id}
               disabled={controller.activatingId !== null}
               onMouseMove={() => controller.setSelectedId(item.id)}
@@ -170,8 +172,8 @@ export function QuickLauncherView({
                 {icon ? <img src={icon} alt="" /> : item.kind === "systemSetting" ? "⚙" : "◈"}
               </span>
               <span className="launcher-copy">
-                <strong>{item.title}</strong>
-                <small>{item.subtitle}</small>
+                <strong title={item.title}>{item.title}</strong>
+                <small title={item.subtitle}>{item.subtitle}</small>
               </span>
               <span className="launcher-row-actions">
                 <span className={item.running === "running" ? "launcher-action running" : "launcher-action"}>

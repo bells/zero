@@ -1,0 +1,79 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="icon" href="data:,"><title>Tray layout lifecycle regression</title></head>
+<body><div id="fixture" style="width:400px"></div><pre id="report" style="color:#14291c;white-space:pre-wrap"></pre>
+<script type="module">
+  const calls = [];
+  let session = 0;
+  window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
+  window.__TAURI_INTERNALS__ = {
+    metadata: { currentWindow: { label: "tray" }, currentWebview: { label: "tray" } },
+    transformCallback: () => 1,
+    invoke: async (command, args) => {
+      switch (command) {
+        case "plugin:event|listen": return 1;
+        case "plugin:event|unlisten": return;
+        case "get_surface_activity": return { label: "tray", state: "active" };
+        case "get_popover_placement": return { revision: 1, anchorX: 200 };
+        case "begin_tray_layout": return { session: ++session, maxHeight: 500 };
+        case "update_tray_layout":
+          calls.push(args.input);
+          await new Promise(resolve => setTimeout(resolve, 10));
+          return { generation: args.input.generation, appliedHeight: Math.min(500, args.input.desiredHeight), maxHeight: 500 };
+        default: throw Error(`Unexpected layout fixture command: ${command}`);
+      }
+    }
+  };
+  const React = await import("react");
+  const { createRoot } = await import("react-dom/client");
+  const { useTrayLayout } = await import("/src/core/windowing/useTrayLayout.ts");
+  const { AnchoredPopover } = await import("/src/core/windowing/AnchoredPopover.tsx");
+  await import("/src/App.css"); await import("/src/appShell/navigation.css");
+  const h = React.createElement;
+  let controls;
+  function Harness() {
+    const [message, setMessage] = React.useState(false);
+    const [plugin, setPlugin] = React.useState("short");
+    const refs = useTrayLayout(plugin);
+    controls = { setMessage, setPlugin };
+    return h(AnchoredPopover, { tone: "tray" }, h("main", { ref: refs.shellRef, className: "app-shell tray-shell" },
+      h("header", { className: "app-header" }, h("h1", null, "Zero")),
+      h("nav", { className: "tray-tool-row" }, "Five plugin navigation"),
+      h("div", { className: "tray-plugin-content" }, h("div", { ref: refs.contentRef, className: "tray-natural-content" },
+        h("section", { className: "plugin-panel", style: { height: plugin === "short" ? "120px" : "900px" } }, "Natural plugin content"))),
+      message ? h("p", { className: "shell-message error" }, "Late shell error: a native action failed. This message must remain visible.") : null));
+  }
+  const root = createRoot(document.getElementById("fixture"));
+  const report = document.getElementById("report");
+  const assert = (ok, message) => { if (!ok) throw Error(message); report.textContent += `PASS ${message}\n`; };
+  const until = async (predicate) => {
+    const deadline = performance.now() + 2500;
+    while (!predicate()) { if (performance.now() > deadline) throw Error("Timed out waiting for layout"); await new Promise(requestAnimationFrame); }
+  };
+  try {
+    root.render(h(Harness));
+    await until(() => calls.length > 0);
+    const short = calls.at(-1).desiredHeight;
+    assert(short < 400, "short content shrinks without a fixed-height card");
+    controls.setMessage(true);
+    await until(() => calls.at(-1).desiredHeight > short + 10);
+    assert(true, "late shell message increases the requested native height");
+    controls.setMessage(false);
+    await until(() => Math.abs(calls.at(-1).desiredHeight - short) < 1);
+    assert(true, "removing the message restores natural height");
+    const initialSession = calls.at(-1).session;
+    controls.setPlugin("long");
+    await until(() => calls.at(-1).desiredHeight > 800);
+    assert(calls.at(-1).session > initialSession, "plugin switch starts a new layout session");
+    assert(document.querySelector(".tray-shell").getBoundingClientRect().height <= 500, "long content is capped in the shell");
+    const viewport = document.querySelector(".tray-plugin-content");
+    assert(viewport.scrollHeight > viewport.clientHeight, "long content uses the host scroll viewport");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const count = calls.length;
+    root.unmount();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert(calls.length === count, "unmount disconnects measurements and late work");
+    report.textContent += "ALL CHECKS PASSED\n";
+  } catch (error) {
+    report.textContent += `FAIL ${error.stack}\n`;
+  }
+</script></body></html>

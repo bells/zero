@@ -670,19 +670,15 @@ input:focus-visible {
 }
 
 .file-empty-rail > span:nth-child(2) {
-  height: 1px;
-  position: relative;
-  display: grid;
-  place-items: center end;
-  background: color-mix(in srgb, var(--plugin-accent) 45%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--plugin-accent);
 }
 
 .file-empty-rail > span:nth-child(2) svg {
-  width: 12px;
-  height: 12px;
-  padding-left: 4px;
-  background: #f5f7f5;
+  width: 32px;
+  height: 20px;
 }
 
 .file-format-node {
@@ -3812,12 +3808,14 @@ input:focus-visible {
 
 @media (max-width: 560px) {
   .quick-launcher-row {
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding-inline: 6px;
   }
 
   .launcher-row-actions {
-    grid-column: 2;
-    justify-self: start;
+    gap: 5px;
+    justify-self: end;
   }
 }
 

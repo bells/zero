@@ -662,6 +662,46 @@ impl QuickLauncherState {
         self.refresh_running_states_with(platform::probe_running)
     }
 
+    pub fn running_items(
+        &self,
+        input: contracts::QuickLauncherRunningItemsInput,
+    ) -> Result<contracts::QuickLauncherRunningItems, QuickLauncherError> {
+        if input.item_ids.len() > 24 || input.item_ids.iter().any(|id| id.len() > 256) {
+            return Err(launcher_error(
+                "launcher.running_items",
+                "launcher.running_items_invalid",
+                "Too many or invalid displayed items.",
+                false,
+            ));
+        }
+        let index = self
+            .index
+            .read()
+            .map_err(|_| lock_error("read displayed running items"))?;
+        let running = self.running_values()?;
+        let states = input
+            .item_ids
+            .into_iter()
+            .filter_map(|id| {
+                index.items.iter().find(|item| item.id == id).map(|item| {
+                    let value = if item.kind == QuickLauncherItemKind::SystemSetting {
+                        contracts::QuickLauncherRunningState::NotApplicable
+                    } else {
+                        running
+                            .get(&id)
+                            .copied()
+                            .unwrap_or(contracts::QuickLauncherRunningState::Unknown)
+                    };
+                    (id, value)
+                })
+            })
+            .collect();
+        Ok(contracts::QuickLauncherRunningItems {
+            index_revision: index.revision,
+            states,
+        })
+    }
+
     fn refresh_running_states_with(
         &self,
         probe: impl FnOnce(&[IndexedItem]) -> HashMap<String, contracts::QuickLauncherRunningState>,
@@ -1071,6 +1111,45 @@ mod tests {
             })
             .unwrap_err();
         assert_eq!(error.code, "launcher.item_stale");
+    }
+
+    #[test]
+    fn running_items_follow_displayed_ids_beyond_ranked_result_boundaries() {
+        let state = QuickLauncherState::new(std::env::temp_dir().join("zero-displayed-running"));
+        let template = catalog::system_setting_items("en-US").remove(0);
+        let items = (0..30)
+            .map(|id| {
+                let mut item = template.clone();
+                item.id = format!("displayed-{id}");
+                item.kind = QuickLauncherItemKind::Application;
+                item
+            })
+            .collect();
+        {
+            let mut index = state.index.write().unwrap();
+            index.revision = 7;
+            index.items = Arc::new(items);
+        }
+        state.running_cache.lock().unwrap().values = Arc::new(HashMap::from([(
+            "displayed-29".into(),
+            QuickLauncherRunningState::Running,
+        )]));
+        let result = state
+            .running_items(contracts::QuickLauncherRunningItemsInput {
+                item_ids: vec!["displayed-29".into()],
+            })
+            .unwrap();
+        assert_eq!(result.index_revision, 7);
+        assert_eq!(result.states.len(), 1);
+        assert_eq!(
+            result.states["displayed-29"],
+            QuickLauncherRunningState::Running
+        );
+        assert!(state
+            .running_items(contracts::QuickLauncherRunningItemsInput {
+                item_ids: vec!["displayed-29".into(); 25]
+            })
+            .is_err());
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]

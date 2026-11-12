@@ -19,7 +19,7 @@
 .snap-actions button:disabled { opacity: .6; }
 .snap-actions button:focus-visible, .snap-guide summary:focus-visible, .snap-ocr-result textarea:focus-visible { outline: 2px solid #166b3b; outline-offset: 2px; }
 .snap-feedback.error { color: #932f32; }
-.tray-plugin-content > .screenshot-panel.snap-tray { flex: 0 0 auto; padding: 12px 8px; border: 0; border-radius: 0; background: transparent; }
+.tray-natural-content > .screenshot-panel.snap-tray { flex: none; padding: 12px 8px; border: 0; border-radius: 0; background: transparent; }
 .main-window-shell .main-workspace > .snap-main { flex: 1 0 auto; padding: 20px; border-radius: 12px; gap: 16px; }
 .snap-main .snap-heading h2 { font-size: 22px; }
 .snap-main .snap-shortcut kbd { font-size: 12px; }

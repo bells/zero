@@ -84,6 +84,12 @@ export interface QuickLauncherRunningSnapshot {
   expiresAtMs: number;
 }
 
+export interface QuickLauncherRunningItemsInput { itemIds: string[] }
+export interface QuickLauncherRunningItems {
+  indexRevision: number;
+  states: Record<string, QuickLauncherRunningState>;
+}
+
 export interface QuickLauncherError {
   operation: string;
   code: string;

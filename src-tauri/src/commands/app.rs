@@ -19,6 +19,27 @@ pub fn get_popover_placement(
     state.snapshot(window.label())
 }
 
+#[tauri::command]
+pub fn begin_tray_layout(
+    window: tauri::WebviewWindow,
+) -> Result<
+    crate::services::tray_layout::TrayLayoutSession,
+    crate::services::tray_layout::TrayLayoutError,
+> {
+    crate::services::tray_layout::begin(&window)
+}
+
+#[tauri::command]
+pub fn update_tray_layout(
+    window: tauri::WebviewWindow,
+    input: crate::services::tray_layout::TrayLayoutRequest,
+) -> Result<
+    crate::services::tray_layout::TrayLayoutSnapshot,
+    crate::services::tray_layout::TrayLayoutError,
+> {
+    crate::services::tray_layout::update(&window, input)
+}
+
 struct AppShellWindowOptions {
     label: &'static str,
     title: &'static str,

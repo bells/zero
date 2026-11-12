@@ -8,6 +8,7 @@ import type {
   QuickLauncherIndexSnapshot,
   QuickLauncherResultItem,
   QuickLauncherRunningSnapshot,
+  QuickLauncherRunningItems,
   QuickLauncherSearchResult,
 } from "./contracts";
 import {
@@ -20,6 +21,7 @@ import {
   createLatestQueryScheduler,
   mergeBoundedIconBatch,
   resolveActivationAfterFlush,
+  mergeLauncherRunningResult,
 } from "./quickLauncherScheduling";
 import {
   normalizeQuickLauncherError,
@@ -39,6 +41,7 @@ export interface QuickLauncherClient {
     results: Array<{ itemId: string; dataUrl?: string }>;
   }>;
   refreshRunning(): Promise<QuickLauncherRunningSnapshot>;
+  getRunningItems(itemIds: string[]): Promise<QuickLauncherRunningItems>;
   activate(itemId: string, revision: number): Promise<QuickLauncherActivationResult>;
 }
 
@@ -160,6 +163,39 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
     let disposed = false;
     let timer: number | undefined;
     let unlisten: (() => void) | undefined;
+    let reconciling = false;
+
+    const reconcileRunning = async () => {
+      if (disposed || reconciling || queryScheduler.isPending() || activationRef.current) return;
+      const displayed = latestResultRef.current;
+      if (!displayed) return;
+      reconciling = true;
+      const generation = queryGenerationRef.current;
+      try {
+        const running = await client.getRunningItems(displayed.items.map((item) => item.id));
+        if (disposed || !acceptsPresentationCompletion(generation, queryGenerationRef.current, activityRef.current)
+          || queryScheduler.isPending() || activationRef.current) return;
+        const current = latestResultRef.current;
+        if (!current) return;
+        const merged = mergeLauncherRunningResult(current, {
+          ...displayed,
+          revision: running.indexRevision,
+          items: displayed.items.filter((item) => item.id in running.states).map((item) => ({ ...item, running: running.states[item.id] })),
+        });
+        if (merged) {
+          if (merged !== current) {
+            latestResultRef.current = merged;
+            setItems(merged.items);
+          }
+        } else {
+          queryScheduler.schedule(queryRef.current);
+        }
+      } catch {
+        // A failed background probe keeps the usable list; explicit searches surface errors.
+      } finally {
+        reconciling = false;
+      }
+    };
 
     const scheduleRefresh = (expiresAtMs: number) => {
       if (timer !== undefined) window.clearTimeout(timer);
@@ -186,7 +222,7 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
 
     void listen<QuickLauncherRunningSnapshot>(RUNNING_UPDATED_EVENT, () => {
       if (!disposed && snapshotRef.current) {
-        queryScheduler.schedule(queryRef.current);
+        void reconcileRunning();
       }
     }).then((stop) => {
       if (disposed) {
@@ -301,7 +337,7 @@ export function useQuickLauncher(client: QuickLauncherClient = quickLauncherServ
   const activateShortcut = useCallback((displayed: DisplayedLauncherTarget) => {
     // A digit belongs to the displayed row, never to a later search's position.
     const target = resolveShortcutActivation(displayed, latestResultRef.current, queryRef.current,
-      queryScheduler.isPending() || refreshingRef.current || runningRefreshRef.current || activationRef.current
+      queryScheduler.isPending() || refreshingRef.current || activationRef.current
       || !mountedRef.current || activityRef.current !== "active");
     return target ? executeActivation(target) : Promise.resolve(null);
   }, [executeActivation, queryScheduler]);
