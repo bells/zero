@@ -4,7 +4,7 @@ use tauri::{Manager, WindowEvent};
 
 use super::surface_activity::hide_surface;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct Dismissal {
     generation: u64,
     dialogs: usize,
@@ -21,7 +21,7 @@ impl Dismissal {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct TrayPanelState(Arc<Mutex<Dismissal>>);
 
 pub fn register(app: &tauri::AppHandle) {
@@ -86,6 +86,7 @@ pub fn hide(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug)]
 struct DialogLease {
     state: TrayPanelState,
 }
@@ -108,6 +109,7 @@ impl Drop for DialogLease {
     }
 }
 
+#[derive(Debug)]
 pub struct DialogGuard {
     app: tauri::AppHandle,
     lease: Option<DialogLease>,

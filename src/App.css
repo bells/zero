@@ -3912,7 +3912,7 @@ input:focus-visible {
 }
 .capture-toolbar-position-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 2px; }
 .capture-toolbar-drag {
-  height: 40px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3921,7 +3921,7 @@ input:focus-visible {
   border-radius: 5px;
   background: transparent;
 }
-.capture-toolbar-drag { width: 28px; padding: 0; cursor: grab; touch-action: none; }
+.capture-toolbar-drag { width: 20px; padding: 0; cursor: grab; touch-action: none; }
 .capture-toolbar-drag:active { cursor: grabbing; }
 .capture-toolbar-position-controls button:hover:not(:disabled) { background: #35413c; }
 .capture-toolbar-position-controls button:focus-visible { outline: 2px solid #8bffae; outline-offset: -3px; }

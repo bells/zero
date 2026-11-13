@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicU64, Ordering},
-        mpsc, Mutex,
+        mpsc, Arc, Mutex,
     },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -26,17 +26,19 @@ use objc2_app_kit::{
 use serde::{Deserialize, Serialize};
 use tauri::{Manager, WebviewUrl};
 
-use crate::services::surface_activity::{close_surface, hide_surface, show_surface};
+use crate::services::surface_activity::{close_surface, show_surface};
 
 #[cfg(target_os = "macos")]
 mod capture_targets;
 mod display;
+mod entry;
 mod lifecycle;
 mod ocr_authority;
 pub mod snap_ocr;
 pub mod startup;
 mod windows_capture;
 use display::CaptureDisplaySnapshot;
+use entry::{restore_shell_window, ScreenshotEntry};
 #[cfg(target_os = "windows")]
 type RequestedCaptureDisplay = windows_capture::DisplayIdentity;
 #[cfg(not(target_os = "windows"))]
@@ -45,8 +47,6 @@ type RequestedCaptureDisplay = u32;
 use display::DisplayFrame;
 
 const CAPTURE_WINDOW_LABEL: &str = "capture";
-const TRAY_WINDOW_LABEL: &str = "tray";
-const MAIN_WINDOW_LABEL: &str = "main";
 const PIN_WINDOW_LABEL: &str = "pin";
 pub const DEFAULT_SAVE_FILE_NAME: &str = "zero-snap.png";
 const PIN_TITLEBAR_HEIGHT: f64 = 30.0;
@@ -186,6 +186,8 @@ struct ScreenshotSession {
     ocr_authority: ocr_authority::OcrAuthority,
     expires_at_ms: u64,
     restore_window_label: Option<String>,
+    // Cloned session snapshots share one lease through cancellation/failure restoration.
+    _tray_dismissal_guard: Option<Arc<crate::services::tray_panel::DialogGuard>>,
 }
 
 #[derive(Debug, Clone)]
@@ -483,13 +485,21 @@ pub fn start_screenshot_session(
     app: tauri::AppHandle,
     action: String,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
-    start_screenshot_session_on_display(app, action, None)
+    start_screenshot_session_on_display(app, action, None, ScreenshotEntry::Interface)
+}
+
+pub fn start_shortcut_screenshot(
+    app: tauri::AppHandle,
+    action: String,
+) -> Result<ScreenshotStartResult, ScreenshotError> {
+    start_screenshot_session_on_display(app, action, None, ScreenshotEntry::Shortcut)
 }
 
 fn start_screenshot_session_on_display(
     app: tauri::AppHandle,
     action: String,
     display: Option<RequestedCaptureDisplay>,
+    entry: ScreenshotEntry,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
     let store = app.state::<ScreenshotSessionStore>();
     let (flight, leader) = store.starts.claim()?;
@@ -508,7 +518,12 @@ fn start_screenshot_session_on_display(
         let mut result = None;
         app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
             .run(crate::brand::ZERO_SNAP_PLUGIN_ID, || {
-                result = Some(start_screenshot_session_inner(app.clone(), action, display));
+                result = Some(start_screenshot_session_inner(
+                    app.clone(),
+                    action,
+                    display,
+                    entry,
+                ));
                 Ok(())
             })
             .map_err(|message| screenshot_error("screenshot.lifecycle", message, true))?;
@@ -533,6 +548,7 @@ fn start_screenshot_session_inner(
     app: tauri::AppHandle,
     action: String,
     display: Option<RequestedCaptureDisplay>,
+    entry: ScreenshotEntry,
 ) -> Result<ScreenshotStartResult, ScreenshotError> {
     if !crate::plugin_is_enabled(&app, crate::brand::ZERO_SNAP_PLUGIN_ID) {
         return Err(screenshot_error(
@@ -569,7 +585,10 @@ fn start_screenshot_session_inner(
             .map_err(|_| screenshot_error("screenshot.closing", "无法关闭旧截图窗口", true))?;
     }
     wait_for_capture_teardown(&app)?;
-    let restore_window_label = hide_visible_shell_windows(&app);
+    let entry::PreparedShellWindows {
+        restore_window_label,
+        tray_dismissal_guard,
+    } = entry::prepare_shell_windows(&app, entry);
 
     #[cfg(target_os = "windows")]
     if normalized_action == "ocr" {
@@ -618,6 +637,7 @@ fn start_screenshot_session_inner(
             ocr_authority: Default::default(),
             expires_at_ms: created_at_ms.saturating_add(SCREENSHOT_SESSION_TTL_MS),
             restore_window_label: restore_window_label.clone(),
+            _tray_dismissal_guard: tray_dismissal_guard,
         });
         if let Err(error) = startup::measure(&app, "snap_startup:window_prepare", || {
             windows_capture::open_capture_window(&app, &session_id, &snapshot)
@@ -740,6 +760,7 @@ fn start_screenshot_session_inner(
             ocr_authority: Default::default(),
             expires_at_ms: created_at_ms.saturating_add(SCREENSHOT_SESSION_TTL_MS),
             restore_window_label,
+            _tray_dismissal_guard: tray_dismissal_guard,
         });
         if let Err(error) = startup::measure(&app, "snap_startup:window_prepare", || {
             open_capture_window(&app, &session_id, &monitor)
@@ -1216,7 +1237,7 @@ pub fn start_menu_screenshot(
         .lock()
         .ok()
         .and_then(|mut d| d.take());
-    start_screenshot_session_on_display(app, action, display)
+    start_screenshot_session_on_display(app, action, display, ScreenshotEntry::Interface)
 }
 
 #[cfg(target_os = "windows")]
@@ -1498,30 +1519,6 @@ fn validate_dimensions(width: u32, height: u32) -> Result<(), ScreenshotError> {
         ));
     }
     Ok(())
-}
-
-fn hide_visible_shell_windows(app: &tauri::AppHandle) -> Option<String> {
-    let mut restore_window_label = None;
-    for label in [TRAY_WINDOW_LABEL, MAIN_WINDOW_LABEL, "launcher", "paper"] {
-        if let Some(window) = app.get_webview_window(label) {
-            if window.is_visible().unwrap_or(false) {
-                if restore_window_label.is_none() {
-                    restore_window_label = Some(label.to_string());
-                }
-                let _ = hide_surface(&window);
-            }
-        }
-    }
-    restore_window_label
-}
-
-fn restore_shell_window(app: &tauri::AppHandle, label: Option<&str>) {
-    if let Some(label) = label {
-        if let Some(window) = app.get_webview_window(label) {
-            let _ = show_surface(&window);
-            let _ = window.set_focus();
-        }
-    }
 }
 
 fn normalize_start_action(action: String) -> String {
@@ -2331,6 +2328,7 @@ mod tests {
             ocr_authority: Default::default(),
             expires_at_ms: u64::MAX,
             restore_window_label: Some("tray".into()),
+            _tray_dismissal_guard: None,
         });
         store
             .set_pin(
@@ -2435,6 +2433,7 @@ mod tests {
             ocr_authority: Default::default(),
             expires_at_ms: u64::MAX,
             restore_window_label: None,
+            _tray_dismissal_guard: None,
         });
         assert!(store
             .resolve_media("media-session", CAPTURE_WINDOW_LABEL)
@@ -2466,6 +2465,7 @@ mod tests {
             ocr_authority: Default::default(),
             expires_at_ms: u64::MAX,
             restore_window_label: None,
+            _tray_dismissal_guard: None,
         });
 
         assert!(store.is_awaiting_reveal("session-1"));
@@ -2528,6 +2528,7 @@ mod tests {
                 ocr_authority: Default::default(),
                 expires_at_ms: u64::MAX,
                 restore_window_label: None,
+                _tray_dismissal_guard: None,
             });
         }
         store
@@ -2567,6 +2568,7 @@ mod tests {
                 ocr_authority: Default::default(),
                 expires_at_ms: u64::MAX,
                 restore_window_label: None,
+                _tray_dismissal_guard: None,
             });
             store.clear_active();
             assert_eq!(store.resource_counts(), (0, 0, 0));
@@ -2601,5 +2603,14 @@ mod tests {
             let _: () = msg_send![pasteboard, releaseGlobally];
             let _: () = msg_send![pool, drain];
         }
+    }
+    #[test]
+    fn shortcut_capture_preserves_visible_desktop_windows() {
+        assert!(!ScreenshotEntry::Shortcut.hides_shell_windows());
+    }
+
+    #[test]
+    fn interface_capture_dismisses_its_launching_ui() {
+        assert!(ScreenshotEntry::Interface.hides_shell_windows());
     }
 }

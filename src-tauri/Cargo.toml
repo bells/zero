@@ -25,6 +25,11 @@ harness = false
 required-features = ["bundled-tools"]
 
 [[test]]
+name = "snap_entry_native"
+harness = false
+required-features = ["bundled-tools"]
+
+[[test]]
 name = "quick_launcher_benchmark"
 required-features = ["bundled-tools"]
 

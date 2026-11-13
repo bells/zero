@@ -55,6 +55,10 @@ Implementation selection: `paddle-ocr-rs =0.6.1` with `ort =2.0.0-rc.10`, CPU ON
 - [Shortcut register/persist failure] → serialized transaction with rollback tests; startup remains usable with a visible conflict state.
 - [Menu tracking or hidden WebView timing] → measure stages and minimal controlled changes; stationary-pointer acceptance stays mandatory.
 
+## Shortcut desktop preservation follow-up (2026-11-13)
+
+The maintainer requested that invoking Snap through a shortcut preserve the current desktop, including an open Zero tray or main window. Rust now passes an explicit internal shortcut/interface entry through the existing single-flight capture lifecycle. Shortcut preparation records the original shell interaction and skips hiding visible windows; interface preparation keeps the existing dismissal behavior. A shared lease from the host's existing tray dialog guard protects a visible tray against capture-focus blur, and is retained by the session until terminal cleanup/restoration. Preparation failures release it by scope. No IPC contract, shortcut binding, frontend UI, capture-media contract, or Windows editor capability changes are needed. An opt-in native AppKit regression exercises the production preparation module with blank windows; physical shortcut dispatch and frozen-image contents remain separate device acceptance.
+
 ## Migration Plan
 
 No custom Snap bindings existed. Missing preferences use Alt+A capture and null OCR. Existing Launch and unrelated preferences remain unchanged. Corrupt data has a safe diagnostic/default path. Plugin disable unregisters both Snap actions, cancels OCR/capture and releases owned resources. Rollback may ignore the new versioned binding file without deleting it. Evidence and task completion distinguish source, automated, native and packaged behavior.

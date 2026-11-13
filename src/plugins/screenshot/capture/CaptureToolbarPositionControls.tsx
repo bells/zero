@@ -1,4 +1,4 @@
-import { GripHorizontal } from "lucide-react";
+import { GripVertical } from "lucide-react";
 import type { ButtonHTMLAttributes } from "react";
 export function CaptureToolbarPositionControls({
   moveLabel,
@@ -43,7 +43,7 @@ export function CaptureToolbarPositionControls({
           }
         }}
       >
-        <GripHorizontal size={16} aria-hidden="true" />
+        <GripVertical size={16} aria-hidden="true" />
       </button>
     </div>
   );

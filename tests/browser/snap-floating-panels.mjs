@@ -94,7 +94,7 @@ try {
     ).every((r) => r.width === 40 && r.height === 40),
   );
   assert.equal(await handle().innerText(), "");
-  assert.equal((await handle().boundingBox()).width, 28);
+  assert.equal((await handle().boundingBox()).width, 20);
   assert.equal(
     await page.locator(".capture-toolbar-restore-position").count(),
     0,

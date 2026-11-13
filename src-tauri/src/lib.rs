@@ -233,7 +233,7 @@ pub fn run() {
                         let screenshot_app = app.clone();
                         services::screenshot::startup::entry(app, "shortcut");
                         tauri::async_runtime::spawn_blocking(move || {
-                            let _ = services::screenshot::start_screenshot_session(
+                            let _ = services::screenshot::start_shortcut_screenshot(
                                 screenshot_app,
                                 action.into(),
                             );
