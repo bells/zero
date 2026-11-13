@@ -11,5 +11,5 @@
 - [x] 2.1 Verify frontend/Rust regression, all profiles, bundle gates and strict specs.
 - [x] 2.2 Build and inspect local Apple Silicon core/standard installers; record exact sizes, checksum and signature evidence.
 - [ ] 2.3 Run native startup/tool trial for these specific installers (owner local trial).
-- [ ] 2.4 Run hosted Actions for macOS Apple Silicon/Intel and Windows; download and verify matching artifacts.
+- [ ] 2.4 Run hosted Actions for macOS Apple Silicon and Windows x64; download and verify matching artifacts.
 - [ ] 2.5 Verify Windows installers and native trial use on a Windows device.

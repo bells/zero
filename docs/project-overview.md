@@ -141,7 +141,7 @@ Snap 默认 macOS `Option+A` / Windows `Alt+A`，截图 OCR 默认未绑定，�
 
 - `.github/workflows/ci.yml`：macOS/Windows 桌面编译与 Rust 测试，完整前端测试仅 macOS；Windows 另含 File engine 路径与 packaging source-contract 检查。没有 Linux/mobile 桌面 CI。
 - `website-check.yml`：Ubuntu + Node 24，独立依赖、codec 准备、内容/类型/单元/构建/SEO/Chromium 检查。它不是 Linux 桌面支持证明；也不等同于 feedback 服务全套检查。
-- `release.yml`：当前名称为 **Package Zero**。core/standard × Apple Silicon/Intel macOS/Windows 产物，手动触发生成 Actions artifacts，版本 tag 附到 Draft Release。配置存在不证明最新远程运行成功。
+- `release.yml`：当前名称为 **Package Zero**。core/standard × Apple Silicon macOS/Windows x64 共四组产物，手动触发生成 Actions artifacts，版本 tag 附到 Draft Release。2026-11-13 起移除 Intel macOS 构建目标；旧 Draft 附件独立管理。配置存在不证明最新远程运行成功。
 - 常用命令见 [AGENTS.md](../AGENTS.md)。测试准备会替换 `/private/tmp/zero-tests`，共享 fixture 与 `public/file-engine/` 构建不要并发；bundle 检查指定 `--output /tmp/zero-build-graph.json`，避免覆盖历史证据。
 
 本轮文档验证：136 个本地链接目标存在；中英文 README 命令一致，五插件列表、版本、File policy、公开 runtime 开关、八工具/九线程和 32 行 OpenSpec 任务快照与源码一致；`openspec validate --all --strict` 为 34 passed / 0 failed，`git diff --check` 通过。未重跑桌面、官网、反馈完整回归。历史测试数量不再作为“当前通过”的固定事实写入长期记忆。

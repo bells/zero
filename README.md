@@ -34,7 +34,7 @@ Awake 的“自定义…”支持 1–1440 分钟，或下一次本地结束钟�
 
 Paper 的每日自动更换默认关闭，在主窗口的 Paper 工具设置中即时保存；仅在 Zero 运行且 Paper 启用时按北京时间检查，隐藏面板不停止任务。通过 Paper 成功应用历史图后保护至下一个北京时间午夜，关闭再开启可请求最新图；全局开机启动设置不变。本轮源码和自动检查状态、未完成的 macOS／Windows 设备验收见[实施记录](openspec/changes/refine-paper-latest-and-daily-wallpaper/evidence/implementation.md)。
 
-当前源码版本为 `0.1.0`。试用打包提供 **core**（无内置工具）和 **standard**（Snap、Awake、Paper、Launch），两者均不包含 File；源码默认 full 配置包含五工具。下载入口见[官网](https://www.usezero.cn/download/)，产物与限制见[打包指南](docs/packaging.md)，不要将源码功能清单等同于每个安装包的内容。
+当前源码版本为 `0.1.0`。试用打包提供 **core**（无内置工具）和 **standard**（Snap、Awake、Paper、Launch），两者均不包含 File；源码默认 full 配置包含五工具。后续官方安装包面向 macOS Apple Silicon（M 系列）和 Windows x64。下载入口见[官网](https://www.usezero.cn/download/)，产物与限制见[打包指南](docs/packaging.md)，不要将源码功能清单等同于每个安装包的内容。
 
 ### 官网在线工具箱
 
@@ -168,7 +168,7 @@ Awake’s Custom editor accepts 1–1440 minutes or the next local end time. Pre
 
 Paper daily changes default to off and save immediately in the main window’s Paper settings. Checks use China Standard Time while Zero is running and Paper is enabled; hiding the panel does not stop them. Historical images successfully applied through Paper are protected until the next China midnight; turning daily changes off and on requests the latest image. Launch at login is unchanged. See the [implementation record](openspec/changes/refine-paper-latest-and-daily-wallpaper/evidence/implementation.md) for source and automated checks, and the pending macOS/Windows device acceptance.
 
-The source version is `0.1.0`. Trial packages offer **core** (no bundled tools) and **standard** (Snap, Awake, Paper, Launch); both exclude File. The default full source configuration includes all five tools. Check the [download page](https://www.usezero.cn/en/download/) and [packaging guide](docs/packaging.md) for actual artifacts and limitations; the source feature list does not describe every installer.
+The source version is `0.1.0`. Trial packages offer **core** (no bundled tools) and **standard** (Snap, Awake, Paper, Launch); both exclude File. The default full source configuration includes all five tools. Future official installers target macOS Apple Silicon (M series) and Windows x64. Check the [download page](https://www.usezero.cn/en/download/) and [packaging guide](docs/packaging.md) for actual artifacts and limitations; the source feature list does not describe every installer.
 
 ### Browser toolbox
 

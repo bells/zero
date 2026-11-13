@@ -22,10 +22,17 @@ The host SHALL retain application identifier and storage paths. Registry records
 
 Packaging SHALL name installers by version, profile, platform, architecture and format. It SHALL report byte sizes and SHA-256 for each installer, and installed macOS app bytes separately. A manual GitHub Actions run SHALL expose downloadable artifacts without creating a version tag or publishing a Release. A version-tag run SHALL attach both profiles to a Draft Release and SHALL reject replacement of published release assets.
 
+The official packaging workflow SHALL target Apple Silicon macOS (`aarch64-apple-darwin`) and Windows x64 (`x86_64-pc-windows-msvc`) only, producing four profile/target groups when both profiles are selected.
+
 #### Scenario: Compare manual build downloads
 
 - **WHEN** a manual workflow builds both profiles
 - **THEN** each supported platform/architecture has distinct core and standard downloads with size and checksum reports
+
+#### Scenario: Package the official architecture targets
+
+- **WHEN** the official workflow builds both profiles
+- **THEN** it builds core and standard for Apple Silicon macOS and Windows x64, without scheduling an Intel macOS build
 
 #### Scenario: Tag differs from application version
 

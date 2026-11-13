@@ -18,14 +18,14 @@ pnpm package:desktop --profile core --target aarch64-apple-darwin --ci
 pnpm package:desktop --profile standard --target aarch64-apple-darwin --ci
 ```
 
-产物在 build/packages/core 和 build/packages/standard（被 Git 忽略）。macOS Intel 使用 x86_64-apple-darwin；Windows 在 Windows 上使用 x86_64-pc-windows-msvc。脚本统一控制前端配置和 Cargo features，并使用锁文件。
+产物在 build/packages/core 和 build/packages/standard（被 Git 忽略）。官方 macOS 打包仅提供 Apple Silicon（M 系列，aarch64-apple-darwin）；Windows 在 Windows 上使用 x86_64-pc-windows-msvc。脚本统一控制前端配置和 Cargo features，并使用锁文件。
 
 每组包含安装包、sizes.json、sizes.md、SHA256SUMS.txt。比较同平台/同架构/同格式安装包；bytes 是下载文件原始字节，MiB 为 bytes/1048576。installedAppBytes 单列 macOS .app 的文件内容体积。Windows 不把安装器体积误当安装后体积。
 
 ## GitHub Actions 下载
 
 1. 在 Actions 中选择 **Package Zero**，点击 **Run workflow**，profile 选 both/core/standard。
-2. 工作流分别构建 Apple Silicon、Intel macOS DMG 和 Windows MSI/NSIS。
+2. 工作流构建 Apple Silicon macOS DMG 和 Windows x64 MSI/NSIS；core/standard 共四组产物，不再构建 Intel macOS 安装包。
 3. 完成后在该 run 的 Artifacts 下载对应版本/profile/target ZIP，解压后核对 SHA256SUMS.txt。run summary 可直接查看体积。
 
 手动运行只产生 Actions artifacts，不创建 tag 或 Release。推送与应用版本一致的 v0.1.0 tag 时，构建成功后附加到 **Zero v0.1.0 Draft Release**，保持草稿状态。已发布 Release 的附件拒绝覆盖；不自动发布。

@@ -7,7 +7,7 @@
 - 新增 core（无内置工具）和 standard（Awake、Paper、Snap、Launch）构建配置；现有 full 开发版保持五工具。
 - 在 Vite 和 Rust 编译阶段裁剪工具模块、命令、启动任务和依赖；试用配置不携带 File 引擎资源。
 - 切换构建配置保留已有工具 registry/data，不在当前配置中显示或启用缺席工具。
-- GitHub Actions 手动构建并上传六组带配置/架构名称的产物；版本 tag 构建上传 Draft Release。
+- GitHub Actions 手动构建并上传四组带配置/架构名称的产物（core/standard × Apple Silicon macOS/Windows x64）；版本 tag 构建上传 Draft Release。
 - 输出安装包 bytes、MiB、SHA-256，以及 macOS .app 安装体积。
 
 ## Capabilities
