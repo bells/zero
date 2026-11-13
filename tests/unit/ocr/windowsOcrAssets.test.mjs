@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 
 const modulePath = path.resolve('scripts/prepare-windows-ocr.mjs');
 const load = async () => {
@@ -51,4 +52,29 @@ test('OCR target selection skips native resources outside Windows Snap profiles'
   assert.equal(windowsOcrRequired({ platform: 'darwin', target: 'x86_64-pc-windows-msvc', tools: ['snap'] }), true);
   assert.equal(windowsOcrRequired({ platform: 'win32', tools: [] }), false);
   assert.equal(windowsOcrRequired({ platform: 'win32', tools: ['snap'] }), true);
+});
+
+test('Windows Git checkout preserves pinned OCR license bytes', async () => {
+  const { verifyWindowsOcrAssets } = await load();
+  const manifest = JSON.parse(fs.readFileSync('src-tauri/ocr-assets.json', 'utf8'));
+  const licenses = manifest.files.filter(item => item.source);
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-ocr-checkout-'));
+  const git = args => execFileSync('git', [
+    '-c', 'core.autocrlf=true', '-c', 'core.eol=crlf', '-c', 'core.safecrlf=false', ...args,
+  ], { cwd: root, stdio: 'pipe' });
+  try {
+    fs.copyFileSync('.gitattributes', path.join(root, '.gitattributes'));
+    for (const item of licenses) {
+      const destination = path.join(root, item.source);
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.copyFileSync(item.source, destination);
+    }
+    git(['init', '--quiet']);
+    git(['add', '.gitattributes', ...licenses.map(item => item.source)]);
+    git(['checkout-index', '--all', '--prefix=checkout/']);
+    const result = verifyWindowsOcrAssets(path.join(root, 'checkout/src-tauri/ocr-licenses'), {
+      ...manifest, files: licenses,
+    });
+    assert.equal(result.files, licenses.length);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });

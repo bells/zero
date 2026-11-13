@@ -4,6 +4,9 @@ tests/fixtures/fileConversion/quality/*.pdf binary
 tests/fixtures/fileConversion/quality/*.docx binary
 tests/fixtures/ocr/*.pdf binary
 
+# Preserve bytes pinned by ocr-assets.json even with Windows core.autocrlf enabled.
+src-tauri/ocr-licenses/*.txt -text
+
 # Keep integrity-checked upstream license text verbatim, including trailing spaces.
 website/public/markdown-fonts/OFL.txt -whitespace
 website/public/markdown-notices/THIRD-PARTY-NOTICES.txt -whitespace
