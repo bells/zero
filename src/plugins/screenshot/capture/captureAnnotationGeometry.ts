@@ -5,7 +5,10 @@ import type {
   Point,
   TextAnnotation,
 } from "./captureTypes";
-import { normalizeAnnotation } from "./captureAnnotationProperties.js";
+import {
+  PROPERTY_RANGES,
+  normalizeAnnotation,
+} from "./captureAnnotationProperties.js";
 import type { SelectionResizeHandle, Size } from "./captureSelectionModel";
 export interface Bounds {
   x: number;
@@ -148,27 +151,189 @@ export function selectableBounds(annotation: AnnotationObject): Bounds | null {
     height: bounds.height + pad * 2,
   };
 }
-export function hitTestAnnotation(
-  annotations: AnnotationObject[],
+export interface AnnotationHitContext {
+  image: Size;
+  viewport: Size;
+  toleranceCssPx?: number;
+}
+
+function segmentDistance(point: Point, from: Point, to: Point): number {
+  const dx = to.x - from.x,
+    dy = to.y - from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const t =
+    lengthSquared === 0
+      ? 0
+      : Math.max(
+          0,
+          Math.min(
+            1,
+            ((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared,
+          ),
+        );
+  return Math.hypot(point.x - from.x - t * dx, point.y - from.y - t * dy);
+}
+
+function roundedRectDistance(point: Point, bounds: Bounds, radius = 0): number {
+  const r = Math.max(0, Math.min(radius, bounds.width / 2, bounds.height / 2));
+  const x =
+    Math.abs(point.x - bounds.x - bounds.width / 2) - bounds.width / 2 + r;
+  const y =
+    Math.abs(point.y - bounds.y - bounds.height / 2) - bounds.height / 2 + r;
+  return (
+    Math.hypot(Math.max(x, 0), Math.max(y, 0)) + Math.min(Math.max(x, y), 0) - r
+  );
+}
+
+function ellipseDistance(point: Point, bounds: Bounds): number {
+  let a = Math.max(0.5, bounds.width / 2),
+    b = Math.max(0.5, bounds.height / 2);
+  let x = Math.abs(point.x - bounds.x - bounds.width / 2);
+  let y = Math.abs(point.y - bounds.y - bounds.height / 2);
+  if (a < b) {
+    [a, b] = [b, a];
+    [x, y] = [y, x];
+  }
+  const inside = (x / a) ** 2 + (y / b) ** 2 <= 1;
+  let distance: number;
+  if (a === b) distance = Math.abs(Math.hypot(x, y) - a);
+  else if (y === 0) {
+    const nearestX = Math.min(a, (a * a * x) / (a * a - b * b));
+    const nearestY = b * Math.sqrt(Math.max(0, 1 - (nearestX / a) ** 2));
+    distance = Math.hypot(nearestX - x, nearestY);
+  } else {
+    // Solve the closest-point multiplier, including interior points of thin ellipses.
+    let low = -b * b,
+      high = Math.hypot(a * x, b * y);
+    for (let i = 0; i < 56; i++) {
+      const t = (low + high) / 2;
+      if (((a * x) / (t + a * a)) ** 2 + ((b * y) / (t + b * b)) ** 2 > 1)
+        low = t;
+      else high = t;
+    }
+    const t = (low + high) / 2;
+    distance = Math.hypot(
+      (a * a * x) / (t + a * a) - x,
+      (b * b * y) / (t + b * b) - y,
+    );
+  }
+  return inside ? -distance : distance;
+}
+
+function hitsArrowHead(
   point: Point,
-): AnnotationObject | null {
+  points: Point[],
+  tolerance: number,
+): boolean {
+  const [a, b, c] = points;
+  const cross = (p: Point, q: Point) =>
+    (q.x - p.x) * (point.y - p.y) - (q.y - p.y) * (point.x - p.x);
+  const signs = [cross(a, b), cross(b, c), cross(c, a)];
+  return (
+    signs.every((s) => s >= 0) ||
+    signs.every((s) => s <= 0) ||
+    Math.min(
+      segmentDistance(point, a, b),
+      segmentDistance(point, b, c),
+      segmentDistance(point, c, a),
+    ) <= tolerance
+  );
+}
+
+export function hitTestAnnotation(
+  annotations: readonly AnnotationObject[],
+  point: Point,
+  context: AnnotationHitContext,
+): DrawingAnnotation | null {
+  const scale = Math.min(
+    context.viewport.width / context.image.width,
+    context.viewport.height / context.image.height,
+  );
+  if (!Number.isFinite(scale) || scale <= 0) return null;
+  const tolerance = Math.max(0, context.toleranceCssPx ?? 6) / scale;
   for (let i = annotations.length - 1; i >= 0; i--) {
-    const bounds = selectableBounds(annotations[i]);
+    const annotation = annotations[i];
+    if (annotation.type === "pin") continue;
+    const bounds = selectableBounds(annotation);
     if (
-      bounds &&
-      point.x >= bounds.x - 6 &&
-      point.x <= bounds.x + bounds.width + 6 &&
-      point.y >= bounds.y - 6 &&
-      point.y <= bounds.y + bounds.height + 6
+      !bounds ||
+      point.x < bounds.x - tolerance ||
+      point.x > bounds.x + bounds.width + tolerance ||
+      point.y < bounds.y - tolerance ||
+      point.y > bounds.y + bounds.height + tolerance
     )
-      return annotations[i];
+      continue;
+    const strokeTolerance =
+      tolerance +
+      ("strokeWidth" in annotation ? annotation.strokeWidth / 2 : 0);
+    let hit = false;
+    switch (annotation.type) {
+      case "rectangle": {
+        const d = roundedRectDistance(
+          point,
+          annotation,
+          annotation.cornerRadius,
+        );
+        hit =
+          annotation.fillMode === "solid"
+            ? d <= tolerance
+            : Math.abs(d) <= strokeTolerance;
+        break;
+      }
+      case "ellipse": {
+        const d = ellipseDistance(point, annotation);
+        hit =
+          annotation.fillMode === "solid"
+            ? d <= tolerance
+            : Math.abs(d) <= strokeTolerance;
+        break;
+      }
+      case "arrow":
+        hit =
+          segmentDistance(point, annotation.from, annotation.to) <=
+            strokeTolerance ||
+          hitsArrowHead(
+            point,
+            arrowHeadPoints(
+              annotation.from,
+              annotation.to,
+              annotation.strokeWidth,
+            ),
+            tolerance,
+          ) ||
+          (annotation.heads === "double" &&
+            hitsArrowHead(
+              point,
+              arrowHeadPoints(
+                annotation.to,
+                annotation.from,
+                annotation.strokeWidth,
+              ),
+              tolerance,
+            ));
+        break;
+      case "pen":
+        hit = annotation.points.some(
+          (p, index) =>
+            segmentDistance(
+              point,
+              p,
+              annotation.points[Math.max(0, index - 1)],
+            ) <= strokeTolerance,
+        );
+        break;
+      case "text":
+      case "mosaic":
+        hit = roundedRectDistance(point, bounds) <= tolerance;
+        break;
+    }
+    if (hit) return annotation;
   }
   return null;
 }
 export function annotationHandles(
   annotation: DrawingAnnotation,
 ): { handle: ObjectHandle; point: Point }[] {
-  if (annotation.type === "text") return [];
   if (annotation.type === "arrow")
     return [
       { handle: "from", point: annotation.from },
@@ -185,10 +350,14 @@ export function annotationHandles(
     ["bottom", 0.5, 1],
     ["bottom-left", 0, 1],
     ["left", 0, 0.5],
-  ].map(([handle, x, y]) => ({
-    handle: handle as ObjectHandle,
-    point: { x: b.x + Number(x) * b.width, y: b.y + Number(y) * b.height },
-  }));
+  ]
+    .filter(
+      ([handle]) => annotation.type !== "text" || String(handle).includes("-"),
+    )
+    .map(([handle, x, y]) => ({
+      handle: handle as ObjectHandle,
+      point: { x: b.x + Number(x) * b.width, y: b.y + Number(y) * b.height },
+    }));
 }
 export function hitAnnotationHandle(
   annotation: DrawingAnnotation,
@@ -252,50 +421,146 @@ export function moveArrowEndpoint(
     ? arrow
     : { ...arrow, [handle]: next };
 }
+export interface AnnotationResizeOptions {
+  preserveAspectRatio: boolean;
+}
+
+function resizeAnchor(
+  bounds: Bounds,
+  handle: ObjectHandle,
+): { anchor: Point; vector: Point } {
+  const horizontal = handle.includes("left")
+    ? -1
+    : handle.includes("right")
+      ? 1
+      : 0;
+  const vertical = handle.includes("top")
+    ? -1
+    : handle.includes("bottom")
+      ? 1
+      : 0;
+  return {
+    anchor: {
+      x: bounds.x + (bounds.width * (1 - horizontal)) / 2,
+      y: bounds.y + (bounds.height * (1 - vertical)) / 2,
+    },
+    vector: { x: horizontal * bounds.width, y: vertical * bounds.height },
+  };
+}
+
+function resizeFactor(vector: Point, delta: Point): number {
+  const lengthSquared = vector.x ** 2 + vector.y ** 2;
+  return lengthSquared === 0
+    ? 1
+    : 1 + (vector.x * delta.x + vector.y * delta.y) / lengthSquared;
+}
+
+function proportionalBounds(
+  bounds: Bounds,
+  handle: ObjectHandle,
+  delta: Point,
+  image: Size,
+): Bounds {
+  const { anchor, vector } = resizeAnchor(bounds, handle);
+  let maximum = Infinity;
+  for (const [offset, space] of [
+    [bounds.x - anchor.x, anchor.x],
+    [anchor.x - bounds.x - bounds.width, image.width - anchor.x],
+    [bounds.y - anchor.y, anchor.y],
+    [anchor.y - bounds.y - bounds.height, image.height - anchor.y],
+  ])
+    if (offset < 0) maximum = Math.min(maximum, space / -offset);
+  const minimum = Math.min(
+    1,
+    Math.max(
+      bounds.width > 0 ? 4 / bounds.width : 0,
+      bounds.height > 0 ? 4 / bounds.height : 0,
+    ),
+  );
+  const factor = clamp(resizeFactor(vector, delta), minimum, maximum);
+  return {
+    x: anchor.x + (bounds.x - anchor.x) * factor,
+    y: anchor.y + (bounds.y - anchor.y) * factor,
+    width: bounds.width * factor,
+    height: bounds.height * factor,
+  };
+}
+
+function resizeText(
+  annotation: TextAnnotation,
+  handle: ObjectHandle,
+  delta: Point,
+  image: Size,
+): TextAnnotation {
+  if (!handle.includes("-")) return annotation;
+  const before = textLayout(annotation).bounds;
+  const { anchor, vector } = resizeAnchor(before, handle);
+  const [minimum, maximum] = PROPERTY_RANGES.fontSize;
+  const requested = Math.round(
+    clamp(annotation.fontSize * resizeFactor(vector, delta), minimum, maximum),
+  );
+  const direction = Math.sign(requested - annotation.fontSize);
+  if (!direction) return annotation;
+  let result = annotation;
+  // Integer font sizes have measured, non-linear widths. Bound the search to the existing 12–96 range.
+  for (
+    let size = annotation.fontSize + direction;
+    direction > 0 ? size <= requested : size >= requested;
+    size += direction
+  ) {
+    const layout = textLayout({ ...annotation, fontSize: size }).bounds;
+    const x = anchor.x - (handle.includes("left") ? layout.width : 0);
+    const top = anchor.y - (handle.includes("top") ? layout.height : 0);
+    const y = top + size;
+    if (x < 0 || x > image.width || y < 0 || y > image.height) break;
+    result = { ...annotation, x, y, fontSize: size };
+  }
+  return result;
+}
+
 export function resizeAnnotation<T extends DrawingAnnotation>(
   annotation: T,
   handle: ObjectHandle,
   delta: Point,
   image: Size,
+  options?: AnnotationResizeOptions,
 ): T {
-  if (annotation.type === "text" || annotation.type === "arrow")
-    return annotation;
+  if (annotation.type === "arrow") return annotation;
+  if (annotation.type === "text")
+    return resizeText(annotation, handle, delta, image) as T;
   const b = annotationBounds(annotation);
   if (!b) return annotation;
+  if (annotation.type === "pen" || options?.preserveAspectRatio) {
+    const next = proportionalBounds(b, handle, delta, image);
+    if (annotation.type === "pen")
+      return {
+        ...annotation,
+        points: annotation.points.map((p) => ({
+          x:
+            b.width === 0 ? p.x : next.x + ((p.x - b.x) * next.width) / b.width,
+          y:
+            b.height === 0
+              ? p.y
+              : next.y + ((p.y - b.y) * next.height) / b.height,
+        })),
+      };
+    return normalizeAnnotation({ ...annotation, ...next });
+  }
   let l = b.x,
     t = b.y,
     r = b.x + b.width,
-    bt = b.y + b.height;
-  if (handle.includes("left") || handle === "left")
-    l = clamp(l + delta.x, 0, r - 4);
-  if (handle.includes("right") || handle === "right")
-    r = clamp(r + delta.x, l + 4, image.width);
-  if (handle.includes("top") || handle === "top")
-    t = clamp(t + delta.y, 0, bt - 4);
-  if (handle.includes("bottom") || handle === "bottom")
-    bt = clamp(bt + delta.y, t + 4, image.height);
-  if (annotation.type === "pen") {
-    const horizontal = handle.includes("left") || handle.includes("right");
-    const vertical = handle.includes("top") || handle.includes("bottom");
-    const axisX = horizontal ? clamp(b.x + delta.x, 0, image.width) - b.x : 0;
-    const axisY = vertical ? clamp(b.y + delta.y, 0, image.height) - b.y : 0;
-    return {
-      ...annotation,
-      points: annotation.points.map((p) => ({
-        x: b.width === 0 ? p.x + axisX : l + ((p.x - b.x) * (r - l)) / b.width,
-        y:
-          b.height === 0
-            ? p.y + axisY
-            : t + ((p.y - b.y) * (bt - t)) / b.height,
-      })),
-    };
-  }
+    bottom = b.y + b.height;
+  if (handle.includes("left")) l = clamp(l + delta.x, 0, r - 4);
+  if (handle.includes("right")) r = clamp(r + delta.x, l + 4, image.width);
+  if (handle.includes("top")) t = clamp(t + delta.y, 0, bottom - 4);
+  if (handle.includes("bottom"))
+    bottom = clamp(bottom + delta.y, t + 4, image.height);
   return normalizeAnnotation({
     ...annotation,
     x: l,
     y: t,
     width: r - l,
-    height: bt - t,
+    height: bottom - t,
   });
 }
 

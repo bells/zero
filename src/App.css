@@ -4077,3 +4077,20 @@ input:focus-visible {
   text-overflow: ellipsis;
 }
 .file-provider-strip select:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+.capture-edit-hint {
+  position: fixed;
+  bottom: 6px;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 24px);
+  margin: 0;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: rgba(8, 11, 15, 0.88);
+  color: #f8fbf5;
+  font: 11px/1.4 Avenir Next, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}

@@ -8,6 +8,7 @@ import { screenshotMessages } from "../i18n";
 const captureMessages = {
   "zh-CN": {
     ...screenshotMessages["zh-CN"],
+    "screenshot.edit.hint": "拖动标注编辑 · Option 穿透绘制 · Shift 保持比例",
     "ocr.selectionHint": "拖动选择文字区域 · Enter 识别 · Esc 取消",
     "screenshot.properties.slider": "滑杆",
     "screenshot.properties.compact.strokeWidth": "线宽",
@@ -47,6 +48,7 @@ const captureMessages = {
   },
   "en-US": {
     ...screenshotMessages["en-US"],
+    "screenshot.edit.hint": "Drag annotations to edit · Option to draw through · Shift to keep shape ratio",
     "ocr.selectionHint": "Drag to select text · Enter to recognize · Esc to cancel",
     "screenshot.properties.slider": "slider",
     "screenshot.properties.compact.strokeWidth": "Stroke",

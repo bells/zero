@@ -9,6 +9,7 @@
       renderFinalCanvas,
       cropCanvasToPngBytes,
     } from "/src/plugins/screenshot/capture/captureExport.ts";
+    const { moveAnnotation } = await import("/src/plugins/screenshot/capture/captureAnnotationGeometry.ts");
     const results = [];
     const check = (name, fn) => {
       try {
@@ -177,6 +178,17 @@
         );
       },
     );
+    check("moved Mosaic samples the new scene region without scaling its pixels", () => {
+      const c = canvas(), ctx = c.getContext("2d");
+      ctx.fillStyle = "#ff0000"; ctx.fillRect(0, 0, 100, 160);
+      ctx.fillStyle = "#0000ff"; ctx.fillRect(100, 0, 100, 160);
+      const original = {id:"moved", type:"mosaic", x:20, y:20, width:40, height:40, pixelSize:14};
+      const moved = moveAnnotation(original, {x:100,y:0}, {width:200,height:160});
+      drawAnnotations(ctx, [moved]);
+      assert(moved.pixelSize === 14, "geometry leaves pixel size unchanged");
+      assert(pixel(ctx, 130, 30).join() === "0,0,255,255", "new region samples blue rather than moving red pixels");
+      assert(pixel(ctx, 30, 30).join() === "255,0,0,255", "old region is not modified");
+    });
     check("shared preview and final committed pixels", () => {
       const base = canvas(),
         ctx = base.getContext("2d");

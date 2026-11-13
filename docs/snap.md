@@ -27,6 +27,12 @@ node scripts/prepare-windows-ocr.mjs
 
 Windows 安装离线首用、中英实际识别、物理快捷键、显示热插拔及混合 DPI 需要 Windows 真机；交叉编译不能关闭这些任务。File 引擎的签名/批准清单保持独立，本轮不批准其工件。
 
+## macOS 标注直接编辑
+
+现有六类标注在本次截图会话内均可直接选中、拖动和调整大小，无需先切换 Select；当前绘图工具与选中对象属性独立。空心图形按边线、箭头/画笔按实际线条命中，空白继续绘制；按住 Option 起笔可穿透已有对象主体。矩形/椭圆/马赛克通过 Shift 保持比例，画笔始终等比且线宽不变，箭头拖端点，文字拖四角调整字号并支持跨工具双击改字。只有 Select 的空白拖动用于移动截图选区。
+
+实现与验证见 [直接编辑记录](../openspec/changes/refine-snap-direct-manipulation/evidence/implementation.md)和[编辑器维护入口](../src/plugins/screenshot/capture/README.md)。PNG 仍是合成图片，不保存可恢复对象的工程文件。本轮浏览器验证与真实 macOS 设备验收分开记录；Windows 普通截图/独立 OCR 流程保持原边界。
+
 ## 启动性能与证据边界
 
 启用 `ZERO_PERFORMANCE_TRACE=1 pnpm tauri dev` 后，固定阶段日志包含入口、菜单退场、targets、native capture、PNG write、WebView build、前端 media/decode、reveal 与 ready acknowledgment。诊断不包含窗口标题、截图、路径、token 或 OCR 正文。ready acknowledgment 是 UI 已提交、图像已解码及原生 show 返回的边界；实际可见首帧仍需设备观察。

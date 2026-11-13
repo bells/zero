@@ -12,6 +12,7 @@ import {
   viewportPointToImagePoint,
 } from "/private/tmp/zero-tests/plugins/screenshot/capture/captureSelectionModel.js";
 
+const hitContext={image:{width:2560,height:1440},viewport:{width:2560,height:1440}};
 const imageSize = { width: 2560, height: 1440 };
 
 test("defaults the real screenshot selection to the complete source image", () => {
@@ -67,11 +68,11 @@ test("keeps rectangle annotations distinct from screenshot selection drags", () 
     strokeWidth: 4,
   };
 
-  assert.deepEqual(resolveSelectPointerTarget([rectangle], { x: 100, y: 100 }), {
+  assert.deepEqual(resolveSelectPointerTarget([rectangle], { x: 50, y: 100 }, hitContext), {
     kind: "annotation",
     annotationId: "rect-1",
   });
-  assert.deepEqual(resolveSelectPointerTarget([rectangle], { x: 400, y: 400 }), {
+  assert.deepEqual(resolveSelectPointerTarget([rectangle], { x: 400, y: 400 }, hitContext), {
     kind: "selection",
   });
 });
@@ -194,8 +195,8 @@ test("absolute interior drag clamps all edges and reverses without accumulated d
 test("annotation hit outranks interior move, which outranks outside creation",async()=>{
   const {resolveSelectionPointerMode}=await import("/private/tmp/zero-tests/plugins/screenshot/capture/captureSelectionModel.js");
   const selection={x:100,y:100,width:300,height:200};
-  assert.equal(resolveSelectionPointerMode([],{x:150,y:150},selection),"move");
-  assert.equal(resolveSelectionPointerMode([],{x:50,y:150},selection),"create");
+  assert.equal(resolveSelectionPointerMode([],{x:150,y:150},selection,hitContext),"move");
+  assert.equal(resolveSelectionPointerMode([],{x:50,y:150},selection,hitContext),"create");
   const annotation={id:"object",type:"rectangle",x:140,y:140,width:30,height:30,color:"red",strokeWidth:2};
-  assert.equal(resolveSelectionPointerMode([annotation],{x:140,y:150},selection),"annotation");
+  assert.equal(resolveSelectionPointerMode([annotation],{x:annotation.x,y:150},selection,hitContext),"annotation");
 });

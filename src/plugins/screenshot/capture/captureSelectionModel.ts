@@ -4,6 +4,7 @@ import {
   normalizeRect,
   type Bounds,
 } from "./captureCanvas.js";
+import type { AnnotationHitContext } from "./captureAnnotationGeometry.js";
 import type { AnnotationObject, Point } from "./captureTypes.js";
 
 export interface Size {
@@ -248,14 +249,15 @@ export function isPointInBounds(point: Point, bounds: Bounds): boolean {
 export function resolveSelectPointerTarget(
   annotations: AnnotationObject[],
   point: Point,
+  context: AnnotationHitContext,
 ): SelectPointerTarget {
-  const annotation = hitTestAnnotation(annotations, point);
+  const annotation = hitTestAnnotation(annotations, point, context);
   return annotation
     ? { kind: "annotation", annotationId: annotation.id }
     : { kind: "selection" };
 }
 
-export function resolveSelectionPointerMode(annotations: AnnotationObject[], point: Point, selection: Bounds): "annotation" | "move" | "create" {
-  if (resolveSelectPointerTarget(annotations, point).kind === "annotation") return "annotation";
+export function resolveSelectionPointerMode(annotations: AnnotationObject[], point: Point, selection: Bounds, context: AnnotationHitContext): "annotation" | "move" | "create" {
+  if (resolveSelectPointerTarget(annotations, point, context).kind === "annotation") return "annotation";
   return isPointInBounds(point, selection) ? "move" : "create";
 }

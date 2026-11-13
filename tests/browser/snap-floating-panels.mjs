@@ -312,7 +312,7 @@ try {
   assert.deepEqual(await bar(), retained);
   samePosition(await panel(), attached);
   await tool("Select screenshot area");
-  await page.mouse.click(200, 220);
+  await page.mouse.click(150, 220);
   await settle();
   assert.deepEqual(await bar(), retained);
   assert.equal(await page.locator(".capture-property-caret").count(), 1);

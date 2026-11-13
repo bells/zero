@@ -128,6 +128,8 @@ try {
     .locator(".capture-selection-frame")
     .boundingBox();
   await tool("Select screenshot area");
+  await page.mouse.click(200, 150);
+  await page.getByRole("combobox", { name: "Shape", exact: true }).selectOption("solid");
   await page.mouse.click(200, 200);
   assert.equal(
     await page
@@ -321,7 +323,9 @@ try {
   await page
     .getByRole("combobox", { name: "Arrowheads", exact: true })
     .selectOption("double");
+  await page.keyboard.down("Alt");
   await drag(150, 180, 350, 180);
+  await page.keyboard.up("Alt");
   await tool("Select screenshot area");
   await page.mouse.click(250, 180);
   await page.locator(".capture-object-frame").waitFor({ state: "attached" });
@@ -360,7 +364,7 @@ try {
   await page.locator(".capture-storage-notice").waitFor();
   await drag(650, 150, 750, 250);
   await tool("Select screenshot area");
-  await page.mouse.click(700, 200);
+  await page.mouse.click(650, 200);
   assert.equal(await number("Stroke width · px").inputValue(), "11");
   await page
     .getByRole("button", { name: "Dismiss notice", exact: true })
@@ -412,7 +416,7 @@ try {
   await page.keyboard.press("Escape");
   assert.equal(await page.getByRole("region",{name:"Ellipse · Drawing defaults",exact:true}).count(),1);
   await tool("Select screenshot area");
-  await page.mouse.click(675,220);
+  await page.mouse.click(600,230);
   assert.equal(await number("Stroke width · px").inputValue(),"20");
   await tool("Ellipse");
   await drag(600,300,750,400);

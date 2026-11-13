@@ -18,7 +18,7 @@ try {
   await page.waitForFunction(() => window.snapPixelResults);
   const results = await page.evaluate(() => window.snapPixelResults);
   assert.deepEqual(errors, []);
-  assert.equal(results.length, 7);
+  assert.equal(results.length, 8);
   assert.deepEqual(
     results.filter((result) => !result.pass),
     [],

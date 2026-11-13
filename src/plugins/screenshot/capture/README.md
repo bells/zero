@@ -14,7 +14,8 @@ The Cargo dev profile optimizes only the pixel/PNG dependencies used on the capt
 | --- | --- |
 | Session/media, crop, gesture routing and output actions | `CaptureApp.tsx` |
 | Per-tool styles, validation, legacy normalization and allowed patches | `captureAnnotationProperties.ts` |
-| Source-space bounds, measured text, handles and transforms | `captureAnnotationGeometry.ts` |
+| Source-space bounds, measured text, shape-aware picking, handles and transforms | `captureAnnotationGeometry.ts` |
+| Object-handle / crop-handle / object / blank input priority | `captureAnnotationInteraction.ts` |
 | Object begin/preview/commit/cancel and stale-target rejection | `captureAnnotationEditing.ts`, `useCaptureAnnotationEditing.ts` |
 | Style-only storage and in-memory default transactions | `captureToolDefaults.ts`, `useCaptureToolDefaults.ts` |
 | Presentational range/number/color/options controls | `AnnotationPropertiesPanel.tsx` |
@@ -24,7 +25,11 @@ The Cargo dev profile optimizes only the pixel/PNG dependencies used on the capt
 | Crop geometry and measured toolbar/panel placement | `captureSelectionModel.ts`, `captureGeometryModel.ts`, `captureToolbarModel.ts`, `useCapturePropertyAnchor.ts`, `SelectionGeometryControls.tsx` |
 | Capture-only Chinese/English property labels | `i18n.ts` (kept out of the initial application graph) |
 
-Drawing keeps its tool active and targets the newly completed annotation for live property edits. The next drawing still uses independent tool defaults. Reactivate the drawing tool or press Escape to deselect and adjust defaults; Select enables geometry editing of existing objects.
+Drawing keeps its tool active and immediately selects the completed annotation for both property and geometry edits. Select and all six drawing tools can target an older annotation of any type: its properties follow the selected type while the next drawing keeps the active tool's independent defaults. Reactivate the drawing tool or press Escape to deselect and adjust defaults. Select alone moves the crop from blank space; blank space in a drawing tool starts another annotation. Text retains blank-click creation and can be double-clicked for multiline re-editing from any drawing tool.
+
+Outline rectangles/ellipses pick near their actual strokes, arrows near the shaft or either filled head, and Pen near the actual path; outline interiors and empty path bounding-box areas let input through. Solid shapes, text layout and Mosaic use their regions. Picking uses 6 CSS px extra tolerance, handles use 8 CSS px, mapped through the same contain scale rather than devicePixelRatio. At a press, selected-object handles precede crop handles (Select only), then topmost matching bodies, then blank actions. Option bypasses bodies only, fixed for the whole gesture; it does not pass through controls/handles. Drawing starts stay inside the crop, but existing image-space objects and their handles remain editable after crossing it. OCR-only retains crop resizing without any annotation routing.
+
+Rectangle/Ellipse/Mosaic keep eight handles and free resizing; Shift preserves the gesture-start ratio. Pen always scales uniformly with its configured stroke width unchanged, including zero-axis paths; single-point scaling is a no-op. Arrow retains two endpoints and body movement. Text has four corner handles changing integer font size within 12–96 source px, preserving the opposite measured corner, glyph proportions and manual lines. It stops when an anchor would leave the image; existing glyph overflow is clipped. Geometry, text, properties and output reuse the same models. Pointer cancellation, lost capture, Escape and tool changes cancel unfinished object edits without adding history; one completed edit adds one undo entry.
 
 The toolbar centers on the selection and prefers outside below, outside above, then inside bottom. It reserves the largest panel height at the current responsive width and locale even while properties are hidden. Its 15 original 40px actions remain horizontally scrollable, while one 20×28px grip with six dots in two columns and three rows stays fixed on the left, without a visible text label or separate reset button. Dragging or using arrow keys on this handle moves the toolbar **together with its attached properties** (1px, Shift 10px). Properties have no separate drag handle or manual coordinates. They continue tracking the corresponding tool button and caret in both automatic and manual modes; near a horizontal viewport edge they clamp while retaining the association.
 
@@ -45,6 +50,7 @@ pnpm dev --host 127.0.0.1
 # In another terminal; omit these variables if Playwright and its browser are already configured.
 export SNAP_PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs
 export SNAP_CHROME_PATH=/absolute/path/to/chrome
+node tests/browser/snap-direct-manipulation.mjs
 node tests/browser/snap-annotation.mjs
 node tests/browser/snap-annotation-pixels.mjs
 node tests/browser/snap-floating-panels.mjs
@@ -56,3 +62,5 @@ The fixtures mock only native IPC and use a generated synthetic image. Interacti
 Implementation and remaining native acceptance: [`enhance-snap-annotation-editing/evidence/implementation.md`](../../../../openspec/changes/enhance-snap-annotation-editing/evidence/implementation.md).
 
 Floating-panel implementation, measurements and pending native acceptance: [`optimize-snap-floating-panels/evidence/implementation.md`](../../../../openspec/changes/optimize-snap-floating-panels/evidence/implementation.md).
+
+Direct-edit implementation, review fixes and pending native acceptance: [`refine-snap-direct-manipulation/evidence/implementation.md`](../../../../openspec/changes/refine-snap-direct-manipulation/evidence/implementation.md).

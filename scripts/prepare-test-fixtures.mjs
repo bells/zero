@@ -67,6 +67,7 @@ const sources = [
   "src/plugins/screenshot/capture/captureAnnotationProperties.ts",
   "src/plugins/screenshot/capture/captureToolDefaults.ts",
   "src/plugins/screenshot/capture/captureAnnotationGeometry.ts",
+  "src/plugins/screenshot/capture/captureAnnotationInteraction.ts",
   "src/plugins/screenshot/capture/captureAnnotationEditing.ts",
   "src/plugins/screenshot/capture/captureExport.ts",
   "src/plugins/screenshot/capture/captureGeometryModel.ts",

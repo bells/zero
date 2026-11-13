@@ -55,9 +55,9 @@ test("computes text bounds and hit tests annotations from topmost to bottom", ()
     width: 56,
     height: 27,
   });
-  assert.equal(hitTestAnnotation(annotations, { x: 22, y: 20 })?.id, "text-1");
-  assert.equal(hitTestAnnotation(annotations, { x: 90, y: 90 })?.id, "rect-1");
-  assert.equal(hitTestAnnotation(annotations, { x: 200, y: 200 }), null);
+  assert.equal(hitTestAnnotation(annotations, { x: 22, y: 20 }, {image:{width:1000,height:700},viewport:{width:1000,height:700}})?.id, "text-1");
+  assert.equal(hitTestAnnotation(annotations, { x: 99, y: 90 }, {image:{width:1000,height:700},viewport:{width:1000,height:700}})?.id, "rect-1");
+  assert.equal(hitTestAnnotation(annotations, { x: 200, y: 200 }, {image:{width:1000,height:700},viewport:{width:1000,height:700}}), null);
 });
 
 test("computes multiline text and ellipse bounds", () => {

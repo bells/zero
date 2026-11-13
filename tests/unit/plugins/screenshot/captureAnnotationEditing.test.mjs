@@ -256,8 +256,8 @@ test("geometry preserves identity and styles while clamping moves, resizing and 
     { width: 100, height: 80 },
   );
   assert.deepEqual(scaled.points, [
-    { x: 60, y: 10 },
-    { x: 60, y: 50 },
+    { x: 20, y: 10 },
+    { x: 20, y: 50 },
   ]);
   assert.equal(scaled.strokeWidth, 5);
   const arrow = {
@@ -311,7 +311,7 @@ test("shared measured text layout and handles respect bold, multiline, arrow hea
   });
   assert.equal(layout.bounds.width, 43);
   assert.equal(layout.lineHeight, 32.400000000000006);
-  assert.equal(g.annotationHandles(text).length, 0);
+  assert.equal(g.annotationHandles(text).length, 4);
   assert.equal(g.annotationHandles(rect).length, 8);
   assert.equal(
     g.hitAnnotationHandle(
@@ -395,7 +395,7 @@ test("object viewport projection retains zero axes and contains image scaling", 
   );
 });
 
-test("resizing a zero-extent Pen axis translates and clamps that axis", async () => {
+test("resizing a zero-extent Pen axis preserves the path instead of translating it", async () => {
   const { resizeAnnotation } = await import(
     "/private/tmp/zero-tests/plugins/screenshot/capture/captureAnnotationGeometry.js"
   );
@@ -414,16 +414,16 @@ test("resizing a zero-extent Pen axis translates and clamps that axis", async ()
     resizeAnnotation(pen, "bottom", { x: 0, y: 15 }, { width: 100, height: 80 })
       .points,
     [
-      { x: 10, y: 35 },
-      { x: 50, y: 35 },
+      { x: 10, y: 20 },
+      { x: 50, y: 20 },
     ],
   );
   assert.deepEqual(
     resizeAnnotation(pen, "top", { x: 0, y: -100 }, { width: 100, height: 80 })
       .points,
     [
-      { x: 10, y: 0 },
-      { x: 50, y: 0 },
+      { x: 10, y: 20 },
+      { x: 50, y: 20 },
     ],
   );
 });

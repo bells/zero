@@ -78,8 +78,9 @@ test("uses rounded SVG and Canvas geometry without adding unrelated effects", ()
   assert.doesNotMatch(exportSource, /capture-(?:target|guide|geometry|selection|toolbar)/);
   const selectionFrameRule = styles.match(/\.capture-selection-frame \{[^}]*\}/)?.[0] ?? "";
   assert.doesNotMatch(selectionFrameRule, /box-shadow/);
-  for (const excluded of ["dropShadow", "aspectRatio", "aspect-ratio"]) {
-    assert.doesNotMatch(`${capture}\n${controls}`, new RegExp(excluded, "i"));
+  assert.doesNotMatch(`${capture}\n${controls}`, /dropShadow/i);
+  for (const excluded of ["aspectRatio", "aspect-ratio"]) {
+    assert.doesNotMatch(controls, new RegExp(excluded, "i"));
   }
 });
 

@@ -1,3 +1,4 @@
+import { resolveAnnotationPointerTarget } from "./captureAnnotationInteraction";
 import { recordCaptureStartup } from "./captureStartup";
 import {
   useCallback,
@@ -67,7 +68,6 @@ import {
   imageBoundsToViewportBounds,
   isPointInBounds,
   moveSelectionBy,
-  resolveSelectPointerTarget,
   resolveSelectionPointerMode,
   resolveSelectionDrag,
   resolveSelectionNudge,
@@ -133,7 +133,6 @@ import {
   annotationBounds,
   annotationBoundsToViewport,
   annotationHandles,
-  hitAnnotationHandle,
   hitTestAnnotation,
   moveAnnotation,
   resizeAnnotation,
@@ -145,6 +144,11 @@ import {
 } from "./captureAnnotationGeometry";
 import { useCaptureAnnotationEditing } from "./useCaptureAnnotationEditing";
 import { useCaptureToolDefaults } from "./useCaptureToolDefaults";
+
+function objectHandleCursor(handle: ObjectHandle): string {
+  if (handle === "from" || handle === "to") return "move";
+  return CAPTURE_SELECTION_HANDLES.find((entry) => entry.handle === handle)?.cursor ?? "move";
+}
 
 type DraftAnnotation = AnnotationObject | null;
 
@@ -258,9 +262,7 @@ export function CaptureApp() {
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
   const [tool, setTool] = useState<CaptureTool>("select");
   const [selection, setSelection] = useState<SelectionGeometry | null>(null);
-  const [selectionCursor, setSelectionCursor] = useState<
-    "default" | "grab" | "grabbing"
-  >("default");
+  const [selectionCursor, setSelectionCursor] = useState<CSSProperties["cursor"]>("default");
   const [selectionDraft, setSelectionDraft] =
     useState<SelectionGeometry | null>(null);
   const [hoverTarget, setHoverTarget] =
@@ -571,10 +573,9 @@ export function CaptureApp() {
   const propertyObject = editing.scene.find(
     (annotation): annotation is DrawingAnnotation =>
       annotation.id === history.selectedId &&
-      annotation.type !== "pin" &&
-      (tool === "select" || annotation.type === tool),
+      annotation.type !== "pin",
   );
-  const selectedObject = tool === "select" ? propertyObject : undefined;
+  const selectedObject = ocrSelectionOnly ? undefined : propertyObject;
   const panelContext: AnnotationPanelContext | null = textDraft
     ? {
         mode: textDraft.mode === "edit" ? "selected" : "default",
@@ -985,7 +986,8 @@ export function CaptureApp() {
       });
   }
   function changeTool(next: CaptureTool) {
-    if (pointerBusy || isCommitting) return;
+    if (isCommitting || toolbarDrag.dragging) return;
+    if (pointerBusy) rollbackGesture();
     finishProperty();
     if (textDraftRef.current) commitTextDraft();
     dispatch({ type: "select", id: null });
@@ -1139,7 +1141,7 @@ export function CaptureApp() {
     });
   }
   function startObjectGesture(
-    event: ReactPointerEvent<HTMLCanvasElement>,
+    event: ReactPointerEvent<HTMLElement>,
     point: Point,
     annotation: DrawingAnnotation,
     handle: ObjectHandle | null,
@@ -1165,7 +1167,7 @@ export function CaptureApp() {
     dispatch({ type: "select", id: annotation.id });
   }
   function previewObjectGesture(
-    event: ReactPointerEvent<HTMLCanvasElement>,
+    event: ReactPointerEvent<HTMLElement>,
     point: Point,
   ) {
     const interaction = objectInteractionRef.current;
@@ -1199,12 +1201,16 @@ export function CaptureApp() {
               interaction.handle,
               delta,
               imageSize,
+              { preserveAspectRatio: event.shiftKey },
             )
           : moveAnnotation(interaction.original, delta, imageSize);
     editing.preview(interaction.token, next);
   }
 
-  const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+  const handlePointerDown = (
+    event: ReactPointerEvent<HTMLElement>,
+    cropHandle: SelectionResizeHandle | null = null,
+  ) => {
     if (event.button !== 0 || isCommitting || closingRef.current) return;
     const point = pointerToImagePoint(event);
     if (!point) {
@@ -1218,6 +1224,42 @@ export function CaptureApp() {
     }
     finishProperty();
 
+    setError(null);
+
+    if (selection && tool !== "pin") {
+      const target = resolveAnnotationPointerTarget({
+        annotations: ocrSelectionOnly ? [] : history.annotations,
+        selected: selectedObject ?? null,
+        point,
+        context: { image: imageSize, viewport: viewportSize },
+        cropHandle: tool === "select" ? cropHandle : null,
+        bypassObjectBody: event.altKey,
+      });
+      if (target.kind === "object" || target.kind === "object-handle") {
+        startObjectGesture(
+          event,
+          point,
+          target.annotation,
+          target.kind === "object-handle" ? target.handle : null,
+        );
+        return;
+      }
+      if (target.kind === "crop-handle") {
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        dispatch({ type: "select", id: null });
+        selectionInteractionRef.current = {
+          kind: "resize",
+          pointerId: event.pointerId,
+          start: point,
+          initial: selection,
+          handle: target.handle,
+        };
+        setSelectionDraft(null);
+        return;
+      }
+    }
+
     if (
       tool !== "select" &&
       activeSelection &&
@@ -1225,8 +1267,6 @@ export function CaptureApp() {
     ) {
       return;
     }
-
-    setError(null);
 
     if (tool === "select") {
       if (!selection) {
@@ -1247,21 +1287,12 @@ export function CaptureApp() {
         setCrosshair(point);
         return;
       }
-      const handle = selectedObject
-        ? hitAnnotationHandle(selectedObject, point, imageSize, viewportSize)
-        : null;
-      if (selectedObject && handle) {
-        startObjectGesture(event, point, selectedObject, handle);
-        return;
-      }
-      const object = hitTestAnnotation(history.annotations, point);
-      if (object && object.type !== "pin") {
-        startObjectGesture(event, point, object, null);
-        return;
-      }
       event.currentTarget.setPointerCapture(event.pointerId);
       dispatch({ type: "select", id: null });
-      const mode = resolveSelectionPointerMode([], point, selection.bounds);
+      const mode = resolveSelectionPointerMode([], point, selection.bounds, {
+        image: imageSize,
+        viewport: viewportSize,
+      });
       if (mode === "annotation") return;
       selectionInteractionRef.current = {
         kind: mode,
@@ -1277,6 +1308,7 @@ export function CaptureApp() {
       return;
     }
 
+    dispatch({ type: "select", id: null });
     if (tool === "text") {
       const style = defaults.styles.text;
       const scale = sourceScale;
@@ -1312,7 +1344,7 @@ export function CaptureApp() {
     updateDraft(createDraft(point, point));
   };
 
-  const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
     const point = pointerToImagePoint(
       event,
       Boolean(
@@ -1334,16 +1366,20 @@ export function CaptureApp() {
       return;
     }
     const interaction = selectionInteractionRef.current;
+    if (interaction?.kind === "resize") {
+      handleResizePointerMove(event);
+      return;
+    }
+    const hoverTarget = selection && !ocrSelectionOnly && tool !== "pin"
+      ? resolveAnnotationPointerTarget({ annotations: history.annotations, selected: selectedObject ?? null, point,
+          context: { image: imageSize, viewport: viewportSize }, cropHandle: null, bypassObjectBody: event.altKey })
+      : { kind: "blank" } as const;
     setSelectionCursor(
-      interaction?.kind === "move"
-        ? "grabbing"
-        : tool === "select" &&
-            selection &&
-            isPointInBounds(point, selection.bounds) &&
-            resolveSelectPointerTarget(history.annotations, point).kind !==
-              "annotation"
-          ? "grab"
-          : "default",
+      interaction?.kind === "move" ? "grabbing"
+        : hoverTarget.kind === "object-handle" ? objectHandleCursor(hoverTarget.handle)
+        : hoverTarget.kind === "object" ? "move"
+        : tool === "select" && selection && isPointInBounds(point, selection.bounds) ? "grab"
+        : tool === "select" ? "default" : "crosshair",
     );
     if (
       interaction?.kind === "pending-target" &&
@@ -1434,7 +1470,7 @@ export function CaptureApp() {
     updateDraft(createDraft(start, point));
   };
 
-  const handlePointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+  const handlePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
     const point = pointerToImagePoint(event, true);
     const objectInteraction = objectInteractionRef.current;
     if (objectInteraction?.pointerId === event.pointerId) {
@@ -1446,6 +1482,10 @@ export function CaptureApp() {
       return;
     }
     const interaction = selectionInteractionRef.current;
+    if (interaction?.kind === "resize") {
+      handleResizePointerUp(event);
+      return;
+    }
     if (
       interaction?.kind === "pending-target" &&
       interaction.pointerId === event.pointerId &&
@@ -1565,38 +1605,16 @@ export function CaptureApp() {
   };
 
   const handleResizePointerDown = (
-    event: ReactPointerEvent<HTMLSpanElement>,
+    event: ReactPointerEvent<HTMLElement>,
     handle: SelectionResizeHandle,
   ) => {
-    if (textDraftRef.current) {
-      if (!compositionRef.current) commitTextDraft();
-      return;
-    }
-    if (tool !== "select" || !session || !selection || isCommitting) {
-      return;
-    }
-
-    const point = pointerToImagePoint(event, true);
-    if (!point) {
-      return;
-    }
-
     event.preventDefault();
     event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dispatch({ type: "select", id: null });
-    selectionInteractionRef.current = {
-      kind: "resize",
-      pointerId: event.pointerId,
-      start: point,
-      initial: selection,
-      handle,
-    };
-    setSelectionDraft(null);
+    handlePointerDown(event, handle);
   };
 
   const handleResizePointerMove = (
-    event: ReactPointerEvent<HTMLSpanElement>,
+    event: ReactPointerEvent<HTMLElement>,
   ) => {
     const interaction = selectionInteractionRef.current;
     if (
@@ -1628,7 +1646,7 @@ export function CaptureApp() {
     );
   };
 
-  const handleResizePointerUp = (event: ReactPointerEvent<HTMLSpanElement>) => {
+  const handleResizePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
     const interaction = selectionInteractionRef.current;
     if (
       interaction?.kind !== "resize" ||
@@ -1666,7 +1684,7 @@ export function CaptureApp() {
   };
 
   const handleResizePointerCancel = (
-    event: ReactPointerEvent<HTMLSpanElement>,
+    event: ReactPointerEvent<HTMLElement>,
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -1697,7 +1715,7 @@ export function CaptureApp() {
       });
   }
   function handleDoubleClick(event: React.MouseEvent<HTMLCanvasElement>) {
-    if (tool !== "select" || textDraftRef.current || pointerBusy) return;
+    if (ocrSelectionOnly || tool === "pin" || event.altKey || textDraftRef.current || pointerBusy) return;
     const rect = imageRef.current?.getBoundingClientRect();
     if (!rect) return;
     const point = viewportPointToImagePoint(
@@ -1706,7 +1724,7 @@ export function CaptureApp() {
       { width: rect.width, height: rect.height },
       true,
     );
-    const object = point ? hitTestAnnotation(history.annotations, point) : null;
+    const object = point ? hitTestAnnotation(history.annotations, point, { image: imageSize, viewport: viewportSize }) : null;
     if (object?.type === "text") {
       dispatch({ type: "select", id: object.id });
       const position = annotationBoundsToViewport(
@@ -1797,7 +1815,7 @@ export function CaptureApp() {
       <canvas
         ref={overlayRef}
         className="capture-overlay"
-        style={{ cursor: tool === "select" ? selectionCursor : undefined }}
+        style={{ cursor: selectionCursor }}
         onDoubleClick={handleDoubleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -1913,8 +1931,8 @@ export function CaptureApp() {
               key={handle}
               style={{ cursor }}
               onPointerDown={(event) => handleResizePointerDown(event, handle)}
-              onPointerMove={handleResizePointerMove}
-              onPointerUp={handleResizePointerUp}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
               onPointerCancel={handleResizePointerCancel}
               onLostPointerCapture={handleResizePointerCancel}
             />
@@ -2026,6 +2044,9 @@ export function CaptureApp() {
           </span>
         </div>
       ) : null}
+      {!ocrSelectionOnly && selection && !textDraft ? (
+        <p className="capture-edit-hint">{t("screenshot.edit.hint")}</p>
+      ) : null}
       {renderFailed ? (
         <p className="capture-error" role="alert">
           {t("screenshot.properties.renderFailed")}
@@ -2113,7 +2134,7 @@ export function CaptureApp() {
                     title={label}
                     aria-label={label}
                     aria-pressed={selected}
-                    disabled={pointerBusy || isCommitting}
+                    disabled={isCommitting || (pointerBusy && !objectInteractionRef.current)}
                     onClick={() => changeTool(entryTool)}
                   >
                     <Icon aria-hidden="true" />
