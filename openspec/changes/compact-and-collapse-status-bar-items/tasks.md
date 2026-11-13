@@ -40,6 +40,7 @@
 - [x] 5.4 Run `git diff --check` and review the final diff for unintended `.playwright-cli/`, `output/`, build artifacts, or unrelated workspace changes.
 - [ ] 5.5 Manually verify on macOS that the grouped 22pt cells remain individually clickable, and test collapse without blank slots, leftward expansion beside a primary Ø positioned in the middle of the menu bar, restart restoration, primary left click and panel anchoring, tool left clicks, per-cell right-click menus, visibility changes, primary-menu quit, and Awake icon refresh without ordering drift or flicker.
 - [x] 5.6 Verify on a Windows device that Zero still presents one Ø tray icon and the existing fallback tool row, or explicitly record that Windows runtime behavior remains device-unverified.
+- [x] 5.7 Reproduce the stale native mouse-receiver frame after expansion, synchronize child-view bounds/autoresizing with the final status-button geometry, and run an opt-in AppKit hit-test regression across three expand/collapse cycles. See [regression evidence](evidence/2026-11-13-hit-regions.md); full menu/action acceptance in 5.5 remains separate.
 
 ## Verification Notes
 

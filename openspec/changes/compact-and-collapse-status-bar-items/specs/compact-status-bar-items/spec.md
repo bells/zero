@@ -34,6 +34,10 @@ The system SHALL persist whether the macOS tool-item group is collapsed. Collaps
 - **WHEN** a settings update, plugin lifecycle event, or stateful tool-icon update refreshes the macOS status items
 - **THEN** the grouped item reapplies its template image and persisted collapsed or expanded width without changing that state or its native position
 
+#### Scenario: Resizing preserves the full mouse target
+- **WHEN** the user repeatedly expands or collapses the macOS tool group
+- **THEN** the native mouse receiver covers every visible cell so both left and right clicks continue reaching the primary and tool items
+
 ### Requirement: Primary-item interactions remain unambiguous
 The primary Zero item SHALL retain its existing left-click tray-panel action and SHALL expose collapse or expand only through its native right-click menu. The menu label SHALL describe the action that will occur from the current persisted state.
 

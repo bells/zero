@@ -20,6 +20,11 @@ name = "bing_wallpaper"
 required-features = ["bundled-tools"]
 
 [[test]]
+name = "status_bar_native"
+harness = false
+required-features = ["bundled-tools"]
+
+[[test]]
 name = "quick_launcher_benchmark"
 required-features = ["bundled-tools"]
 

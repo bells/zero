@@ -1629,6 +1629,15 @@ fn apply_native_status_item_length<R: Runtime>(
                     length,
                     f64::from(MACOS_STATUS_ITEM_ICON_SIZE),
                 ));
+                // tray-icon sizes its mouse receiver before our final length is applied.
+                // Keep both it and our drawing overlay attached to the button's bounds.
+                for view in button.subviews() {
+                    view.setFrame(button.bounds());
+                    view.setAutoresizingMask(
+                        objc2_app_kit::NSAutoresizingMaskOptions::ViewWidthSizable
+                            | objc2_app_kit::NSAutoresizingMaskOptions::ViewHeightSizable,
+                    );
+                }
                 objc2_app_kit::NSView::setNeedsDisplay(&button, true);
                 Ok(())
             })
