@@ -60,6 +60,9 @@ jobs:
         id: version
         run: node scripts/verify-package-version.mjs
       - name: Verify profile registry behavior
+        env:
+          # Registry tests run before installer resources are prepared.
+          TAURI_CONFIG: '{"bundle":{"resources":[]}}'
         run: cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features ${{ matrix.profile == 'standard' && '--features bundled-tools' || '' }} --test build_profiles
       - name: Build installers and measure sizes
         run: pnpm package:desktop --profile ${{ matrix.profile }} --target ${{ matrix.target }} --ci
