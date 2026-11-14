@@ -31,6 +31,7 @@ export default defineConfig(async () => ({
   },
   define: {
     "import.meta.env.VITE_ZERO_HAS_FILE": JSON.stringify(profile.tools.includes("file")),
+    "import.meta.env.VITE_ZERO_HAS_BUNDLED_TOOLS": JSON.stringify(profile.tools.length > 0),
   },
   // A late optimizer reload destroys the hidden engine's active job context.
   optimizeDeps: {

@@ -1,5 +1,45 @@
 use zero_lib::plugins::market::{PluginMarketCache, DEFAULT_PLUGIN_MARKET_URL};
 
+#[test]
+fn repository_market_index_is_accepted_by_host() {
+    let json = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../market.json"),
+    )
+    .expect("the default market URL must have a repository index");
+    let snapshot = PluginMarketCache::new(DEFAULT_PLUGIN_MARKET_URL)
+        .refresh_from_json(&json)
+        .expect("repository index must be accepted by the host");
+    assert_eq!(snapshot.schema_version, 1);
+    assert!(!snapshot.stale);
+}
+
+#[test]
+fn http_error_is_reported_before_parsing_and_keeps_cached_entries() {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}/market.json", listener.local_addr().unwrap());
+    let server = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+            .unwrap();
+        let mut request = [0; 4096];
+        stream.read(&mut request).unwrap();
+        stream.write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 14\r\nConnection: close\r\n\r\n404: Not Found").unwrap();
+    });
+    let response =
+        tauri::async_runtime::block_on(zero_lib::plugins::market::fetch_market_json(&url));
+    server.join().unwrap();
+    let mut cache = PluginMarketCache::new(&url);
+    cache.refresh_from_json(valid_market_json()).unwrap();
+    let error = cache
+        .refresh_with_fetcher(|_| response.map_err(|error| error.message))
+        .expect_err("an HTTP error must not become a successful JSON response");
+    assert!(error.message.contains("404"), "{}", error.message);
+    assert!(!error.message.contains("parse"), "{}", error.message);
+    assert_eq!(cache.cached_snapshot().unwrap().entries.len(), 1);
+}
+
 fn valid_market_json() -> &'static str {
     r#"{
         "schemaVersion": 1,

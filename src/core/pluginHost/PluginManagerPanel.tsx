@@ -27,6 +27,7 @@ interface PluginManagerPanelProps {
 }
 
 export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
+  const hasBundledTools = import.meta.env.VITE_ZERO_HAS_BUNDLED_TOOLS;
   const market = usePluginMarket();
   const [localPackagePath, setLocalPackagePath] = useState("");
   const [validationReport, setValidationReport] = useState<PluginPackageValidationReport | null>(null);
@@ -250,10 +251,10 @@ export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
       <ExtensionSection
         id={preferencesSettingFocusTargetId("extensions.restore")}
         title={t("extensions.restore.title")}
-        description={t("extensions.restore.description")}
+        description={t(hasBundledTools ? "extensions.restore.description" : "extensions.restore.unavailable")}
       >
         <div className="preferences-section-actions">
-          <button type="button" className="secondary-action" disabled={isWorking} onClick={() => void runLifecycleAction(pluginHost.restoreBundledPlugins, "extensions.status.restored")}>
+          <button type="button" className="secondary-action" disabled={isWorking || !hasBundledTools} onClick={() => void runLifecycleAction(pluginHost.restoreBundledPlugins, "extensions.status.restored")}>
             {t("extensions.restore.action")}
           </button>
         </div>

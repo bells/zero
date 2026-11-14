@@ -36,6 +36,8 @@ Paper 的每日自动更换默认关闭，在主窗口的 Paper 工具设置中�
 
 当前源码版本为 `0.1.0`。试用打包提供 **core**（无内置工具）和 **standard**（Snap、Awake、Paper、Launch），两者均不包含 File；源码默认 full 配置包含五工具。后续官方安装包面向 macOS Apple Silicon（M 系列）和 Windows x64。下载入口见[官网](https://www.usezero.cn/download/)，产物与限制见[打包指南](docs/packaging.md)，不要将源码功能清单等同于每个安装包的内容。
 
+体验桌面工具请选择 **standard**。core 无法通过“恢复内置工具”补入这些原生模块；当前扩展市场索引为空，也不提供内置工具的下载。
+
 ### 官网在线工具箱
 
 入口：[中文工具箱](https://www.usezero.cn/tools/) · [English tools](https://www.usezero.cn/en/tools/)。源码当前提供十七项工具，开发／图片／文本／日期与计算数量为 10/4/2/1：
@@ -169,6 +171,8 @@ Awake’s Custom editor accepts 1–1440 minutes or the next local end time. Pre
 Paper daily changes default to off and save immediately in the main window’s Paper settings. Checks use China Standard Time while Zero is running and Paper is enabled; hiding the panel does not stop them. Historical images successfully applied through Paper are protected until the next China midnight; turning daily changes off and on requests the latest image. Launch at login is unchanged. See the [implementation record](openspec/changes/refine-paper-latest-and-daily-wallpaper/evidence/implementation.md) for source and automated checks, and the pending macOS/Windows device acceptance.
 
 The source version is `0.1.0`. Trial packages offer **core** (no bundled tools) and **standard** (Snap, Awake, Paper, Launch); both exclude File. The default full source configuration includes all five tools. Future official installers target macOS Apple Silicon (M series) and Windows x64. Check the [download page](https://www.usezero.cn/en/download/) and [packaging guide](docs/packaging.md) for actual artifacts and limitations; the source feature list does not describe every installer.
+
+Choose **standard** to try the desktop tools. Restoring bundled tools cannot add the native modules excluded from core. The current extension market index is empty and does not offer bundled tools as downloads.
 
 ### Browser toolbox
 

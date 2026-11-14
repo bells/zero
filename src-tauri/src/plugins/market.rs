@@ -130,8 +130,18 @@ impl PluginMarketCache {
 pub async fn fetch_market_json(source_url: &str) -> Result<String, PluginMarketError> {
     let mut diagnostic = crate::services::diagnostics::Operation::new(None, "market");
     let result = (async {
-        let response = reqwest::get(source_url)
+        let client = reqwest::Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .timeout(std::time::Duration::from_secs(20))
+            .build()
+            .map_err(|error| market_error(format!("failed to create market client: {error}")))?;
+        let response = client
+            .get(source_url)
+            .send()
             .await
+            .map_err(|error| market_error(format!("failed to fetch market: {error}")))?;
+        let response = response
+            .error_for_status()
             .map_err(|error| market_error(format!("failed to fetch market: {error}")))?;
 
         response

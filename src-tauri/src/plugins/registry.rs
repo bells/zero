@@ -380,8 +380,12 @@ impl PluginRegistry {
     }
 
     pub fn restore_bundled_defaults(&mut self) -> Result<Vec<PluginRecord>, String> {
+        let bundled_records = bundled_plugin_records();
+        if bundled_records.is_empty() {
+            return Err("This build contains no bundled tools. Install the standard build to use Snap, Awake, Paper and Launch.".to_string());
+        }
         let previous = self.records.clone();
-        for bundled in bundled_plugin_records() {
+        for bundled in bundled_records {
             match self
                 .records
                 .iter_mut()

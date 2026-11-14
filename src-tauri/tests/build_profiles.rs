@@ -33,6 +33,23 @@ fn clean_profile_seeds_only_compiled_tools() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[cfg(not(any(feature = "bundled-tools", feature = "file-tool")))]
+#[test]
+fn core_restore_reports_unavailable_without_writing_registry() {
+    let root = root();
+    let mut registry = PluginRegistry::load_or_seed(&root).unwrap();
+    let previous = fs::read(root.join("registry.json")).unwrap();
+    let revision = registry.revision();
+    let error = registry
+        .restore_bundled_defaults()
+        .expect_err("core has no bundled tools");
+    assert!(error.contains("no bundled tools"));
+    assert!(registry.records().is_empty());
+    assert_eq!(registry.revision(), revision);
+    assert_eq!(fs::read(root.join("registry.json")).unwrap(), previous);
+    fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn repeated_saves_commit_revisions_without_leaving_staging_files() {
     let root = root();

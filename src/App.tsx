@@ -243,7 +243,7 @@ function EmptyPluginState({ t }: { t: (key: TranslationKey) => string }) {
       </div>
       <div className="panel-copy">
         <strong>{t("shell.noTools")}</strong>
-        <span>{t("shell.noToolsHint")}</span>
+        <span>{t(import.meta.env.VITE_ZERO_HAS_BUNDLED_TOOLS ? "shell.noToolsHint" : "shell.coreNoToolsHint")}</span>
       </div>
     </section>
   );

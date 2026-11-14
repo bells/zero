@@ -18,6 +18,17 @@ The host SHALL retain application identifier and storage paths. Registry records
 - **WHEN** an existing five-tool registry is opened and saved by core
 - **THEN** core exposes none of those tools and the saved registry retains their enabled state and data for subsequent full builds
 
+#### Scenario: Restore bundled tools in core
+
+- **WHEN** the running build contains no compiled bundled tools
+- **THEN** the UI disables restore and explains that standard is required for Snap, Awake, Paper and Launch
+- **AND** a direct restore request returns an unavailable error without writing the registry or advancing its revision
+
+#### Scenario: Empty tool workspace in core
+
+- **WHEN** core has no installed tools to display
+- **THEN** the empty state explains the build's lack of bundled tools and directs users to standard without promising that restore can download native tools
+
 ### Requirement: Produce downloadable measured trial artifacts
 
 Packaging SHALL name installers by version, profile, platform, architecture and format. It SHALL report byte sizes and SHA-256 for each installer, and installed macOS app bytes separately. A manual GitHub Actions run SHALL expose downloadable artifacts without creating a version tag or publishing a Release. A version-tag run SHALL attach both profiles to a Draft Release and SHALL reject replacement of published release assets.

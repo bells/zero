@@ -13,3 +13,9 @@
 - [ ] 2.3 Run native startup/tool trial for these specific installers (owner local trial).
 - [ ] 2.4 Run hosted Actions for macOS Apple Silicon and Windows x64; download and verify matching artifacts.
 - [ ] 2.5 Verify Windows installers and native trial use on a Windows device.
+
+## 3. Core market and restore feedback follow-up
+
+- [x] 3.1 Reproduce the missing default market index and misleading empty restore result; add regression tests and bounded fixes. See [2026-11-13 evidence](evidence/core-market-recovery-2026-11-13.md).
+- [x] 3.2 Verify full/core/standard frontend builds, core regression tests, full serial Rust regression, performance and strict specs; preserve the initial OCR concurrency failure separately.
+- [ ] 3.3 Inspect the corrected core empty state and disabled restore action on a real desktop; verify newly packaged macOS/Windows builds when available.

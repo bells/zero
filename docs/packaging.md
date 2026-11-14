@@ -8,6 +8,10 @@
 
 core/standard 均在编译阶段排除缺席工具，且不复制 File 引擎资源。安装包名称含版本、配置、平台、架构和格式；安装后均叫 Zero，使用同一 com.watson.ztool 标识与 ~/.zero 数据目录，顺序替换安装。两版不能同时作为不同应用运行。切换配置保留缺席工具记录，当前包不显示它们；现存系统搜索入口不会主动删除，点击缺席工具的旧入口不会启动该工具。
 
+体验四个工具请选择 `Zero_0.1.0_standard_macos_aarch64_dmg.dmg`（macOS Apple Silicon）或对应的 Windows standard 包。退出 Zero 后替换应用即可；无需删除 `~/.zero`。core 的“恢复内置工具”不能下载或补入编译时已排除的原生模块。源码修复后，core 会禁用该按钮并说明原因；旧安装包仍可能显示无效的恢复成功提示。
+
+默认扩展市场读取仓库根目录的 [market.json](../market.json)，目前是合法空索引，没有可下载扩展。五个内置工具并未作为市场 `.zplugin` 发布；公开 Web runtime 的状态见[协议说明](plugins/protocol-v1.md)。索引必须合入远程 main 后才会被已安装应用读取，本地新增文件不等于线上修复；HTTP 状态检查和界面提示的修复也需要重新构建安装包。
+
 ## 本机打包
 
 使用 Node 24、pnpm 10.33.0、Rust stable 和平台原生构建工具：

@@ -15,6 +15,14 @@ The system SHALL support a preset `market.json` URL that describes available plu
 - **WHEN** market refresh fails after a previous valid market snapshot was cached
 - **THEN** the system MAY show the cached snapshot with a stale/offline indicator
 
+#### Scenario: Market source returns an HTTP error
+- **WHEN** the market source returns a non-success HTTP status such as 404
+- **THEN** the system reports a fetch error containing the HTTP status before attempting JSON parsing and preserves any previous valid snapshot
+
+#### Scenario: Default catalog has no released packages
+- **WHEN** no installable packages have been released
+- **THEN** the repository provides a valid empty index at the preset path and the UI explains that bundled native tools are provided by the standard build
+
 ### Requirement: Market entries point to GitHub Release plugin packages
 The system SHALL model each market plugin entry as metadata that includes plugin identity, version, author, repository URL, release URL, download URL for a `.zplugin` asset, permissions, and optional checksum.
 
