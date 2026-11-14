@@ -1,6 +1,7 @@
 use super::contracts::{PluginManifest, PluginSource};
 use super::protocol::{
-    check_web_manifest, issue, web_runtime_enabled, CompatibilityReport, API_VERSION,
+    check_web_manifest_with_capabilities, issue, web_runtime_enabled, CompatibilityReport,
+    API_VERSION,
 };
 use super::versions::{is_protocol_version, legacy_host_matches};
 use serde_json::Value;
@@ -16,11 +17,12 @@ pub fn current_platform() -> &'static str {
 }
 
 pub fn check_manifest(value: &Value) -> CompatibilityReport {
-    check_manifest_for_host(
+    check_manifest_for_host_with_capabilities(
         value,
         env!("CARGO_PKG_VERSION"),
         current_platform(),
         web_runtime_enabled(),
+        &super::providers::implemented_capabilities(),
     )
 }
 
@@ -29,6 +31,16 @@ pub fn check_manifest_for_host(
     host: &str,
     platform: &str,
     web_enabled: bool,
+) -> CompatibilityReport {
+    check_manifest_for_host_with_capabilities(value, host, platform, web_enabled, &[])
+}
+
+pub fn check_manifest_for_host_with_capabilities(
+    value: &Value,
+    host: &str,
+    platform: &str,
+    web_enabled: bool,
+    capabilities: &[super::capabilities::HostCapability],
 ) -> CompatibilityReport {
     if let Some(schema) = value.get("schemaVersion") {
         if schema.as_f64() != Some(2.0) {
@@ -44,7 +56,25 @@ pub fn check_manifest_for_host(
                 )],
             };
         }
-        let mut report = check_web_manifest(value, host, API_VERSION, platform);
+        let mut report =
+            check_web_manifest_with_capabilities(value, host, API_VERSION, platform, capabilities);
+        if value
+            .get("background")
+            .is_some_and(|background| !background.is_null())
+        {
+            let required = super::capabilities::RequiredCapability {
+                id: "background.events".into(),
+                version: "^1.0.0".into(),
+            };
+            let background = super::capabilities::compare_capabilities(&[required], capabilities);
+            report
+                .issues
+                .extend(background.issues.into_iter().map(|mut issue| {
+                    issue.path = "background".into();
+                    issue
+                }));
+            report.compatible = report.issues.is_empty();
+        }
         if !web_enabled {
             report.issues.push(issue(
                 "runtime.unsupported",

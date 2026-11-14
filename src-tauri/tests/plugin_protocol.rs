@@ -99,3 +99,101 @@ fn web_manifest_roundtrip_preserves_optional_field_absence() {
     assert!(wire.get("hostVersion").is_some());
     assert!(wire.get("host_version").is_none());
 }
+
+#[test]
+fn shared_capability_manifest_corpus() {
+    let cases: Vec<Value> = serde_json::from_str(include_str!(
+        "../../tests/fixtures/plugin-protocol/capability-manifests.json"
+    ))
+    .unwrap();
+    for case in cases {
+        let report = protocol::check_web_manifest(&case["manifest"], "0.2.3", "1.2.0", "macos");
+        let valid = !report
+            .issues
+            .iter()
+            .any(|issue| issue.code == "manifest.invalid");
+        if valid {
+            let parsed: protocol::PluginManifestV2 =
+                serde_json::from_value(case["manifest"].clone()).unwrap();
+            assert_eq!(serde_json::to_value(parsed).unwrap(), case["manifest"]);
+        }
+        assert_eq!(valid, case["valid"].as_bool().unwrap(), "{}", case["name"]);
+    }
+}
+
+#[test]
+fn shared_capability_comparison_corpus() {
+    use zero_lib::plugins::capabilities::{
+        compare_capabilities, HostCapability, RequiredCapability,
+    };
+    let cases: Vec<Value> = serde_json::from_str(include_str!(
+        "../../tests/fixtures/plugin-protocol/capabilities.json"
+    ))
+    .unwrap();
+    for case in cases {
+        let required: Vec<RequiredCapability> =
+            serde_json::from_value(case["required"].clone()).unwrap();
+        let providers: Vec<HostCapability> =
+            serde_json::from_value(case["providers"].clone()).unwrap();
+        let report = compare_capabilities(&required, &providers);
+        assert_eq!(
+            report.compatible,
+            case["compatible"].as_bool().unwrap(),
+            "{}",
+            case["name"]
+        );
+        let codes: Vec<_> = report
+            .issues
+            .iter()
+            .map(|issue| issue.code.as_str())
+            .collect();
+        let expected: Vec<_> = case["codes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        assert_eq!(codes, expected, "{}", case["name"]);
+        if report.compatible {
+            assert_eq!(report.capabilities, providers);
+        }
+        for issue in report.issues.iter().filter(|issue| {
+            issue.code == "capability.missing" || issue.code == "capability.incompatible"
+        }) {
+            let index: usize = issue.path.rsplit('.').next().unwrap().parse().unwrap();
+            assert_eq!(issue.required.as_ref(), Some(&required[index].version));
+            assert_eq!(
+                issue.actual.as_ref(),
+                providers.first().map(|provider| &provider.version)
+            );
+        }
+    }
+}
+
+#[test]
+fn required_provider_is_not_inferred_from_runtime_or_plugin_identity() {
+    let mut value: Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/plugin-protocol/example.manifest.json"
+    ))
+    .unwrap();
+    value["requiredCapabilities"] =
+        serde_json::json!([{ "id": "host.power", "version": "^1.0.0" }]);
+    let report = protocol::check_web_manifest(&value, "0.2.3", "1.2.0", "macos");
+    assert!(!report.compatible);
+    assert!(report
+        .issues
+        .iter()
+        .any(|issue| issue.code == "capability.missing"));
+    let report = protocol::check_web_manifest_with_capabilities(
+        &value,
+        "0.2.3",
+        "1.2.0",
+        "macos",
+        &[zero_lib::plugins::capabilities::HostCapability {
+            id: "host.power".into(),
+            version: "1.0.0".into(),
+        }],
+    );
+    assert!(report.compatible);
+    assert!(!protocol::PUBLIC_WEB_RUNTIME_ENABLED);
+}

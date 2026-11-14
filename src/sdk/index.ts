@@ -1,8 +1,11 @@
 import type {
   Disposable, JsonValue, PluginContext, PluginError, PluginMethod, PluginMethodMap,
   PluginRequest, PluginResponse, PluginSessionInfo, Result, ZeroBridge, ZeroPluginDefinition,
-} from "../core/pluginHost/protocol/contracts";
-export type * from "../core/pluginHost/protocol/contracts";
+} from "./contracts.js";
+export type * from "./contracts.js";
+export type * from "./diagnostics.js";
+export type { OfficialPackageSignature } from "./publisher.js";
+export { compareCapabilities } from "./capabilities.js";
 
 export interface PluginTransport {
   readonly session: Readonly<PluginSessionInfo>;
@@ -117,6 +120,6 @@ export function registerPlugin(definition: ZeroPluginDefinition, transport?: Plu
 
 
 /** Diagnostics never grant access to host logs, paths or clipboard content. */
-export function emitDiagnostic(bridge: ZeroBridge, input: import("../core/diagnostics/contracts").DiagnosticEmitInput): Promise<Result<null>> {
+export function emitDiagnostic(bridge: ZeroBridge, input: import("./diagnostics.js").DiagnosticEmitInput): Promise<Result<null>> {
   return bridge.request("diagnostics.emit", input);
 }

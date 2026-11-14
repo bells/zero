@@ -457,6 +457,10 @@ fn versioned_manifest_is_not_silently_downgraded_to_legacy() {
         .issues
         .iter()
         .any(|issue| issue.code == "runtime.unsupported"));
-    assert!(report.manifest.is_none());
+    let protocol_manifest = report.protocol_manifest.expect("preserve the v2 contract");
+    let catalog = report.manifest.expect("retain only a catalog projection");
+    assert_eq!(catalog.name, protocol_manifest.id);
+    assert_eq!(catalog.version, protocol_manifest.version);
+    assert_eq!(catalog.main, protocol_manifest.main);
     fs::remove_dir_all(package.parent().unwrap()).unwrap();
 }

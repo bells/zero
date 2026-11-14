@@ -1,4 +1,5 @@
 import type { CheckPluginCompatibilityInput, CompatibilityReport, OpenPluginViewInput } from "./protocol/contracts";
+import type { PluginHostCapabilities } from "./hostCapabilities";
 import type {
   InstallMarketPluginInput,
   InstallPluginPackageInput,
@@ -15,6 +16,7 @@ import type {
 export const PLUGIN_HOST_COMMANDS = {
   openView: "open_plugin_view",
   checkCompatibility: "check_plugin_compatibility",
+  capabilities: "get_plugin_host_capabilities",
   refreshMarket: "refresh_plugin_market",
   listMarketPlugins: "list_market_plugins",
   listPlugins: "list_plugins",
@@ -51,6 +53,9 @@ export function createPluginHostService(invokeCommand: PluginHostInvokeBridge) {
     },
     checkCompatibility(input: CheckPluginCompatibilityInput): Promise<CompatibilityReport> {
       return invokeCommand<CompatibilityReport>(PLUGIN_HOST_COMMANDS.checkCompatibility, { input });
+    },
+    capabilities(): Promise<PluginHostCapabilities> {
+      return invokeCommand<PluginHostCapabilities>(PLUGIN_HOST_COMMANDS.capabilities);
     },
     refreshMarket(): Promise<PluginMarketSnapshot> {
       return invokeCommand<PluginMarketSnapshot>(PLUGIN_HOST_COMMANDS.refreshMarket);

@@ -1,0 +1,146 @@
+[
+  {
+    "name": "omitted requirements advertise no invented providers",
+    "required": [],
+    "providers": [],
+    "compatible": true,
+    "codes": []
+  },
+  {
+    "name": "old core lacks provider",
+    "required": [
+      {
+        "id": "host.power",
+        "version": ">=1.0.0 <2.0.0"
+      }
+    ],
+    "providers": [],
+    "compatible": false,
+    "codes": [
+      "capability.missing"
+    ]
+  },
+  {
+    "name": "matching provider",
+    "required": [
+      {
+        "id": "host.power",
+        "version": ">=1.0.0 <2.0.0"
+      }
+    ],
+    "providers": [
+      {
+        "id": "host.power",
+        "version": "1.2.0"
+      }
+    ],
+    "compatible": true,
+    "codes": []
+  },
+  {
+    "name": "incompatible provider",
+    "required": [
+      {
+        "id": "host.power",
+        "version": ">=1.0.0 <2.0.0"
+      }
+    ],
+    "providers": [
+      {
+        "id": "host.power",
+        "version": "2.0.0"
+      }
+    ],
+    "compatible": false,
+    "codes": [
+      "capability.incompatible"
+    ]
+  },
+  {
+    "name": "malformed requirement",
+    "required": [
+      {
+        "id": "host.power",
+        "version": "*"
+      }
+    ],
+    "providers": [],
+    "compatible": false,
+    "codes": [
+      "manifest.invalid"
+    ]
+  },
+  {
+    "name": "duplicate providers fail closed",
+    "required": [
+      {
+        "id": "host.power",
+        "version": ">=1.0.0 <2.0.0"
+      }
+    ],
+    "providers": [
+      {
+        "id": "host.power",
+        "version": "1.2.0"
+      },
+      {
+        "id": "host.power",
+        "version": "2.0.0"
+      }
+    ],
+    "compatible": false,
+    "codes": [
+      "capability.invalid"
+    ]
+  },
+  {
+    "name": "invalid provider version",
+    "required": [
+      {
+        "id": "host.power",
+        "version": ">=1.0.0 <2.0.0"
+      }
+    ],
+    "providers": [
+      {
+        "id": "host.power",
+        "version": "nope"
+      }
+    ],
+    "compatible": false,
+    "codes": [
+      "capability.invalid"
+    ]
+  },
+  {
+    "name": "only supplied providers are reported",
+    "required": [],
+    "providers": [
+      {
+        "id": "host.storage",
+        "version": "1.0.0"
+      }
+    ],
+    "compatible": true,
+    "codes": []
+  },
+  {
+    "name": "malformed requirement does not hide next valid requirement",
+    "required": [
+      {
+        "id": "host.power",
+        "version": "*"
+      },
+      {
+        "id": "host.power",
+        "version": "^1.0.0"
+      }
+    ],
+    "providers": [],
+    "compatible": false,
+    "codes": [
+      "manifest.invalid",
+      "capability.missing"
+    ]
+  }
+]

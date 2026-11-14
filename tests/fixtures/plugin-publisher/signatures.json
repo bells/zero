@@ -1,0 +1,475 @@
+{
+  "description": "Synthetic fixed [42;32] test seed only. Never authorize real releases with this public key.",
+  "trustedPublisher": {
+    "keyId": "test-key",
+    "publicKey": "GX9rI+FshTLGq8g4+s1ep4m+DHaykgM0A5v6iz02jWE=",
+    "allowedPluginIds": [
+      "zero.awake"
+    ]
+  },
+  "expectedPackage": {
+    "pluginId": "zero.awake",
+    "pluginVersion": "1.2.3",
+    "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+  },
+  "payloadHex": "7a65726f2e6f6666696369616c2d706c7567696e2d7061636b616765000000000100000008746573742d6b65790000000a7a65726f2e6177616b6500000005312e322e33ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "cases": [
+    {
+      "name": "fixed synthetic signature",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": true,
+      "verified": true
+    },
+    {
+      "name": "unknown schema",
+      "envelope": {
+        "schemaVersion": 2,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "unknown field cannot assert official",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA==",
+        "official": true
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "unknown source cannot assert trust",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA==",
+        "source": "bundled"
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "null schemaVersion",
+      "envelope": {
+        "schemaVersion": null,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "missing schemaVersion",
+      "envelope": {
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "null keyId",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": null,
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "missing keyId",
+      "envelope": {
+        "schemaVersion": 1,
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "null pluginId",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": null,
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "missing pluginId",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "null pluginVersion",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": null,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "missing pluginVersion",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "null sha256",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": null,
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "missing sha256",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "null signature",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": null
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "missing signature",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "oversized key ID",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "unsafe key ID",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "key/one",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "oversized plugin ID",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "unsafe plugin ID",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "../zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "oversized SemVer",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "invalid SemVer",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "01.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "uppercase digest",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "oversized digest",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ada",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "oversized signature",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA==A"
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "invalid base64 signature",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "noncanonical base64 padding bits",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAB=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "wrong package ID",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.paper",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": true,
+      "verified": false
+    },
+    {
+      "name": "wrong package version",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.4",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": true,
+      "verified": false
+    },
+    {
+      "name": "tampered measured digest",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "abababababababababababababababababababababababababababababababab",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": true,
+      "verified": false
+    },
+    {
+      "name": "unknown publisher key",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "untrusted",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": true,
+      "verified": false
+    },
+    {
+      "name": "invalid signature bytes",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+      },
+      "shapeValid": true,
+      "verified": false
+    },
+    {
+      "name": "null envelope",
+      "envelope": null,
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "trailing newline keyId",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key\n",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "trailing newline pluginId",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake\n",
+        "pluginVersion": "1.2.3",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    },
+    {
+      "name": "trailing newline pluginVersion",
+      "envelope": {
+        "schemaVersion": 1,
+        "keyId": "test-key",
+        "pluginId": "zero.awake",
+        "pluginVersion": "1.2.3\n",
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "signature": "gmeyoYeuVHoBB+W4s3G0yNlAnw5bgZZq/HYTDFa0hYfdjA+tTRPkFPTNF4vkeSu79Cp413rU036/PsYtZK1KAA=="
+      },
+      "shapeValid": false,
+      "verified": false
+    }
+  ]
+}

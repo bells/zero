@@ -1,3 +1,4 @@
+pub mod capabilities;
 pub mod compatibility;
 pub mod contracts;
 #[cfg(feature = "file-tool")]
@@ -6,6 +7,8 @@ pub mod invoke_gate;
 pub mod market;
 pub mod package;
 pub mod protocol;
+pub mod providers;
+pub mod publisher;
 pub mod registry;
 pub mod runtime;
 pub mod versions;

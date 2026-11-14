@@ -1,5 +1,7 @@
 # Zero Plugin Developer Guide
 
+2026-11-14 source-development update: the [independent package guide](independent-packages.md) documents the self-contained local SDK, single-tool builder, capability contracts and official publisher verification foundation. The five tools have not yet migrated to market packages, and this source increment does not open the release runtime or replace the platform gates below.
+
 Zero plugins are self-contained `.zplugin` ZIP archives. The MVP distribution model is intentionally Git-based: plugin authors build a package in their own repository, upload it to GitHub Releases, and ask the Zero `market.json` index to reference that release asset.
 
 Current status (2026-10-07): the public Web runtime is closed in Host `0.1.0`. Follow the [Protocol v1 draft](protocol-v1.md) for schema 2, the proposed `>=0.2.0 <0.3.0` Host window and API `^1.0.0`. Only macOS debug loading has development evidence; Windows/WebView2 and packaged conformance remain pending. The manifest examples and native Bridge vocabulary below describe the legacy format, not a stable SDK support promise.

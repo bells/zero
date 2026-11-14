@@ -35,6 +35,17 @@ export function validateWebManifest(value) {
   check(validRange(value.engines.api), "engines.api", "Invalid API range");
   check(value.main.endsWith(".html") && value.main.trim() === value.main
     && !/[\\\0:%?#]/.test(value.main) && value.main.split("/").every(s => s && s !== "." && s !== ".."), "main", "Unsafe HTML entry");
+  const capabilityIds = new Set();
+  for (const capability of value.requiredCapabilities ?? []) {
+    check(!capabilityIds.has(capability.id) && validRange(capability.version), "requiredCapabilities", "Invalid or duplicate capability requirement");
+    capabilityIds.add(capability.id);
+  }
+  if (value.background) {
+    const main = value.background.main;
+    check(main.endsWith(".js") && main.trim() === main && !/[\\\u0000-\u001f\u007f-\u009f:%?#]/.test(main)
+      && main.split("/").every(segment => segment && segment !== "." && segment !== ".."),
+    "background.main", "Unsafe JavaScript entry");
+  }
   check(value.permissions.includes("network") === (value.network !== undefined), "network", "Network scope and permission must match");
   for (const origin of value.network?.allowedOrigins ?? []) {
     let safe = false;

@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
 
+use super::capabilities::{
+    compare_capabilities, valid_capability_id, HostCapability, RequiredCapability,
+};
 use super::versions::{is_protocol_version, protocol_range, protocol_version_matches};
 
 pub const API_VERSION: &str = "1.0.0";
@@ -27,6 +30,7 @@ dto!(PluginEnginesV2 {
     api: String
 });
 dto!(NetworkScope { allowed_origins: Vec<String> });
+dto!(PluginBackground { main: String, events: Vec<String> });
 dto!(ViewContribution {
     id: String,
     title: String,
@@ -109,6 +113,10 @@ pub struct PluginManifestV2 {
     pub permissions: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub network: Option<NetworkScope>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub required_capabilities: Option<Vec<RequiredCapability>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background: Option<PluginBackground>,
     pub contributes: ContributionsV2,
     pub activation_events: Vec<String>,
 }
@@ -277,6 +285,16 @@ pub fn check_web_manifest(
     api: &str,
     platform: &str,
 ) -> CompatibilityReport {
+    check_web_manifest_with_capabilities(value, host, api, platform, &[])
+}
+
+pub fn check_web_manifest_with_capabilities(
+    value: &Value,
+    host: &str,
+    api: &str,
+    platform: &str,
+    providers: &[HostCapability],
+) -> CompatibilityReport {
     let mut report = CompatibilityReport {
         compatible: false,
         profile: "web-v1".into(),
@@ -286,7 +304,9 @@ pub fn check_web_manifest(
     };
     // Optional means absent, not null. Keep serde's Option permissiveness from
     // diverging from the author-facing JSON Schema.
-    let null_optional = value.get("network").is_some_and(Value::is_null)
+    let null_optional = ["network", "requiredCapabilities", "background"]
+        .iter()
+        .any(|key| value.get(key).is_some_and(Value::is_null))
         || ["commands", "keybindings", "statusBarItems", "settings"]
             .iter()
             .any(|key| {
@@ -313,6 +333,18 @@ pub fn check_web_manifest(
         }
     };
     report.issues.extend(validate_web_manifest(&manifest));
+    if report.issues.is_empty() {
+        report.issues.extend(
+            compare_capabilities(
+                manifest
+                    .required_capabilities
+                    .as_deref()
+                    .unwrap_or_default(),
+                providers,
+            )
+            .issues,
+        );
+    }
     for (path, required, actual, code) in [
         (
             "engines.zero",
@@ -429,6 +461,41 @@ pub fn validate_web_manifest(m: &PluginManifestV2) -> Vec<CompatibilityIssue> {
                 && scope.allowed_origins.iter().all(|s| valid_origin(s)),
             "network.allowedOrigins",
             "Expected exact HTTPS origins",
+        );
+    }
+    if let Some(required) = &m.required_capabilities {
+        let mut ids = HashSet::new();
+        check(
+            required.len() <= 64,
+            "requiredCapabilities",
+            "Too many required capabilities",
+        );
+        for capability in required {
+            check(
+                valid_capability_id(&capability.id)
+                    && ids.insert(&capability.id)
+                    && capability.version.len() <= 256
+                    && protocol_range(&capability.version).is_some(),
+                "requiredCapabilities",
+                "Invalid, duplicate or unbounded capability requirement",
+            );
+        }
+    }
+    if let Some(background) = &m.background {
+        check(
+            safe_path(&background.main)
+                && !background.main.chars().any(char::is_control)
+                && background.main.ends_with(".js"),
+            "background.main",
+            "Expected a safe packaged JavaScript path",
+        );
+        check(
+            !background.events.is_empty()
+                && background.events.len() <= 64
+                && unique(&background.events)
+                && background.events.iter().all(|id| valid_capability_id(id)),
+            "background.events",
+            "Expected bounded unique event identifiers",
         );
     }
     let c = &m.contributes;

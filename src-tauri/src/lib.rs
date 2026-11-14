@@ -338,6 +338,7 @@ pub fn run() {
             commands::plugins::list_plugins,
             commands::plugins::get_plugin_registry_snapshot,
             commands::plugins::check_plugin_compatibility,
+            commands::plugins::get_plugin_host_capabilities,
             plugins::web_runtime::open_plugin_view,
             plugins::web_runtime::plugin_session_ready,
             plugins::web_runtime::plugin_invoke,

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Zero official plugin package signature v1",
+  "description": "Publisher identity only; signature verification and package permissions remain host responsibilities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "keyId", "pluginId", "pluginVersion", "sha256", "signature"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "keyId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9._-]+$" },
+    "pluginId": { "type": "string", "minLength": 2, "maxLength": 64, "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+    "pluginVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "sha256": { "type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$" },
+    "signature": {
+      "type": "string",
+      "minLength": 88,
+      "maxLength": 88,
+      "pattern": "^[A-Za-z0-9+/]{85}[AQgw]==$",
+      "description": "Canonical padded standard Base64 encoding of the 64 Ed25519 signature bytes."
+    }
+  }
+}

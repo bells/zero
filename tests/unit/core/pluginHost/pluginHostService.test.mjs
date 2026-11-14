@@ -9,6 +9,7 @@ test("defines explicit Rust command names for plugin host lifecycle", () => {
   assert.deepEqual(PLUGIN_HOST_COMMANDS, {
     openView: "open_plugin_view",
     checkCompatibility: "check_plugin_compatibility",
+    capabilities: "get_plugin_host_capabilities",
     refreshMarket: "refresh_plugin_market",
     listMarketPlugins: "list_market_plugins",
     listPlugins: "list_plugins",
@@ -120,4 +121,18 @@ test("compatibility inspection forwards the raw manifest without granting execut
     return expected;
   });
   assert.deepEqual(await service.checkCompatibility(input), expected);
+});
+
+test("host capability inspection returns actual providers without changing lifecycle", async () => {
+  const expected = {
+    hostVersion: "0.1.0", apiVersion: "1.0.0", runtimeEnabled: false,
+    capabilities: [{ id: "storage.plugin", version: "1.0.0" }],
+  };
+  const calls = [];
+  const service = createPluginHostService(async (command, args) => {
+    calls.push({ command, args });
+    return expected;
+  });
+  assert.deepEqual(await service.capabilities(), expected);
+  assert.deepEqual(calls, [{ command: "get_plugin_host_capabilities", args: undefined }]);
 });

@@ -1,4 +1,11 @@
 #[tauri::command]
+pub fn get_plugin_host_capabilities(
+) -> Result<crate::plugins::providers::PluginHostCapabilities, crate::plugins::protocol::PluginError>
+{
+    Ok(crate::plugins::providers::plugin_host_capabilities())
+}
+
+#[tauri::command]
 pub fn check_plugin_compatibility(
     input: crate::plugins::protocol::CheckPluginCompatibilityInput,
 ) -> Result<crate::plugins::protocol::CompatibilityReport, crate::plugins::protocol::PluginError> {

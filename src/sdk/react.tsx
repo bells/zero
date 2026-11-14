@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { PluginContext } from "./index";
+import type { PluginContext } from "./index.js";
 
 export const ZeroPluginContext = createContext<Readonly<PluginContext> | null>(null);
 export const ZeroPluginProvider = ZeroPluginContext.Provider;

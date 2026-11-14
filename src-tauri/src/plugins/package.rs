@@ -297,6 +297,20 @@ pub fn validate_zplugin_package(
                 "Plugin package is missing the manifest-declared main entrypoint.",
             ));
         }
+        if let Some(background) = protocol_manifest
+            .as_ref()
+            .and_then(|manifest| manifest.background.as_ref())
+        {
+            if is_safe_package_relative_path(&background.main)
+                && !archive_entries.contains(&normalize_manifest_path(&background.main))
+            {
+                issues.push(validation_issue(
+                    "package.background.missing",
+                    "background.main",
+                    "Plugin package is missing the manifest-declared background script.",
+                ));
+            }
+        }
 
         normalize_manifest_engines(manifest);
         issues.extend(validate_first_party_engine_package(
@@ -630,6 +644,19 @@ fn inspect_archive_entries<R: Read + Seek>(
             continue;
         }
 
+        if !file.is_dir()
+            && file
+                .unix_mode()
+                .is_some_and(|mode| !matches!(mode & 0o170000, 0 | 0o100000))
+        {
+            issues.push(validation_issue(
+                "package.archive.specialFile",
+                raw_name,
+                "Package archive entries must be ordinary files or directories.",
+            ));
+            continue;
+        }
+
         if file.size() > MAX_PLUGIN_ENTRY_BYTES {
             issues.push(validation_issue(
                 "package.archive.entryOversized",
@@ -693,13 +720,26 @@ fn read_manifest_from_archive<R: Read + Seek>(
     };
     if value.get("schemaVersion").is_some() {
         let report = super::compatibility::check_manifest(&value);
+        // Compatibility failures must remain fatal to installation while still
+        // allowing archive completeness checks on a structurally valid manifest.
+        let structurally_valid = report.issues.iter().all(|issue| {
+            matches!(
+                issue.code.as_str(),
+                "runtime.unsupported"
+                    | "host.incompatible"
+                    | "api.incompatible"
+                    | "platform.unsupported"
+                    | "capability.missing"
+                    | "capability.incompatible"
+            )
+        });
         issues.extend(
             report
                 .issues
                 .into_iter()
                 .map(|issue| validation_issue(&issue.code, issue.path, issue.message)),
         );
-        if !issues.is_empty() {
+        if !structurally_valid {
             return Ok(None);
         }
         let parsed: super::protocol::PluginManifestV2 =
