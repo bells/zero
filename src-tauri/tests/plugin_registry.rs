@@ -11,14 +11,63 @@ use zero_lib::plugins::registry::PluginRegistry;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
+static ROOT_SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 fn unique_registry_root() -> PathBuf {
-    std::env::temp_dir().join(format!(
-        "zero-plugin-registry-test-{}",
+    registry_root_at(
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("time")
-            .as_nanos()
-    ))
+            .as_nanos(),
+    )
+}
+
+fn registry_root_at(timestamp: u128) -> PathBuf {
+    let sequence = ROOT_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let root = std::env::temp_dir().join(format!(
+        "zero-plugin-registry-test-{}-{sequence}-{timestamp}",
+        std::process::id(),
+    ));
+    fs::create_dir(&root).expect("reserve isolated registry fixture root");
+    root
+}
+
+#[test]
+fn parallel_registry_fixtures_are_isolated_with_a_fixed_clock() {
+    let roots: Vec<_> = std::thread::scope(|scope| {
+        let workers: Vec<_> = (0..32)
+            .map(|_| scope.spawn(|| registry_root_at(0)))
+            .collect();
+        workers
+            .into_iter()
+            .map(|worker| worker.join().unwrap())
+            .collect()
+    });
+    let distinct: std::collections::HashSet<_> = roots.iter().collect();
+    assert_eq!(
+        distinct.len(),
+        roots.len(),
+        "parallel fixtures must not share registry paths when clock readings repeat"
+    );
+    std::thread::scope(|scope| {
+        for (index, root) in roots.iter().enumerate() {
+            scope.spawn(move || {
+                let mut registry = PluginRegistry::load_or_seed(root).unwrap();
+                registry
+                    .set_enabled_and_save("zero.awake", index % 2 == 0)
+                    .unwrap();
+                let reloaded = PluginRegistry::load_or_seed(root).unwrap();
+                let awake = reloaded
+                    .records()
+                    .iter()
+                    .find(|record| record.name == "zero.awake")
+                    .unwrap();
+                assert_eq!(awake.enabled, index % 2 == 0);
+                assert_eq!(reloaded.revision(), registry.revision());
+                fs::remove_dir_all(root).unwrap();
+            });
+        }
+    });
 }
 
 fn write_zplugin_package(
