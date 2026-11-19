@@ -426,3 +426,47 @@ fn network_cancel_before_admission_and_stale_final_owner_prevent_io_and_output()
         .commit_live(&caller, &req, &live, true, now, || Ok(()))
         .is_err());
 }
+
+#[test]
+fn application_activation_requires_all_original_and_live_grants() {
+    let now = Instant::now();
+    let mut sessions = Sessions::default();
+    let mut live = owner("test.apps");
+    live.permissions = [
+        "system.apps.read",
+        "system.apps.execute",
+        "system.window.focus",
+    ]
+    .map(str::to_owned)
+    .to_vec();
+    let info = sessions.issue(live.clone(), now).unwrap();
+    let caller = format!("plugin-{}", info.session_id);
+    sessions
+        .ready(&info.session_id, &caller, info.generation, now)
+        .unwrap();
+    let activate = PluginRequest {
+        method: "apps.activate".into(),
+        payload: serde_json::json!({"catalogId":"a".repeat(64),"itemId":"b".repeat(64)}),
+        ..request(&info.session_id, info.generation)
+    };
+    for grant in &live.permissions {
+        let mut changed = live.clone();
+        changed.permissions.retain(|p| p != grant);
+        assert_eq!(
+            sessions
+                .begin(&caller, &activate, &changed, true, now)
+                .unwrap_err()
+                .code,
+            "permission.denied"
+        );
+    }
+    sessions
+        .begin(&caller, &activate, &live, true, now)
+        .unwrap();
+    live.permissions
+        .retain(|permission| permission != "system.window.focus");
+    let denied = sessions.commit_live::<()>(&caller, &activate, &live, true, now, || {
+        panic!("revoked focus grant must block activation")
+    });
+    assert_eq!(denied.unwrap_err().code, "permission.denied");
+}

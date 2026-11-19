@@ -522,5 +522,152 @@
       }
     },
     "valid": false
+  },
+  {
+    "name": "apps-scan",
+    "valid": true,
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "apps.scan",
+      "payload": {}
+    }
+  },
+  {
+    "name": "apps-page",
+    "valid": true,
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "apps.page",
+      "payload": {
+        "catalogId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "offset": 0
+      }
+    }
+  },
+  {
+    "name": "apps-activate",
+    "valid": true,
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "apps.activate",
+      "payload": {
+        "catalogId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "itemId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  },
+  {
+    "name": "apps-activate-path",
+    "valid": false,
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "apps.activate",
+      "payload": {
+        "catalogId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "itemId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "path": "/Applications/Test.app"
+      }
+    }
+  },
+  {
+    "name": "apps-activate-args",
+    "valid": false,
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "apps.activate",
+      "payload": {
+        "catalogId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "itemId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "args": [
+          "--test"
+        ]
+      }
+    }
+  },
+  {
+    "name": "apps-page-negative-offset",
+    "valid": false,
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "apps.page",
+      "payload": {
+        "catalogId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "offset": -1
+      }
+    }
+  },
+  {
+    "name": "apps-activate-invalid-catalog-token",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "apps.activate",
+      "payload": {
+        "catalogId": "short",
+        "itemId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "apps-page-out-of-range-offset",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "apps.page",
+      "payload": {
+        "catalogId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "offset": 4097
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "screen-open-system-capture",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.openSystemCapture",
+      "payload": {}
+    },
+    "valid": true
+  },
+  {
+    "name": "screen-open-system-capture-uri",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.openSystemCapture",
+      "payload": {
+        "uri": "ms-screenclip:"
+      }
+    },
+    "valid": false
   }
 ]

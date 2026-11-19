@@ -22,6 +22,8 @@ pub mod shortcut_transaction;
 pub mod snap_shortcut_config;
 pub mod status_bar;
 pub mod surface_activity;
+#[cfg(target_os = "windows")]
+pub mod system_screenshot;
 pub mod tool_windows;
 
 pub mod diagnostics;

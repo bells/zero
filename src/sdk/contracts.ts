@@ -6,7 +6,7 @@ export type PluginId = string;
 export type PackagePath = string;
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type Platform = "macos" | "windows" | "linux";
-export type PublicPermission = "storage.plugin" | "ui.message" | "network" | "diagnostics.write" | "power.preventSleep" | "background.schedule" | "system.wallpaper" | "files.export";
+export type PublicPermission = "storage.plugin" | "ui.message" | "network" | "diagnostics.write" | "power.preventSleep" | "background.schedule" | "system.wallpaper" | "files.export" | "system.apps.read" | "system.apps.execute" | "system.window.focus" | "screen.capture";
 export type InternalPermission = PublicPermission | "clipboard.read" | "clipboard.write"
   | "process.execute" | "system.apps.read" | "system.apps.execute"
   | "system.window.focus" | "system.settings.open" | "document.convert";
@@ -167,7 +167,27 @@ export interface ImagePreview {
 export interface WallpaperPlatform { platform:string; supported:boolean; detail?:string }
 export interface WallpaperIntent { intentId:string; generation:number }
 export interface ImageExport { cancelled:boolean; fileName:string|null }
+export interface ApplicationCatalog {
+  catalogId: string;
+  itemCount: number;
+}
+export interface CatalogApplication {
+  id: string;
+  title: string;
+  wordInitials: string;
+  pinyin: string;
+  pinyinInitials: string;
+}
+export interface ApplicationPage {
+  items: CatalogApplication[];
+  nextOffset: number | null;
+}
+export type ApplicationActivation = "focused" | "launched";
 export interface PluginMethodMap {
+  "screen.openSystemCapture": {input:Record<string, never>;output:null};
+  "apps.scan": {input:Record<string, never>;output:ApplicationCatalog};
+  "apps.page": {input:{catalogId:string;offset:number};output:ApplicationPage};
+  "apps.activate": {input:{catalogId:string;itemId:string};output:ApplicationActivation};
   "media.cacheImage": {input:{url:string};output:ImageAsset};
   "media.preview": {input:{assetId:string};output:ImagePreview};
   "media.releasePreview": {input:{leaseId:string};output:null};

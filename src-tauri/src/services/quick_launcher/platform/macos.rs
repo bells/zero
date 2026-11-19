@@ -7,6 +7,8 @@ use cocoa::base::{id, nil};
 use cocoa::foundation::NSString;
 use objc::{class, msg_send, sel, sel_impl};
 
+use crate::services::application_catalog::ActivationError;
+
 use super::{PlatformActivation, PlatformIcon, RunningStates};
 use crate::services::quick_launcher::contracts::{
     launcher_error, QuickLauncherActivationAction, QuickLauncherRunningState,
@@ -71,46 +73,22 @@ pub fn activate(item: &IndexedItem) -> PlatformActivation {
             false,
         ));
     };
-    unsafe {
-        let pool: id = msg_send![class!(NSAutoreleasePool), new];
-        if let Some(bundle_id) = bundle_id {
-            let workspace: id = msg_send![class!(NSWorkspace), sharedWorkspace];
-            let applications: id = msg_send![workspace, runningApplications];
-            let count: usize = msg_send![applications, count];
-            for index in 0..count {
-                let application: id = msg_send![applications, objectAtIndex: index];
-                let native_bundle_id: id = msg_send![application, bundleIdentifier];
-                if nsstring_equals(native_bundle_id, bundle_id) {
-                    let activated: bool = msg_send![application, activateWithOptions: 2usize];
-                    let _: () = msg_send![pool, drain];
-                    return if activated {
-                        Ok(QuickLauncherActivationAction::Focused)
-                    } else {
-                        Err(launcher_error(
-                            "launcher.launchOrFocus",
-                            "launcher.focus_denied",
-                            format!("macOS did not focus {}.", item.title),
-                            true,
-                        ))
-                    };
-                }
-            }
-        }
-        let workspace: id = msg_send![class!(NSWorkspace), sharedWorkspace];
-        let native_path = NSString::alloc(nil).init_str(&path.to_string_lossy());
-        let opened: bool = msg_send![workspace, openFile: native_path];
-        let _: () = msg_send![native_path, release];
-        let _: () = msg_send![pool, drain];
-        if opened {
-            Ok(QuickLauncherActivationAction::Launched)
-        } else {
-            Err(launcher_error(
-                "launcher.launchOrFocus",
-                "launcher.launch_failed",
-                format!("macOS could not launch {}.", item.title),
-                true,
-            ))
-        }
+    use crate::services::application_catalog::{activate_application, Activation};
+    match activate_application(path, bundle_id.as_deref(), false) {
+        Ok(Activation::Focused) => Ok(QuickLauncherActivationAction::Focused),
+        Ok(Activation::Launched) => Ok(QuickLauncherActivationAction::Launched),
+        Err(ActivationError::Focus) => Err(launcher_error(
+            "launcher.launchOrFocus",
+            "launcher.focus_denied",
+            format!("macOS did not focus {}.", item.title),
+            true,
+        )),
+        Err(ActivationError::Open) => Err(launcher_error(
+            "launcher.launchOrFocus",
+            "launcher.launch_failed",
+            format!("macOS could not launch {}.", item.title),
+            true,
+        )),
     }
 }
 
@@ -164,12 +142,4 @@ pub fn load_icon(item: &IndexedItem) -> PlatformIcon {
         let _: () = msg_send![pool, drain];
         Ok(result)
     }
-}
-
-unsafe fn nsstring_equals(value: id, expected: &str) -> bool {
-    if value == nil {
-        return false;
-    }
-    let bytes: *const std::os::raw::c_char = msg_send![value, UTF8String];
-    !bytes.is_null() && CStr::from_ptr(bytes).to_string_lossy() == expected
 }

@@ -9,6 +9,16 @@ export function parsePluginRequest(value: unknown): PluginRequest | null {
     sessionId: value.sessionId, generation: value.generation } as const;
   const payload = value.payload;
   switch (value.method) {
+    case "screen.openSystemCapture":
+    case "apps.scan":
+      return fields(payload, []) ? {...common, method:value.method, payload:{}} : null;
+    case "apps.page":
+      return fields(payload, ["catalogId", "offset"]) && catalogToken(payload.catalogId)
+        && typeof payload.offset === "number" && Number.isSafeInteger(payload.offset) && payload.offset >= 0 && payload.offset <= 4096
+        ? {...common, method:value.method, payload:{catalogId:payload.catalogId, offset:payload.offset}} : null;
+    case "apps.activate":
+      return fields(payload, ["catalogId", "itemId"]) && catalogToken(payload.catalogId) && catalogToken(payload.itemId)
+        ? {...common, method:value.method, payload:{catalogId:payload.catalogId, itemId:payload.itemId}} : null;
     case "media.cacheImage":
       return fields(payload,["url"]) && typeof payload.url==="string" ? {...common,method:value.method,payload:{url:payload.url}} : null;
     case "media.preview":
@@ -46,6 +56,9 @@ export function parsePluginRequest(value: unknown): PluginRequest | null {
         ? { ...common, method: value.method, payload: { url: payload.url, method: "GET" } } : null;
     default: return null;
   }
+}
+function catalogToken(value: unknown): value is string {
+  return typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 }
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

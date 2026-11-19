@@ -23,11 +23,11 @@ fn core_capability_snapshot_never_promises_unimplemented_providers() {
     }
     assert_eq!(
         capabilities.len(),
-        if cfg!(any(target_os = "macos", target_os = "windows")) {
-            9
+        4 + if cfg!(any(target_os = "macos", target_os = "windows")) {
+            5
         } else {
-            4
-        }
+            0
+        } + usize::from(cfg!(any(target_os = "macos", target_os = "windows")))
     );
     assert!(capabilities.contains(&"network.fetch"));
     assert_eq!(
@@ -42,6 +42,10 @@ fn core_capability_snapshot_never_promises_unimplemented_providers() {
         );
     }
     assert!(!capabilities.contains(&"capture"));
+    assert_eq!(
+        capabilities.contains(&"system.apps"),
+        cfg!(target_os = "macos")
+    );
     assert!(snapshot.capabilities.iter().all(|p| p.version
         == if p.id == "power.lease" || p.id == "storage.plugin" {
             "1.1.0"
@@ -158,4 +162,44 @@ fn historical_core_catalog_cannot_satisfy_new_power_packages() {
     let report = compare_capabilities(&required, &old);
     assert!(!report.compatible);
     assert_eq!(report.issues[0].code, "capability.missing");
+}
+
+#[test]
+fn independent_launch_and_snap_require_their_platform_providers() {
+    let snapshot = plugin_host_capabilities();
+    let cases = [
+        (
+            include_str!("../../src/plugins/quickLauncher/package/manifest.json"),
+            "macos",
+            "system.apps",
+        ),
+        (
+            include_str!("../../src/plugins/screenshot/package/manifest.json"),
+            "windows",
+            "screen.system-capture",
+        ),
+    ];
+    for (source, supported, capability) in cases {
+        let manifest = serde_json::from_str(source).unwrap();
+        assert_eq!(
+            snapshot
+                .capabilities
+                .iter()
+                .any(|item| item.id == capability),
+            current_platform() == supported
+        );
+        let report = check_manifest_for_host_with_capabilities(
+            &manifest,
+            &snapshot.host_version,
+            current_platform(),
+            true,
+            &snapshot.capabilities,
+        );
+        assert_eq!(
+            report.compatible,
+            current_platform() == supported,
+            "{:?}",
+            report.issues
+        );
+    }
 }

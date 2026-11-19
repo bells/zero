@@ -32,6 +32,8 @@ pub enum PluginPermission {
     SystemWindowFocus,
     #[serde(rename = "system.settings.open")]
     SystemSettingsOpen,
+    #[serde(rename = "screen.capture")]
+    ScreenCapture,
     #[serde(rename = "document.convert")]
     DocumentConvert,
 }

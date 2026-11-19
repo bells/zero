@@ -8,6 +8,8 @@ use super::protocol::{
     PluginError, PluginInvokeInput, PluginMethod, PluginResponse, PluginSessionInfo, SessionBinding,
 };
 use super::registry::PluginRegistryState;
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+use super::session::Sessions;
 use super::session::{error, SessionOwner};
 use super::web_assets::WebSessions;
 
@@ -91,6 +93,40 @@ pub(crate) fn owner_from_registry(
             .filter_map(|p| serde_json::to_value(p).ok()?.as_str().map(str::to_owned))
             .collect(),
     })
+}
+
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub(crate) fn with_live_capability<T>(
+    app: &tauri::AppHandle,
+    caller: &str,
+    request: &super::protocol::PluginRequest,
+    capability_id: &str,
+    operation: impl FnOnce(&mut Sessions) -> Result<T, PluginError>,
+) -> Result<T, PluginError> {
+    app.state::<PluginRegistryState>()
+        .read_registry(|registry| {
+            let state = app.state::<WebSessions>();
+            let mut sessions = state.0.lock().map_err(|_| error("session.lock"))?;
+            let session = sessions.get(&request.session_id, caller, request.generation)?;
+            let plugin = &session.owner.plugin_id;
+            let live = owner_from_registry(registry, plugin, &session.owner.view_id)
+                .map_err(|_| error("session.stale"))?;
+            if !registry.records().iter().any(|record| {
+                record.name == *plugin
+                    && record.protocol_manifest.as_ref().is_some_and(|manifest| {
+                        manifest
+                            .required_capabilities
+                            .iter()
+                            .flatten()
+                            .any(|capability| capability.id == capability_id)
+                    })
+            }) {
+                return Err(error("capability.undeclared"));
+            }
+            sessions.commit_live(caller, request, &live, true, Instant::now(), || Ok(()))?;
+            operation(&mut sessions)
+        })
+        .map_err(|_| error("plugin.unavailable"))?
 }
 
 #[tauri::command]
@@ -281,6 +317,38 @@ pub async fn plugin_invoke(
     let result = tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<WebSessions>();
         let result = match method {
+            PluginMethod::ScreenOpenSystem(_) => {
+                #[cfg(target_os = "windows")]
+                {
+                    with_live_capability(
+                        &app,
+                        &caller,
+                        &request,
+                        "screen.system-capture",
+                        |sessions| {
+                            let result = crate::services::system_screenshot::open()
+                                .map_err(|_| error("screen.openFailed"));
+                            sessions.finish(&caller, &request, Instant::now())?;
+                            result.map(|()| Value::Null)
+                        },
+                    )
+                }
+                #[cfg(not(target_os = "windows"))]
+                Err(error("api.unavailable"))
+            }
+            method @ (PluginMethod::ApplicationScan(_)
+            | PluginMethod::ApplicationPage(_)
+            | PluginMethod::ApplicationActivate(_)) => {
+                #[cfg(target_os = "macos")]
+                {
+                    super::application_runtime::dispatch(&app, &caller, &request, method)
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    let _ = method;
+                    Err(error("api.unavailable"))
+                }
+            }
             method @ (PluginMethod::MediaCache(_)
             | PluginMethod::MediaPreview(_)
             | PluginMethod::MediaReleasePreview(_)

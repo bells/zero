@@ -63,6 +63,7 @@ test("accepts a valid MVP plugin manifest", () => {
     "system.window.focus",
     "system.settings.open",
     "document.convert",
+    "screen.capture",
   ]);
 });
 

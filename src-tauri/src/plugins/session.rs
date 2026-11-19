@@ -41,6 +41,8 @@ pub struct Session {
     ready: bool,
     in_flight: HashMap<String, Instant>,
     completed: VecDeque<(String, Instant)>,
+    #[cfg(target_os = "macos")]
+    pub(crate) applications: Option<super::application_runtime::Catalog>,
 }
 
 impl Session {
@@ -100,6 +102,8 @@ impl Sessions {
                 ready: false,
                 in_flight: HashMap::new(),
                 completed: VecDeque::new(),
+                #[cfg(target_os = "macos")]
+                applications: None,
             },
         );
         Ok(info)
@@ -276,20 +280,20 @@ impl Sessions {
             return Err(error("session.stale"));
         }
         match (&session.kind, &method) {
-            (SessionKind::View, PluginMethod::BackgroundComplete(_))
-            | (
-                SessionKind::Background { .. },
-                PluginMethod::ShowMessage(_)
-                | PluginMethod::MediaPreview(_)
-                | PluginMethod::MediaReleasePreview(_)
-                | PluginMethod::MediaExport(_)
-                | PluginMethod::WallpaperRecover(_),
-            ) => return Err(error("session.kind")),
+            (SessionKind::View, PluginMethod::BackgroundComplete(_)) => {
+                return Err(error("session.kind"));
+            }
+            (SessionKind::Background { .. }, method) if method.view_only() => {
+                return Err(error("session.kind"));
+            }
             _ => {}
         }
-        let permission = method.permission();
-        if !live.permissions.iter().any(|p| p == permission)
-            || !session.owner.permissions.iter().any(|p| p == permission)
+        if std::iter::once(&method.permission())
+            .chain(method.additional_permissions())
+            .any(|permission| {
+                !live.permissions.iter().any(|p| p == permission)
+                    || !session.owner.permissions.iter().any(|p| p == permission)
+            })
         {
             return Err(error("permission.denied"));
         }
@@ -320,6 +324,20 @@ impl Sessions {
             .in_flight
             .insert(request.request_id.clone(), now + budget);
         Ok(method)
+    }
+
+    #[cfg(target_os = "macos")]
+    pub(crate) fn publish_applications(
+        &mut self,
+        request: &PluginRequest,
+        catalog: super::application_runtime::Catalog,
+    ) -> Result<(), PluginError> {
+        let session = self
+            .sessions
+            .get_mut(&request.session_id)
+            .ok_or_else(|| error("session.revoked"))?;
+        session.applications = Some(catalog);
+        Ok(())
     }
 
     pub fn can_commit(
@@ -371,20 +389,20 @@ impl Sessions {
             .decode_method()
             .map_err(|_| error("request.invalid"))?;
         match (&session.kind, &method) {
-            (SessionKind::View, PluginMethod::BackgroundComplete(_))
-            | (
-                SessionKind::Background { .. },
-                PluginMethod::ShowMessage(_)
-                | PluginMethod::MediaPreview(_)
-                | PluginMethod::MediaReleasePreview(_)
-                | PluginMethod::MediaExport(_)
-                | PluginMethod::WallpaperRecover(_),
-            ) => return Err(error("session.kind")),
+            (SessionKind::View, PluginMethod::BackgroundComplete(_)) => {
+                return Err(error("session.kind"));
+            }
+            (SessionKind::Background { .. }, method) if method.view_only() => {
+                return Err(error("session.kind"));
+            }
             _ => {}
         }
-        let permission = method.permission();
-        if !live.permissions.iter().any(|p| p == permission)
-            || !session.owner.permissions.iter().any(|p| p == permission)
+        if std::iter::once(&method.permission())
+            .chain(method.additional_permissions())
+            .any(|permission| {
+                !live.permissions.iter().any(|p| p == permission)
+                    || !session.owner.permissions.iter().any(|p| p == permission)
+            })
         {
             return Err(error("permission.denied"));
         }

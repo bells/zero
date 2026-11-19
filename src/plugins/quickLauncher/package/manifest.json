@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "name": "zero.launch",
+  "id": "zero.launch",
+  "displayName": "Launch",
+  "description": "Find and open installed applications.",
+  "author": "Zero",
+  "version": "0.1.0",
+  "engines": {"zero": ">=0.2.0 <0.3.0", "api": "^1.0.0"},
+  "platforms": ["macos"],
+  "runtime": "webview",
+  "main": "index.html",
+  "permissions": ["system.apps.read", "system.apps.execute", "system.window.focus", "storage.plugin"],
+  "requiredCapabilities": [
+    {"id": "system.apps", "version": "^1.0.0"},
+    {"id": "storage.plugin", "version": "^1.1.0"}
+  ],
+  "contributes": {"views": [
+    {"id": "zero.launch.main", "title": "Launch", "surface": "main"},
+    {"id": "zero.launch.tray", "title": "Launch", "surface": "tray"}
+  ]},
+  "activationEvents": ["onView:zero.launch.main", "onView:zero.launch.tray"]
+}

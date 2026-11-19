@@ -78,6 +78,16 @@ export function createZeroBridge(transport: PluginTransport, lifetime: AbortSign
   return bridge;
 }
 function validOutput(method: PluginMethod, value: JsonValue): boolean {
+  if (method === "apps.scan") return exact(value, ["catalogId", "itemCount"])
+    && token(value.catalogId) && catalogOffset(value.itemCount);
+  if (method === "apps.page") return exact(value, ["items", "nextOffset"])
+    && (value.nextOffset === null || catalogOffset(value.nextOffset))
+    && Array.isArray(value.items) && value.items.length <= 128 && value.items.every(item =>
+      exact(item, ["id", "title", "wordInitials", "pinyin", "pinyinInitials"])
+      && token(item.id) && typeof item.title === "string" && item.title.length > 0
+      && [item.title, item.wordInitials, item.pinyin, item.pinyinInitials]
+        .every(text => typeof text === "string" && text.length <= 1024));
+  if (method === "apps.activate") return value === "focused" || value === "launched";
   if (method === "media.cacheImage") return exact(value,["assetId","byteLength","width","height","mimeType"]) && token(value.assetId) && imageSize(value,25*1024*1024) && ["image/jpeg","image/png"].includes(String(value.mimeType));
   if (method === "media.preview") {
     return exact(value, ["leaseId", "url", "byteLength", "width", "height", "mimeType"])
@@ -107,6 +117,9 @@ function validOutput(method: PluginMethod, value: JsonValue): boolean {
   return value === null;
 }
 
+function catalogOffset(value: JsonValue | undefined): boolean {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 4096;
+}
 function exact(value:JsonValue, keys:string[]): value is {[key:string]:JsonValue} {return record(value) && Object.keys(value).length===keys.length && keys.every(key=>key in value);}
 function token(value:JsonValue|undefined):boolean {return typeof value==="string" && /^[a-f0-9]{64}$/.test(value);}
 function imageSize(value:{[key:string]:JsonValue}, max:number):boolean {return typeof value.byteLength==="number" && Number.isSafeInteger(value.byteLength) && value.byteLength>0 && value.byteLength<=max && typeof value.width==="number" && Number.isSafeInteger(value.width) && value.width>0 && typeof value.height==="number" && Number.isSafeInteger(value.height) && value.height>0 && value.width*value.height<=40_000_000;}

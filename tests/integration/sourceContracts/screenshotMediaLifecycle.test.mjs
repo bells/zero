@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [serviceSource, commandSource, captureSource, pinSource, exportSource] = await Promise.all([
+const [serviceSource, commandSource, captureSource, pinSource, exportSource, systemCaptureSource] = await Promise.all([
   readFile(new URL("../../../src-tauri/src/services/screenshot.rs", import.meta.url), "utf8"),
   readFile(new URL("../../../src-tauri/src/commands/screenshot.rs", import.meta.url), "utf8"),
   readFile(new URL("../../../src/plugins/screenshot/capture/CaptureApp.tsx", import.meta.url), "utf8"),
   readFile(new URL("../../../src/plugins/screenshot/capture/PinApp.tsx", import.meta.url), "utf8"),
   readFile(new URL("../../../src/plugins/screenshot/capture/captureExport.ts", import.meta.url), "utf8"),
+  readFile(new URL("../../../src-tauri/src/services/system_screenshot.rs", import.meta.url), "utf8"),
 ]);
 
 test("uses scoped raw screenshot media instead of Base64 JSON contracts", () => {
@@ -62,8 +63,10 @@ test("reveals only after screenshot bytes decode and React commits the image", (
 
 test("retains the Windows system screenshot launcher without macOS media assumptions", () => {
   assert.match(serviceSource, /#\[cfg\(target_os = "windows"\)\]/);
-  assert.match(serviceSource, /\.arg\("ms-screenclip:"\)/);
-  assert.match(serviceSource, /SnippingTool\.exe/);
+  assert.match(serviceSource, /system_screenshot::open\(\)/);
+  assert.match(systemCaptureSource, /"ms-screenclip:"/);
+  assert.match(systemCaptureSource, /GetSystemDirectoryW/);
+  assert.match(systemCaptureSource, /SnippingTool\.exe/);
   assert.match(serviceSource, /#\[cfg\(target_os = "macos"\)\]\s*fn capture_fullscreen_png/);
   const nonMacStartSource = serviceSource.slice(
     serviceSource.indexOf('#[cfg(not(target_os = "macos"))]'),

@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
-const require = createRequire(path.resolve('src/plugins/bingWallpaper/package/package.json'));
+const require = createRequire(path.resolve('package.json'));
 const {createElement} = require('react'); const {renderToStaticMarkup} = require('react-dom/server');
 let view;
 async function load(){
@@ -15,7 +15,7 @@ async function load(){
     const temp=await fs.mkdtemp(path.join(os.tmpdir(),'zero-paper-view-'));
     execFileSync(process.execPath,['node_modules/typescript/bin/tsc','src/plugins/bingWallpaper/package/PaperView.tsx','--strict','--noUncheckedIndexedAccess','--exactOptionalPropertyTypes','--target','ES2022','--module','ES2022','--moduleResolution','bundler','--lib','ES2022,DOM','--jsx','react-jsx','--skipLibCheck','--outDir',temp],{stdio:'pipe'});
     await fs.writeFile(path.join(temp,'package.json'),'{"type":"module"}');
-    await fs.symlink(path.resolve('src/plugins/bingWallpaper/package/node_modules'),path.join(temp,'node_modules'));
+    await fs.symlink(path.resolve('node_modules'), path.join(temp, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
     const value=await import(pathToFileURL(path.join(temp,'PaperView.js'))); await fs.rm(temp,{recursive:true,force:true}); return value;
   })();return view;
 }

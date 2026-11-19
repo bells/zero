@@ -18,6 +18,8 @@ const MAX_ASSET_BYTES: u64 = 8 * 1024 * 1024;
 pub struct WebSessions(pub Mutex<Sessions>);
 
 pub fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+    #[cfg(target_os = "macos")]
+    let builder = builder.manage(super::application_runtime::ApplicationScanGate::default());
     builder
         .manage(WebSessions::default())
         .register_uri_scheme_protocol(SCHEME, |context, request| {

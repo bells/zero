@@ -1,0 +1,21 @@
+:root {
+  color-scheme: light dark;
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --border: color-mix(in srgb, CanvasText 18%, Canvas);
+  --selected: color-mix(in srgb, AccentColor 17%, Canvas);
+}
+* { box-sizing: border-box; }
+body { margin: 0; color: CanvasText; background: Canvas; }
+main { display: flex; flex-direction: column; height: 100dvh; padding: 18px; gap: 10px; }
+.toolbar { display: flex; gap: 8px; }
+input, button { font: inherit; color: inherit; }
+input, .toolbar button { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; background: Canvas; }
+input { flex: 1; min-width: 0; }
+:focus-visible { outline: 2px solid AccentColor; outline-offset: 2px; }
+ul { list-style: none; padding: 3px; margin: 0; overflow: auto; }
+li button { display: flex; gap: 12px; justify-content: space-between; align-items: center; width: 100%; min-height: 40px; text-align: start; border: 0; border-radius: 6px; background: transparent; padding: 8px 10px; }
+li button[aria-selected="true"], li button:hover { background: var(--selected); }
+li button span { overflow-wrap: anywhere; }
+kbd { opacity: .75; }
+p { margin: 0; }
+.error { color: light-dark(#a92722, #ffaaa4); }

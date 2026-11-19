@@ -15,6 +15,10 @@ use macos as platform;
 #[cfg(target_os = "windows")]
 use windows as platform;
 
+#[cfg(all(target_os = "macos", feature = "bundled-tools"))]
+pub(crate) use macos::{activate_application, ActivationError};
+#[cfg(target_os = "macos")]
+pub(crate) use macos::{Activation, ApplicationTarget};
 pub use platform::application_roots;
 
 #[derive(Debug, PartialEq, Eq)]

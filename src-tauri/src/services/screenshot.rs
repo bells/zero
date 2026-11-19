@@ -781,7 +781,12 @@ fn start_screenshot_session_inner(
 
     #[cfg(not(target_os = "macos"))]
     {
-        if let Err(error) = launch_system_screenshot(&normalized_action) {
+        #[cfg(target_os = "windows")]
+        let launched = crate::services::system_screenshot::open()
+            .map_err(|error| format!("打开截图工具失败: {error}"));
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        let launched: Result<(), String> = Err("当前平台暂不支持系统截图入口".into());
+        if let Err(error) = launched {
             restore_shell_window(&app, restore_window_label.as_deref());
             return Err(screenshot_error("screenshot.system_launcher", error, true));
         }
@@ -2058,21 +2063,6 @@ unsafe fn copy_png_to_pasteboard(bytes: &[u8], pasteboard: *mut Object) -> Resul
 #[cfg(not(target_os = "macos"))]
 fn copy_png_to_clipboard(_bytes: &[u8]) -> Result<(), String> {
     Err("当前平台暂不支持图片复制".into())
-}
-
-#[cfg(target_os = "windows")]
-fn launch_system_screenshot(_action: &str) -> Result<(), String> {
-    std::process::Command::new("explorer.exe")
-        .arg("ms-screenclip:")
-        .spawn()
-        .or_else(|_| std::process::Command::new("SnippingTool.exe").spawn())
-        .map_err(|error| format!("打开截图工具失败: {error}"))?;
-    Ok(())
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
-fn launch_system_screenshot(_action: &str) -> Result<(), String> {
-    Err("当前平台暂不支持系统截图入口".into())
 }
 
 #[cfg(test)]

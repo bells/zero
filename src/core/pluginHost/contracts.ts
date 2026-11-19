@@ -18,6 +18,7 @@ export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "system.window.focus",
   "system.settings.open",
   "document.convert",
+  "screen.capture",
 ] as const;
 
 export type PluginPermission = (typeof SUPPORTED_PLUGIN_PERMISSIONS)[number];

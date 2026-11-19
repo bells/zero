@@ -51,3 +51,21 @@ The host imports the declared background module in a hidden isolated view. That 
 The native lifetime is at most 60 seconds using suspend-inclusive time; there are at most four workers globally and one per installed owner. Background sessions cannot show UI messages, open windows or request new grants. Ready must occur within five seconds. Completion persists its receipt/next schedule before teardown. Failed/interrupted effects do not replay automatically. Normal view closure retains scheduled work; disable/update/uninstall revoke it. Normal host exit interrupts active work while preserving future schedules for fresh owner/grant validation on restart. Empty hosts start no tool loop or worker. Scheduling uses at most 16 tasks per owner/256 total and payloads of at most 16 KiB/32 container levels.
 
 For an isolated source smoke, build `examples/plugin-background` with `scripts/plugin-packages/build.mjs`; `src-tauri/examples/plugin_background_smoke.rs` uses only its own temporary registry/data and checks view closure, hidden storage work, completion cleanup and disable revocation. It performs no wallpaper or other desktop effects.
+
+## Installed applications (macOS development runtime)
+
+Declare `system.apps@^1.0.0` in `requiredCapabilities`. These methods are available in a ready view.
+
+| Bridge method | Input | Result value |
+| --- | --- | --- |
+| `apps.scan` | `{}` | `{catalogId, itemCount}` |
+| `apps.page` | `{catalogId, offset}` | `{items, nextOffset}`, where an item has `id`, `title`, `wordInitials`, `pinyin` and `pinyinInitials` |
+| `apps.activate` | `{catalogId, itemId}` | `"focused"` or `"launched"` |
+
+Scan and page require `system.apps.read`. Activation also requires `system.apps.execute` and `system.window.focus`. Start at offset zero, then follow `nextOffset` until it is null. A scan may return up to 4,096 items and each page up to 128. A new scan replaces the previous catalog for that view. Catalog IDs expire after ten minutes, on close or on revoke. Requests use the existing ten-second deadline. Search ranking and usage storage belong to the package.
+
+The item identifier is an index lookup. The host validates the view, live grants, current catalog and native bundle identity before requesting activation. If activation times out, check the desktop before retrying.
+
+## System capture (Windows capability)
+
+Declare `screen.system-capture@^1.0.0` and request `screen.capture`. From a ready view, call `screen.openSystemCapture` with `{}`. A successful response is `null` after Windows accepts the request. Windows controls screenshot interaction and output. This method supplies no image, path or clipboard data. Windows device conformance is pending.

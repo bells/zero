@@ -348,6 +348,50 @@ pub struct PowerUpdateTaskConditionsInput {
     pub conditions: PowerTaskConditions,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ApplicationCatalogPageInput {
+    #[serde(deserialize_with = "catalog_token")]
+    pub catalog_id: String,
+    #[serde(deserialize_with = "catalog_offset")]
+    pub offset: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ApplicationActivateInput {
+    #[serde(deserialize_with = "catalog_token")]
+    pub catalog_id: String,
+    #[serde(deserialize_with = "catalog_token")]
+    pub item_id: String,
+}
+
+fn catalog_token<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
+    let value = String::deserialize(deserializer)?;
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(serde::de::Error::custom(
+            "Expected an application catalog token",
+        ));
+    }
+    Ok(value)
+}
+
+pub(crate) const MAX_APPLICATION_CATALOG_ITEMS: usize = 4096;
+
+fn catalog_offset<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<usize, D::Error> {
+    let offset = safe_integer(deserializer)?;
+    if offset > MAX_APPLICATION_CATALOG_ITEMS as u64 {
+        return Err(serde::de::Error::custom(
+            "Application catalog offset exceeds the limit",
+        ));
+    }
+    Ok(offset as usize)
+}
+
 dto!(MediaCacheInput { url: String });
 dto!(MediaAssetInput { asset_id: String });
 dto!(MediaPreviewReleaseInput { lease_id: String });
@@ -374,6 +418,14 @@ pub enum GetMethod {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "method", content = "payload", deny_unknown_fields)]
 pub enum PluginMethod {
+    #[serde(rename = "screen.openSystemCapture")]
+    ScreenOpenSystem(PowerStatusInput),
+    #[serde(rename = "apps.scan")]
+    ApplicationScan(PowerStatusInput),
+    #[serde(rename = "apps.page")]
+    ApplicationPage(ApplicationCatalogPageInput),
+    #[serde(rename = "apps.activate")]
+    ApplicationActivate(ApplicationActivateInput),
     #[serde(rename = "media.cacheImage")]
     MediaCache(MediaCacheInput),
     #[serde(rename = "media.preview")]
@@ -429,8 +481,33 @@ pub enum PluginMethod {
 }
 
 impl PluginMethod {
+    pub(crate) fn additional_permissions(&self) -> &[&str] {
+        match self {
+            Self::ApplicationActivate(_) => &["system.apps.read", "system.window.focus"],
+            _ => &[],
+        }
+    }
+
+    pub(crate) fn view_only(&self) -> bool {
+        matches!(
+            self,
+            Self::ShowMessage(_)
+                | Self::MediaPreview(_)
+                | Self::MediaReleasePreview(_)
+                | Self::MediaExport(_)
+                | Self::WallpaperRecover(_)
+                | Self::ScreenOpenSystem(_)
+                | Self::ApplicationScan(_)
+                | Self::ApplicationPage(_)
+                | Self::ApplicationActivate(_)
+        )
+    }
+
     pub fn permission(&self) -> &'static str {
         match self {
+            Self::ScreenOpenSystem(_) => "screen.capture",
+            Self::ApplicationScan(_) | Self::ApplicationPage(_) => "system.apps.read",
+            Self::ApplicationActivate(_) => "system.apps.execute",
             Self::ScheduleUpsert(_) | Self::ScheduleCancel(_) | Self::BackgroundComplete(_) => {
                 "background.schedule"
             }
@@ -732,6 +809,10 @@ pub fn validate_web_manifest(m: &PluginManifestV2) -> Vec<CompatibilityIssue> {
                         | "background.schedule"
                         | "system.wallpaper"
                         | "files.export"
+                        | "system.apps.read"
+                        | "system.apps.execute"
+                        | "system.window.focus"
+                        | "screen.capture"
                 )
             }),
         "permissions",

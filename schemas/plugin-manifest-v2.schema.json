@@ -95,6 +95,10 @@
           "power.preventSleep",
           "background.schedule",
           "system.wallpaper",
+          "system.apps.read",
+          "system.apps.execute",
+          "system.window.focus",
+          "screen.capture",
           "files.export",
           "network"
         ]

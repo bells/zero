@@ -1,0 +1,6 @@
+:root { color-scheme: light dark; font: 15px/1.5 system-ui, sans-serif; }
+body { margin: 0; background: Canvas; color: CanvasText; }
+main { display: grid; gap: 12px; align-content: start; padding: 22px; }
+button { justify-self: start; min-height: 44px; font: inherit; padding-inline: 16px; }
+button:focus-visible { outline: 2px solid AccentColor; outline-offset: 2px; }
+p { margin: 0; }

@@ -1,0 +1,9 @@
+{
+  "name": "@zero/snap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "devDependencies": {"typescript": "5.8.3"},
+  "scripts": {"check": "tsc -p tsconfig.json"}
+}

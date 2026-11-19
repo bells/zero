@@ -28,6 +28,12 @@ pub fn implemented_capabilities() -> Vec<HostCapability> {
             "files.export",
         ]);
     }
+    if cfg!(target_os = "macos") {
+        ids.push("system.apps");
+    }
+    if cfg!(target_os = "windows") {
+        ids.push("screen.system-capture");
+    }
     ids.into_iter()
         .map(|id| HostCapability {
             id: id.into(),

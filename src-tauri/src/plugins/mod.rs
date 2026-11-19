@@ -21,4 +21,6 @@ pub mod storage;
 pub mod web_assets;
 pub mod web_runtime;
 
+#[cfg(target_os = "macos")]
+mod application_runtime;
 pub mod media_runtime;
