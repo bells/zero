@@ -13,8 +13,12 @@ pub mod registry;
 pub mod runtime;
 pub mod versions;
 
+pub mod background_runtime;
 pub mod lifecycle;
+pub mod scheduler;
 pub mod session;
 pub mod storage;
 pub mod web_assets;
 pub mod web_runtime;
+
+pub mod media_runtime;

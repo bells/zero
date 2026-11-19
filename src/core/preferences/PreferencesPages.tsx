@@ -478,11 +478,13 @@ export function ShortcutsPreferencesPage({
 export function ExtensionsPreferencesPage({
   pluginHost,
   t,
+  language,
 }: {
+  language?: import("./i18n").ResolvedLanguage;
   pluginHost: PluginHostController;
   t: (key: TranslationKey) => string;
 }) {
-  return <PluginManagerPanel pluginHost={pluginHost} t={t} />;
+  return <PluginManagerPanel pluginHost={pluginHost} t={t} language={language} />;
 }
 
 export function SettingsSection({

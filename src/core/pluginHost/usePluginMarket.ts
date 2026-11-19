@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { PluginMarketEntry, PluginMarketSnapshot } from "./contracts";
 import {
   INITIAL_PLUGIN_MARKET_STATE,
@@ -33,6 +33,8 @@ export function usePluginMarket(
     }
   }, [service]);
 
+  useEffect(() => { void refresh().catch(() => undefined); }, [refresh]);
+
   const loadCached = useCallback(async () => {
     setState((current) => marketRefreshStarted(current));
     try {
@@ -43,7 +45,8 @@ export function usePluginMarket(
         entries,
         stale: true,
       };
-      setState(marketRefreshSucceeded(snapshot));
+      setState((current) => ({ ...marketRefreshSucceeded(snapshot), catalog: current.catalog,
+        sourceUrl: current.sourceUrl, updatedAt: current.updatedAt }));
       return entries;
     } catch (error) {
       setState((current) => marketRefreshFailed(current, error));

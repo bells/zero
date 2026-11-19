@@ -1232,6 +1232,7 @@ fn package_report(
     manifest: Option<PluginManifest>,
 ) -> PluginPackageValidationReport {
     PluginPackageValidationReport {
+        publisher_signature: None,
         protocol_manifest: None,
         valid: issues.is_empty(),
         issues,
@@ -1517,6 +1518,14 @@ pub fn prepare_plugin_package(
     source: &Path,
     intake_root: &Path,
 ) -> Result<PreparedPluginPackage, PluginPackageError> {
+    prepare_plugin_package_with_authority(source, intake_root, None)
+}
+
+pub fn prepare_plugin_package_with_authority(
+    source: &Path,
+    intake_root: &Path,
+    signature: Option<&super::publisher::OfficialPackageSignature>,
+) -> Result<PreparedPluginPackage, PluginPackageError> {
     let mut diagnostic = crate::services::diagnostics::Operation::new(None, "package");
     let result = (|| {
         if source.extension().and_then(|s| s.to_str()) != Some("zplugin") {
@@ -1540,6 +1549,9 @@ pub fn prepare_plugin_package(
             return Err(package_error("Package exceeds 64 MiB"));
         }
         drop(output);
+        let inspected = validate_zplugin_package(&snapshot)?;
+        super::publisher::verify_package_authority(&inspected, signature)
+            .map_err(|error| package_error(error.to_string()))?;
         let extracted_root = stage.root.join("unpacked");
         let mut report = extract_zplugin_package(&snapshot, &extracted_root)?;
         report.package_path = source.to_string_lossy().into_owned();

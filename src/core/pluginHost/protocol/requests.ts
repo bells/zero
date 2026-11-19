@@ -9,6 +9,22 @@ export function parsePluginRequest(value: unknown): PluginRequest | null {
     sessionId: value.sessionId, generation: value.generation } as const;
   const payload = value.payload;
   switch (value.method) {
+    case "media.cacheImage":
+      return fields(payload,["url"]) && typeof payload.url==="string" ? {...common,method:value.method,payload:{url:payload.url}} : null;
+    case "media.preview":
+      return fields(payload,["assetId"]) && typeof payload.assetId==="string" ? {...common,method:value.method,payload:{assetId:payload.assetId}} : null;
+    case "media.releasePreview":
+      return fields(payload,["leaseId"]) && typeof payload.leaseId==="string" ? {...common,method:value.method,payload:{leaseId:payload.leaseId}} : null;
+    case "media.exportImage":
+      return fields(payload,["assetId","suggestedName"]) && typeof payload.assetId==="string" && typeof payload.suggestedName==="string" ? {...common,method:value.method,payload:{assetId:payload.assetId,suggestedName:payload.suggestedName}} : null;
+    case "wallpaper.prepare":
+      return fields(payload,["assetId","claimId"]) && typeof payload.assetId==="string" && typeof payload.claimId==="string" ? {...common,method:value.method,payload:{assetId:payload.assetId,claimId:payload.claimId}} : null;
+    case "wallpaper.apply":
+    case "wallpaper.cancelPrepared":
+      return fields(payload,["intentId"]) && typeof payload.intentId==="string" ? {...common,method:value.method,payload:{intentId:payload.intentId}} : null;
+    case "wallpaper.platform":
+    case "wallpaper.recover":
+      return fields(payload,[]) ? {...common,method:value.method,payload:{}} : null;
     case "diagnostics.emit": {
       if (!fields(payload, ["level", "code", "phase", "outcome"]) || typeof payload.code !== "string" || typeof payload.phase !== "string"
         || !diagnosticIdentifier(payload.code, 64) || !diagnosticIdentifier(payload.phase, 32)

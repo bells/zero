@@ -1820,6 +1820,7 @@ mod tests {
         crate::bundled_metadata::manifests()
             .into_iter()
             .map(|manifest| PluginRecord {
+                publisher_signature: None,
                 name: manifest.name.clone(),
                 version: manifest.version.clone(),
                 author: manifest.author.clone(),

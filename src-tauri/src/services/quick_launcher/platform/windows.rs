@@ -1,169 +1,30 @@
-use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::Cursor;
 use std::os::windows::ffi::OsStrExt;
-use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
+use std::path::Path;
 
-use windows::core::{ComInterface, PCWSTR};
+use windows::core::PCWSTR;
 use windows::Win32::Foundation::{CloseHandle, BOOL, HWND, LPARAM};
 use windows::Win32::Graphics::Gdi::{
     CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, GetDC, ReleaseDC, SelectObject,
     BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HGDIOBJ,
 };
-use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAW;
-use windows::Win32::System::Com::{
-    CoCreateInstance, CoInitializeEx, IPersistFile, CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED,
-    STGM_READ,
-};
 use windows::Win32::System::Threading::{
     OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
 };
 use windows::Win32::UI::Shell::{
-    IShellLinkW, SHGetFileInfoW, ShellExecuteW, ShellLink, SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON,
+    SHGetFileInfoW, ShellExecuteW, SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     DestroyIcon, DrawIconEx, EnumWindows, GetWindowThreadProcessId, IsWindowVisible,
     SetForegroundWindow, DI_NORMAL, SW_SHOWNORMAL,
 };
 
-use super::{PlatformActivation, PlatformIcon, RunningStates, ScanResult};
+use super::{PlatformActivation, PlatformIcon, RunningStates};
 use crate::services::quick_launcher::contracts::{
-    launcher_error, QuickLauncherActivationAction, QuickLauncherDiagnostic, QuickLauncherItemKind,
-    QuickLauncherRunningState,
+    launcher_error, QuickLauncherActivationAction, QuickLauncherRunningState,
 };
-use crate::services::quick_launcher::model::{stable_item_id, IndexedItem, LaunchTarget};
-use crate::services::quick_launcher::search::{build_search_fields, bundled_aliases};
-
-pub fn application_roots() -> Vec<PathBuf> {
-    let mut roots = Vec::new();
-    if let Some(program_data) = std::env::var_os("PROGRAMDATA") {
-        roots.push(
-            PathBuf::from(program_data)
-                .join("Microsoft")
-                .join("Windows")
-                .join("Start Menu")
-                .join("Programs"),
-        );
-    }
-    if let Some(app_data) = std::env::var_os("APPDATA") {
-        roots.push(
-            PathBuf::from(app_data)
-                .join("Microsoft")
-                .join("Windows")
-                .join("Start Menu")
-                .join("Programs"),
-        );
-    }
-    roots
-}
-
-pub fn scan() -> ScanResult {
-    let mut diagnostics = Vec::new();
-    let mut by_identity = HashMap::<String, IndexedItem>::new();
-    for entry in super::recursive_candidates(&application_roots(), &["lnk", "exe"], false) {
-        match parse_entry(&entry) {
-            Ok((identity, item)) => {
-                by_identity.insert(identity, item);
-            }
-            Err(message) => diagnostics.push(QuickLauncherDiagnostic {
-                code: "launcher.windows.entry_skipped".into(),
-                message,
-            }),
-        }
-    }
-    let mut items = by_identity.into_values().collect::<Vec<_>>();
-    items.sort_by(|left, right| left.title.to_lowercase().cmp(&right.title.to_lowercase()));
-    ScanResult { items, diagnostics }
-}
-
-fn parse_entry(entry: &Path) -> Result<(String, IndexedItem), String> {
-    let extension = entry
-        .extension()
-        .and_then(|value| value.to_str())
-        .unwrap_or_default();
-    let canonical = entry.canonicalize().unwrap_or_else(|_| entry.to_path_buf());
-    let executable_path = if extension.eq_ignore_ascii_case("lnk") {
-        resolve_shortcut_target(&canonical).ok()
-    } else {
-        Some(canonical.clone())
-    };
-    if extension.eq_ignore_ascii_case("lnk") && executable_path.is_none() {
-        return Err(format!(
-            "{} could not be resolved safely",
-            canonical.display()
-        ));
-    }
-    let identity_path = executable_path.as_ref().unwrap_or(&canonical);
-    let identity = identity_path.to_string_lossy().to_lowercase();
-    let title = canonical
-        .file_stem()
-        .and_then(|value| value.to_str())
-        .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| format!("{} has no display name", canonical.display()))?
-        .to_string();
-    let modified_at = std::fs::metadata(&canonical)
-        .and_then(|metadata| metadata.modified())
-        .ok()
-        .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
-        .map(|duration| duration.as_secs());
-    let id = stable_item_id("windows", QuickLauncherItemKind::Application, &identity);
-    let icon_key = Some(format!("{id}:{}", modified_at.unwrap_or_default()));
-    Ok((
-        identity,
-        IndexedItem {
-            id,
-            kind: QuickLauncherItemKind::Application,
-            title: title.clone(),
-            subtitle: canonical.to_string_lossy().into_owned(),
-            search: build_search_fields(&title, bundled_aliases(&title)),
-            target: LaunchTarget::Application {
-                path: canonical.clone(),
-                bundle_id: None,
-                executable_path,
-            },
-            icon_source: Some(canonical),
-            icon_key,
-            source_modified_at: modified_at,
-            running: QuickLauncherRunningState::Unknown,
-        },
-    ))
-}
-
-fn resolve_shortcut_target(shortcut: &Path) -> Result<PathBuf, String> {
-    unsafe {
-        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
-        let shell_link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER)
-            .map_err(|error| format!("failed to create ShellLink: {error}"))?;
-        let persist: IPersistFile = shell_link
-            .cast()
-            .map_err(|error| format!("failed to access shortcut persistence: {error}"))?;
-        let shortcut_wide = wide(shortcut.as_os_str());
-        persist
-            .Load(PCWSTR(shortcut_wide.as_ptr()), STGM_READ)
-            .map_err(|error| format!("failed to load shortcut: {error}"))?;
-        let mut target = vec![0_u16; 32_768];
-        let mut metadata = WIN32_FIND_DATAW::default();
-        shell_link
-            .GetPath(&mut target, &mut metadata, 0)
-            .map_err(|error| format!("failed to resolve shortcut: {error}"))?;
-        let length = target
-            .iter()
-            .position(|value| *value == 0)
-            .unwrap_or(target.len());
-        if length == 0 {
-            return Err("shortcut target is empty".into());
-        }
-        let path = PathBuf::from(String::from_utf16_lossy(&target[..length]));
-        if !path.is_file() {
-            return Err(format!(
-                "shortcut target does not exist: {}",
-                path.display()
-            ));
-        }
-        Ok(path)
-    }
-}
+use crate::services::quick_launcher::model::{IndexedItem, LaunchTarget};
 
 pub fn probe_running(items: &[IndexedItem]) -> RunningStates {
     items

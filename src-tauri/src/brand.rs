@@ -50,6 +50,15 @@ pub fn legacy_data_root(home: &Path) -> PathBuf {
 }
 
 pub fn default_home() -> PathBuf {
+    #[cfg(debug_assertions)]
+    if let Some(home) = std::env::var_os("ZERO_DEV_HOME") {
+        let home = PathBuf::from(home);
+        assert!(
+            home.is_absolute(),
+            "ZERO_DEV_HOME must be an absolute development directory"
+        );
+        return home;
+    }
     std::env::var_os("HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."))

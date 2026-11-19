@@ -92,10 +92,14 @@
           "storage.plugin",
           "ui.message",
           "diagnostics.write",
+          "power.preventSleep",
+          "background.schedule",
+          "system.wallpaper",
+          "files.export",
           "network"
         ]
       },
-      "maxItems": 3,
+      "maxItems": 8,
       "minItems": 0,
       "uniqueItems": true
     },

@@ -103,6 +103,7 @@ mod tests {
         }))
         .unwrap();
         PluginRecord {
+            publisher_signature: None,
             name: name.into(),
             version: "1.0.0".into(),
             author: "test".into(),

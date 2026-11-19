@@ -44,6 +44,7 @@ fn main() {
     let mut registry = PluginRegistry::load_or_seed(root.join("plugins")).unwrap();
     let record = registry
         .install_local_package(InstallPluginPackageInput {
+            publisher_signature: None,
             expected_sha256: Some(
                 zero_lib::plugins::package::validate_zplugin_package(std::path::Path::new(
                     &package,
@@ -68,7 +69,11 @@ fn main() {
     context.config_mut().app.windows.clear();
     let builder = web_assets::register(tauri::Builder::default())
         .manage(PluginRegistryState::from_registry(registry))
-        .manage(zero_lib::plugins::lifecycle::LifecycleCoordinator::default());
+        .manage(zero_lib::plugins::lifecycle::LifecycleCoordinator::default())
+        .manage(zero_lib::services::power_lease::PowerLeaseState::default())
+        .manage(zero_lib::services::network_fetch::NetworkFetchState::default())
+        .manage(zero_lib::plugins::media_runtime::NativeMediaState::default())
+        .manage(zero_lib::plugins::background_runtime::BackgroundRuntime::default());
     builder.invoke_handler(invoke_gate::gate(tauri::generate_handler![web_runtime::plugin_session_ready,web_runtime::plugin_invoke,web_runtime::plugin_cancel]))
         .setup(move |app|{
             tauri::WebviewWindowBuilder::new(app,"main",tauri::WebviewUrl::External("about:blank".parse().unwrap())).title("Zero plugin smoke host — closes automatically").inner_size(400.0,180.0).build()?;
@@ -86,7 +91,7 @@ fn main() {
                     let storage=root.join("data/plugins/example.notes/storage.json");
                     if !wait_note(&storage,"native-smoke"){return Err("first storage commit failed".into());}
                     eprintln!("ZERO_WEB_SMOKE first storage commit passed");
-                    web_runtime::revoke(&app,"example.notes");
+                    web_runtime::revoke(&app,"example.notes").map_err(|e|e.code)?;
                     app.state::<PluginRegistryState>().with_registry(|r|{r.set_enabled("example.notes",false)?;r.save()})?;
                     assert!(app.state::<web_assets::WebSessions>().0.lock().unwrap().get(&info.session_id,&label,info.generation).is_err());
                     app.state::<PluginRegistryState>().with_registry(|r|{r.set_enabled("example.notes",true)?;r.save()})?;
@@ -95,7 +100,7 @@ fn main() {
                     std::thread::sleep(Duration::from_secs(2));
                     app.get_webview_window(&format!("plugin-{}",second.session_id)).ok_or("missing second window")?.eval("const note=document.querySelector('#note');note.value=note.value==='native-smoke'?'restored':'RESTORE FAILED';document.querySelector('#save').click();").map_err(|e|e.to_string())?;
                     if !wait_note(&storage,"restored"){return Err("storage restoration failed".into());}
-                    web_runtime::revoke(&app,"example.notes");
+                    web_runtime::revoke(&app,"example.notes").map_err(|e|e.code)?;
                     app.state::<PluginRegistryState>().with_registry(|r|r.uninstall_plugin("example.notes"))?;
                     if !storage.exists(){return Err("uninstall deleted persistent data".into());}
                     eprintln!("ZERO_WEB_SMOKE re-enable, generation revocation, restore and uninstall data preservation passed");

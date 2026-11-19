@@ -82,6 +82,23 @@ test("host state derives active plugin and keeps action errors structured", () =
   assert.equal(failed.isBusy, false);
 });
 
+test("installed Web tools keep their main and tray view routes in navigation", () => {
+  const record = { ...pluginRecord("example.awake", true, "local"), protocolManifest: {
+    schemaVersion: 2, id: "example.awake", name: "example.awake", displayName: "Awake",
+    version: "0.1.0", author: "Zero", description: "Keep awake", runtime: "webview", main: "index.html",
+    engines: { zero: ">=0.2.0 <0.3.0", api: "^1.0.0" }, platforms: ["macos", "windows"], permissions: [],
+    contributes: { views: [
+      { id: "example.awake.tray", title: "Awake", surface: "tray" },
+      { id: "example.awake.main", title: "Awake", surface: "main" },
+    ] }, activationEvents: ["onView:example.awake.main", "onView:example.awake.tray"],
+  } };
+  const navigation = createPluginHostState([record], record.name).navigationItems[0];
+  assert.equal(navigation.viewId, "example.awake.main");
+  assert.equal(navigation.trayViewId, "example.awake.tray");
+  const selected = selectActivePlugin([record], navigation.id);
+  assert(selected.protocolManifest.contributes.views.some(view => view.id === navigation.viewId));
+});
+
 test("summarizes plugin records for about and diagnostics surfaces", () => {
   const summary = summarizePluginRecords([
     pluginRecord("zero.snap", true),

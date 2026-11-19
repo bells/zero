@@ -14,6 +14,12 @@ pub enum PluginPermission {
     UiMessage,
     #[serde(rename = "diagnostics.write")]
     DiagnosticsWrite,
+    #[serde(rename = "power.preventSleep")]
+    PowerPreventSleep,
+    #[serde(rename = "background.schedule")]
+    BackgroundSchedule,
+    #[serde(rename = "files.export")]
+    FilesExport,
     #[serde(rename = "process.execute")]
     ProcessExecute,
     #[serde(rename = "system.wallpaper")]
@@ -230,6 +236,8 @@ pub struct PluginManifest {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginMarketEntry {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub publisher_signature: Option<super::publisher::OfficialPackageSignature>,
     pub name: String,
     pub version: String,
     pub author: String,
@@ -245,9 +253,28 @@ pub struct PluginMarketEntry {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginMarketIndex {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub catalog: Vec<PluginMarketCatalogEntry>,
     pub schema_version: u16,
     pub plugins: Vec<PluginMarketEntry>,
     pub updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PluginLocalizedText {
+    pub zh: String,
+    pub en: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PluginMarketCatalogEntry {
+    pub name: String,
+    pub display_name: String,
+    pub version: String,
+    pub description: PluginLocalizedText,
+    pub unavailable_reason: PluginLocalizedText,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -268,6 +295,8 @@ pub struct PluginManifestValidationReport {
 #[serde(rename_all = "camelCase")]
 pub struct PluginPackageValidationReport {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub publisher_signature: Option<super::publisher::OfficialPackageSignature>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub protocol_manifest: Option<super::protocol::PluginManifestV2>,
     pub valid: bool,
     pub issues: Vec<PluginValidationIssue>,
@@ -286,6 +315,8 @@ pub struct PluginMarketValidationReport {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginRecord {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub publisher_signature: Option<super::publisher::OfficialPackageSignature>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub protocol_manifest: Option<super::protocol::PluginManifestV2>,
     pub name: String,
@@ -323,6 +354,8 @@ pub struct ValidatePluginPackageInput {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallPluginPackageInput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub publisher_signature: Option<super::publisher::OfficialPackageSignature>,
     pub expected_sha256: Option<String>,
     pub package_path: String,
     pub approved_permissions: Vec<PluginPermission>,

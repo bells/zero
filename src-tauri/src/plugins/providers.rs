@@ -13,11 +13,30 @@ pub struct PluginHostCapabilities {
 
 pub fn implemented_capabilities() -> Vec<HostCapability> {
     // Compiled private commands are not public plugin providers.
-    ["storage.plugin", "ui.message", "diagnostics.emit"]
-        .into_iter()
+    let mut ids = vec![
+        "storage.plugin",
+        "ui.message",
+        "diagnostics.emit",
+        "network.fetch",
+    ];
+    if cfg!(any(target_os = "macos", target_os = "windows")) {
+        ids.extend([
+            "power.lease",
+            "background.events",
+            "media.image",
+            "system.wallpaper",
+            "files.export",
+        ]);
+    }
+    ids.into_iter()
         .map(|id| HostCapability {
             id: id.into(),
-            version: "1.0.0".into(),
+            version: if id == "power.lease" || id == "storage.plugin" {
+                "1.1.0"
+            } else {
+                "1.0.0"
+            }
+            .into(),
         })
         .collect()
 }

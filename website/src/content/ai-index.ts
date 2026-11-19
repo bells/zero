@@ -20,6 +20,7 @@ export function aiIndex(full = false) {
   lines.push('## Official pages', '',
     `[中文首页](${canonicalUrl('zh')})`, `[English home](${canonicalUrl('en')})`,
     `[获取 Zero](${canonicalUrl('zh', 'download')})`, `[Get Zero](${canonicalUrl('en', 'download')})`, '',
+    `[插件市场](${canonicalUrl('zh', 'plugins')})`, `[Plugin market](${canonicalUrl('en', 'plugins')})`, '',
   );
   for (const locale of ['zh', 'en'] as const) {
     lines.push(`## ${locale === 'zh' ? '中文文档' : 'English documentation'}`, '');

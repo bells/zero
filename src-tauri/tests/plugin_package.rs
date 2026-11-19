@@ -175,14 +175,15 @@ fn package_validation_accepts_valid_zplugin_zip() {
 fn package_validation_canonicalizes_legacy_zero_host_key() {
     let package = write_zplugin_package(
         "package-tool.zplugin",
-        r#"{
+        &serde_json::json!({
             "name": "package-tool",
             "version": "0.1.0",
             "author": "watson",
             "main": "dist/index.html",
             "permissions": ["ui.message"],
-            "engines": {"ztool": "0.1.0", "api": "1"}
-        }"#,
+            "engines": {"ztool": env!("CARGO_PKG_VERSION"), "api": "1"}
+        })
+        .to_string(),
         &[("dist/index.html", "<main>ok</main>")],
     );
 
@@ -190,7 +191,7 @@ fn package_validation_canonicalizes_legacy_zero_host_key() {
     assert!(report.valid);
     let engines = report.manifest.expect("manifest").engines.expect("engines");
 
-    assert_eq!(engines.zero.as_deref(), Some("0.1.0"));
+    assert_eq!(engines.zero.as_deref(), Some(env!("CARGO_PKG_VERSION")));
     assert_eq!(engines.ztool, None);
 }
 
@@ -198,14 +199,15 @@ fn package_validation_canonicalizes_legacy_zero_host_key() {
 fn package_validation_uses_canonical_host_key_when_both_are_present() {
     let package = write_zplugin_package(
         "package-tool.zplugin",
-        r#"{
+        &serde_json::json!({
             "name": "package-tool",
             "version": "0.1.0",
             "author": "watson",
             "main": "dist/index.html",
             "permissions": ["ui.message"],
-            "engines": {"zero": "0.1.0", "ztool": "999.0.0", "api": "1"}
-        }"#,
+            "engines": {"zero": env!("CARGO_PKG_VERSION"), "ztool": "999.0.0", "api": "1"}
+        })
+        .to_string(),
         &[("dist/index.html", "<main>ok</main>")],
     );
 
@@ -213,7 +215,7 @@ fn package_validation_uses_canonical_host_key_when_both_are_present() {
     assert!(report.valid);
     let engines = report.manifest.expect("manifest").engines.expect("engines");
 
-    assert_eq!(engines.zero.as_deref(), Some("0.1.0"));
+    assert_eq!(engines.zero.as_deref(), Some(env!("CARGO_PKG_VERSION")));
     assert_eq!(engines.ztool, None);
 }
 

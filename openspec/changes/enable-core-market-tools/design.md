@@ -8,6 +8,14 @@
 
 ## Goals / Non-Goals
 
+### 2026-11-15 maintainer experience decisions
+
+The project remains in the maintainer's v0.1.0 experience stage. The new native-capability host uses version 0.2.0 to distinguish it from incompatible existing 0.1.0 installers. All five initial tool packages use 0.1.0, then version independently.
+
+The official bilingual website adds `/plugins/` and `/en/plugins/`, generated from the same public catalog as the desktop market. It shows all five tools, including explicit unavailable reasons without fabricated download links. Actual archives remain GitHub Release assets. The download page defaults to core; standard remains the four-tool preinstall option. Initially installation happens in the desktop market or by signed local import; website deep links are deferred.
+
+The maintainer must be able to follow the ordinary-user path: download core, install only a chosen tool, use it, close/reopen its interface, disable it, uninstall it, restart Zero and reinstall it. The absence of an installer, package, trusted publisher configuration, native runtime approval or actual device evidence is a visible delivery gap. A catalog page or successful package build does not satisfy this acceptance.
+
 **Goals:**
 
 - core 是普通用户的无工具安装入口；一个工具包安装后能在受支持平台完成其真实功能，无需更换为 standard。

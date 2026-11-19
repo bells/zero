@@ -13,7 +13,7 @@ import type { PluginHostController } from "./usePluginHost";
 
 type PendingInstall =
   | { kind: "market"; entry: PluginMarketEntry; permissions: PluginPermission[] }
-  | { kind: "local"; packagePath: string; pluginName: string; sha256: string; permissions: PluginPermission[] };
+  | { kind: "local"; packagePath: string; publisherSignature?: import("../../sdk/publisher").OfficialPackageSignature; pluginName: string; sha256: string; permissions: PluginPermission[] };
 
 interface ExtensionStatus {
   key: TranslationKey;
@@ -22,11 +22,12 @@ interface ExtensionStatus {
 }
 
 interface PluginManagerPanelProps {
+  language?: import("../preferences/i18n").ResolvedLanguage;
   pluginHost: PluginHostController;
   t: (key: TranslationKey) => string;
 }
 
-export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
+export function PluginManagerPanel({ pluginHost, t, language = "zh-CN" }: PluginManagerPanelProps) {
   const hasBundledTools = import.meta.env.VITE_ZERO_HAS_BUNDLED_TOOLS;
   const market = usePluginMarket();
   const [localPackagePath, setLocalPackagePath] = useState("");
@@ -34,6 +35,9 @@ export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
   const [pendingInstall, setPendingInstall] = useState<PendingInstall | null>(null);
   const [status, setStatus] = useState<ExtensionStatus | null>(null);
   const [isWorking, setIsWorking] = useState(false);
+  const marketStateKey: TranslationKey = market.isLoading ? "extensions.market.refreshing"
+    : !market.sourceUrl ? "extensions.market.notLoaded"
+    : market.stale ? "extensions.market.stale" : "extensions.market.ready";
   const diagnostics = [
     pluginHost.error,
     market.error,
@@ -68,6 +72,7 @@ export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
           packagePath,
           pluginName: report.manifest.name,
           sha256: report.sha256,
+          publisherSignature: report.publisherSignature,
           permissions: report.manifest.permissions,
         });
         setStatus({ key: "extensions.status.packageValid", tone: "success" });
@@ -102,6 +107,7 @@ export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
         await pluginHostService.installPluginPackage({
           packagePath: pendingInstall.packagePath,
           expectedSha256: pendingInstall.sha256,
+          publisherSignature: pendingInstall.publisherSignature,
           approvedPermissions: pendingInstall.permissions,
           enabled: true,
         });
@@ -147,8 +153,8 @@ export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
         description={t("extensions.market.description")}
       >
         <div className="preferences-section-toolbar">
-          <span className={`preferences-state ${market.stale ? "neutral" : "success"}`}>
-            {t(market.stale ? "extensions.market.stale" : "extensions.market.ready")}
+          <span className={`preferences-state ${market.stale || !market.sourceUrl ? "neutral" : "success"}`}>
+            {t(marketStateKey)}
           </span>
           <button type="button" className="secondary-action" disabled={market.isLoading || isWorking} onClick={() => void refreshMarket()}>
             {t(market.isLoading ? "extensions.market.refreshing" : "extensions.market.refresh")}
@@ -177,6 +183,16 @@ export function PluginManagerPanel({ pluginHost, t }: PluginManagerPanelProps) {
             </button>
           </div>
         )) : <p className="preferences-empty-copy">{t("extensions.market.empty")}</p>}
+        {market.catalog.filter((tool) => !market.entries.some((entry) => entry.name === tool.name)).map((tool) => (
+          <div className="preferences-setting-row" key={tool.name}>
+            <div className="preferences-setting-copy">
+              <strong>{tool.displayName} <small>v{tool.version}</small></strong>
+              <small>{tool.description[language === "zh-CN" ? "zh" : "en"]}</small>
+              <small>{tool.unavailableReason[language === "zh-CN" ? "zh" : "en"]}</small>
+            </div>
+            <span className="preferences-state neutral">{t("extensions.market.unavailable")}</span>
+          </div>
+        ))}
       </ExtensionSection>
 
       <ExtensionSection

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "name": "zero.paper",
+  "id": "zero.paper",
+  "displayName": "Paper",
+  "description": "Browse, save and apply Bing daily wallpapers with optional daily automation.",
+  "author": "Zero",
+  "version": "0.1.0",
+  "engines": {"zero": ">=0.2.0 <0.3.0", "api": "^1.0.0"},
+  "platforms": ["macos", "windows"],
+  "runtime": "webview",
+  "main": "index.html",
+  "permissions": ["storage.plugin", "network", "system.wallpaper", "files.export", "background.schedule"],
+  "network": {"allowedOrigins": ["https://www.bing.com"]},
+  "requiredCapabilities": [
+    {"id": "storage.plugin", "version": "^1.1.0"},
+    {"id": "network.fetch", "version": "^1.0.0"},
+    {"id": "media.image", "version": "^1.0.0"},
+    {"id": "system.wallpaper", "version": "^1.0.0"},
+    {"id": "files.export", "version": "^1.0.0"},
+    {"id": "background.events", "version": "^1.0.0"}
+  ],
+  "background": {"main": "background.js", "events": ["paper.daily"]},
+  "contributes": {"views": [
+    {"id": "zero.paper.main", "title": "Paper", "surface": "main"},
+    {"id": "zero.paper.tray", "title": "Paper", "surface": "tray"}
+  ]},
+  "activationEvents": ["onView:zero.paper.main", "onView:zero.paper.tray"]
+}

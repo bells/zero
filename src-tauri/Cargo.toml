@@ -1,6 +1,6 @@
 [package]
 name = "zero"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Tauri App"
 authors = ["watson"]
 edition = "2021"
@@ -47,7 +47,7 @@ required-features = ["bundled-tools", "file-tool"]
 
 [features]
 default = ["bundled-tools", "file-tool"]
-bundled-tools = ["dep:chrono", "dep:wallpaper", "dep:nucleo-matcher", "dep:pinyin", "dep:notify", "dep:xcap", "dep:objc2-vision", "dep:paddle-ocr-rs", "dep:ort"]
+bundled-tools = ["dep:chrono", "dep:notify", "dep:xcap", "dep:objc2-vision", "dep:paddle-ocr-rs", "dep:ort"]
 file-tool = ["dep:quick-xml", "dep:objc2-web-kit", "dep:objc2-vision"]
 
 [build-dependencies]
@@ -72,15 +72,19 @@ getrandom = "0.3"
 ed25519-dalek = "2"
 rfd = "0.15"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+# Expose the already-locked JPEG backend to reject incomplete scans in strict mode.
+zune-jpeg = "=0.5.15"
 reqwest = "0.13.3"
+# Reqwest wraps malformed HTTP responses in this already-locked parser error.
+hyper = "1"
 sha2 = "0.10"
 quick-xml = { version = "=0.39.2", optional = true }
 zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2"] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["sync", "fs", "io-util", "time"] }
-wallpaper = { version = "3.2", default-features = false, optional = true }
-nucleo-matcher = { version = "0.3", optional = true }
-pinyin = { version = "0.11", optional = true }
+wallpaper = { version = "3.2", default-features = false }
+nucleo-matcher = "0.3"
+pinyin = "0.11"
 notify = { version = "8", optional = true }
 plist = "1"
 semver = "=1.0.28"
@@ -93,9 +97,9 @@ cocoa = "0.26.1"
 objc = "0.2"
 objc2 = "0.6.4"
 objc2-vision = { optional = true, version = "=0.3.2", default-features = false, features = ["std", "VNRequest", "VNRequestHandler", "VNRecognizeTextRequest", "VNObservation", "VNTypes", "objc2-core-foundation", "objc2-core-graphics", "objc2-image-io"] }
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSResponder", "NSMenu", "NSMenuItem", "NSWindow", "NSView", "NSStatusItem", "NSStatusBarButton", "NSButton", "NSControl", "NSButtonCell", "NSActionCell", "NSCell", "NSColor", "NSBezierPath", "NSImage"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSResponder", "NSMenu", "NSMenuItem", "NSWindow", "NSView", "NSStatusItem", "NSStatusBarButton", "NSButton", "NSControl", "NSButtonCell", "NSActionCell", "NSCell", "NSColor", "NSBezierPath", "NSImage", "NSWorkspace", "NSScreen"] }
 objc2-core-foundation = { version = "0.3.2", features = ["CFCGTypes", "objc2"] }
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSData", "NSError", "NSString", "NSObject", "NSGeometry"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSData", "NSError", "NSString", "NSObject", "NSGeometry", "NSURL", "NSDictionary", "NSArray"] }
 objc2-web-kit = { optional = true, version = "0.3.2", default-features = false, features = ["std", "WKWebView", "WKPDFConfiguration", "block2", "objc2-core-foundation"] }
 window-vibrancy = "0.7.1"
 xcap = { version = "0.9.8", optional = true }
@@ -125,6 +129,7 @@ windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
 fuzzy-matcher = "0.3"
+hyper-util = { version = "0.1", features = ["tokio"] }
 
 # Snap processes full-resolution pixels before showing its editor. Keep these
 # CPU-heavy dependencies optimized in dev without optimizing application code.
@@ -145,3 +150,7 @@ opt-level = 3
 
 [profile.dev.package.crc32fast]
 opt-level = 3
+
+# Version-preserving strict JPEG scan completion backport; see vendor provenance.
+[patch.crates-io]
+zune-jpeg = { path = "vendor/zune-jpeg" }

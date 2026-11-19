@@ -9,6 +9,8 @@ pub const DEFAULT_PLUGIN_MARKET_URL: &str =
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginMarketSnapshot {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub catalog: Vec<super::contracts::PluginMarketCatalogEntry>,
     pub source_url: String,
     pub schema_version: u16,
     pub updated_at: Option<String>,
@@ -100,6 +102,7 @@ impl PluginMarketCache {
         validate_market_index(&market)?;
 
         let snapshot = PluginMarketSnapshot {
+            catalog: market.catalog,
             source_url: self.source_url.clone(),
             schema_version: market.schema_version,
             updated_at: market.updated_at,
@@ -162,6 +165,29 @@ fn parse_market_index(market_json: &str) -> Result<PluginMarketIndex, PluginMark
 fn validate_market_index(market: &PluginMarketIndex) -> Result<(), PluginMarketError> {
     if market.schema_version != 1 {
         return Err(market_error("market schemaVersion must be 1"));
+    }
+
+    if market.plugins.len() > 1000 || market.catalog.len() > 1000 {
+        return Err(market_error("market contains too many tools"));
+    }
+    let mut names = std::collections::HashSet::new();
+    for tool in &market.catalog {
+        if !super::capabilities::valid_capability_id(&tool.name)
+            || !names.insert(&tool.name)
+            || !super::versions::is_protocol_version(&tool.version)
+            || tool.display_name.is_empty()
+            || tool.display_name.len() > 128
+            || [
+                &tool.description.zh,
+                &tool.description.en,
+                &tool.unavailable_reason.zh,
+                &tool.unavailable_reason.en,
+            ]
+            .into_iter()
+            .any(|text| text.trim().is_empty() || text.len() > 2048)
+        {
+            return Err(market_error("invalid or duplicate tool catalog metadata"));
+        }
     }
 
     for entry in &market.plugins {

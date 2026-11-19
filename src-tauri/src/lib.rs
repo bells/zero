@@ -249,6 +249,7 @@ pub fn run() {
             #[cfg(all(target_os = "windows", feature = "bundled-tools"))]
             services::ocr::configure_windows(app.handle());
             bundled_plugins::register_diagnostics(app.handle());
+            plugins::background_runtime::initialize(app.handle());
             services::tray_panel::register(app.handle());
             #[cfg(feature = "bundled-tools")]
             services::global_shortcuts::initialize(app.handle());
@@ -551,6 +552,13 @@ pub fn run() {
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
         ) {
+            app.state::<plugins::media_runtime::NativeMediaState>()
+                .shutdown();
+            plugins::background_runtime::shutdown(app);
+            app.state::<services::network_fetch::NetworkFetchState>()
+                .shutdown();
+            app.state::<services::power_lease::PowerLeaseState>()
+                .shutdown();
             services::diagnostics::native(
                 None,
                 "shutdown",

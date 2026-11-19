@@ -5,20 +5,20 @@ import { webTools } from '../src/content/web-tools.ts';
 
 const origin = 'https://www.usezero.cn';
 const docs = ['tools', 'tools/timestamp', 'tools/json', 'tools/base64', 'tools/diff', 'tools/unicode', 'tools/image-converter', 'tools/image-watermark', 'tools/image-compressor', 'tools/markdown', 'tools/qrcode', 'tools/text-cleanup', 'tools/hash', 'tools/regex', 'tools/sql', 'tools/date-calculator', 'tools/password', 'tools/cron', 'tools/snap', 'tools/launch', 'tools/awake', 'tools/paper', 'tools/file', 'guide/install', 'faq'];
-const routes = ['', 'download', ...docs].flatMap((page) => [page ? `/${page}/` : '/', `/en/${page ? `${page}/` : ''}`]);
+const routes = ['', 'download', 'plugins', ...docs].flatMap((page) => [page ? `/${page}/` : '/', `/en/${page ? `${page}/` : ''}`]);
 const output = new URL('../dist/', import.meta.url);
 const htmlFor = (route) => readFile(new URL(`${route.slice(1)}index.html`, output), 'utf8');
 const graphFor = (html) => JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)?.[1] || 'null');
 
-test('static delivery contains exactly 54 public pages and two localized error pages', async () => {
+test('static delivery contains exactly 56 public pages and two localized error pages', async () => {
   const files = (await readdir(output, { recursive: true })).filter((file) => file.endsWith('.html') && !file.startsWith('image-codecs/materials/'));
   const expected = [...routes.map((route) => `${route.slice(1)}index.html`), '404.html', 'en/404/index.html'];
-  assert.equal(files.length, 56);
+  assert.equal(files.length, 58);
   assert.deepEqual(files.sort(), expected.sort());
 });
 
 test('all public pages have useful, unique titles and reciprocal language metadata', async () => {
-  assert.equal(routes.length, 54);
+  assert.equal(routes.length, 56);
   const titles = new Set();
   for (const route of routes) {
     const html = await htmlFor(route);

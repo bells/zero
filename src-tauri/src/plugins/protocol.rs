@@ -138,21 +138,229 @@ dto!(SessionBinding {
     session_id: String,
     generation: u64
 });
-dto!(PluginSessionInfo {
-    session_id: String,
-    generation: u64,
-    plugin_id: String,
-    plugin_version: String,
-    api_version: String,
-    surface_id: String,
-    registry_revision: u64
-});
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PluginSessionInfo {
+    pub session_id: String,
+    pub generation: u64,
+    pub plugin_id: String,
+    pub plugin_version: String,
+    pub api_version: String,
+    pub surface_id: String,
+    pub registry_revision: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background: Option<BackgroundEventContext>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BackgroundEventContext {
+    #[serde(deserialize_with = "schedule_identifier")]
+    pub task_id: String,
+    #[serde(deserialize_with = "background_event_identifier")]
+    pub event_id: String,
+    #[serde(deserialize_with = "occurrence_identifier")]
+    pub occurrence_id: String,
+    #[serde(deserialize_with = "background_attempt")]
+    pub attempt: u32,
+    #[serde(deserialize_with = "background_payload")]
+    pub payload: Value,
+    #[serde(deserialize_with = "positive_integer")]
+    pub schedule_generation: u64,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ScheduleUpsertInput {
+    #[serde(deserialize_with = "schedule_identifier")]
+    pub task_id: String,
+    #[serde(deserialize_with = "background_event_identifier")]
+    pub event_id: String,
+    #[serde(deserialize_with = "safe_integer")]
+    pub next_at_ms: u64,
+    #[serde(deserialize_with = "background_payload")]
+    pub payload: Value,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ScheduleCancelInput {
+    #[serde(deserialize_with = "schedule_identifier")]
+    pub task_id: String,
+}
+fn schedule_identifier<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    let id = String::deserialize(d)?;
+    if id.is_empty()
+        || id.len() > 128
+        || matches!(id.as_str(), "." | "..")
+        || !id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
+    {
+        return Err(serde::de::Error::custom("invalid task identifier"));
+    }
+    Ok(id)
+}
+fn background_event_identifier<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    let id = String::deserialize(d)?;
+    if !valid_capability_id(&id) {
+        return Err(serde::de::Error::custom("invalid event identifier"));
+    }
+    Ok(id)
+}
+fn occurrence_identifier<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    let id = String::deserialize(d)?;
+    if id.len() != 32
+        || !id
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err(serde::de::Error::custom("invalid occurrence identifier"));
+    }
+    Ok(id)
+}
+fn background_attempt<'de, D: serde::Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
+    let value = u32::deserialize(d)?;
+    if !(1..=32).contains(&value) {
+        return Err(serde::de::Error::custom("invalid attempt"));
+    }
+    Ok(value)
+}
+fn positive_integer<'de, D: serde::Deserializer<'de>>(d: D) -> Result<u64, D::Error> {
+    let value = safe_integer(d)?;
+    if value == 0 {
+        return Err(serde::de::Error::custom("invalid generation"));
+    }
+    Ok(value)
+}
+fn background_payload<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Value, D::Error> {
+    let payload = Value::deserialize(d)?;
+    super::scheduler::validate_schedule(&super::scheduler::Schedule {
+        task_id: "payload".into(),
+        event_id: "payload".into(),
+        next_at_ms: 0,
+        payload: payload.clone(),
+    })
+    .map_err(|_| serde::de::Error::custom("background payload limit"))?;
+    Ok(payload)
+}
+dto!(ScheduleUpsertOutput { generation: u64 });
+dto!(ScheduleCancelOutput { cancelled: bool });
+dto!(BackgroundCompleteOutput { generation: Option<u64> });
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum BackgroundOutcome {
+    Completed,
+    Retry,
+    Failed,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BackgroundCompleteInput {
+    pub outcome: BackgroundOutcome,
+    #[serde(deserialize_with = "nullable_time")]
+    pub next_at_ms: Option<u64>,
+}
+fn nullable_time<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<u64>, D::Error> {
+    let value = Option::<u64>::deserialize(d)?;
+    if value.is_some_and(|n| n > 9_007_199_254_740_991) {
+        return Err(serde::de::Error::custom("unsafe time"));
+    }
+    Ok(value)
+}
 dto!(MessageInput { message: String });
 dto!(StorageGetInput { key: String });
+dto!(StorageCompareAndSetInput {
+    key: String,
+    expected_value: Value,
+    value: Value
+});
 dto!(StorageSetInput {
     key: String,
     value: Value
 });
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PowerAcquireInput {
+    #[serde(deserialize_with = "nullable_duration")]
+    pub duration_minutes: Option<u32>,
+}
+fn nullable_duration<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<u32>, D::Error> {
+    Option::<u32>::deserialize(deserializer)
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PowerReleaseInput {
+    pub lease_id: String,
+    #[serde(deserialize_with = "safe_integer")]
+    pub generation: u64,
+}
+dto!(PowerStatusInput {});
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
+pub enum PowerTaskSchedule {
+    Unlimited,
+    Duration {
+        minutes: u32,
+    },
+    Until {
+        #[serde(rename = "expiresAtMs", deserialize_with = "safe_integer")]
+        expires_at_ms: u64,
+    },
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PowerTaskConditions {
+    #[serde(deserialize_with = "nullable_duration")]
+    pub battery_threshold_percent: Option<u32>,
+    pub stop_on_low_power_mode: bool,
+    pub allow_low_battery_start: bool,
+}
+fn nullable_generation<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<u64>, D::Error> {
+    let value = Option::<u64>::deserialize(d)?;
+    if value.is_some_and(|n| n == 0 || n > 9_007_199_254_740_991) {
+        return Err(serde::de::Error::custom("unsafe generation"));
+    }
+    Ok(value)
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PowerStartTaskInput {
+    #[serde(deserialize_with = "nullable_generation")]
+    pub expected_generation: Option<u64>,
+    #[serde(deserialize_with = "nullable_generation")]
+    pub expected_conditions_revision: Option<u64>,
+    pub schedule: PowerTaskSchedule,
+    pub conditions: PowerTaskConditions,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PowerStopTaskInput {
+    #[serde(deserialize_with = "safe_integer")]
+    pub generation: u64,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PowerUpdateTaskConditionsInput {
+    #[serde(deserialize_with = "safe_integer")]
+    pub generation: u64,
+    #[serde(deserialize_with = "safe_integer")]
+    pub expected_conditions_revision: u64,
+    pub conditions: PowerTaskConditions,
+}
+
+dto!(MediaCacheInput { url: String });
+dto!(MediaAssetInput { asset_id: String });
+dto!(MediaPreviewReleaseInput { lease_id: String });
+dto!(MediaExportInput {
+    asset_id: String,
+    suggested_name: String
+});
+dto!(WallpaperPrepareInput {
+    asset_id: String,
+    claim_id: String
+});
+dto!(WallpaperIntentInput { intent_id: String });
+
 dto!(NetworkFetchInput {
     url: String,
     method: GetMethod
@@ -166,6 +374,30 @@ pub enum GetMethod {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "method", content = "payload", deny_unknown_fields)]
 pub enum PluginMethod {
+    #[serde(rename = "media.cacheImage")]
+    MediaCache(MediaCacheInput),
+    #[serde(rename = "media.preview")]
+    MediaPreview(MediaAssetInput),
+    #[serde(rename = "media.releasePreview")]
+    MediaReleasePreview(MediaPreviewReleaseInput),
+    #[serde(rename = "media.exportImage")]
+    MediaExport(MediaExportInput),
+    #[serde(rename = "wallpaper.platform")]
+    WallpaperPlatform(PowerStatusInput),
+    #[serde(rename = "wallpaper.prepare")]
+    WallpaperPrepare(WallpaperPrepareInput),
+    #[serde(rename = "wallpaper.apply")]
+    WallpaperApply(WallpaperIntentInput),
+    #[serde(rename = "wallpaper.cancelPrepared")]
+    WallpaperCancel(WallpaperIntentInput),
+    #[serde(rename = "wallpaper.recover")]
+    WallpaperRecover(PowerStatusInput),
+    #[serde(rename = "schedule.upsert")]
+    ScheduleUpsert(ScheduleUpsertInput),
+    #[serde(rename = "schedule.cancel")]
+    ScheduleCancel(ScheduleCancelInput),
+    #[serde(rename = "background.complete")]
+    BackgroundComplete(BackgroundCompleteInput),
     #[serde(rename = "ui.showMessage")]
     ShowMessage(MessageInput),
     #[serde(rename = "diagnostics.emit")]
@@ -174,8 +406,59 @@ pub enum PluginMethod {
     StorageGet(StorageGetInput),
     #[serde(rename = "storage.set")]
     StorageSet(StorageSetInput),
+    #[serde(rename = "storage.compareAndSet")]
+    StorageCompareAndSet(StorageCompareAndSetInput),
     #[serde(rename = "network.fetch")]
     NetworkFetch(NetworkFetchInput),
+    #[serde(rename = "power.acquire")]
+    PowerAcquire(PowerAcquireInput),
+    #[serde(rename = "power.release")]
+    PowerRelease(PowerReleaseInput),
+    #[serde(rename = "power.status")]
+    PowerStatus(PowerStatusInput),
+    #[serde(rename = "power.startTask")]
+    PowerStartTask(PowerStartTaskInput),
+    #[serde(rename = "power.taskStatus")]
+    PowerTaskStatus(PowerStatusInput),
+    #[serde(rename = "power.stopTask")]
+    PowerStopTask(PowerStopTaskInput),
+    #[serde(rename = "power.updateTaskConditions")]
+    PowerUpdateTaskConditions(PowerUpdateTaskConditionsInput),
+    #[serde(rename = "power.readSnapshot")]
+    PowerReadSnapshot(PowerStatusInput),
+}
+
+impl PluginMethod {
+    pub fn permission(&self) -> &'static str {
+        match self {
+            Self::ScheduleUpsert(_) | Self::ScheduleCancel(_) | Self::BackgroundComplete(_) => {
+                "background.schedule"
+            }
+            Self::ShowMessage(_) => "ui.message",
+            Self::DiagnosticsEmit(_) => "diagnostics.write",
+            Self::StorageGet(_) | Self::StorageSet(_) | Self::StorageCompareAndSet(_) => {
+                "storage.plugin"
+            }
+            Self::NetworkFetch(_)
+            | Self::MediaCache(_)
+            | Self::MediaPreview(_)
+            | Self::MediaReleasePreview(_) => "network",
+            Self::MediaExport(_) => "files.export",
+            Self::WallpaperPlatform(_)
+            | Self::WallpaperPrepare(_)
+            | Self::WallpaperApply(_)
+            | Self::WallpaperCancel(_)
+            | Self::WallpaperRecover(_) => "system.wallpaper",
+            Self::PowerAcquire(_)
+            | Self::PowerRelease(_)
+            | Self::PowerStatus(_)
+            | Self::PowerStartTask(_)
+            | Self::PowerTaskStatus(_)
+            | Self::PowerStopTask(_)
+            | Self::PowerUpdateTaskConditions(_)
+            | Self::PowerReadSnapshot(_) => "power.preventSleep",
+        }
+    }
 }
 
 // Keep the transport envelope and tagged method separate: flatten +
@@ -391,9 +674,9 @@ pub fn validate_web_manifest(m: &PluginManifestV2) -> Vec<CompatibilityIssue> {
         "Expected schemaVersion 2",
     );
     check(
-        valid_id(&m.name) && m.id == m.name && !m.name.starts_with("zero."),
+        valid_id(&m.name) && m.id == m.name,
         "id",
-        "Expected a non-reserved canonical plugin identity",
+        "Expected a canonical plugin identity",
     );
     check(
         bounded_text(&m.display_name, 256)
@@ -441,7 +724,14 @@ pub fn validate_web_manifest(m: &PluginManifestV2) -> Vec<CompatibilityIssue> {
             && m.permissions.iter().all(|p| {
                 matches!(
                     p.as_str(),
-                    "storage.plugin" | "ui.message" | "network" | "diagnostics.write"
+                    "storage.plugin"
+                        | "ui.message"
+                        | "network"
+                        | "diagnostics.write"
+                        | "power.preventSleep"
+                        | "background.schedule"
+                        | "system.wallpaper"
+                        | "files.export"
                 )
             }),
         "permissions",

@@ -6,6 +6,8 @@ import type {
 import { canonicalFirstPartyPluginId } from "../../brand/identity.js";
 
 export interface PluginNavigationItem {
+  viewId?: string;
+  trayViewId?: string;
   id: string;
   title: string;
   subtitle: string;
@@ -81,7 +83,18 @@ export function toPluginNavigationItems(
     health: record.health,
     enabled: record.enabled,
     source: record.source,
+    ...pluginViewRoutes(record),
   }));
+}
+
+export function pluginViewRoutes(record: PluginRecord): { viewId?: string; trayViewId?: string } {
+  const views = record.protocolManifest?.contributes.views;
+  const main = views?.find(view => view.surface === "main") ?? views?.[0];
+  const tray = views?.find(view => view.surface === "tray");
+  return {
+    ...(main ? { viewId: main.id } : {}),
+    ...(tray ? { trayViewId: tray.id } : {}),
+  };
 }
 
 export function summarizePluginRecords(

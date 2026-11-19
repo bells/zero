@@ -22,6 +22,61 @@ fn unique_registry_root() -> PathBuf {
     )
 }
 
+#[test]
+fn bridge_registry_reads_wait_for_concurrent_work_before_authorizing() {
+    use std::sync::{mpsc, Arc};
+    use std::time::Duration;
+    use zero_lib::plugins::registry::PluginRegistryState;
+
+    let root = unique_registry_root();
+    let state = Arc::new(PluginRegistryState::from_registry(
+        PluginRegistry::load_or_seed(&root).unwrap(),
+    ));
+    let (held_tx, held_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let writer = state.clone();
+    let holding = std::thread::spawn(move || {
+        writer
+            .with_registry(|registry| {
+                held_tx.send(()).unwrap();
+                release_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+                Ok(registry.revision())
+            })
+            .unwrap()
+    });
+    held_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+    assert!(state
+        .try_read_registry(|registry| registry.revision())
+        .is_err());
+
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let (result_tx, result_rx) = mpsc::channel();
+    let reader = state.clone();
+    let reading = std::thread::spawn(move || {
+        entered_tx.send(()).unwrap();
+        result_tx
+            .send(reader.read_registry(|registry| registry.revision()))
+            .unwrap();
+    });
+    entered_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+    let early = result_rx.recv_timeout(Duration::from_millis(50));
+    release_tx.send(()).unwrap();
+    let revision = holding.join().unwrap();
+    reading.join().unwrap();
+    assert!(
+        matches!(early, Err(mpsc::RecvTimeoutError::Timeout)),
+        "a busy registry must wait before authorization, got {early:?}"
+    );
+    assert_eq!(
+        result_rx
+            .recv_timeout(Duration::from_secs(3))
+            .unwrap()
+            .unwrap(),
+        revision
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
 fn registry_root_at(timestamp: u128) -> PathBuf {
     let sequence = ROOT_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let root = std::env::temp_dir().join(format!(
@@ -116,6 +171,7 @@ fn valid_manifest_version(name: &str, version: &str) -> String {
 
 fn install_input(package_path: &std::path::Path) -> InstallPluginPackageInput {
     InstallPluginPackageInput {
+        publisher_signature: None,
         expected_sha256: None,
         package_path: package_path.to_string_lossy().into_owned(),
         approved_permissions: vec![PluginPermission::UiMessage],
@@ -196,8 +252,8 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
             .iter()
             .any(|command| command.id == "zero.awake.toggle")));
     assert_eq!(bing.author, "bells");
-    assert_eq!(bing.version, "1.0.0");
-    assert_eq!(bing.manifest.version, "1.0.0");
+    assert_eq!(bing.version, "0.1.0");
+    assert_eq!(bing.manifest.version, "0.1.0");
     assert_eq!(bing.manifest.id.as_deref(), Some("zero.paper"));
     assert_eq!(
         bing.manifest.permissions,
@@ -216,7 +272,7 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
             .iter()
             .any(|command| command.id == "zero.paper.apply")));
     assert_eq!(launcher.author, "bells");
-    assert_eq!(launcher.version, "1.0.0");
+    assert_eq!(launcher.version, "0.1.0");
     assert_eq!(launcher.manifest.id.as_deref(), Some("zero.launch"));
     assert_eq!(
         launcher.manifest.permissions,
@@ -228,7 +284,7 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
         ]
     );
     assert_eq!(file.author, "bells");
-    assert_eq!(file.version, "1.3.0");
+    assert_eq!(file.version, "0.1.0");
     assert_eq!(file.manifest.id.as_deref(), Some("zero.file"));
     assert!(file.manifest.permissions.is_empty());
     assert_eq!(
@@ -246,6 +302,33 @@ fn bundled_plugin_records_include_host_manifest_contributions() {
         .is_some_and(|views| views.len() == 1 && views[0].id == "zero.file.main"));
     assert!(file_contributions.commands.is_none());
     assert!(file_contributions.status_bar_items.is_none());
+}
+
+#[test]
+fn uninstall_remains_uninstalled_after_restart_until_explicit_restore() {
+    let root = unique_registry_root();
+    let mut registry = PluginRegistry::load_or_seed(&root).unwrap();
+    registry.set_enabled_and_save("zero.paper", false).unwrap();
+    registry.uninstall_plugin("zero.awake").unwrap();
+    let mut restarted = PluginRegistry::load_or_seed(&root).unwrap();
+    assert!(!restarted
+        .records()
+        .iter()
+        .any(|record| record.name == "zero.awake"));
+    assert!(
+        !restarted
+            .records()
+            .iter()
+            .find(|record| record.name == "zero.paper")
+            .unwrap()
+            .enabled
+    );
+    restarted.restore_bundled_defaults().unwrap();
+    assert!(restarted
+        .records()
+        .iter()
+        .any(|record| record.name == "zero.awake"));
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
@@ -269,7 +352,7 @@ fn registry_state_persists_across_reloads() {
 }
 
 #[test]
-fn older_registry_migration_adds_only_quick_launcher_and_preserves_lifecycle_state() {
+fn older_registry_migration_preserves_missing_tools_and_lifecycle_state() {
     let root = unique_registry_root();
     let mut registry = PluginRegistry::load_or_seed(root.clone()).expect("registry should load");
     registry
@@ -293,10 +376,10 @@ fn older_registry_migration_adds_only_quick_launcher_and_preserves_lifecycle_sta
     fs::write(&path, serde_json::to_vec_pretty(&disk).unwrap()).unwrap();
 
     let migrated = PluginRegistry::load_or_seed(root).expect("registry should migrate");
-    assert!(migrated
+    assert!(!migrated
         .records()
         .iter()
-        .any(|record| record.name == "zero.launch" && record.enabled));
+        .any(|record| record.name == "zero.launch"));
     assert!(migrated
         .records()
         .iter()
@@ -486,6 +569,7 @@ fn plugin_update_atomically_switches_record_and_retains_one_rollback_version() {
 
     let updated = registry
         .install_local_package(InstallPluginPackageInput {
+            publisher_signature: None,
             expected_sha256: None,
             package_path: second.to_string_lossy().into_owned(),
             approved_permissions: vec![PluginPermission::UiMessage],
@@ -576,6 +660,7 @@ fn market_package_install_requires_manifest_to_match_market_entry() {
         &[("dist/index.html", "<main>market</main>")],
     );
     let entry = PluginMarketEntry {
+        publisher_signature: None,
         name: "market-tool".into(),
         version: "0.1.0".into(),
         author: "watson".into(),

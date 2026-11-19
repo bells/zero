@@ -113,6 +113,7 @@ fn switching_profiles_preserves_excluded_records_and_disabled_state_on_disk() {
         let manifest: PluginManifest =
             serde_json::from_slice(&fs::read(metadata).unwrap()).unwrap();
         PluginRecord {
+            publisher_signature: None,
             protocol_manifest: None,
             name: manifest.name.clone(),
             version: manifest.version.clone(),

@@ -29,7 +29,7 @@ export function validateWebManifest(value) {
     return validateShape.errors.map(error => ({ path: error.instancePath, message: error.message }));
   }
   const check = (ok, path, message) => { if (!ok) issues.push({ path, message }); };
-  check(value.name === value.id && !value.name.startsWith("zero."), "id", "Invalid or reserved identity");
+  check(value.name === value.id, "id", "Invalid canonical identity");
   check(validVersion(value.version), "version", "Invalid semantic version");
   check(validRange(value.engines.zero), "engines.zero", "Invalid host range");
   check(validRange(value.engines.api), "engines.api", "Invalid API range");

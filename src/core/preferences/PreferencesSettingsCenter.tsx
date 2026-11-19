@@ -4,7 +4,7 @@ import type { PluginMeta } from "../pluginHost/pluginTypes";
 import type { PluginHostController } from "../pluginHost/usePluginHost";
 import type { StatusBarController } from "../../services/useStatusBar";
 import { useGlobalShortcuts } from "../../services/useGlobalShortcuts";
-import type { TranslationKey } from "./i18n";
+import { resolveLanguage, type TranslationKey } from "./i18n";
 import type { usePreferences } from "./usePreferences";
 import {
   createPreferencesDestinations,
@@ -34,6 +34,7 @@ import {
 type PreferencesController = ReturnType<typeof usePreferences>;
 
 interface PreferencesSettingsCenterProps {
+  marketRequestRevision?: number;
   active?: boolean;
   renderToolSettings?: (pluginId:string,enabled:boolean)=>ReactNode;
   additionalSettings?: readonly import("./preferencesNavigation").PreferencesSettingDescriptor[];
@@ -51,6 +52,7 @@ const NAVIGATION_GROUP_ORDER: PreferencesNavigationGroup[] = [
 ];
 
 export function PreferencesSettingsCenter({
+  marketRequestRevision = 0,
   active = true,
   renderToolSettings,
   additionalSettings,
@@ -74,6 +76,13 @@ export function PreferencesSettingsCenter({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const feedbackTimers = useRef<Record<string, number>>({});
   const operationGate = useRef(createPreferenceOperationGate());
+  useEffect(() => {
+    if (marketRequestRevision > 0) {
+      setSelectedDestination("extensions");
+      setNarrowPageOpen(true);
+      setPendingFocusTarget("preferences-content-title");
+    }
+  }, [marketRequestRevision]);
   const translateNavigation = useCallback(
     (key: string) => t(key as TranslationKey),
     [t],
@@ -373,7 +382,7 @@ function PreferencesDestinationContent({
     );
   }
   if (destinationId === "extensions") {
-    return <ExtensionsPreferencesPage pluginHost={pluginHost} t={t} />;
+    return <ExtensionsPreferencesPage pluginHost={pluginHost} t={t} language={resolveLanguage(preferences.preferences.language, navigator.language)} />;
   }
 
   const pluginId = pluginIdFromPreferencesDestination(destinationId);

@@ -1,6 +1,6 @@
 # Zero Plugin Protocol v1 实施状态
 
-更新：2026-10-07。当前宿主仍为 **0.1.0**。正式 Web runtime 门禁保持关闭；macOS debug 可显式设置 `ZERO_PLUGIN_WEB_DEV=1` 验证开发包。不能将清单校验成功理解为发布批准；首次公开支持窗口拟为 `>=0.2.0 <0.3.0`，须在原生 conformance gate 后冻结。此窗口是提案，尚未发布支持该 profile 的宿主。
+更新：2026-11-15。当前分支新宿主源码为 **0.2.0**，尚未发布；维护者仍在 v0.1.0 体验阶段。既有 0.1.0 安装包不能通过市场刷新获得新能力。正式 Web runtime 门禁保持关闭；macOS debug 可显式设置 `ZERO_PLUGIN_WEB_DEV=1` 验证开发包。不能将清单校验成功理解为发布批准；首次公开支持窗口拟为 `>=0.2.0 <0.3.0`，须在原生 conformance gate 后冻结。此窗口是提案，尚未发布支持该 profile 的宿主。
 
 ## 版本与文件
 
@@ -9,7 +9,7 @@
 | Host | 来自 Cargo 构建版本；新兼容性 command 返回 hostVersion，不由调用方填写 |
 | API | legacy `"1"` 与目标 public `"1.0.0"` 区分；不自动升级 |
 | Manifest | `.zplugin` 根 `manifest.json`；无 schemaVersion 为 legacy，新格式为整数 2 |
-| 插件版本 | 完整 SemVer，独立于宿主；保留 Snap/Awake 的 0.1.0 与 Paper/Launch/File 的 1.0.0 |
+| 插件版本 | 完整 SemVer，独立于宿主；五工具初始版本统一为 0.1.0，后续独立升级 |
 | canonical IDs | `zero.snap`、`zero.awake`、`zero.paper`、`zero.launch`、`zero.file` 保留 |
 | File 签名 | protocolVersion/packageVersion/hostApiRange 和现有签名 payload 不重解释；审批策略未改变 |
 
@@ -28,7 +28,7 @@
 node scripts/validate-plugin-protocol.mjs tests/fixtures/plugin-protocol/example.manifest.json 0.2.0 1.0.0
 ```
 
-此命令只做离线校验，不安装、不批准、不执行插件；目前运行于仓库依赖环境，独立分发的作者工具仍待完成。调用宿主时使用 `pluginHostService.checkCompatibility({ manifest })`；对应 Rust `check_plugin_compatibility` 返回 profile、hostVersion、apiVersion 和逐项 issues。正式构建包含 runtime.unsupported；开发覆盖仍校验实际 hostVersion，不能把 Host 0.1.0 当作 0.2.0。
+此命令只做离线校验，不安装、不批准、不执行插件；目前运行于仓库依赖环境，独立分发的作者工具仍待完成。调用宿主时使用 `pluginHostService.checkCompatibility({ manifest })`；对应 Rust `check_plugin_compatibility` 返回 profile、hostVersion、apiVersion 和逐项 issues。正式构建包含 runtime.unsupported；开发覆盖仍校验实际 hostVersion，必须按实际构建版本与能力目录判断，不能把旧 Host 0.1.0 当作新的 0.2.0。
 
 安装/启动/启用时，旧包继续按 legacy 规则检查；不兼容记录保留，不能通过 enable 把不兼容状态覆盖为 ready。内部接口没有变成公开 SDK，已有 native invoke 仍保留其实际 wire naming。
 
@@ -50,3 +50,9 @@ node scripts/validate-plugin-protocol.mjs tests/fixtures/plugin-protocol/example
 ## Legacy 迁移
 
 无 schemaVersion 的包继续走 legacy adapter；`engines.api: "1"` 不表示公开 API 1.0。迁移时先复制源码、写新的 schemaVersion 2 manifest、用 HTML 作为 main，并把直接 native 调用改为 SDK 方法；明确列出 permissions/activationEvents。不要重写已签名 File manifest，也不要把 script/binary 改名为 webview 来绕过平台与信任边界。旧 process runtime 不是公开 v1，也不是 OS sandbox。
+
+## 官方包身份与离线导入
+
+`zero.*` 在结构校验中属于合法标识，但名称和结构不授予官方身份。官方 Web 包在私有 staging 快照上按实际 SHA-256 校验发布者签名，再进入安装事务；安装记录保存签名，重新启用/打开时再次检查其身份。第三方 Web 包仍按原公开运行时门禁处理。
+
+宿主公钥信任表为 `src-tauri/plugin-publishers.json`，当前没有发布公钥，不能安装官方市场包；这里不得放私钥或测试公钥充当真实发布者。本地导入应把版本化 envelope 保存为 `<完整包文件名>.signature.json` 放在 `.zplugin` 旁边，最多16KiB；市场安装直接使用条目中的同格式 `publisherSignature`。File 引擎的签名、批准表和资源测量独立保持。

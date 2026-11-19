@@ -1,0 +1,237 @@
+--- a/src/bitstream.rs
++++ b/src/bitstream.rs
+@@ -130,6 +130,9 @@
+     /// True if we have seen end of image marker.
+     /// Don't read anything after that.
+     pub seen_eoi:            bool,
++    // Real entropy bits remaining before the latched marker, excluding synthetic lookahead.
++    marker_bits:             Option<u8>,
++    insufficient_data:       bool,
+ }
+ 
+ impl BitStream {
+@@ -147,6 +150,8 @@
+             eob_run:             0,
+             overread_by:         0,
+             seen_eoi:            false,
++            marker_bits:         None,
++            insufficient_data:   false,
+         }
+     }
+ 
+@@ -165,6 +170,8 @@
+             eob_run:             0,
+             overread_by:         0,
+             seen_eoi:            false,
++            marker_bits:         None,
++            insufficient_data:   false,
+         }
+     }
+ 
+@@ -218,6 +225,7 @@
+ 
+                             let marker = Marker::from_u8(next_byte as u8);
+                             self.marker = marker;
++                            self.marker_bits = Some(self.bits_left);
+ 
+                             if let Some(Marker::UNKNOWN(_)) = marker{
+                                 return Err(DecodeErrors::Format("Unknown marker in bit stream".to_string()));
+@@ -504,6 +512,7 @@
+     /// Discard the next `N` bits without checking
+     #[inline]
+     fn drop_bits(&mut self, n: u8) {
++        self.consume_marker_bits(n);
+         // PS: Its a good check, but triggers fuzzer and a lot of false positives
+         //debug_assert!(self.bits_left >= n);
+         //self.bits_left -= n;
+@@ -515,12 +524,27 @@
+     #[inline(always)]
+     #[allow(clippy::cast_possible_truncation)]
+     fn get_bits(&mut self, n_bits: u8) -> i32 {
++        self.consume_marker_bits(n_bits);
+         let mask = (1_u64 << n_bits) - 1;
+ 
+         self.aligned_buffer = self.aligned_buffer.rotate_left(u32::from(n_bits));
+         let bits = (self.aligned_buffer & mask) as i32;
+         self.bits_left = self.bits_left.wrapping_sub(n_bits);
+         bits
++    }
++
++    fn consume_marker_bits(&mut self, bits: u8) {
++        if let Some(remaining) = &mut self.marker_bits {
++            self.insufficient_data |= bits > *remaining;
++            *remaining = remaining.saturating_sub(bits);
++        }
++    }
++
++    pub(crate) fn check_scan_complete(&self, strict: bool) -> Result<(), DecodeErrors> {
++        if strict && self.insufficient_data {
++            return Err(DecodeErrors::FormatStatic("Premature marker in JPEG scan"));
++        }
++        Ok(())
+     }
+ 
+     /// Decode a DC block
+@@ -773,6 +797,8 @@
+     /// everything
+     #[cold]
+     pub fn reset(&mut self) {
++        self.marker_bits = None;
++        self.insufficient_data = false;
+         self.bits_left = 0;
+         self.marker = None;
+         self.buffer = 0;
+--- a/src/mcu.rs
++++ b/src/mcu.rs
+@@ -171,6 +171,14 @@
+         // (upsampled) pixels immediately after each MCU, for convenience we use each row of MCUS.
+         // Otherwise, we must first wait until following SOS provide the remaining components.
+         let all_components_in_first_scan = usize::from(self.num_scans) == self.components.len();
++        if self.options.strict_mode() && !all_components_in_first_scan
++            && (self.h_max != 1 || self.v_max != 1)
++        {
++            return Err(DecodeErrors::FormatStatic(
++                "Subsampled sequential component scans unsupported in strict mode"
++            ));
++        }
++        let mut completed_components = [false; MAX_COMPONENTS];
+         let mut progressive_mcus: [Vec<i16>; 4] = core::array::from_fn(|_| vec![]);
+ 
+         if !all_components_in_first_scan {
+@@ -191,6 +199,13 @@
+         let mut upsampler_scratch_space = vec![0; upsampler_scratch_size];
+ 
+         'sos: loop {
++            let scan_components = self.z_order;
++            let scan_component_count = usize::from(self.num_scans);
++            if self.options.strict_mode()
++                && scan_components[..scan_component_count].iter().any(|&k| completed_components[k])
++            {
++                return Err(DecodeErrors::FormatStatic("Repeated baseline component scan"));
++            }
+             trace!(
+                 "Baseline decoding of components: {:?}",
+                 &self.z_order[..usize::from(self.num_scans)]
+@@ -215,6 +230,7 @@
+                     self.decode_mcu_width::<false>(
+                         mcu_width,
+                         i,
++                        mcu_height,
+                         &mut tmp,
+                         &mut stream,
+                         &mut progressive_mcus
+@@ -240,11 +256,18 @@
+                     self.decode_mcu_width::<true>(
+                         mcu_width,
+                         i,
++                        mcu_height,
+                         &mut tmp,
+                         &mut stream,
+                         &mut progressive_mcus
+                     )?
+                 };
++
++                if i + 1 == mcu_height {
++                    for &component in &scan_components[..scan_component_count] {
++                        completed_components[component] = true;
++                    }
++                }
+ 
+                 // process that width up until it's impossible. This is faster than allocation the
+                 // full components, which we skipped earlier.
+@@ -263,6 +286,9 @@
+                 match terminate {
+                     McuContinuation::Ok => {}
+                     McuContinuation::AnotherSos if all_components_in_first_scan => {
++                        if self.options.strict_mode() {
++                            return Err(DecodeErrors::FormatStatic("Unexpected SOS after completed scan"));
++                        }
+                         warn!("More than one SOS despite already having all components");
+                         return Ok(());
+                     }
+@@ -288,6 +314,12 @@
+             // Breaks if we get here, looping only if we have restarted, i.e. found another SOS and
+             // continued at `'sos'.
+             break;
++        }
++
++        if self.options.strict_mode()
++            && completed_components[..self.components.len()].contains(&false)
++        {
++            return Err(DecodeErrors::FormatStatic("Incomplete baseline component scans"));
+         }
+ 
+         if !all_components_in_first_scan {
+@@ -395,7 +427,7 @@
+     }
+ 
+     fn decode_mcu_width<const PROGRESSIVE: bool>(
+-        &mut self, mcu_width: usize, mcu_height: usize, tmp: &mut [i32; 64],
++        &mut self, mcu_width: usize, mcu_height: usize, required_rows: usize, tmp: &mut [i32; 64],
+         stream: &mut BitStream, progressive: &mut [Vec<i16>; 4]
+     ) -> Result<McuContinuation, DecodeErrors> {
+         let is_one_by_one = !self.scan_subsampled;
+@@ -413,6 +445,7 @@
+             self.inner_decode_mcu_width::<PROGRESSIVE, false>(
+                 mcu_width,
+                 mcu_height,
++                required_rows,
+                 tmp,
+                 stream,
+                 progressive
+@@ -421,6 +454,7 @@
+             self.inner_decode_mcu_width::<PROGRESSIVE, true>(
+                 mcu_width,
+                 mcu_height,
++                required_rows,
+                 tmp,
+                 stream,
+                 progressive
+@@ -434,7 +468,7 @@
+     // when `not SAMPLED` then the inner loop has exactly one iteration per component in
+     // the scan. The difference was ~1% or a bit more.
+     fn inner_decode_mcu_width<const PROGRESSIVE: bool, const SAMPLED: bool>(
+-        &mut self, mcu_width: usize, mcu_height: usize, tmp: &mut [i32; 64],
++        &mut self, mcu_width: usize, mcu_height: usize, required_rows: usize, tmp: &mut [i32; 64],
+         stream: &mut BitStream, progressive: &mut [Vec<i16>; 4]
+     ) -> Result<McuContinuation, DecodeErrors> {
+         let z_order = self.z_order;
+@@ -602,17 +636,27 @@
+                 continue;
+             }
+ 
+-            if stream.marker.is_some() && stream.bits_left == 0 {
++            if !self.options.strict_mode() && stream.marker.is_some() && stream.bits_left == 0 {
+                 break;
+             }
+         }
+ 
++        // Lookahead can reach a non-RST marker while real buffered bits still
++        // encode later rows. Strict mode must consume every required MCU before
++        // marker dispatch can exit the scan or reset its completion accounting.
++        if self.options.strict_mode() && mcu_height + 1 < required_rows
++            && matches!(stream.marker, Some(marker) if !matches!(marker, Marker::RST(_)))
++        {
++            stream.check_scan_complete(true)?;
++            return Ok(McuContinuation::Ok);
++        }
+         self.check_stream_marker_after_mcu_width(stream)
+     }
+ 
+     fn check_stream_marker_after_mcu_width(
+         &mut self, stream: &mut BitStream
+     ) -> Result<McuContinuation, DecodeErrors> {
++        stream.check_scan_complete(self.options.strict_mode())?;
+         // After all interleaved components, that's an MCU
+         // handle stream markers
+         //
+--- a/src/mcu_prog.rs
++++ b/src/mcu_prog.rs
+@@ -428,6 +428,7 @@
+     }
+ 
+     pub(crate) fn handle_rst_main(&mut self, stream: &mut BitStream) -> Result<(), DecodeErrors> {
++        stream.check_scan_complete(self.options.strict_mode())?;
+         if self.todo == 0 {
+             stream.refill(&mut self.stream)?;
+         }

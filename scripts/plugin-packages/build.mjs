@@ -4,6 +4,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { createHash, randomUUID } from 'node:crypto';
 import ts from 'typescript';
 import { build } from 'vite';
@@ -34,8 +35,7 @@ function bounded(options) {
   return { limits, check };
 }
 function manifestIssues(manifest) {
-  const issues = validateWebManifest(manifest).filter(issue => !(manifest?.name === manifest?.id
-    && manifest.id.startsWith('zero.') && issue.path === 'id' && issue.message === 'Invalid or reserved identity'));
+  const issues = validateWebManifest(manifest);
   if (issues.length) throw new Error(`Invalid manifest: ${JSON.stringify(issues)}`);
   if (!safePath(manifest.main) || !manifest.main.endsWith('.html')) throw new Error('Unsafe main entry path');
   if (manifest.background && (!safePath(manifest.background.main) || !manifest.background.main.endsWith('.js'))) {
@@ -106,12 +106,30 @@ function sourceBoundary({ pluginRoot, sdkRoot, limits, check }) {
     // A TS paths alias must still resolve within this owner's source or a declared library.
     if (isBare(specifier)) {
       const name = packageName(specifier);
+      if (current.dependency && /\.[cm]?js$/.test(importer)
+        && (name === current.manifest.name || name in (current.manifest.dependencies ?? {})
+          || name in (current.manifest.peerDependencies ?? {}))) {
+        const runtime = allowed(createRequire(importer).resolve(specifier));
+        const runtimeOwner = owner(runtime);
+        if (!runtimeOwner || runtimeOwner.manifest.name !== name || /\.d\.[cm]?ts$/.test(runtime)
+          || (name === current.manifest.name && (!inside(current.root, runtime) || runtimeOwner.root !== current.root))) {
+          throw new Error(`Package runtime dependency source boundary: ${specifier}`);
+        }
+        return runtime;
+      }
       const aliasedLocal = resolved && inside(current.root, fs.realpathSync(resolved))
         && !fs.realpathSync(resolved).split(path.sep).includes('node_modules');
-      if (!aliasedLocal && !(name in (current.manifest.dependencies ?? {}))
+      const typesName = `@types/${name.startsWith('@') ? name.slice(1).replace('/', '__') : name}`;
+      // DefinitelyTyped declarations import the runtime spelling of their declared type peers.
+      // Check the actual declaration package; runtime imports never receive this alias.
+      const declaredTypePeer = /\.d\.[cm]?ts$/.test(importer) && /\.d\.[cm]?ts$/.test(resolved ?? '')
+        && owner(allowed(resolved)).manifest.name === typesName
+        && (typesName in (current.manifest.dependencies ?? {}) || typesName in (current.manifest.peerDependencies ?? {})
+          || typesName in (current.manifest.devDependencies ?? {}));
+      if (!aliasedLocal && !declaredTypePeer && !(name in (current.manifest.dependencies ?? {}))
         && !(name in (current.manifest.peerDependencies ?? {}))
         && !(/\.d\.[cm]?ts$/.test(resolved ?? '') && name in (current.manifest.devDependencies ?? {}))) {
-        throw new Error(`Undeclared dependency source boundary: ${specifier}`);
+        throw new Error(`Undeclared dependency source boundary: ${specifier} in ${importer}`);
       }
     }
     let target = exact && path.isAbsolute(specifier) && fs.existsSync(specifier) ? specifier : resolved;
@@ -126,7 +144,7 @@ function sourceBoundary({ pluginRoot, sdkRoot, limits, check }) {
       && !(targetOwner.manifest.name in (current.manifest.dependencies ?? {}))
       && !(targetOwner.manifest.name in (current.manifest.peerDependencies ?? {}))
       && !(/\.d\.[cm]?ts$/.test(real) && targetOwner.manifest.name in (current.manifest.devDependencies ?? {}))) {
-      throw new Error(`Undeclared dependency source boundary: ${specifier}`);
+      throw new Error(`Undeclared dependency source boundary: ${specifier} in ${importer}`);
     }
     if (!current.dependency && !inside(current.root, real) && !inside(sdkRoot, real)
       && !real.split(path.sep).includes('node_modules')) throw new Error(`Source boundary violation: ${specifier}`);

@@ -8,7 +8,7 @@ use super::versions::is_protocol_version;
 
 const SIGNATURE_DOMAIN: &[u8] = b"zero.official-plugin-package\0";
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OfficialPackageSignature {
     pub schema_version: u32,
@@ -25,6 +25,135 @@ pub struct TrustedPublisher {
     pub key_id: String,
     pub public_key: [u8; 32],
     pub allowed_plugin_ids: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PublisherConfig {
+    key_id: String,
+    public_key: String,
+    allowed_plugin_ids: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct TrustConfig {
+    schema_version: u32,
+    publishers: Vec<PublisherConfig>,
+}
+
+/// Only public release authority compiled into the host is trusted.
+pub fn trusted_publishers() -> Result<Vec<TrustedPublisher>, PublisherVerificationError> {
+    parse_trusted_publishers(include_str!("../../plugin-publishers.json"))
+}
+
+pub fn parse_trusted_publishers(
+    json: &str,
+) -> Result<Vec<TrustedPublisher>, PublisherVerificationError> {
+    let config: TrustConfig = serde_json::from_str(json)
+        .map_err(|_| PublisherVerificationError::InvalidTrustConfiguration)?;
+    if config.schema_version != 1 || config.publishers.len() > 32 {
+        return Err(PublisherVerificationError::InvalidTrustConfiguration);
+    }
+    let mut keys = HashSet::new();
+    config
+        .publishers
+        .into_iter()
+        .map(|publisher| {
+            let invalid = || PublisherVerificationError::InvalidTrustConfiguration;
+            if !valid_key_id(&publisher.key_id)
+                || !keys.insert(publisher.key_id.clone())
+                || publisher.allowed_plugin_ids.is_empty()
+                || publisher.allowed_plugin_ids.len() > 64
+            {
+                return Err(invalid());
+            }
+            let mut ids = HashSet::new();
+            if publisher
+                .allowed_plugin_ids
+                .iter()
+                .any(|id| !valid_plugin_id(id) || !id.starts_with("zero.") || !ids.insert(id))
+            {
+                return Err(invalid());
+            }
+            let bytes = STANDARD
+                .decode(&publisher.public_key)
+                .map_err(|_| invalid())?;
+            if STANDARD.encode(&bytes) != publisher.public_key {
+                return Err(invalid());
+            }
+            let public_key: [u8; 32] = bytes.try_into().map_err(|_| invalid())?;
+            let key = VerifyingKey::from_bytes(&public_key).map_err(|_| invalid())?;
+            if key.is_weak() {
+                return Err(invalid());
+            }
+            Ok(TrustedPublisher {
+                key_id: publisher.key_id,
+                public_key,
+                allowed_plugin_ids: publisher.allowed_plugin_ids,
+            })
+        })
+        .collect()
+}
+
+pub fn verify_web_package_authority(
+    plugin_id: &str,
+    version: &str,
+    measured_sha256: &str,
+    envelope: Option<&OfficialPackageSignature>,
+) -> Result<(), PublisherVerificationError> {
+    if plugin_id.starts_with("zero.") {
+        verify_official_package(
+            envelope,
+            plugin_id,
+            version,
+            measured_sha256,
+            &trusted_publishers()?,
+        )?;
+    }
+    Ok(())
+}
+
+pub fn verify_package_authority(
+    report: &super::contracts::PluginPackageValidationReport,
+    envelope: Option<&OfficialPackageSignature>,
+) -> Result<(), PublisherVerificationError> {
+    if let Some(manifest) = &report.protocol_manifest {
+        return verify_web_package_authority(
+            &manifest.id,
+            &manifest.version,
+            &report.sha256,
+            envelope,
+        );
+    }
+    if report.manifest.as_ref().is_some_and(|manifest| {
+        manifest.name.starts_with("zero.")
+            && !(manifest.name == "zero.file" && manifest.first_party_engine.is_some())
+    }) {
+        return Err(PublisherVerificationError::MissingAuthority);
+    }
+    Ok(())
+}
+
+pub fn read_signature_sidecar(path: &std::path::Path) -> Result<OfficialPackageSignature, String> {
+    use std::io::Read;
+    let file = std::fs::File::open(path).map_err(|_| {
+        "Official package needs its .zplugin.signature.json sidecar beside the archive".to_string()
+    })?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| "Cannot inspect publisher signature".to_string())?;
+    if !metadata.is_file() || metadata.len() > 16 * 1024 {
+        return Err("Publisher signature must be a file of at most 16 KiB".into());
+    }
+    let mut bytes = Vec::new();
+    file.take(16 * 1024 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "Cannot read publisher signature".to_string())?;
+    if bytes.len() > 16 * 1024 {
+        return Err("Publisher signature exceeds 16 KiB".into());
+    }
+    serde_json::from_slice(&bytes).map_err(|_| "Invalid publisher signature sidecar".into())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

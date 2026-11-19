@@ -22,6 +22,13 @@ pub fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wr
         .manage(WebSessions::default())
         .register_uri_scheme_protocol(SCHEME, |context, request| {
             let state = context.app_handle().state::<WebSessions>();
+            if request.uri().path().starts_with("/__zero_preview") {
+                return super::media_runtime::serve_preview(
+                    context.app_handle(),
+                    context.webview_label(),
+                    &request,
+                );
+            }
             serve(&state, context.webview_label(), &request)
         })
 }
@@ -48,7 +55,17 @@ pub fn serve(state: &WebSessions, caller: &str, request: &Request<Vec<u8>>) -> R
             .map_err(|_| 403u16)?
             .root
             .clone();
-        let (bytes, media) = read_asset(&root, relative).map_err(|_| 404u16)?;
+        let background = state
+            .0
+            .lock()
+            .map_err(|_| 503u16)?
+            .background_main(id, caller, Instant::now())
+            .map_err(|_| 403u16)?;
+        let (bytes, media) = match (relative, background) {
+            ("__zero_background.html", Some(_)) => (b"<!doctype html><html><head><meta charset=\"utf-8\"><script type=\"module\" src=\"/__zero_background_entry.js\"></script></head><body></body></html>".to_vec(), "text/html; charset=utf-8"),
+            ("__zero_background_entry.js", Some(main)) => (format!("import {};", serde_json::to_string(&format!("./{main}")).map_err(|_| 500u16)?).into_bytes(), "text/javascript; charset=utf-8"),
+            _ => read_asset(&root, relative).map_err(|_| 404u16)?,
+        };
         // A concurrent revoke cannot deliver late assets to a new session.
         state
             .0
@@ -71,7 +88,7 @@ pub fn serve(state: &WebSessions, caller: &str, request: &Request<Vec<u8>>) -> R
     }
 }
 
-fn response(status: u16, media: &str, bytes: Vec<u8>) -> Response<Vec<u8>> {
+pub(crate) fn response(status: u16, media: &str, bytes: Vec<u8>) -> Response<Vec<u8>> {
     Response::builder()
         .status(status)
         .header("Content-Type", media)
@@ -79,6 +96,7 @@ fn response(status: u16, media: &str, bytes: Vec<u8>) -> Response<Vec<u8>> {
         .header("Cache-Control", "no-store")
         .header("X-Content-Type-Options", "nosniff")
         .header("Referrer-Policy", "no-referrer")
+        .header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), display-capture=(), usb=(), serial=(), hid=(), bluetooth=(), clipboard-read=(), clipboard-write=(), payment=(), fullscreen=()")
         .body(bytes)
         .expect("static response headers")
 }

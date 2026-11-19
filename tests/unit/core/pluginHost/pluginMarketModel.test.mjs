@@ -76,3 +76,14 @@ test("refresh failure keeps cached cards and marks market stale", () => {
   assert.equal(failed.error, "network unavailable");
   assert.deepEqual(failed.installCards, current.installCards);
 });
+
+test("unpublished catalog tools stay visible without becoming install candidates", () => {
+  const catalog = [{ name: "zero.awake", displayName: "Awake", version: "0.1.0",
+    description: { zh: "防休眠", en: "Keep awake" },
+    unavailableReason: { zh: "插件包尚未发布", en: "Package not published" } }];
+  const state = marketRefreshSucceeded({ sourceUrl: "https://example.test/market.json", schemaVersion: 1,
+    entries: [], catalog, stale: false });
+  assert.deepEqual(state.catalog, catalog);
+  assert.deepEqual(state.installCards, []);
+  assert.deepEqual(marketRefreshFailed(state, new Error("offline")).catalog, catalog);
+});

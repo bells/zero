@@ -116,12 +116,12 @@ test('download platform changes hide incompatible groups and never auto-download
   let downloads = 0;
   page.on('download', () => downloads++);
   await page.goto('/download/');
-  await expect(page.locator('[data-package-platform="macos"][data-package-profile="standard"]')).toBeVisible();
+  await expect(page.locator('[data-package-platform="macos"][data-package-profile="core"]')).toBeVisible();
   await page.getByLabel('Windows', { exact: true }).check();
   await expect(page.locator('[data-package-platform="macos"]:visible')).toHaveCount(0);
-  await expect(page.locator('[data-package-platform="windows"][data-package-profile="standard"]')).toBeVisible();
-  await page.getByLabel('core / 无内置工具', { exact: true }).check();
   await expect(page.locator('[data-package-platform="windows"][data-package-profile="core"]')).toBeVisible();
+  await page.getByRole('radio', { name: 'standard / 四工具', exact: true }).check();
+  await expect(page.locator('[data-package-platform="windows"][data-package-profile="standard"]')).toBeVisible();
   await expect(page.locator('a[href*="/releases/download/"]')).toHaveCount(0);
   await expect(page.locator('.package-group:visible')).toContainText('尚无公开安装包');
   expect(downloads).toBe(0);
@@ -189,6 +189,7 @@ test('isolated public-package fixtures preserve architecture, trial and missing-
     await page.goto(`/${locale}`);
     await expect(page.locator('.hero-actions a').first()).toContainText(locale ? 'Download Zero' : '下载 Zero');
     await page.goto(`/${locale}download/`);
+    await page.locator('input[name="profile"][value="standard"]').check();
     const visible = page.locator('.package-group:visible');
     await expect(visible.locator('.package-entry')).toHaveCount(2);
     await expect(visible).toContainText('Apple Silicon');

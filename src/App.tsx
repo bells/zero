@@ -24,6 +24,7 @@ import { ExtensionSurface } from "./core/pluginHost/ExtensionSurface";
 import type { PluginRecord } from "./core/pluginHost/contracts";
 import type { PluginId, PluginMeta } from "./core/pluginHost/pluginTypes";
 import { usePluginHost } from "./core/pluginHost/usePluginHost";
+import { pluginViewRoutes } from "./core/pluginHost/pluginHostModel";
 import { AboutPanel } from "./core/preferences/AboutPanel";
 import { PreferencesSettingsCenter } from "./core/preferences/PreferencesSettingsCenter";
 import { createTranslator, resolveLanguage } from "./core/preferences/i18n";
@@ -60,13 +61,7 @@ function useLocalizedPlugins(requestedPluginId?: string) {
   );
   const navigationPlugins = useMemo(
     () =>
-      pluginHost.navigationItems.map((item) => ({
-        id: item.id,
-        title: item.title,
-        subtitle: item.subtitle,
-        health: item.health,
-        enabled: item.enabled,
-      })),
+      pluginHost.navigationItems.map((item) => ({ ...item })),
     [pluginHost.navigationItems],
   );
   const pluginIds = useMemo(
@@ -198,7 +193,7 @@ function pluginPanel(
     return <EmptyPluginState t={createTranslator(language)} />;
   }
 
-  if (bundledPluginPresentation(plugin.id, language)) {
+  if (!plugin.viewId && !plugin.trayViewId && bundledPluginPresentation(plugin.id, language)) {
     const t = createTranslator(language);
     const unavailable = (
       <section className="plugin-panel system-panel">
@@ -228,10 +223,11 @@ function pluginPanel(
     );
   }
 
-  return <GenericPluginPanel plugin={plugin} t={createTranslator(language)} />;
+  const viewId = surface === "tray" ? plugin.trayViewId ?? plugin.viewId : plugin.viewId ?? plugin.trayViewId;
+  return <GenericPluginPanel plugin={{ ...plugin, viewId }} t={createTranslator(language)} />;
 }
 
-function EmptyPluginState({ t }: { t: (key: TranslationKey) => string }) {
+function EmptyPluginState({ t, onOpenMarket }: { t: (key: TranslationKey) => string; onOpenMarket?: () => void }) {
   return (
     <section className="plugin-panel system-panel">
       <div className="panel-heading">
@@ -244,6 +240,7 @@ function EmptyPluginState({ t }: { t: (key: TranslationKey) => string }) {
       <div className="panel-copy">
         <strong>{t("shell.noTools")}</strong>
         <span>{t(import.meta.env.VITE_ZERO_HAS_BUNDLED_TOOLS ? "shell.noToolsHint" : "shell.coreNoToolsHint")}</span>
+        {onOpenMarket ? <button type="button" className="primary-action" onClick={onOpenMarket}>{t("shell.openMarket")}</button> : null}
       </div>
     </section>
   );
@@ -292,7 +289,7 @@ function pluginRecordToMeta(record: PluginRecord): PluginMeta {
     subtitle: record.manifest.description ?? `${record.source} · ${record.version}`,
     health: record.health,
     enabled: record.enabled,
-    viewId: record.protocolManifest?.contributes.views[0]?.id,
+    ...pluginViewRoutes(record),
   };
 }
 
@@ -300,7 +297,7 @@ function localizePluginMeta(
   plugin: PluginMeta,
   language: ResolvedLanguage,
 ): PluginMeta {
-  const presentation = bundledPluginPresentation(plugin.id, language);
+  const presentation = !plugin.viewId && !plugin.trayViewId ? bundledPluginPresentation(plugin.id, language) : undefined;
   if (presentation) {
     return {
       ...plugin,
@@ -434,6 +431,7 @@ export function MainWindowApp() {
   const runAction = (action: () => Promise<void>) => runShellAction(action, setMessage, t);
   const statusBar = useStatusBar(pluginHost.records);
   const appliedToolRevision = useRef(-1);
+  const [marketRequestRevision, setMarketRequestRevision] = useState(0);
   useEffect(() => {
     if (!toolRequest || pluginHost.isLoading || toolRequest.revision <= appliedToolRevision.current) return;
     const target = visiblePlugins.find((plugin) => plugin.id === toolRequest.pluginId);
@@ -505,13 +503,13 @@ export function MainWindowApp() {
         </aside>
 
         <section className="main-workspace" aria-label={activePlugin?.title ?? t("shell.pluginWorkspace")}>
-          {pluginPanel(activePlugin, resolvedLanguage, "main",toolRequest?.pluginId===activePlugin?.id && toolRequest?.intent==="editCustom"?toolRequest.revision:undefined,()=>{if(toolRequest)consumeToolIntent(toolRequest.revision);})}
+          {activePlugin ? pluginPanel(activePlugin, resolvedLanguage, "main",toolRequest?.pluginId===activePlugin?.id && toolRequest?.intent==="editCustom"?toolRequest.revision:undefined,()=>{if(toolRequest)consumeToolIntent(toolRequest.revision);}) : <EmptyPluginState t={t} onOpenMarket={() => { setMarketRequestRevision(revision => revision + 1); navigate("preferences"); }} />}
         </section>
       </div>
       </PresentationActivity> : null}
       {settingsOpen || settingsVisited ? (
         <div className="main-settings-view" hidden={!settingsOpen} inert={!settingsOpen}>
-          <PreferencesSettingsCenter additionalSettings={BUNDLED_PLUGIN_MODULES.flatMap(module=>module.settingsSearch?.[resolvedLanguage]??[])} renderToolSettings={(pluginId,enabled)=>bundledPluginModule(pluginId)?.loadSettings?<BundledPluginSettings pluginId={pluginId} enabled={enabled} language={resolvedLanguage}/>:undefined} active={settingsOpen} localizedPlugins={localizedPlugins} pluginHost={pluginHost} preferences={preferences} statusBar={statusBar} t={t} />
+          <PreferencesSettingsCenter marketRequestRevision={marketRequestRevision} additionalSettings={BUNDLED_PLUGIN_MODULES.flatMap(module=>module.settingsSearch?.[resolvedLanguage]??[])} renderToolSettings={(pluginId,enabled)=>bundledPluginModule(pluginId)?.loadSettings?<BundledPluginSettings pluginId={pluginId} enabled={enabled} language={resolvedLanguage}/>:undefined} active={settingsOpen} localizedPlugins={localizedPlugins} pluginHost={pluginHost} preferences={preferences} statusBar={statusBar} t={t} />
         </div>
       ) : null}
     </main>

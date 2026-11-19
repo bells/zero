@@ -12,7 +12,7 @@ export function isProtocolRange(range: string): boolean {
   let bounded = false;
   for (const token of tokens) {
     const match = /^(>=|<=|>|<|=|\^|~)?(.+)$/.exec(token);
-    if (!match || !isProtocolVersion(match[2])) return false;
+    if (!match || !match[2] || !isProtocolVersion(match[2])) return false;
     const operator = match[1] ?? "=";
     if (tokens.length > 1 && (operator === "^" || operator === "~")) return false;
     bounded ||= ["=", "^", "~", "<", "<="].includes(operator);

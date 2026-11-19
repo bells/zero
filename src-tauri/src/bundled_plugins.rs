@@ -4,9 +4,14 @@ use tauri::Manager;
 pub fn manage_states(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     #[cfg(feature = "file-tool")]
     let engine_bridge = crate::services::file::engine_bridge::FileEngineBridgeState::default();
-    let builder = builder.manage(crate::plugins::lifecycle::LifecycleCoordinator::new(vec![
-        sync_lifecycle,
-    ]));
+    let builder = builder
+        .manage(crate::services::power_lease::PowerLeaseState::default())
+        .manage(crate::services::network_fetch::NetworkFetchState::default())
+        .manage(crate::plugins::media_runtime::NativeMediaState::default())
+        .manage(crate::plugins::background_runtime::BackgroundRuntime::default())
+        .manage(crate::plugins::lifecycle::LifecycleCoordinator::new(vec![
+            sync_lifecycle,
+        ]));
     #[cfg(feature = "bundled-tools")]
     let builder = builder
         .manage(crate::services::global_shortcuts::SnapShortcutState::default())

@@ -105,8 +105,31 @@ pub async fn validate_plugin_package(
     app: tauri::AppHandle,
 ) -> Result<PluginPackageValidationReport, String> {
     run_plugin_worker(app, move |_| {
-        crate::plugins::package::validate_zplugin_package(std::path::Path::new(&input.package_path))
-            .map_err(|e| e.message)
+        let mut report = crate::plugins::package::validate_zplugin_package(std::path::Path::new(
+            &input.package_path,
+        ))
+        .map_err(|e| e.message)?;
+        if let Some(manifest) = &report.protocol_manifest {
+            if manifest.id.starts_with("zero.") {
+                let signature = crate::plugins::publisher::read_signature_sidecar(
+                    std::path::Path::new(&format!("{}.signature.json", input.package_path)),
+                )?;
+                crate::plugins::publisher::verify_web_package_authority(
+                    &manifest.id,
+                    &manifest.version,
+                    &report.sha256,
+                    Some(&signature),
+                )
+                .map_err(|error| error.to_string())?;
+                report.publisher_signature = Some(signature);
+            }
+        }
+        crate::plugins::publisher::verify_package_authority(
+            &report,
+            report.publisher_signature.as_ref(),
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(report)
     })
     .await
 }
@@ -120,9 +143,10 @@ pub async fn install_plugin_package(
         let intake = app
             .state::<PluginRegistryState>()
             .with_registry(|registry| Ok(registry.intake_root()))?;
-        let prepared = crate::plugins::package::prepare_plugin_package(
+        let prepared = crate::plugins::package::prepare_plugin_package_with_authority(
             std::path::Path::new(&input.package_path),
             &intake,
+            input.publisher_signature.as_ref(),
         )
         .map_err(|e| e.message)?;
         let plugin_name = prepared
@@ -137,7 +161,8 @@ pub async fn install_plugin_package(
             .run(&operation_name, || {
                 app.state::<PluginRegistryState>()
                     .with_registry(|r| r.preflight_prepared(&input, None, &prepared))?;
-                crate::plugins::web_runtime::revoke(app, &operation_name);
+                crate::plugins::web_runtime::revoke(app, &operation_name)
+                    .map_err(|error| error.code)?;
                 let (record, prior_version) =
                     app.state::<PluginRegistryState>()
                         .with_registry(|registry| {
@@ -192,6 +217,7 @@ pub async fn install_market_plugin(
     .map_err(|error| error.message)?;
 
     let install_input = InstallPluginPackageInput {
+        publisher_signature: input.entry.publisher_signature.clone(),
         expected_sha256: None,
         package_path: download.staged_path.to_string_lossy().into_owned(),
         approved_permissions: input.approved_permissions,
@@ -202,9 +228,10 @@ pub async fn install_market_plugin(
         let intake = app
             .state::<PluginRegistryState>()
             .with_registry(|registry| Ok(registry.intake_root()))?;
-        let prepared = crate::plugins::package::prepare_plugin_package(
+        let prepared = crate::plugins::package::prepare_plugin_package_with_authority(
             std::path::Path::new(&install_input.package_path),
             &intake,
+            install_input.publisher_signature.as_ref(),
         );
         let _ = std::fs::remove_dir_all(&staging_dir);
         let prepared = prepared.map_err(|e| e.message)?;
@@ -215,7 +242,8 @@ pub async fn install_market_plugin(
                 app.state::<PluginRegistryState>().with_registry(|r| {
                     r.preflight_prepared(&install_input, Some(&input.entry), &prepared)
                 })?;
-                crate::plugins::web_runtime::revoke(app, &operation_name);
+                crate::plugins::web_runtime::revoke(app, &operation_name)
+                    .map_err(|error| error.code)?;
                 let result = app
                     .state::<PluginRegistryState>()
                     .with_registry(|registry| {
@@ -259,7 +287,8 @@ pub async fn uninstall_plugin(
         let operation_name = input.name.clone();
         app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
             .run(&operation_name, || {
-                crate::plugins::web_runtime::revoke(app, &input.name);
+                crate::plugins::web_runtime::revoke(app, &input.name)
+                    .map_err(|error| error.code)?;
                 let result = app
                     .state::<PluginRegistryState>()
                     .with_registry(|registry| registry.uninstall_plugin(&input.name))?;
@@ -284,7 +313,8 @@ pub async fn set_plugin_enabled(
         app.state::<crate::plugins::lifecycle::LifecycleCoordinator>()
             .run(&operation_name, || {
                 if !input.enabled {
-                    crate::plugins::web_runtime::revoke(app, &input.name);
+                    crate::plugins::web_runtime::revoke(app, &input.name)
+                        .map_err(|error| error.code)?;
                 }
                 let record = app
                     .state::<PluginRegistryState>()

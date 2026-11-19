@@ -53,6 +53,9 @@ test("accepts a valid MVP plugin manifest", () => {
     "storage.plugin",
     "ui.message",
     "diagnostics.write",
+    "power.preventSleep",
+    "background.schedule",
+    "files.export",
     "process.execute",
     "system.wallpaper",
     "system.apps.read",
@@ -158,14 +161,14 @@ test("accepts and canonicalizes the legacy host key", () => {
     ...validManifest,
     engines: {
       api: "1",
-      ztool: "0.1.0",
+      ztool: "0.2.0",
     },
   });
 
   assert.equal(report.valid, true);
   assert.deepEqual(report.manifest.engines, {
     api: "1",
-    zero: "0.1.0",
+    zero: "0.2.0",
   });
 });
 
@@ -173,7 +176,7 @@ test("canonical host key is authoritative when both host keys exist", () => {
   const accepted = validatePluginManifest({
     ...validManifest,
     engines: {
-      zero: "0.1.0",
+      zero: "0.2.0",
       ztool: "999.0.0",
     },
   });
@@ -181,12 +184,12 @@ test("canonical host key is authoritative when both host keys exist", () => {
     ...validManifest,
     engines: {
       zero: "999.0.0",
-      ztool: "0.1.0",
+      ztool: "0.2.0",
     },
   });
 
   assert.equal(accepted.valid, true);
-  assert.deepEqual(accepted.manifest.engines, { zero: "0.1.0" });
+  assert.deepEqual(accepted.manifest.engines, { zero: "0.2.0" });
   assertIssue(rejected, "manifest.zero.incompatible", "engines.zero");
 });
 

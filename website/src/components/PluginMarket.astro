@@ -1,0 +1,42 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { path, type Locale } from '../content/site';
+import { pluginRows, pluginMarketCopy } from '../content/plugin-market';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const c = pluginMarketCopy[locale];
+const rows = pluginRows(locale);
+---
+<Layout locale={locale} page="plugins" title={`${c.title} | Zero`} description={c.description}>
+  <section class="download-hero container">
+    <h1>{c.title}</h1><p>{c.intro}</p>
+    <div class="download-actions"><a class="button primary" href={path(locale, 'download')}>{c.getCore}</a><a class="text-link" href="https://raw.githubusercontent.com/bells/zero/main/market.json">{c.source} ↗</a></div>
+  </section>
+  <section class="container plugin-market-list" aria-label={c.title}>
+    {rows.map(tool => <article class="plugin-market-row" data-plugin={tool.name}>
+      <div><h2>{tool.displayName} <span class="mono">v{tool.release?.version ?? tool.version}</span></h2><p>{tool.description}</p>
+        {tool.release ? <div class="download-actions">
+          <a class="button primary" href={tool.release.downloadUrl}>{c.download} ↗</a>
+          <a class="text-link" href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(tool.release.publisherSignature, null, 2))}`}
+            download={`${new URL(tool.release.downloadUrl).pathname.split('/').at(-1)}.signature.json`}>{c.signature}</a>
+          <a class="text-link" href={tool.release.releaseUrl}>{c.release} ↗</a>
+        </div> : <p class="plugin-market-reason">{tool.unavailableReason}</p>}
+      </div>
+      <span class="plugin-market-status">{tool.release ? c.available : c.pending}</span>
+    </article>)}
+  </section>
+  <section class="container plugin-market-guide"><h2>{c.stepsTitle}</h2><ol>{c.steps.map(step => <li>{step}</li>)}</ol><h2>{c.offlineTitle}</h2><p>{c.offline}</p><p>{c.note}</p></section>
+</Layout>
+<style>
+  .plugin-market-list { margin-block: 1rem 3rem; }
+  .plugin-market-row { display:flex; align-items:flex-start; justify-content:space-between; gap:1.5rem; padding:1.5rem 0; border-top:1px solid var(--line); }
+  .plugin-market-row h2 { margin:0 0 .5rem; font-size:1.5rem; }
+  .plugin-market-row h2 span { margin-left:.75rem; font-size:.875rem; font-weight:400; }
+  .plugin-market-row p { margin:.4rem 0; max-width:65ch; }
+  .plugin-market-reason { font-size:.9rem; }
+  .plugin-market-status { flex-shrink:0; padding-top:.3rem; font-size:.875rem; }
+  .plugin-market-guide { max-width:75ch; margin-bottom:5rem; }
+  .plugin-market-guide h2 { font-size:1.5rem; margin-top:2rem; }
+  .plugin-market-guide li { padding-left:.3rem; margin-block:.75rem; }
+  @media(max-width:600px) { .plugin-market-row { flex-direction:column; gap:.5rem; } }
+</style>

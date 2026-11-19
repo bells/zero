@@ -116,3 +116,19 @@ pub fn prepare(
         .map_err(|_| error("storage.unavailable"))?;
     Ok(prepared)
 }
+
+// The host's existing storage:<plugin> operation gate covers comparison,
+// staging and live-session commit as one read-modify-write transaction.
+pub fn prepare_compare_and_set(
+    root: &Path,
+    key: &str,
+    expected: Value,
+    value: Value,
+) -> Result<PreparedStorage, PluginError> {
+    let current = prepare(root, key, None)?.commit()?;
+    let swapped = current == expected;
+    let current_value = if swapped { value.clone() } else { current };
+    let mut prepared = prepare(root, key, if swapped { Some(value) } else { None })?;
+    prepared.value = serde_json::json!({"swapped":swapped,"currentValue":current_value});
+    Ok(prepared)
+}

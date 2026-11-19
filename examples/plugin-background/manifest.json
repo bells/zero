@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "name": "example.background",
+  "id": "example.background",
+  "displayName": "Background smoke",
+  "description": "Isolated development scheduler fixture",
+  "author": "Zero development",
+  "version": "0.1.0",
+  "engines": {
+    "zero": "0.2.0",
+    "api": "^1.0.0"
+  },
+  "platforms": [
+    "macos",
+    "windows"
+  ],
+  "runtime": "webview",
+  "main": "index.html",
+  "permissions": [
+    "storage.plugin",
+    "background.schedule",
+    "ui.message"
+  ],
+  "requiredCapabilities": [
+    {
+      "id": "background.events",
+      "version": "^1.0.0"
+    }
+  ],
+  "background": {
+    "main": "background.js",
+    "events": [
+      "scheduled.smoke"
+    ]
+  },
+  "contributes": {
+    "views": [
+      {
+        "id": "example.background.main",
+        "title": "Background smoke",
+        "surface": "main"
+      }
+    ]
+  },
+  "activationEvents": [
+    "onView:example.background.main"
+  ]
+}

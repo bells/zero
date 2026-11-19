@@ -20,4 +20,5 @@ export interface PluginMeta {
   health: PluginHealth;
   enabled?: boolean;
   viewId?: string;
+  trayViewId?: string;
 }

@@ -2,6 +2,7 @@ import type {
   PluginMarketEntry,
   PluginMarketSnapshot,
   PluginPermission,
+  PluginMarketCatalogEntry,
 } from "./contracts";
 
 export type PluginChecksumStatus = "verified" | "unsigned";
@@ -20,6 +21,7 @@ export interface PluginInstallCard {
 }
 
 export interface PluginMarketState {
+  catalog: PluginMarketCatalogEntry[];
   entries: PluginMarketEntry[];
   installCards: PluginInstallCard[];
   isLoading: boolean;
@@ -30,6 +32,7 @@ export interface PluginMarketState {
 }
 
 export const INITIAL_PLUGIN_MARKET_STATE: PluginMarketState = {
+  catalog: [],
   entries: [],
   installCards: [],
   isLoading: false,
@@ -68,6 +71,7 @@ export function marketRefreshSucceeded(
   snapshot: PluginMarketSnapshot,
 ): PluginMarketState {
   return {
+    catalog: snapshot.catalog ?? [],
     entries: snapshot.entries,
     installCards: toPluginInstallCards(snapshot.entries),
     isLoading: false,

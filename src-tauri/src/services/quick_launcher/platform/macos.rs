@@ -1,116 +1,17 @@
 #![allow(deprecated, unexpected_cfgs)]
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::ffi::CStr;
-use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
 
 use cocoa::base::{id, nil};
 use cocoa::foundation::NSString;
 use objc::{class, msg_send, sel, sel_impl};
-use plist::Value;
 
-use super::{PlatformActivation, PlatformIcon, RunningStates, ScanResult};
+use super::{PlatformActivation, PlatformIcon, RunningStates};
 use crate::services::quick_launcher::contracts::{
-    launcher_error, QuickLauncherActivationAction, QuickLauncherDiagnostic, QuickLauncherItemKind,
-    QuickLauncherRunningState,
+    launcher_error, QuickLauncherActivationAction, QuickLauncherRunningState,
 };
-use crate::services::quick_launcher::model::{stable_item_id, IndexedItem, LaunchTarget};
-use crate::services::quick_launcher::search::{build_search_fields, bundled_aliases};
-
-pub fn application_roots() -> Vec<PathBuf> {
-    let mut roots = vec![
-        PathBuf::from("/Applications"),
-        PathBuf::from("/System/Applications"),
-        PathBuf::from("/System/Applications/Utilities"),
-    ];
-    if let Some(home) = std::env::var_os("HOME") {
-        roots.insert(1, PathBuf::from(home).join("Applications"));
-    }
-    roots
-}
-
-pub fn scan() -> ScanResult {
-    let mut diagnostics = Vec::new();
-    let mut by_identity = HashMap::<String, IndexedItem>::new();
-    for bundle in super::recursive_candidates(&application_roots(), &["app"], true) {
-        match parse_bundle(&bundle) {
-            Ok((identity, item)) => {
-                by_identity.entry(identity).or_insert(item);
-            }
-            Err(message) => diagnostics.push(QuickLauncherDiagnostic {
-                code: "launcher.macos.bundle_skipped".into(),
-                message,
-            }),
-        }
-    }
-    let mut items = by_identity.into_values().collect::<Vec<_>>();
-    items.sort_by_key(|item| item.title.to_lowercase());
-    ScanResult { items, diagnostics }
-}
-
-fn parse_bundle(bundle: &Path) -> Result<(String, IndexedItem), String> {
-    let canonical = bundle
-        .canonicalize()
-        .unwrap_or_else(|_| bundle.to_path_buf());
-    let plist_path = canonical.join("Contents/Info.plist");
-    let dictionary = Value::from_file(&plist_path)
-        .map_err(|error| format!("{}: {error}", plist_path.display()))?
-        .into_dictionary()
-        .ok_or_else(|| format!("{} is not a plist dictionary", plist_path.display()))?;
-    let display_name = plist_string(&dictionary, "CFBundleDisplayName")
-        .or_else(|| plist_string(&dictionary, "CFBundleName"))
-        .or_else(|| {
-            canonical
-                .file_stem()
-                .and_then(|name| name.to_str())
-                .map(str::to_string)
-        })
-        .filter(|name| !name.trim().is_empty())
-        .ok_or_else(|| format!("{} has no display name", canonical.display()))?;
-    let bundle_id = plist_string(&dictionary, "CFBundleIdentifier");
-    let executable_path = plist_string(&dictionary, "CFBundleExecutable")
-        .map(|name| canonical.join("Contents/MacOS").join(name));
-    if executable_path.as_ref().is_some_and(|path| !path.exists()) {
-        return Err(format!("{} has no valid executable", canonical.display()));
-    }
-    let identity = bundle_id
-        .clone()
-        .unwrap_or_else(|| canonical.to_string_lossy().to_lowercase());
-    let modified_at = std::fs::metadata(&canonical)
-        .and_then(|metadata| metadata.modified())
-        .ok()
-        .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
-        .map(|duration| duration.as_secs());
-    let id = stable_item_id("macos", QuickLauncherItemKind::Application, &identity);
-    let icon_key = Some(format!("{id}:{}", modified_at.unwrap_or_default()));
-    Ok((
-        identity,
-        IndexedItem {
-            id,
-            kind: QuickLauncherItemKind::Application,
-            title: display_name.clone(),
-            subtitle: canonical.to_string_lossy().into_owned(),
-            search: build_search_fields(&display_name, bundled_aliases(&display_name)),
-            target: LaunchTarget::Application {
-                path: canonical.clone(),
-                bundle_id,
-                executable_path,
-            },
-            icon_source: Some(canonical),
-            icon_key,
-            source_modified_at: modified_at,
-            running: QuickLauncherRunningState::Unknown,
-        },
-    ))
-}
-
-fn plist_string(dictionary: &plist::Dictionary, key: &str) -> Option<String> {
-    dictionary
-        .get(key)
-        .and_then(Value::as_string)
-        .map(str::to_string)
-}
+use crate::services::quick_launcher::model::{IndexedItem, LaunchTarget};
 
 pub fn probe_running(items: &[IndexedItem]) -> RunningStates {
     let running_bundle_ids = running_bundle_ids();

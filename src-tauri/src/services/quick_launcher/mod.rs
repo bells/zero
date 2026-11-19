@@ -280,54 +280,86 @@ impl QuickLauncherState {
     ) -> Result<(), QuickLauncherError> {
         let mut diagnostic =
             crate::services::diagnostics::Operation::new(Some("zero.launch"), "initialize");
-        let result = (|| {
-            let mut diagnostics = Vec::new();
-            let (items, last_updated_at, source) = match cache::load_index(&self.root) {
-                Ok(Some((items, updated_at))) => {
-                    (items, Some(updated_at), QuickLauncherIndexSource::Cache)
-                }
-                Ok(None) => (Vec::new(), None, QuickLauncherIndexSource::Empty),
-                Err(error) => {
-                    diagnostics.push(QuickLauncherDiagnostic {
-                        code: "launcher.cache_rebuilt".into(),
-                        message: error,
-                    });
-                    (Vec::new(), None, QuickLauncherIndexSource::Empty)
-                }
-            };
-            let usage = match cache::load_usage(&self.root) {
-                Ok(usage) => usage,
-                Err(error) => {
-                    diagnostics.push(QuickLauncherDiagnostic {
-                        code: "launcher.usage_rebuilt".into(),
-                        message: error,
-                    });
-                    UsageMap::new()
-                }
-            };
-            if !self.is_current_generation(generation) {
-                return Err(disabled_error());
+        let result = self.initialize_index(generation, || {
+            if let Err(error) = self.start_watcher(app, generation) {
+                self.add_diagnostic("launcher.watcher_unavailable", error);
             }
+            self.refresh_generation(&system_language(), generation)
+                .map(|_| ())
+        });
+        diagnostic.finish(&result);
+        result
+    }
+
+    fn initialize_index(
+        &self,
+        generation: u64,
+        refresh: impl FnOnce() -> Result<(), QuickLauncherError>,
+    ) -> Result<(), QuickLauncherError> {
+        let mut diagnostics = Vec::new();
+        let (items, last_updated_at, source) = match cache::load_index(&self.root) {
+            Ok(Some((items, updated_at))) => {
+                (items, Some(updated_at), QuickLauncherIndexSource::Cache)
+            }
+            Ok(None) => (Vec::new(), None, QuickLauncherIndexSource::Empty),
+            Err(error) => {
+                diagnostics.push(QuickLauncherDiagnostic {
+                    code: "launcher.cache_rebuilt".into(),
+                    message: error,
+                });
+                (Vec::new(), None, QuickLauncherIndexSource::Empty)
+            }
+        };
+        let usage = match cache::load_usage(&self.root) {
+            Ok(usage) => usage,
+            Err(error) => {
+                diagnostics.push(QuickLauncherDiagnostic {
+                    code: "launcher.usage_rebuilt".into(),
+                    message: error,
+                });
+                UsageMap::new()
+            }
+        };
+        if !self.is_current_generation(generation) {
+            return Err(disabled_error());
+        }
+        {
+            let mut index = self
+                .index
+                .write()
+                .map_err(|_| lock_error("publish cached index"))?;
+            index.revision = u64::from(!items.is_empty());
+            index.source = source;
+            index.items = Arc::new(items);
+            index.usage = Arc::new(usage);
+            index.last_updated_at = last_updated_at;
+            index.diagnostics = diagnostics;
+        }
+        match refresh() {
+            Ok(()) if !self.is_current_generation(generation) => Err(disabled_error()),
+            Err(error)
+                if source == QuickLauncherIndexSource::Cache
+                    && matches!(
+                        error.code.as_str(),
+                        "launcher.discovery_entry_limit"
+                            | "launcher.discovery_depth_limit"
+                            | "launcher.discovery_input_limit"
+                            | "launcher.discovery_payload_limit"
+                    ) =>
             {
                 let mut index = self
                     .index
                     .write()
-                    .map_err(|_| lock_error("publish cached index"))?;
-                index.revision = u64::from(!items.is_empty());
-                index.source = source;
-                index.items = Arc::new(items);
-                index.usage = Arc::new(usage);
-                index.last_updated_at = last_updated_at;
-                index.diagnostics = diagnostics;
+                    .map_err(|_| lock_error("degrade cached index"))?;
+                if !self.is_current_generation(generation) {
+                    return Err(disabled_error());
+                }
+                push_bounded_diagnostic(&mut index.diagnostics, &error.code, error.message);
+                index.platform_support = QuickLauncherPlatformSupport::Degraded;
+                Ok(())
             }
-            if let Err(error) = self.start_watcher(app, generation) {
-                self.add_diagnostic("launcher.watcher_unavailable", error);
-            }
-            self.refresh_generation(&system_language(), generation)?;
-            Ok(())
-        })();
-        diagnostic.finish(&result);
-        result
+            result => result,
+        }
     }
 
     fn is_current_generation(&self, generation: u64) -> bool {
@@ -356,6 +388,17 @@ impl QuickLauncherState {
         language: &str,
         generation: u64,
     ) -> Result<QuickLauncherIndexSnapshot, QuickLauncherError> {
+        self.refresh_index(generation, language, || {
+            platform::scan(&|| !self.is_current_generation(generation))
+        })
+    }
+
+    fn refresh_index(
+        &self,
+        generation: u64,
+        language: &str,
+        scan: impl FnOnce() -> Result<platform::ScanResult, QuickLauncherError>,
+    ) -> Result<QuickLauncherIndexSnapshot, QuickLauncherError> {
         let mut diagnostic =
             crate::services::diagnostics::Operation::new(Some("zero.launch"), "index");
         let result = (|| {
@@ -371,7 +414,16 @@ impl QuickLauncherState {
                 index.refreshing = true;
             }
 
-            let mut scan = platform::scan();
+            let mut scan = match scan() {
+                Ok(scan) => scan,
+                Err(error) => {
+                    self.index
+                        .write()
+                        .map_err(|_| lock_error("clear aborted refresh"))?
+                        .refreshing = false;
+                    return Err(error);
+                }
+            };
             scan.items.extend(catalog::system_setting_items(language));
             let running = platform::probe_running(&scan.items);
             for item in &mut scan.items {
@@ -918,6 +970,110 @@ fn disabled_error() -> QuickLauncherError {
 mod tests {
     use super::contracts::QuickLauncherRunningState;
     use super::*;
+
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    #[test]
+    fn initialization_uses_loaded_index_when_discovery_exceeds_its_budget() {
+        let root = std::env::temp_dir().join(format!(
+            "zero-launch-discovery-cache-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let items = catalog::system_setting_items("en");
+        let id = items[0].id.clone();
+        let usage = UsageMap::from([(
+            id.clone(),
+            model::UsageEntry {
+                count: 3,
+                last_used_at: 55,
+            },
+        )]);
+        cache::save_index(&root, &items, 42).unwrap();
+        cache::save_usage(&root, &usage).unwrap();
+        let state = QuickLauncherState::new(root.clone());
+        state.set_enabled(true);
+        let generation = state.generation.load(Ordering::Acquire);
+        let limit = || {
+            launcher_error(
+                "launcher.scanApps",
+                "launcher.discovery_payload_limit",
+                "synthetic",
+                true,
+            )
+        };
+        let attempt = || state.refresh_index(generation, "en", || Err(limit()));
+        let result = state.initialize_once(generation, || {
+            state.initialize_index(generation, || attempt().map(|_| ()))
+        });
+        let retry = attempt();
+        let snapshot = state.snapshot().unwrap();
+        let retained = cache::load_index(&root).unwrap().unwrap();
+        std::fs::remove_dir_all(root).unwrap();
+
+        result.unwrap();
+        assert_eq!(retry.unwrap_err().code, "launcher.discovery_payload_limit");
+        assert!(!snapshot.refreshing);
+        assert_eq!(
+            *state.initialization.0.lock().unwrap(),
+            LauncherInitialization::Ready
+        );
+        assert_eq!(snapshot.source, QuickLauncherIndexSource::Cache);
+        assert_eq!(snapshot.revision, 1);
+        assert_eq!(snapshot.item_count, items.len());
+        assert_eq!(snapshot.last_updated_at, Some(42));
+        assert_eq!(
+            snapshot.platform_support,
+            QuickLauncherPlatformSupport::Degraded
+        );
+        assert_eq!(
+            snapshot.diagnostics[0].code,
+            "launcher.discovery_payload_limit"
+        );
+        assert_eq!(state.index.read().unwrap().usage.get(&id).unwrap().count, 3);
+        assert_eq!(retained.1, 42);
+        assert_eq!(retained.0[0].id, id);
+    }
+
+    #[test]
+    fn initialization_propagates_budget_without_cache_and_cancellation_with_cache() {
+        let root = std::env::temp_dir().join(format!(
+            "zero-launch-discovery-no-cache-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let state = QuickLauncherState::new(root.clone());
+        state.set_enabled(true);
+        let generation = state.generation.load(Ordering::Acquire);
+        let check = |code| {
+            state.initialize_once(generation, || {
+                state.initialize_index(generation, || {
+                    Err(launcher_error("launcher.scanApps", code, "synthetic", true))
+                })
+            })
+        };
+        let no_cache = check("launcher.discovery_entry_limit");
+        let empty = state.snapshot().unwrap();
+        let no_cache_file = !root.join("apps_cache.json").exists();
+        cache::save_index(&root, &catalog::system_setting_items("en"), 42).unwrap();
+        let cancelled = check("launcher.discovery_cancelled");
+        let stale_completion = state.initialize_once(generation, || {
+            state.initialize_index(generation, || {
+                state.set_enabled(false);
+                Ok(())
+            })
+        });
+        std::fs::remove_dir_all(root).unwrap();
+
+        assert_eq!(no_cache.unwrap_err().code, "launcher.discovery_entry_limit");
+        assert_eq!(empty.source, QuickLauncherIndexSource::Empty);
+        assert!(no_cache_file);
+        assert_eq!(cancelled.unwrap_err().code, "launcher.discovery_cancelled");
+        assert_eq!(stale_completion.unwrap_err().code, "launcher.disabled");
+        assert_eq!(
+            *state.initialization.0.lock().unwrap(),
+            LauncherInitialization::Idle
+        );
+    }
 
     #[test]
     fn construction_is_inert_until_enabled_initialization() {

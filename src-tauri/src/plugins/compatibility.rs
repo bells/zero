@@ -166,14 +166,41 @@ pub fn check_legacy(
 
 pub fn check_record(record: &super::contracts::PluginRecord) -> CompatibilityReport {
     if let Some(manifest) = &record.protocol_manifest {
-        return check_manifest(&serde_json::to_value(manifest).expect("manifest serialization"));
+        let mut report =
+            check_manifest(&serde_json::to_value(manifest).expect("manifest serialization"));
+        if let Err(error) = super::publisher::verify_web_package_authority(
+            &manifest.id,
+            &manifest.version,
+            record.package_sha256.as_deref().unwrap_or(""),
+            record.publisher_signature.as_ref(),
+        ) {
+            report.issues.push(issue(
+                "manifest.invalid",
+                "publisherSignature",
+                error.to_string(),
+            ));
+            report.compatible = false;
+        }
+        return report;
     }
-    check_legacy(
+    let mut report = check_legacy(
         &record.manifest,
         env!("CARGO_PKG_VERSION"),
         current_platform(),
         record.source == PluginSource::Bundled,
-    )
+    );
+    if record.source != PluginSource::Bundled
+        && record.name.starts_with("zero.")
+        && !(record.name == "zero.file" && record.manifest.first_party_engine.is_some())
+    {
+        report.issues.push(issue(
+            "manifest.invalid",
+            "publisherSignature",
+            "Official package publisher authority is required",
+        ));
+        report.compatible = false;
+    }
+    report
 }
 
 /// A legacy-shaped catalog view for existing host UI; the v2 source is stored

@@ -308,3 +308,16 @@ test('keeps non-asset metadata and ordinary local HTML assets buildable', async 
   assert.match(artifacts.join(''), /OWNED-ICON/);
   assert.ok(result.sourceFiles.includes(await fs.realpath(path.join(f.pluginRoot, 'icon.svg'))));
 });
+
+test('a dependency cannot use a declared type peer as a runtime dependency', async t => {
+  const f = await fixture(t, `import 'typed-only';`);
+  await fs.writeFile(path.join(f.pluginRoot, 'package.json'), JSON.stringify({ dependencies: { 'typed-only': '1.0.0' } }));
+  const library=path.join(f.pluginRoot,'node_modules/typed-only');
+  const declarations=path.join(f.pluginRoot,'node_modules/@types/react');
+  await fs.mkdir(library,{recursive:true});await fs.mkdir(declarations,{recursive:true});
+  await fs.writeFile(path.join(library,'package.json'),JSON.stringify({name:'typed-only',type:'module',main:'index.js',dependencies:{'@types/react':'1.0.0'}}));
+  await fs.writeFile(path.join(library,'index.js'),`import React from 'react'; console.log(React);`);
+  await fs.writeFile(path.join(declarations,'package.json'),JSON.stringify({name:'@types/react',types:'index.d.ts'}));
+  await fs.writeFile(path.join(declarations,'index.d.ts'),'declare const React:unknown;export default React;');
+  await assert.rejects(buildPluginPackage(f),/undeclared|boundary/i);
+});

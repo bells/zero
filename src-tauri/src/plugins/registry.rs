@@ -18,7 +18,7 @@ use super::contracts::{
     PluginMarketEntry, PluginPermission, PluginRecord, PluginSource,
 };
 use super::package::{
-    format_validation_issues, prepare_plugin_package, validate_approved_first_party_engine_package,
+    format_validation_issues, validate_approved_first_party_engine_package,
     validate_installed_first_party_engine, validate_zplugin_package, PreparedPluginPackage,
 };
 
@@ -101,6 +101,18 @@ impl PluginRegistryState {
             .map(|registry| operation(&registry))
             .map_err(|_| "plugin registry is busy".into())
     }
+
+    // Bridge callers use this on blocking workers, without holding session locks.
+    // Contention must queue before their fresh permission check, not reject valid work.
+    pub fn read_registry<T>(
+        &self,
+        operation: impl FnOnce(&PluginRegistry) -> T,
+    ) -> Result<T, String> {
+        self.registry
+            .lock()
+            .map(|registry| operation(&registry))
+            .map_err(|_| "plugin registry lock is poisoned".into())
+    }
 }
 
 impl PluginRegistry {
@@ -144,10 +156,10 @@ impl PluginRegistry {
                     }
                     state.schema_version = PLUGIN_REGISTRY_SCHEMA_VERSION;
                     let changed = state != original;
-                    let (records, excluded_records): (Vec<_>, Vec<_>) = state
-                        .records
-                        .into_iter()
-                        .partition(|r| compiled_plugin_available(&r.name));
+                    let (records, excluded_records): (Vec<_>, Vec<_>) =
+                        state.records.into_iter().partition(|r| {
+                            r.protocol_manifest.is_some() || compiled_plugin_available(&r.name)
+                        });
                     let mut registry = Self {
                         revision: AtomicU64::new(state.revision),
                         root,
@@ -185,6 +197,10 @@ impl PluginRegistry {
 
     pub fn default_root() -> PathBuf {
         canonical_data_root(&default_home()).join("plugins")
+    }
+
+    pub fn scheduler_path(&self) -> PathBuf {
+        self.root.join(".background-schedules.json")
     }
 
     pub fn intake_root(&self) -> PathBuf {
@@ -229,7 +245,12 @@ impl PluginRegistry {
                 records: self
                     .records
                     .iter()
-                    .chain(&self.excluded_records)
+                    .chain(self.excluded_records.iter().filter(|excluded| {
+                        !self
+                            .records
+                            .iter()
+                            .any(|active| active.name == excluded.name)
+                    }))
                     .cloned()
                     .collect(),
             };
@@ -414,8 +435,16 @@ impl PluginRegistry {
         source: PluginSource,
         market_entry: Option<&PluginMarketEntry>,
     ) -> Result<PluginRecord, String> {
-        let prepared = prepare_plugin_package(Path::new(&input.package_path), &self.intake_root())
-            .map_err(|e| e.message)?;
+        let signature = input
+            .publisher_signature
+            .as_ref()
+            .or_else(|| market_entry.and_then(|entry| entry.publisher_signature.as_ref()));
+        let prepared = super::package::prepare_plugin_package_with_authority(
+            Path::new(&input.package_path),
+            &self.intake_root(),
+            signature,
+        )
+        .map_err(|e| e.message)?;
         self.install_prepared(input, source, market_entry, prepared)
     }
 
@@ -426,6 +455,14 @@ impl PluginRegistry {
         prepared: &PreparedPluginPackage,
     ) -> Result<(), String> {
         let report = &prepared.report;
+        super::publisher::verify_package_authority(
+            report,
+            input
+                .publisher_signature
+                .as_ref()
+                .or_else(|| market_entry.and_then(|entry| entry.publisher_signature.as_ref())),
+        )
+        .map_err(|error| error.to_string())?;
         if !report.valid {
             return Err(format_validation_issues(&report.issues));
         }
@@ -445,7 +482,7 @@ impl PluginRegistry {
             .clone()
             .ok_or_else(|| "package manifest was not available after validation".to_string())?;
 
-        if !compiled_plugin_available(&manifest.name) {
+        if report.protocol_manifest.is_none() && !compiled_plugin_available(&manifest.name) {
             return Err("This first-party tool is not included in this build".into());
         }
 
@@ -456,20 +493,28 @@ impl PluginRegistry {
         let existing = self
             .records
             .iter()
+            .chain(&self.excluded_records)
             .find(|record| record.name == manifest.name);
+        let migrating_static = report.protocol_manifest.is_some()
+            && existing.is_some_and(|record| {
+                record.protocol_manifest.is_none() && record.source == PluginSource::Bundled
+            });
         if existing
             .as_ref()
-            .is_some_and(|record| record.version == manifest.version)
+            .is_some_and(|record| record.version == manifest.version && !migrating_static)
         {
             return Err(format!(
                 "plugin {} version {} is already installed",
                 manifest.name, manifest.version
             ));
         }
-        if existing.as_ref().is_some_and(|record| {
-            record.source == PluginSource::Bundled
-                && (manifest.name != ZERO_FILE_PLUGIN_ID || manifest.first_party_engine.is_none())
-        }) {
+        if !migrating_static
+            && existing.as_ref().is_some_and(|record| {
+                record.source == PluginSource::Bundled
+                    && (manifest.name != ZERO_FILE_PLUGIN_ID
+                        || manifest.first_party_engine.is_none())
+            })
+        {
             return Err(format!("plugin {} is already installed", manifest.name));
         }
 
@@ -517,7 +562,14 @@ impl PluginRegistry {
             .records
             .iter()
             .position(|record| record.name == manifest.name);
-        let existing = existing_index.map(|index| self.records[index].clone());
+        let existing = existing_index
+            .map(|index| self.records[index].clone())
+            .or_else(|| {
+                self.excluded_records
+                    .iter()
+                    .find(|record| record.name == manifest.name)
+                    .cloned()
+            });
         let enabled = existing
             .as_ref()
             .map(|record| record.enabled)
@@ -566,6 +618,10 @@ impl PluginRegistry {
                 manifest.clone()
             };
         let record = PluginRecord {
+            publisher_signature: input
+                .publisher_signature
+                .clone()
+                .or_else(|| market_entry.and_then(|entry| entry.publisher_signature.clone())),
             protocol_manifest: report.protocol_manifest.clone(),
             name: activated_manifest.name.clone(),
             version: activated_manifest.version.clone(),
@@ -584,6 +640,9 @@ impl PluginRegistry {
         };
 
         let prior_records = self.records.clone();
+        let prior_excluded_records = self.excluded_records.clone();
+        self.excluded_records
+            .retain(|excluded| excluded.name != record.name);
         if let Some(index) = existing_index {
             self.records[index] = record.clone();
         } else {
@@ -591,6 +650,7 @@ impl PluginRegistry {
         }
         if let Err(error) = self.save() {
             self.records = prior_records;
+            self.excluded_records = prior_excluded_records;
             if !reuse_existing_version {
                 let _ = fs::remove_dir_all(&final_root);
             }
@@ -912,6 +972,7 @@ fn bundled_record(manifest: PluginManifest) -> PluginRecord {
     let version = manifest.version.clone();
 
     PluginRecord {
+        publisher_signature: None,
         protocol_manifest: None,
         name: manifest.name.clone(),
         version,
@@ -941,8 +1002,6 @@ fn migrate_bundled_records(records: &mut Vec<PluginRecord>) {
             } else {
                 PluginHealth::Disabled
             };
-        } else if !records.iter().any(|record| record.name == bundled.name) {
-            records.push(bundled);
         }
     }
 }
@@ -1052,6 +1111,54 @@ mod tests {
                 .unwrap()
                 .as_nanos()
         ))
+    }
+
+    #[test]
+    #[cfg(not(feature = "bundled-tools"))]
+    fn active_web_package_survives_persisted_excluded_static_record() {
+        let root = unique_root();
+        let mut registry = PluginRegistry::load_or_seed(&root).unwrap();
+        let mut old = bundled_record(
+            serde_json::from_str(include_str!("../../../src/plugins/caffeine/metadata.json"))
+                .unwrap(),
+        );
+        old.enabled = false;
+        registry.excluded_records.push(old.clone());
+        let mut web = old;
+        web.source = PluginSource::Local;
+        web.protocol_manifest = Some(
+            serde_json::from_value(serde_json::json!({
+                "schemaVersion":2,"name":"zero.awake","id":"zero.awake","displayName":"Awake",
+                "description":"Test persistence","author":"bells","version":"0.1.0",
+                "engines":{"zero":">=0.2.0 <0.3.0","api":"^1.0.0"},"platforms":["macos","windows"],
+                "runtime":"webview","main":"index.html","permissions":[],
+                "contributes":{"views":[{"id":"zero.awake.main","title":"Awake","surface":"main"}]},
+                "activationEvents":["onView:zero.awake.main"]
+            }))
+            .unwrap(),
+        );
+        registry.records.push(web);
+        registry.save().unwrap();
+        let disk: serde_json::Value =
+            serde_json::from_slice(&fs::read(registry_path(&root)).unwrap()).unwrap();
+        assert_eq!(
+            disk["records"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|record| record["name"] == "zero.awake")
+                .count(),
+            1
+        );
+        let restarted = PluginRegistry::load_or_seed(&root).unwrap();
+        let current = restarted
+            .records()
+            .iter()
+            .find(|record| record.name == "zero.awake")
+            .expect("new Web package must survive restart");
+        assert!(current.protocol_manifest.is_some());
+        assert!(!current.enabled);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

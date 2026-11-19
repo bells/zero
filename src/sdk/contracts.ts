@@ -6,9 +6,9 @@ export type PluginId = string;
 export type PackagePath = string;
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type Platform = "macos" | "windows" | "linux";
-export type PublicPermission = "storage.plugin" | "ui.message" | "network" | "diagnostics.write";
+export type PublicPermission = "storage.plugin" | "ui.message" | "network" | "diagnostics.write" | "power.preventSleep" | "background.schedule" | "system.wallpaper" | "files.export";
 export type InternalPermission = PublicPermission | "clipboard.read" | "clipboard.write"
-  | "process.execute" | "system.wallpaper" | "system.apps.read" | "system.apps.execute"
+  | "process.execute" | "system.apps.read" | "system.apps.execute"
   | "system.window.focus" | "system.settings.open" | "document.convert";
 
 export interface PluginEnginesV2 {
@@ -110,12 +110,23 @@ export interface SessionBinding {
   sessionId: string;
   generation: number;
 }
+export interface BackgroundEventContext {
+  taskId: string; eventId: string; occurrenceId: string; attempt: number;
+  payload: JsonValue; scheduleGeneration: number;
+}
+export interface ScheduleUpsertInput { taskId: string; eventId: string; nextAtMs: number; payload: JsonValue }
+export interface ScheduleCancelInput { taskId: string }
+export interface ScheduleUpsertOutput { generation: number }
+export interface ScheduleCancelOutput { cancelled: boolean }
+export interface BackgroundCompleteInput { outcome: "completed" | "retry" | "failed"; nextAtMs: number | null }
+export interface BackgroundCompleteOutput { generation: number | null }
 export interface PluginSessionInfo extends SessionBinding {
   pluginId: PluginId;
   pluginVersion: SemVer;
   apiVersion: SemVer;
   surfaceId: string;
   registryRevision: number;
+  background?: BackgroundEventContext;
 }
 export interface PluginError {
   code: string;
@@ -123,10 +134,65 @@ export interface PluginError {
   retryable: boolean;
 }
 export type Result<T> = { ok: true; value: T } | { ok: false; error: PluginError };
+export interface PowerLeaseInfo {
+  leaseId: string;
+  generation: number;
+  expiresAtMs: number | null;
+}
+export interface PowerLeaseStatus { leases: PowerLeaseInfo[] }
+export type PowerTaskSchedule = {kind:"unlimited"} | {kind:"duration";minutes:number} | {kind:"until";expiresAtMs:number};
+export interface PowerTaskConditions { batteryThresholdPercent:number|null;stopOnLowPowerMode:boolean;allowLowBatteryStart:boolean }
+export interface PowerSnapshot {
+  source:"battery"|"external"|"unknown";
+  battery:"supported"|"unsupported"|"no_battery"|"unknown";
+  battery_percent:number|null;
+  low_power_mode_capability:"supported"|"unsupported"|"unknown";
+  low_power_mode:boolean|null;
+}
+export interface PowerTaskStatus {
+  generation:number;conditionsRevision:number;active:boolean;schedule:PowerTaskSchedule;conditions:PowerTaskConditions;
+  startedAtMs:number;expiresAtMs:number|null;elapsedMs:number;remainingMs:number|null;
+  batteryThresholdOverridden:boolean;protectionUnavailable:boolean;lastStopReason:string|null;
+}
+export interface ImageAsset { assetId:string; byteLength:number; width:number; height:number; mimeType:"image/jpeg"|"image/png" }
+export interface ImagePreview {
+  leaseId: string;
+  /** Root-relative URL issued by the host for this WebView's preview lease. */
+  url: string;
+  byteLength: number;
+  width: number;
+  height: number;
+  mimeType: "image/jpeg";
+}
+export interface WallpaperPlatform { platform:string; supported:boolean; detail?:string }
+export interface WallpaperIntent { intentId:string; generation:number }
+export interface ImageExport { cancelled:boolean; fileName:string|null }
 export interface PluginMethodMap {
+  "media.cacheImage": {input:{url:string};output:ImageAsset};
+  "media.preview": {input:{assetId:string};output:ImagePreview};
+  "media.releasePreview": {input:{leaseId:string};output:null};
+  "media.exportImage": {input:{assetId:string;suggestedName:string};output:ImageExport};
+  "wallpaper.platform": {input:Record<string,never>;output:WallpaperPlatform};
+  "wallpaper.prepare": {input:{assetId:string;claimId:string};output:WallpaperIntent};
+  "wallpaper.apply": {input:{intentId:string};output:{outcome:"applied"|"alreadyApplied"}};
+  "wallpaper.cancelPrepared": {input:{intentId:string};output:null};
+  "wallpaper.recover": {input:Record<string,never>;output:null};
+  "schedule.upsert": { input: ScheduleUpsertInput; output: ScheduleUpsertOutput };
+  "schedule.cancel": { input: ScheduleCancelInput; output: ScheduleCancelOutput };
+  "background.complete": { input: BackgroundCompleteInput; output: BackgroundCompleteOutput };
+  "power.startTask": {input:{expectedGeneration:number|null;expectedConditionsRevision:number|null;schedule:PowerTaskSchedule;conditions:PowerTaskConditions};output:PowerTaskStatus};
+  "power.taskStatus": {input:Record<string,never>;output:PowerTaskStatus|null};
+  "power.stopTask": {input:{generation:number};output:null};
+  "power.updateTaskConditions": {input:{generation:number;expectedConditionsRevision:number;conditions:PowerTaskConditions};output:PowerTaskStatus};
+  "power.readSnapshot": {input:Record<string,never>;output:PowerSnapshot};
+  "power.acquire": { input: { durationMinutes: number | null }; output: PowerLeaseInfo };
+  "power.release": { input: { leaseId: string; generation: number }; output: null };
+  "power.status": { input: Record<string, never>; output: PowerLeaseStatus };
+
   "diagnostics.emit": { input: DiagnosticEmitInput; output: null };
   "ui.showMessage": { input: { message: string }; output: null };
   "storage.get": { input: { key: string }; output: JsonValue };
+  "storage.compareAndSet": {input:{key:string;expectedValue:JsonValue;value:JsonValue};output:{swapped:boolean;currentValue:JsonValue}};
   "storage.set": { input: { key: string; value: JsonValue }; output: null };
   "network.fetch": {
     input: { url: string; method: "GET" };
@@ -158,6 +224,11 @@ export interface PluginContext {
   bridge: ZeroBridge;
 }
 export interface ZeroBridge {
+  schedule: {
+    upsert(input: ScheduleUpsertInput): Promise<Result<ScheduleUpsertOutput>>;
+    cancel(input: ScheduleCancelInput): Promise<Result<ScheduleCancelOutput>>;
+  };
+  background: { complete(input: BackgroundCompleteInput): Promise<Result<BackgroundCompleteOutput>> };
   request<M extends PluginMethod>(
     method: M,
     payload: PluginMethodMap[M]["input"],

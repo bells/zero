@@ -1,0 +1,26 @@
+{
+  "notice": "Public synthetic cross-language fixture. Seed is public test data; never authorize a release with this key.",
+  "archiveBase64": "UEsDBAoAAAAIAAAAIVBKszg0DQEAAMUBAAANAAAAbWFuaWZlc3QuanNvbmWQzWrDMBCEX8Xs2Qgnubk/t/YYCi25lBRkeV0vWJKR1k5c43fvyiGl4OPOzjca7QzRtGj1CUMk76Dc5+C0RSjhB4NXDV15CAg5UL3Vaop9p6fjDXifHLfIZLJ/DowmUM9rNrwNVSdrxsh3T+ZdNz1kDkcMmc4CdqhjIvXArQ8CfYhb5vHeEHZqrw6ioPsmhxHKee0lm+enQnZF9liogypSSE8if+1UIeOSg7Tlxgcr0CdYbXyEcw5hcEzrFy5YjYQXIa2m9Ba5Gq+qZduJ1mOwFFOLxAtovONA1cC3FglNm3l7LLXm5cDEXXro9e9CcQiNNklbLctZamrDNOp0tJcRHa9tvTtJfLkNPS+/UEsDBAoAAAAIAAAAIVAvihwRJAAAACQAAAAKAAAAaW5kZXguaHRtbLMpsAsoTcrJTFYorswryUgtAbISi5IzMstSFfLzcipt9AvsAFBLAQIUAAoAAAAIAAAAIVBKszg0DQEAAMUBAAANAAAAAAAAAAAAAAAAAAAAAABtYW5pZmVzdC5qc29uUEsBAhQACgAAAAgAAAAhUC+KHBEkAAAAJAAAAAoAAAAAAAAAAAAAAAAAOAEAAGluZGV4Lmh0bWxQSwUGAAAAAAIAAgBzAAAAhAEAAAAA",
+  "payloadHex": "7a65726f2e6f6666696369616c2d706c7567696e2d7061636b61676500000000010000000e73796e7468657469632d6f6e6c790000000c7a65726f2e6669787475726500000005312e322e33b3da87a7a2e2383b0f7c4706f2f701449aec9847838fe0c5ad4d04596bac7109",
+  "envelope": {
+    "schemaVersion": 1,
+    "keyId": "synthetic-only",
+    "pluginId": "zero.fixture",
+    "pluginVersion": "1.2.3",
+    "sha256": "b3da87a7a2e2383b0f7c4706f2f701449aec9847838fe0c5ad4d04596bac7109",
+    "signature": "xiQZnZ17v2FhZ1qtdoI6enplKkBF4dt2Thdi+yftClhkSsCQbADebdAwX5Wfy9OxT3D+aAglh932GeS0sAymAw=="
+  },
+  "trust": {
+    "schemaVersion": 1,
+    "publishers": [
+      {
+        "keyId": "synthetic-only",
+        "publicKey": "GX9rI+FshTLGq8g4+s1ep4m+DHaykgM0A5v6iz02jWE=",
+        "allowedPluginIds": [
+          "zero.fixture"
+        ]
+      }
+    ]
+  },
+  "weakRSignature": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACPciX7MQ3h34dEU9TTgVPqd6lHydPajP5S1Y8W+t9TCw=="
+}

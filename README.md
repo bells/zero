@@ -34,9 +34,9 @@ Awake 的“自定义…”支持 1–1440 分钟，或下一次本地结束钟�
 
 Paper 的每日自动更换默认关闭，在主窗口的 Paper 工具设置中即时保存；仅在 Zero 运行且 Paper 启用时按北京时间检查，隐藏面板不停止任务。通过 Paper 成功应用历史图后保护至下一个北京时间午夜，关闭再开启可请求最新图；全局开机启动设置不变。本轮源码和自动检查状态、未完成的 macOS／Windows 设备验收见[实施记录](openspec/changes/refine-paper-latest-and-daily-wallpaper/evidence/implementation.md)。
 
-当前源码版本为 `0.1.0`。试用打包提供 **core**（无内置工具）和 **standard**（Snap、Awake、Paper、Launch），两者均不包含 File；源码默认 full 配置包含五工具。后续官方安装包面向 macOS Apple Silicon（M 系列）和 Windows x64。下载入口见[官网](https://www.usezero.cn/download/)，产物与限制见[打包指南](docs/packaging.md)，不要将源码功能清单等同于每个安装包的内容。
+当前分支的新宿主源码版本为 `0.2.0`，尚未发布；项目仍处于维护者的 **v0.1.0 体验阶段**。五工具初始版本统一为 `0.1.0`，后续分别升级。试用打包提供 **core**（无内置工具）和 **standard**（Snap、Awake、Paper、Launch），两者均不包含 File；源码默认 full 配置包含五工具。后续官方安装包面向 macOS Apple Silicon（M 系列）和 Windows x64。下载入口见[官网](https://www.usezero.cn/download/)，产物与限制见[打包指南](docs/packaging.md)，不要将源码功能清单等同于每个安装包的内容。
 
-体验桌面工具请选择 **standard**。core 无法通过“恢复内置工具”补入这些原生模块；当前扩展市场索引为空，也不提供内置工具的下载。
+已有 `0.1.0` 安装包体验四工具仍请选择 **standard**。本轮正在实现“下载新 core → 独立安装所需工具 → 使用 → 停用/卸载 → 重启不回装”的完整体验；不能用旧 core 或刷新市场代替升级宿主。市场已区分介绍目录与实际可安装包：五工具介绍可显示，但尚无已发布 `.zplugin`。官网市场页面、本地签名导入和共享原生 provider 的源码进度与实际安装包、设备验收分别记录在 [core 市场变更](openspec/changes/enable-core-market-tools/design.md)。
 
 ### 官网在线工具箱
 
@@ -170,9 +170,9 @@ Awake’s Custom editor accepts 1–1440 minutes or the next local end time. Pre
 
 Paper daily changes default to off and save immediately in the main window’s Paper settings. Checks use China Standard Time while Zero is running and Paper is enabled; hiding the panel does not stop them. Historical images successfully applied through Paper are protected until the next China midnight; turning daily changes off and on requests the latest image. Launch at login is unchanged. See the [implementation record](openspec/changes/refine-paper-latest-and-daily-wallpaper/evidence/implementation.md) for source and automated checks, and the pending macOS/Windows device acceptance.
 
-The source version is `0.1.0`. Trial packages offer **core** (no bundled tools) and **standard** (Snap, Awake, Paper, Launch); both exclude File. The default full source configuration includes all five tools. Future official installers target macOS Apple Silicon (M series) and Windows x64. Check the [download page](https://www.usezero.cn/en/download/) and [packaging guide](docs/packaging.md) for actual artifacts and limitations; the source feature list does not describe every installer.
+The new host source on this branch is `0.2.0` and remains unreleased; the project is still in the maintainer’s **v0.1.0 experience stage**. All five tools start at `0.1.0` and will version independently. Trial packages offer **core** (no bundled tools) and **standard** (Snap, Awake, Paper, Launch); both exclude File. The default full source configuration includes all five tools. Future official installers target macOS Apple Silicon (M series) and Windows x64. Check the [download page](https://www.usezero.cn/en/download/) and [packaging guide](docs/packaging.md) for actual artifacts and limitations; the source feature list does not describe every installer.
 
-Choose **standard** to try the desktop tools. Restoring bundled tools cannot add the native modules excluded from core. The current extension market index is empty and does not offer bundled tools as downloads.
+For existing `0.1.0` installers, choose **standard** to try the four tools. This change is implementing the ordinary-user path: download new core, install a chosen tool, use it, disable/uninstall it, and keep it uninstalled after restart. An old core installer cannot gain native capabilities by refreshing the market. The catalog distinguishes five tool introductions from actual installable packages; no `.zplugin` has been published. Website pages, signed local import and shared native provider source are tracked separately from installer availability and device acceptance in the [core market design](openspec/changes/enable-core-market-tools/design.md).
 
 ### Browser toolbox
 

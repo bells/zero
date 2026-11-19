@@ -10,3 +10,10 @@ src-tauri/ocr-licenses/*.txt -text
 # Keep integrity-checked upstream license text verbatim, including trailing spaces.
 website/public/markdown-fonts/OFL.txt -whitespace
 website/public/markdown-notices/THIRD-PARTY-NOTICES.txt -whitespace
+
+# Preserve the vendored bytes and the exact backport patch across platforms.
+src-tauri/vendor/zune-jpeg/** -text
+src-tauri/vendor/zune-jpeg/src/color_convert/avx.rs whitespace=-blank-at-eol,blank-at-eof,space-before-tab
+src-tauri/vendor/zune-jpeg/src/decoder.rs whitespace=-blank-at-eol,blank-at-eof,space-before-tab
+src-tauri/vendor/zune-jpeg/src/upsampler/portable_simd.rs whitespace=-blank-at-eol,blank-at-eof,space-before-tab
+src-tauri/vendor/zune-jpeg/strict-completion.patch whitespace=-blank-at-eol,blank-at-eof,space-before-tab

@@ -1,3 +1,5 @@
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub mod application_catalog;
 #[cfg(feature = "bundled-tools")]
 pub mod bing_wallpaper;
 #[cfg(feature = "bundled-tools")]
@@ -52,3 +54,19 @@ pub mod awake_preferences;
 pub mod awake_power_events;
 #[cfg(feature = "bundled-tools")]
 pub mod power_events;
+
+pub mod power_lease;
+
+pub mod continuous_clock;
+
+pub mod power_snapshot;
+
+pub mod network_fetch;
+
+pub mod image_cache;
+
+pub mod wallpaper;
+
+pub mod wallpaper_effects;
+
+pub mod text_search;

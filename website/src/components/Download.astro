@@ -14,10 +14,10 @@ const signingLabels = { unsigned: d.unsigned, 'ad-hoc': d.adHoc, signed: d.signe
   <section class="download-section container" aria-label={c.nav.download} data-download>
     <div class="download-controls">
       <fieldset><legend>{d.platform}</legend><label><input type="radio" name="platform" value="macos" checked />macOS</label><label><input type="radio" name="platform" value="windows" />Windows</label></fieldset>
-      <fieldset><legend>{d.configuration}</legend><label><input type="radio" name="profile" value="standard" checked />{d.standard}</label><label><input type="radio" name="profile" value="core" />{d.core}</label></fieldset>
+      <fieldset><legend>{d.configuration}</legend><label><input type="radio" name="profile" value="core" checked />{d.core}</label><label><input type="radio" name="profile" value="standard" />{d.standard}</label></fieldset>
     </div>
     <p class="selection-note">{d.explicit}</p>
-    <div class="configuration-summary"><p><strong>standard</strong> — {d.standardText}</p><p><strong>core</strong> — {d.coreText}</p><p>{d.file}</p></div>
+    <div class="configuration-summary"><p><strong>core</strong> — {d.coreText}</p><p><strong>standard</strong> — {d.standardText}</p><p>{d.file}</p><a class="text-link" href={path(locale, 'plugins')}>{locale === 'zh' ? '查看插件市场' : 'Browse plugins'} →</a></div>
     <div class="package-groups">
       {(['macos', 'windows'] as const).flatMap((platform) => (['standard', 'core'] as const).map((profile) => {
         const packages = packagesFor(catalog, platform, profile);

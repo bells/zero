@@ -141,3 +141,20 @@ fn invalid_market_entry_is_rejected() {
     assert!(error.message.contains(".zplugin"));
     assert!(cache.cached_snapshot().is_none());
 }
+#[test]
+fn retains_unpublished_catalog_without_fabricated_downloads() {
+    let mut cache =
+        zero_lib::plugins::market::PluginMarketCache::new("https://example.test/market.json");
+    let snapshot = cache
+        .refresh_from_json(
+            r#"{"schemaVersion":1,"plugins":[],"catalog":[{
+        "name":"zero.awake","displayName":"Awake","version":"0.1.0",
+        "description":{"zh":"防休眠","en":"Keep awake"},
+        "unavailableReason":{"zh":"尚未发布","en":"Not published"}
+    }]}"#,
+        )
+        .unwrap();
+    let json = serde_json::to_value(snapshot).unwrap();
+    assert_eq!(json["catalog"][0]["name"], "zero.awake");
+    assert_eq!(json["entries"], serde_json::json!([]));
+}

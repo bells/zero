@@ -75,6 +75,59 @@ fn rejects_missing_authority_even_for_an_official_name() {
 }
 
 #[test]
+fn host_trust_config_requires_canonical_public_authority() {
+    use zero_lib::plugins::publisher::parse_trusted_publishers;
+    let config = serde_json::json!({"schemaVersion":1,"publishers":[{
+        "keyId":"test-key","publicKey":STANDARD.encode(signing_key().verifying_key().to_bytes()),
+        "allowedPluginIds":["zero.awake"]
+    }]});
+    let publishers = parse_trusted_publishers(&config.to_string()).unwrap();
+    verify_official_package(
+        Some(&envelope()),
+        "zero.awake",
+        "1.2.3",
+        DIGEST,
+        &publishers,
+    )
+    .unwrap();
+    for change in ["duplicate-key", "weak-key", "arbitrary-id", "unknown-field"] {
+        let mut bad = config.clone();
+        match change {
+            "duplicate-key" => {
+                let copy = bad["publishers"][0].clone();
+                bad["publishers"].as_array_mut().unwrap().push(copy);
+            }
+            "weak-key" => bad["publishers"][0]["publicKey"] = STANDARD.encode([0; 32]).into(),
+            "arbitrary-id" => bad["publishers"][0]["allowedPluginIds"] = serde_json::json!(["*"]),
+            _ => bad["publishers"][0]["privateKey"] = "must-never-be-loaded".into(),
+        }
+        assert!(
+            parse_trusted_publishers(&bad.to_string()).is_err(),
+            "accepted {change}"
+        );
+    }
+}
+
+#[test]
+fn signature_sidecar_is_bounded_and_exactly_parsed() {
+    use zero_lib::plugins::publisher::read_signature_sidecar;
+    let path = std::env::temp_dir().join(format!(
+        "zero-signature-sidecar-{}.json",
+        std::process::id()
+    ));
+    std::fs::write(&path, serde_json::to_vec(&envelope()).unwrap()).unwrap();
+    assert_eq!(read_signature_sidecar(&path).unwrap(), envelope());
+    std::fs::write(&path, vec![b' '; 16 * 1024 + 1]).unwrap();
+    assert!(read_signature_sidecar(&path)
+        .unwrap_err()
+        .contains("16 KiB"));
+    std::fs::write(&path, b"{}").unwrap();
+    assert!(read_signature_sidecar(&path).is_err());
+    std::fs::remove_file(&path).unwrap();
+    assert!(read_signature_sidecar(&path).is_err());
+}
+
+#[test]
 fn binds_signature_to_the_actual_package_identity_version_and_measured_bytes() {
     for (id, version, digest) in [
         ("zero.paper", "1.2.3", DIGEST.to_owned()),
@@ -329,5 +382,35 @@ fn valid_publisher_identity_does_not_grant_session_permissions() {
             .unwrap_err()
             .code,
         "permission.denied"
+    );
+}
+
+#[test]
+fn accepts_the_shared_node_public_archive_and_wire_fixture() {
+    use zero_lib::plugins::publisher::parse_trusted_publishers;
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/plugin-publisher/wire-v1.json"
+    ))
+    .unwrap();
+    let envelope: OfficialPackageSignature =
+        serde_json::from_value(fixture["envelope"].clone()).unwrap();
+    let trust = parse_trusted_publishers(&fixture["trust"].to_string()).unwrap();
+    let archive = STANDARD
+        .decode(fixture["archiveBase64"].as_str().unwrap())
+        .unwrap();
+    let measured = format!("{:x}", Sha256::digest(&archive));
+    assert_eq!(measured, envelope.sha256);
+    let payload_hex: String = official_package_signature_payload(&envelope)
+        .unwrap()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    assert_eq!(payload_hex, fixture["payloadHex"].as_str().unwrap());
+    verify_official_package(Some(&envelope), "zero.fixture", "1.2.3", &measured, &trust).unwrap();
+    let mut weak_r = envelope;
+    weak_r.signature = fixture["weakRSignature"].as_str().unwrap().into();
+    assert_eq!(
+        verify_official_package(Some(&weak_r), "zero.fixture", "1.2.3", &measured, &trust),
+        Err(Error::InvalidSignature)
     );
 }

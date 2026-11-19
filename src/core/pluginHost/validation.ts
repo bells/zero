@@ -1,3 +1,4 @@
+import { SUPPORTED_ZERO_HOST_VERSION } from "./contracts.js";
 import satisfies from "semver/functions/satisfies.js";
 import { isProtocolVersion, isProtocolRange } from "./protocol/versions.js";
 import { validateManifestStructure, validateMarketStructure } from "./validationStructure.js";
@@ -8,7 +9,7 @@ const versions = {
   compatibleHost(value: string) {
     const legacyMinimum = value.startsWith(">=") && isProtocolVersion(value.slice(2));
     return (value === "*" || legacyMinimum || isProtocolRange(value))
-      && satisfies("0.1.0", value);
+      && satisfies(SUPPORTED_ZERO_HOST_VERSION, value);
   },
 };
 export function validatePluginManifest(value: unknown) {

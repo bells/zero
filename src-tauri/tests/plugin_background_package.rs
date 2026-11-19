@@ -37,7 +37,7 @@ fn package(background: &str, entry: BackgroundEntry, main: &str, extra: Option<&
         "../../tests/fixtures/plugin-protocol/example.manifest.json"
     ))
     .unwrap();
-    manifest["engines"]["zero"] = ">=0.1.0 <0.2.0".into();
+    manifest["engines"]["zero"] = env!("CARGO_PKG_VERSION").into();
     manifest["main"] = main.into();
     manifest["background"] = serde_json::json!({"main":background,"events":["schedule.refresh"]});
     let mut archive = ZipWriter::new(fs::File::create(&path).unwrap());
@@ -201,13 +201,15 @@ fn background_archive_entries_require_real_safe_regular_scripts() {
     ] {
         let path = package(background, entry, main, extra);
         let report = validate_zplugin_package(&path).unwrap();
-        assert!(
-            !report.valid,
-            "{label}: package cannot run background events"
-        );
+        let available =
+            code.is_none() && std::env::var("ZERO_PLUGIN_WEB_DEV").as_deref() == Ok("1");
+        assert_eq!(report.valid, available, "{label}: {:#?}", report.issues);
         let destination = path.parent().unwrap().join("installed");
-        assert!(extract_zplugin_package(&path, &destination).is_err());
-        assert!(!destination.exists());
+        assert_eq!(
+            extract_zplugin_package(&path, &destination).is_ok(),
+            available
+        );
+        assert_eq!(destination.exists(), available);
         if let Some(code) = code {
             assert!(
                 report.issues.iter().any(|issue| issue.code == code),
@@ -216,7 +218,7 @@ fn background_archive_entries_require_real_safe_regular_scripts() {
             );
         } else {
             assert!(
-                report
+                !report
                     .issues
                     .iter()
                     .any(|issue| issue.code == "capability.missing" && issue.path == "background"),
@@ -227,9 +229,7 @@ fn background_archive_entries_require_real_safe_regular_scripts() {
                 report
                     .issues
                     .iter()
-                    .all(|issue| (issue.code == "capability.missing"
-                        && issue.path == "background")
-                        || (issue.code == "runtime.unsupported" && issue.path == "runtime")),
+                    .all(|issue| issue.code == "runtime.unsupported" && issue.path == "runtime"),
                 "{label}: ordinary script introduced archive errors: {:#?}",
                 report.issues
             );

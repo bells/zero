@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "plugins": [],
+  "catalog": [
+    {
+      "name": "zero.snap",
+      "displayName": "Snap",
+      "version": "0.1.0",
+      "description": {
+        "zh": "截图、标注和钉图",
+        "en": "Capture, annotate and pin"
+      },
+      "unavailableReason": {
+        "zh": "等待独立插件包发布与平台验收",
+        "en": "Awaiting independent package release and platform verification"
+      }
+    },
+    {
+      "name": "zero.awake",
+      "displayName": "Awake",
+      "version": "0.1.0",
+      "description": {
+        "zh": "在指定时长内保持电脑唤醒",
+        "en": "Keep your computer awake for a chosen duration"
+      },
+      "unavailableReason": {
+        "zh": "等待独立插件包发布与平台验收",
+        "en": "Awaiting independent package release and platform verification"
+      }
+    },
+    {
+      "name": "zero.paper",
+      "displayName": "Paper",
+      "version": "0.1.0",
+      "description": {
+        "zh": "浏览与设置必应壁纸",
+        "en": "Browse and apply Bing wallpapers"
+      },
+      "unavailableReason": {
+        "zh": "等待独立插件包发布与平台验收",
+        "en": "Awaiting independent package release and platform verification"
+      }
+    },
+    {
+      "name": "zero.launch",
+      "displayName": "Launch",
+      "version": "0.1.0",
+      "description": {
+        "zh": "搜索并打开应用",
+        "en": "Find and open applications"
+      },
+      "unavailableReason": {
+        "zh": "等待独立插件包发布与平台验收",
+        "en": "Awaiting independent package release and platform verification"
+      }
+    },
+    {
+      "name": "zero.file",
+      "displayName": "File",
+      "version": "0.1.0",
+      "description": {
+        "zh": "本地文档转换",
+        "en": "Local document conversion"
+      },
+      "unavailableReason": {
+        "zh": "等待独立插件包、转换引擎批准与平台验收",
+        "en": "Awaiting package release, engine approval and platform verification"
+      }
+    }
+  ]
+}

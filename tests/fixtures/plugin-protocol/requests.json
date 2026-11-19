@@ -263,5 +263,264 @@
       }
     },
     "valid": false
+  },
+  {
+    "name": "media.cacheImage",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "media.cacheImage",
+      "payload": {
+        "url": "https://example.com/image.png"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "media.cacheImage-unknown",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "media.cacheImage",
+      "payload": {
+        "url": "https://example.com/image.png",
+        "path": "/private/no"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "media.preview",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "media.preview",
+      "payload": {
+        "assetId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "media.preview-unknown",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "media.preview",
+      "payload": {
+        "assetId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "path": "/private/no"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "media.releasePreview",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "media.releasePreview",
+      "payload": {
+        "leaseId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "media.releasePreview-unknown",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "media.releasePreview",
+      "payload": {
+        "leaseId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "path": "/private/no"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "media.exportImage",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "media.exportImage",
+      "payload": {
+        "assetId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "suggestedName": "wallpaper.png"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "media.exportImage-unknown",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "media.exportImage",
+      "payload": {
+        "assetId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "suggestedName": "wallpaper.png",
+        "path": "/private/no"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "wallpaper.platform",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.platform",
+      "payload": {}
+    },
+    "valid": true
+  },
+  {
+    "name": "wallpaper.platform-unknown",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.platform",
+      "payload": {
+        "path": "/private/no"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "wallpaper.prepare",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.prepare",
+      "payload": {
+        "assetId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "claimId": "4c612626-dd03-40b4-8fc1-96fc75f2980c"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "wallpaper.prepare-unknown",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.prepare",
+      "payload": {
+        "assetId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "claimId": "4c612626-dd03-40b4-8fc1-96fc75f2980c",
+        "path": "/private/no"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "wallpaper.apply",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.apply",
+      "payload": {
+        "intentId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "wallpaper.apply-unknown",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.apply",
+      "payload": {
+        "intentId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "path": "/private/no"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "wallpaper.cancelPrepared",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.cancelPrepared",
+      "payload": {
+        "intentId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "wallpaper.cancelPrepared-unknown",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.cancelPrepared",
+      "payload": {
+        "intentId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "path": "/private/no"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "wallpaper.recover",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.recover",
+      "payload": {}
+    },
+    "valid": true
+  },
+  {
+    "name": "wallpaper.recover-unknown",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "wallpaper.recover",
+      "payload": {
+        "path": "/private/no"
+      }
+    },
+    "valid": false
   }
 ]

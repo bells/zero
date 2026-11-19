@@ -1,5 +1,5 @@
 export const SUPPORTED_EXTENSION_API_VERSION = "1";
-export const SUPPORTED_ZERO_HOST_VERSION = "0.1.0";
+export const SUPPORTED_ZERO_HOST_VERSION = "0.2.0";
 
 export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "clipboard.read",
@@ -8,6 +8,9 @@ export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "storage.plugin",
   "ui.message",
   "diagnostics.write",
+  "power.preventSleep",
+  "background.schedule",
+  "files.export",
   "process.execute",
   "system.wallpaper",
   "system.apps.read",
@@ -133,6 +136,7 @@ export interface PluginManifest {
 }
 
 export interface PluginMarketEntry {
+  publisherSignature?: import("../../sdk/publisher").OfficialPackageSignature;
   name: string;
   version: string;
   author: string;
@@ -146,17 +150,27 @@ export interface PluginMarketEntry {
 }
 
 export interface PluginMarketIndex {
+  catalog?: PluginMarketCatalogEntry[];
   schemaVersion: 1;
   plugins: PluginMarketEntry[];
   updatedAt?: string;
 }
 
 export interface PluginMarketSnapshot {
+  catalog?: PluginMarketCatalogEntry[];
   sourceUrl: string;
   schemaVersion: 1;
   updatedAt?: string;
   entries: PluginMarketEntry[];
   stale: boolean;
+}
+
+export interface PluginMarketCatalogEntry {
+  name: string;
+  displayName: string;
+  version: string;
+  description: { zh: string; en: string };
+  unavailableReason: { zh: string; en: string };
 }
 
 export interface PluginValidationIssue {
@@ -172,6 +186,7 @@ export interface PluginManifestValidationReport {
 }
 
 export interface PluginPackageValidationReport {
+  publisherSignature?: import("../../sdk/publisher").OfficialPackageSignature;
   protocolManifest?: import("./protocol/contracts").PluginManifestV2;
   valid: boolean;
   issues: PluginValidationIssue[];
@@ -187,6 +202,7 @@ export interface PluginMarketValidationReport {
 }
 
 export interface PluginRecord {
+  publisherSignature?: import("../../sdk/publisher").OfficialPackageSignature;
   protocolManifest?: import("./protocol/contracts").PluginManifestV2;
   name: string;
   version: string;
@@ -216,6 +232,7 @@ export interface ValidatePluginPackageInput {
 }
 
 export interface InstallPluginPackageInput {
+  publisherSignature?: import("../../sdk/publisher").OfficialPackageSignature;
   expectedSha256?: string;
   packagePath: string;
   approvedPermissions: PluginPermission[];
