@@ -3,11 +3,12 @@
 //! grants before admission AND delivery, and revoke on disable/update/uninstall.
 //! Packages calculate calendars/backoff; retries require explicit package policy
 //! and provider idempotency. No timers, network or wall-clock timeout live here.
+use crate::path_safety::validate_absolute_no_symlinks;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 const SAFE_INTEGER: u64 = 9_007_199_254_740_991;
@@ -680,25 +681,10 @@ fn validate_state(state: &State) -> Result<()> {
 }
 
 fn validate_absolute_path(path: &Path) -> Result<()> {
-    if !path.is_absolute()
-        || path.as_os_str().len() > 4096
-        || path
-            .components()
-            .any(|c| matches!(c, Component::ParentDir | Component::CurDir))
-    {
+    if path.as_os_str().len() > 4096 {
         return Err(SchedulerError::Path);
     }
-    let mut ancestor = PathBuf::new();
-    for component in path.components() {
-        ancestor.push(component);
-        match fs::symlink_metadata(&ancestor) {
-            Ok(metadata) if metadata.file_type().is_symlink() => return Err(SchedulerError::Path),
-            Ok(_) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(_) => return Err(SchedulerError::Path),
-        }
-    }
-    Ok(())
+    validate_absolute_no_symlinks(path).map_err(|_| SchedulerError::Path)
 }
 fn validate_regular_or_missing(path: &Path) -> Result<()> {
     match fs::symlink_metadata(path) {

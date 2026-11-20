@@ -13,6 +13,7 @@ pub mod brand;
 mod bundled_plugins;
 pub mod commands;
 pub mod migration;
+mod path_safety;
 pub mod plugins;
 pub mod services;
 

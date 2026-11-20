@@ -5,7 +5,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Cursor, Read, Write};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use image::{DynamicImage, ImageFormat, ImageReader, Limits};
@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::native_resources::resource_error;
+use crate::path_safety::{validate_absolute_no_symlinks, PathValidationError};
 use crate::plugins::contracts::NativeResourceError;
 use crate::plugins::registry::atomic_replace_file;
 use crate::plugins::session::SessionOwner;
@@ -292,25 +293,10 @@ fn failure(code: &str) -> NativeResourceError {
     resource_error("image.cache", code, code.replace('.', " "), false)
 }
 fn safe_path(path: &Path) -> Result<(), NativeResourceError> {
-    if !path.is_absolute() {
-        return Err(failure("image.path"));
-    }
-    let mut current = PathBuf::new();
-    for component in path.components() {
-        match component {
-            Component::Prefix(_) | Component::RootDir | Component::Normal(_) => {
-                current.push(component.as_os_str())
-            }
-            _ => return Err(failure("image.path")),
-        }
-        match fs::symlink_metadata(&current) {
-            Ok(meta) if meta.file_type().is_symlink() => return Err(failure("image.symlink")),
-            Ok(_) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(_) => return Err(failure("image.path")),
-        }
-    }
-    Ok(())
+    validate_absolute_no_symlinks(path).map_err(|error| match error {
+        PathValidationError::Invalid => failure("image.path"),
+        PathValidationError::Symlink => failure("image.symlink"),
+    })
 }
 fn read_bounded(path: &Path, max: usize) -> Result<Vec<u8>, NativeResourceError> {
     safe_path(path)?;

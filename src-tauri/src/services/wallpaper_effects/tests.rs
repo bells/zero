@@ -32,7 +32,10 @@ fn owner() -> SessionOwner {
         plugin_id: "test.wallpaper".into(),
         version: "1.0.0".into(),
         digest: "a".repeat(64),
-        root: PathBuf::from("/installed/wallpaper"),
+        root: std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join("zero-wallpaper-plugin"),
         view_id: "main".into(),
         revision: 1,
         permissions: vec![],
@@ -213,7 +216,7 @@ fn changed_installation_cannot_use_old_tokens_or_erase_unresolved_safety() {
     let mut replacement = owner.clone();
     replacement.version = "2.0.0".into();
     replacement.digest = "b".repeat(64);
-    replacement.root = PathBuf::from("/installed/replacement");
+    replacement.root.set_file_name("zero-wallpaper-replacement");
     let effects = WallpaperEffects::open(&replacement, &temp.0).unwrap();
     let setter = Setter {
         calls: Mutex::new(vec![]),

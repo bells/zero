@@ -21,6 +21,7 @@ use super::{
     native_resources::resource_error,
     wallpaper::WallpaperSetter,
 };
+use crate::path_safety::{validate_absolute_no_symlinks, PathValidationError};
 use crate::plugins::{
     contracts::NativeResourceError, registry::atomic_replace_file, session::SessionOwner,
 };
@@ -669,25 +670,10 @@ fn validate_owner(owner: &Owner) -> Result<(), NativeResourceError> {
     Ok(())
 }
 fn safe_path(path: &Path) -> Result<(), NativeResourceError> {
-    if !path.is_absolute() {
-        return Err(failure("wallpaper.path"));
-    }
-    let mut current = PathBuf::new();
-    for component in path.components() {
-        match component {
-            Component::Prefix(_) | Component::RootDir | Component::Normal(_) => {
-                current.push(component.as_os_str())
-            }
-            _ => return Err(failure("wallpaper.path")),
-        }
-        match fs::symlink_metadata(&current) {
-            Ok(meta) if meta.file_type().is_symlink() => return Err(failure("wallpaper.symlink")),
-            Ok(_) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(_) => return Err(failure("wallpaper.path")),
-        }
-    }
-    Ok(())
+    validate_absolute_no_symlinks(path).map_err(|error| match error {
+        PathValidationError::Invalid => failure("wallpaper.path"),
+        PathValidationError::Symlink => failure("wallpaper.symlink"),
+    })
 }
 fn regular_or_missing(path: &Path) -> Result<(), NativeResourceError> {
     safe_path(path)?;
