@@ -10,6 +10,7 @@
     "file-engine:package": "node scripts/package-file-engine.mjs",
     "predev": "node scripts/prepare-build.mjs",
     "dev": "vite",
+    "dev:plugins": "node scripts/dev-plugins.mjs",
     "prebuild": "node scripts/prepare-build.mjs",
     "build": "tsc && vite build && node scripts/verify-build-profile.mjs",
     "preview": "vite preview",
@@ -28,7 +29,8 @@
     "icons:generate-tray": "node scripts/icon-system.mjs generate-tray",
     "icons:generate-app": "node scripts/icon-system.mjs generate-app",
     "test:icons": "node --test tests/integration/sourceContracts/iconSystem.test.mjs",
-    "package:desktop": "node scripts/package-desktop.mjs"
+    "package:desktop": "node scripts/package-desktop.mjs",
+    "package:plugins": "node scripts/plugin-packages/tools.mjs build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

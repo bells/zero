@@ -7,11 +7,11 @@ import { resolveBuildProfile } from "./scripts/build-profile.mjs";
 // @ts-expect-error process is a Node global
 const profile = resolveBuildProfile(process.env.ZERO_BUILD_PROFILE);
 
-// @ts-expect-error process is a nodejs global
-const host = process.env.TAURI_DEV_HOST;
+// @ts-expect-error process is a Node global
+const { TAURI_DEV_HOST: host, ZERO_PLUGIN_DEV_PUBLIC_DIR: pluginDevPublicDir } = process.env;
 
 // https://vite.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig(({ command }) => ({
   plugins: [react(), {
     name: "zero-profile-evidence",
     generateBundle() {
@@ -44,8 +44,10 @@ export default defineConfig(async () => ({
       ...(profile.tools.includes("file") ? ["pdfjs-dist", "docx", "docx-preview"] : []),
     ],
   },
-  // Profile bundles must never copy stale File assets prepared by a full build.
-  publicDir: profile.name === "full" ? "public" : false,
+  // The isolated File assets are served during Core development only.
+  publicDir: profile.name === "full" ? "public" : (
+    command === "serve" && profile.name === "core" ? pluginDevPublicDir || false : false
+  ),
 
   build: {
     outDir: profile.name === "full" ? "dist" : `build/frontend/${profile.name}`,

@@ -42,10 +42,12 @@ export const INITIAL_PLUGIN_MARKET_STATE: PluginMarketState = {
 
 export function toPluginInstallCards(
   entries: PluginMarketEntry[],
+  catalog: PluginMarketCatalogEntry[] = [],
 ): PluginInstallCard[] {
+  const titles = new Map(catalog.map(tool => [tool.name, tool.displayName]));
   return entries.map((entry) => ({
     name: entry.name,
-    title: entry.name,
+    title: titles.get(entry.name) ?? entry.name,
     version: entry.version,
     author: entry.author,
     description: entry.description,
@@ -73,7 +75,7 @@ export function marketRefreshSucceeded(
   return {
     catalog: snapshot.catalog ?? [],
     entries: snapshot.entries,
-    installCards: toPluginInstallCards(snapshot.entries),
+    installCards: toPluginInstallCards(snapshot.entries, snapshot.catalog),
     isLoading: false,
     error: null,
     stale: snapshot.stale,

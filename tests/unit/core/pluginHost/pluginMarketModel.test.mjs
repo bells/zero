@@ -87,3 +87,14 @@ test("unpublished catalog tools stay visible without becoming install candidates
   assert.deepEqual(state.installCards, []);
   assert.deepEqual(marketRefreshFailed(state, new Error("offline")).catalog, catalog);
 });
+
+test("published development entries use their catalog names", () => {
+  const entry = {...marketEntry, name: "example.snap", sha256: "a".repeat(64)};
+  const tool = {
+    name: entry.name, displayName: "Snap (Preview)", version: entry.version,
+    description: {zh: "截图", en: "Capture"},
+    unavailableReason: {zh: "Core 开发预览", en: "Core development preview"},
+  };
+  assert.equal(toPluginInstallCards([entry], [tool])[0].title, "Snap (Preview)");
+  assert.equal(toPluginInstallCards([entry])[0].title, "example.snap");
+});

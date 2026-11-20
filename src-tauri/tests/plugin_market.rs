@@ -158,3 +158,27 @@ fn retains_unpublished_catalog_without_fabricated_downloads() {
     assert_eq!(json["catalog"][0]["name"], "zero.awake");
     assert_eq!(json["entries"], serde_json::json!([]));
 }
+
+#[test]
+fn oversized_market_response_is_rejected_before_reading_the_body() {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}/market.json", listener.local_addr().unwrap());
+    let server = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+            .unwrap();
+        let mut request = [0; 4096];
+        stream.read(&mut request).unwrap();
+        stream
+            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 4194305\r\nConnection: close\r\n\r\n")
+            .unwrap();
+    });
+    let result = tauri::async_runtime::block_on(zero_lib::plugins::market::fetch_market_json(&url));
+    server.join().unwrap();
+    assert_eq!(
+        result.unwrap_err().message,
+        "plugin market index exceeds its byte limit"
+    );
+}

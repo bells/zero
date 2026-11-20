@@ -20,8 +20,7 @@ const ASSETS = [
   ["src/plugins/file/engine/THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md", true],
 ];
 
-export function prepareFileEngine(root = ROOT) {
-  const outputRoot = path.join(root, "public", "file-engine");
+export function prepareFileEngine(root = ROOT, outputRoot = path.join(root, "public", "file-engine")) {
   fs.rmSync(outputRoot, { recursive: true, force: true });
   fs.mkdirSync(outputRoot, { recursive: true });
 

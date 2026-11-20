@@ -1,10 +1,30 @@
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use std::sync::Mutex;
 
 use super::contracts::{PluginMarketEntry, PluginMarketIndex};
 
 pub const DEFAULT_PLUGIN_MARKET_URL: &str =
     "https://raw.githubusercontent.com/bells/zero/main/market.json";
+const PREVIEW_PLUGIN_MARKET_URL: &str =
+    "https://raw.githubusercontent.com/bells/zero/plugin-preview/market.json";
+const MAX_MARKET_INDEX_BYTES: usize = 4 * 1024 * 1024;
+
+fn configured_market_url(
+    preview: bool,
+    runtime_enabled: bool,
+    dev_home: Option<&Path>,
+) -> &'static str {
+    if cfg!(all(debug_assertions, target_os = "macos"))
+        && preview
+        && runtime_enabled
+        && dev_home.is_some_and(Path::is_absolute)
+    {
+        PREVIEW_PLUGIN_MARKET_URL
+    } else {
+        DEFAULT_PLUGIN_MARKET_URL
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,7 +55,11 @@ pub struct PluginMarketState {
 impl Default for PluginMarketState {
     fn default() -> Self {
         Self {
-            cache: Mutex::new(PluginMarketCache::new(DEFAULT_PLUGIN_MARKET_URL)),
+            cache: Mutex::new(PluginMarketCache::new(configured_market_url(
+                std::env::var("ZERO_DEV_PLUGIN_MARKET").as_deref() == Ok("1"),
+                super::protocol::web_runtime_enabled(),
+                std::env::var_os("ZERO_DEV_HOME").as_deref().map(Path::new),
+            ))),
         }
     }
 }
@@ -143,14 +167,29 @@ pub async fn fetch_market_json(source_url: &str) -> Result<String, PluginMarketE
             .send()
             .await
             .map_err(|error| market_error(format!("failed to fetch market: {error}")))?;
-        let response = response
+        let mut response = response
             .error_for_status()
             .map_err(|error| market_error(format!("failed to fetch market: {error}")))?;
 
-        response
-            .text()
+        let too_large = || market_error("plugin market index exceeds its byte limit");
+        if response
+            .content_length()
+            .is_some_and(|length| length > MAX_MARKET_INDEX_BYTES as u64)
+        {
+            return Err(too_large());
+        }
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response
+            .chunk()
             .await
-            .map_err(|error| market_error(format!("failed to read market response: {error}")))
+            .map_err(|error| market_error(format!("failed to read market response: {error}")))?
+        {
+            if chunk.len() > MAX_MARKET_INDEX_BYTES.saturating_sub(bytes.len()) {
+                return Err(too_large());
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        String::from_utf8(bytes).map_err(|_| market_error("plugin market index is not UTF-8"))
     })
     .await;
     diagnostic.finish(&result);
@@ -249,5 +288,37 @@ fn is_github_url(value: &str) -> bool {
 fn market_error(message: impl Into<String>) -> PluginMarketError {
     PluginMarketError {
         message: message.into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn market_preview_requires_debug_macos_runtime_and_isolated_home() {
+        let absolute = std::env::temp_dir();
+        assert_eq!(
+            configured_market_url(false, true, Some(&absolute)),
+            DEFAULT_PLUGIN_MARKET_URL
+        );
+        assert_eq!(
+            configured_market_url(true, false, Some(&absolute)),
+            DEFAULT_PLUGIN_MARKET_URL
+        );
+        assert_eq!(
+            configured_market_url(true, true, None),
+            DEFAULT_PLUGIN_MARKET_URL
+        );
+        assert_eq!(
+            configured_market_url(true, true, Some(Path::new("relative"))),
+            DEFAULT_PLUGIN_MARKET_URL
+        );
+        let expected = if cfg!(all(debug_assertions, target_os = "macos")) {
+            PREVIEW_PLUGIN_MARKET_URL
+        } else {
+            DEFAULT_PLUGIN_MARKET_URL
+        };
+        assert_eq!(configured_market_url(true, true, Some(&absolute)), expected);
     }
 }

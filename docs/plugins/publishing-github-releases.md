@@ -4,6 +4,16 @@ The first Zero market is just Git plus a hosted `market.json`. There is no marke
 
 Release status (2026-10-07): Host `0.1.0` keeps the public Web profile closed. Schema 2/API `1.0.0` and the proposed Host `>=0.2.0 <0.3.0` window remain draft; native Windows and packaged conformance are pending. See [Protocol v1](protocol-v1.md) before publishing a support claim. macOS debug packages and the legacy process profile are not public v1 release evidence; no SDK npm release exists.
 
+## Zero's five tool packages and development preview
+
+`pnpm package:plugins` builds Snap, Awake, Paper, Launch and File. Select a single tool with `pnpm package:plugins launch` or use `all` for every tool. After a frozen dependency installation, the builder writes canonical candidates to `build/plugin-tools/archives/`, development packages to `build/plugin-tools/preview/`, and SHA-256 reports to `build/plugin-tools/reports/`. Each development manifest uses an `example.*` identity and remaps its view and command references. Assets and required capabilities come from the same candidate.
+
+The GitHub **Package Zero plugins** workflow builds each tool in its own job and uploads `Zero-plugin-<tool>`. PRs and pushes to `main` affecting the packaging inputs produce these artifacts. A manual run can select one tool. For an online development preview, run the workflow from `main` with `tool = all` and `publish_preview = true`. After verifying the prerelease assets, the workflow updates `market.json` on the `plugin-preview` branch. Each run has its own `plugin-preview-<run-id>-<attempt>` Release tag. Its asset URLs and checksums are exact, so the index can continue pointing to earlier verified assets if a later publish fails.
+
+The macOS command `pnpm dev:plugins --preview-market` opts the isolated Core development host into that index. The **Extensions** market shows the five development entries and asks for approval during install. Before the first preview publication, import the locally built preview archives using `pnpm dev:plugins`. Version numbers belong to each tool; the registry rejects a different digest for an already installed version. For a rebuild of the same QA version, remove the previous installation before importing the replacement.
+
+The default desktop source and bilingual website still consume `main/market.json`. Use the official signing flow below after host runtime, platform conformance and publisher trust are approved. The File development archive uses the isolated source engine in the development host. The signed File conversion engine has its own approval policy.
+
 ## 1. Build your plugin package
 
 Your repository should produce one `.zplugin` ZIP archive containing a root `manifest.json`.

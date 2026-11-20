@@ -45,8 +45,11 @@ export function usePluginMarket(
         entries,
         stale: true,
       };
-      setState((current) => ({ ...marketRefreshSucceeded(snapshot), catalog: current.catalog,
-        sourceUrl: current.sourceUrl, updatedAt: current.updatedAt }));
+      setState((current) => ({
+        ...marketRefreshSucceeded({...snapshot, catalog: current.catalog}),
+        sourceUrl: current.sourceUrl,
+        updatedAt: current.updatedAt,
+      }));
       return entries;
     } catch (error) {
       setState((current) => marketRefreshFailed(current, error));

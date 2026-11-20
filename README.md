@@ -90,7 +90,16 @@ pnpm --dir website dev
 ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev
 ```
 
-该开关仅启用 debug 源码回退，不安装或批准签名包，release 构建不生效。File 源码候选为 `1.3.0` / 协议 `3`，发布门禁见[离线引擎指南](docs/plugins/zero-file-offline-engines.md)。
+该命令运行 Full 开发宿主和内置工具。File 使用 debug 源码引擎 `1.3.0`，协议版本为 `3`。正式引擎的批准要求见[离线引擎指南](docs/plugins/zero-file-offline-engines.md)。
+
+要在 macOS 体验 **Core 按需安装插件**，在同一检出中构建预览包并启动独立开发宿主：
+
+```bash
+pnpm package:plugins
+pnpm dev:plugins
+```
+
+在「扩展管理」导入 `build/plugin-tools/preview/` 中的 `example.*.zplugin`。也可用 `pnpm package:plugins snap` 只打包一个工具。开发宿主使用独立数据目录 `build/plugin-dev/home`。GitHub 已发布开发预览时，用 `pnpm dev:plugins --preview-market` 启动，再从市场安装。发布工作流和产物位置见[插件分发指南](docs/plugins/publishing-github-releases.md)。
 
 ### 项目结构与验证
 
@@ -226,7 +235,16 @@ To debug the File source engine:
 ZERO_FILE_ENGINE_DEV_ASSETS=1 pnpm tauri dev
 ```
 
-This flag enables a debug-only source fallback. It neither installs nor approves a signed package and has no effect in release builds. The File source candidate is `1.3.0` / protocol `3`; see the [offline engine guide](docs/plugins/zero-file-offline-engines.md) for release gates.
+This command runs the Full development host with its bundled tools. File uses debug source engine `1.3.0` with protocol `3`. See the [offline engine guide](docs/plugins/zero-file-offline-engines.md) for the signed engine approval requirements.
+
+To try **Core's install-on-demand plugins** on macOS, build the previews and start the isolated development host from the same checkout:
+
+```bash
+pnpm package:plugins
+pnpm dev:plugins
+```
+
+Import the `example.*.zplugin` files under `build/plugin-tools/preview/` in **Extensions**. For a single tool, run `pnpm package:plugins snap`. The development host uses its own data directory, `build/plugin-dev/home`. After a preview publication on GitHub, start with `pnpm dev:plugins --preview-market` to install from the preview market. See the [plugin distribution guide](docs/plugins/publishing-github-releases.md).
 
 ### Structure and verification
 

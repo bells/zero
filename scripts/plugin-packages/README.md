@@ -1,6 +1,8 @@
 # Independent plugin package builder
 
-This is local build infrastructure. The five bundled desktop tools have not yet migrated to this input contract. Archive success does not enable the Web runtime, verify an official publisher, approve a File engine or establish native functionality.
+The five Zero tools provide independent package sources. Build a single tool with `pnpm package:plugins snap` or build all five with `pnpm package:plugins`. The output includes canonical candidates, development archives and digests under `build/plugin-tools/`. The public runtime and signed File engine have their own release gates.
+
+GitHub Actions uses the same builder in one job per tool. The explicit development preview workflow publishes only development archives to a prerelease, then updates the development market index. See [plugin distribution](../../docs/plugins/publishing-github-releases.md).
 
 Use the repository's locked Node 24 / pnpm 10.33 toolchain. Install dependencies with `pnpm install --frozen-lockfile` before building. The builder never installs dependencies or executes a plugin's Vite/PostCSS config, package scripts or environment files.
 

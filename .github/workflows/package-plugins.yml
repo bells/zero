@@ -1,0 +1,126 @@
+name: Package Zero plugins
+
+on:
+  pull_request:
+    paths: &plugin-paths
+      - ".github/workflows/package-plugins.yml"
+      - "market.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "schemas/plugin-manifest-v2.schema.json"
+      - "scripts/lib/plugin-protocol.mjs"
+      - "scripts/plugin-packages/**"
+      - "src/plugins/*/package/**"
+      - "src/sdk/**"
+      - "tests/integration/pluginPackages/**"
+  push:
+    branches: [main]
+    paths: *plugin-paths
+  workflow_dispatch:
+    inputs:
+      tool:
+        description: "Plugin to package"
+        type: choice
+        options: [all, snap, awake, paper, launch, file]
+        default: all
+      publish_preview:
+        description: "Publish all five development packages to the preview market"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Package ${{ matrix.tool }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: ${{ fromJSON((github.event_name != 'workflow_dispatch' || inputs.tool == 'all') && '["snap","awake","paper","launch","file"]' || format('["{0}"]', inputs.tool)) }}
+    env:
+      PLUGIN_TOOL: ${{ matrix.tool }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            src/plugins/*/package/pnpm-lock.yaml
+      - name: Install locked build dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install locked plugin dependencies
+        run: |
+          package_dir="$(node scripts/plugin-packages/tools.mjs path "$PLUGIN_TOOL")"
+          pnpm --dir "$package_dir" install --frozen-lockfile --ignore-scripts
+          pnpm exec tsc -p "$package_dir/tsconfig.json"
+      - name: Build independent archives
+        run: node scripts/plugin-packages/tools.mjs build "$PLUGIN_TOOL" "build/plugin-tools/$PLUGIN_TOOL"
+      - name: Upload plugin archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zero-plugin-${{ matrix.tool }}
+          path: build/plugin-tools/${{ matrix.tool }}/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-preview:
+    name: Publish development market preview
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_preview && inputs.tool == 'all' && github.repository == 'bells/zero' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: zero-plugin-preview-publish
+      cancel-in-progress: false
+    steps:
+      - name: Checkout selected main commit
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install locked index dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Download this run's plugin artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Zero-plugin-*
+          path: build/preview-downloads/
+      - name: Prepare the preview market index
+        run: |
+          preview_tag="plugin-preview-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          node scripts/plugin-packages/tools.mjs index build/preview-downloads "$GITHUB_REPOSITORY" "$preview_tag" build/preview-market.json
+      - name: Publish verified assets and advance the preview index
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ZERO_PLUGIN_PUBLISH_PREVIEW: ${{ inputs.publish_preview }}
+          ZERO_PLUGIN_PUBLISH_SELECTION: ${{ inputs.tool }}
+        run: node scripts/plugin-packages/publish-preview.mjs build/preview-downloads build/preview-market.json
+      - name: Upload published index
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zero-plugin-preview-index
+          path: build/preview-market.json
+          if-no-files-found: error
+          retention-days: 30
