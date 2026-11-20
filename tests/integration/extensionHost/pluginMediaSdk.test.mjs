@@ -125,3 +125,38 @@ test('isolated SDK accepts exact media DTOs and enforces the export deadline', a
     });
   } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
+
+test("Snap PNG upload and File jobs use scoped transport without exposing OS paths", async () => {
+  const {createZeroBridge} = await import("/private/tmp/zero-tests/sdk/index.js");
+  const id = "a".repeat(64);
+  const session = {sessionId:"b".repeat(64),generation:2,pluginId:"test.qa",pluginVersion:"0.1.0",apiVersion:"1.0.0",surfaceId:"test.qa.main",registryRevision:1};
+  const bytes = Uint8Array.of(1, 2, 3);
+  const capture = {captureId:id,width:2,height:2,url:`/__zero_capture/${id}`};
+  const job = {id,status:"running",stage:"converting",percent:14,outputName:"test.docx",errorCode:null};
+  let response = capture;
+  const transport = {
+    session,
+    ready: async () => session,
+    cancel: async () => {},
+    request: async request => ({requestId:request.requestId,ok:true,value:response}),
+    upload: async (request, payload) => {
+      assert.equal(request.method, "screen.commitCaptureExport");
+      assert.deepEqual(request.payload, {leaseId: id});
+      assert.equal(request.sessionId, session.sessionId);
+      assert.equal(request.generation, session.generation);
+      assert.deepEqual(payload, bytes);
+      return {requestId:request.requestId,ok:true,value:{cancelled:false}};
+    },
+  };
+  const bridge = createZeroBridge(transport, new AbortController().signal);
+  assert.deepEqual(await bridge.upload(id, bytes), {ok:true,value:{cancelled:false}});
+  assert.equal((await bridge.upload("unknown", bytes)).error?.code, "request.invalid");
+  assert.equal((await bridge.upload(id, new Uint8Array())).error?.code, "request.invalid");
+  assert.deepEqual(await bridge.request("screen.captureDisplay", {}), {ok:true,value:capture});
+  response = {...capture, url: "file:///private/input.png"};
+  assert.equal((await bridge.request("screen.captureDisplay", {})).error?.code, "transport.invalid");
+  response = job;
+  assert.deepEqual(await bridge.request("documents.status", {id}), {ok:true,value:job});
+  response = {...job, outputName: "/private/test.docx"};
+  assert.equal((await bridge.request("documents.status", {id})).error?.code, "transport.invalid");
+});

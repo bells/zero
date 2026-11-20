@@ -103,6 +103,17 @@ pub(crate) fn with_live_capability<T>(
     capability_id: &str,
     operation: impl FnOnce(&mut Sessions) -> Result<T, PluginError>,
 ) -> Result<T, PluginError> {
+    with_live_capabilities(app, caller, request, &[capability_id], operation)
+}
+
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+fn with_live_capabilities<T>(
+    app: &tauri::AppHandle,
+    caller: &str,
+    request: &super::protocol::PluginRequest,
+    capability_ids: &[&str],
+    operation: impl FnOnce(&mut Sessions) -> Result<T, PluginError>,
+) -> Result<T, PluginError> {
     app.state::<PluginRegistryState>()
         .read_registry(|registry| {
             let state = app.state::<WebSessions>();
@@ -118,7 +129,7 @@ pub(crate) fn with_live_capability<T>(
                             .required_capabilities
                             .iter()
                             .flatten()
-                            .any(|capability| capability.id == capability_id)
+                            .any(|capability| capability_ids.contains(&capability.id.as_str()))
                     })
             }) {
                 return Err(error("capability.undeclared"));
@@ -230,6 +241,7 @@ fn open_view(
                     .state::<crate::services::network_fetch::NetworkFetchState>()
                     .close_window(&closed_label);
             }
+            close_tool_resources(&closed_app, &closed_label);
         }
     });
     let timeout_app = app.clone();
@@ -279,6 +291,10 @@ pub fn plugin_cancel(
     network.cancel(&input.request);
     power.cancel(&input.request);
     media.cancel(&input.request);
+    #[cfg(all(target_os = "macos", feature = "file-engine", debug_assertions))]
+    window
+        .state::<super::document_runtime::DocumentState>()
+        .cancel_request(&input.request);
     Ok(())
 }
 
@@ -289,6 +305,84 @@ struct PluginMessage {
     message: String,
 }
 
+fn begin_request(
+    app: &tauri::AppHandle,
+    caller: &str,
+    request: &super::protocol::PluginRequest,
+) -> Result<(PluginSessionInfo, PluginMethod), PluginError> {
+    let state = app.state::<WebSessions>();
+    let info = state
+        .0
+        .lock()
+        .map_err(|_| error("session.lock"))?
+        .get(&request.session_id, caller, request.generation)?
+        .info
+        .clone();
+    let live = live_owner(app, &info.plugin_id, &info.surface_id)?;
+    let method = state.0.lock().map_err(|_| error("session.lock"))?.begin(
+        caller,
+        request,
+        &live,
+        true,
+        Instant::now(),
+    )?;
+    Ok((info, method))
+}
+
+#[cfg(all(target_os = "macos", feature = "screen-capture"))]
+#[tauri::command]
+pub async fn plugin_upload(
+    app: tauri::AppHandle,
+    window: WebviewWindow,
+    raw: tauri::ipc::Request<'_>,
+) -> Result<PluginResponse, PluginError> {
+    use super::capture_runtime;
+
+    let envelope = raw
+        .headers()
+        .get("x-zero-plugin-request")
+        .and_then(|header| header.to_str().ok())
+        .filter(|value| value.len() <= 1024)
+        .ok_or_else(|| error("request.invalid"))?;
+    let request: super::protocol::PluginRequest =
+        serde_json::from_str(envelope).map_err(|_| error("request.invalid"))?;
+    let PluginMethod::ScreenCommitCaptureExport(input) = request
+        .decode_method()
+        .map_err(|_| error("request.invalid"))?
+    else {
+        return Err(error("request.invalid"));
+    };
+    let tauri::ipc::InvokeBody::Raw(bytes) = raw.body() else {
+        return Err(error("request.invalid"));
+    };
+    if bytes.is_empty() || bytes.len() > capture_runtime::MAX_CAPTURE_BYTES {
+        return Err(error("request.tooLarge"));
+    }
+    let caller = window.label().to_owned();
+    begin_request(&app, &caller, &request)?;
+    let bytes = bytes.clone();
+    let response_id = request.request_id.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let result = capture_runtime::upload(&app, &caller, &request, &input.lease_id, bytes);
+        if let Ok(mut sessions) = app.state::<WebSessions>().0.lock() {
+            let _ = sessions.finish(&caller, &request, Instant::now());
+        }
+        result
+    })
+    .await
+    .map_err(|_| error("provider.failed"))?;
+    Ok(match result {
+        Ok(value) => PluginResponse::Success {
+            request_id: response_id,
+            value,
+        },
+        Err(error) => PluginResponse::Failure {
+            request_id: response_id,
+            error,
+        },
+    })
+}
+
 #[tauri::command]
 pub async fn plugin_invoke(
     input: PluginInvokeInput,
@@ -297,22 +391,7 @@ pub async fn plugin_invoke(
 ) -> Result<PluginResponse, PluginError> {
     let caller = window.label().to_owned();
     let request = input.request;
-    let state = app.state::<WebSessions>();
-    let info = state
-        .0
-        .lock()
-        .map_err(|_| error("session.lock"))?
-        .get(&request.session_id, &caller, request.generation)?
-        .info
-        .clone();
-    let live = live_owner(&app, &info.plugin_id, &info.surface_id)?;
-    let method = state.0.lock().map_err(|_| error("session.lock"))?.begin(
-        &caller,
-        &request,
-        &live,
-        true,
-        Instant::now(),
-    )?;
+    let (info, method) = begin_request(&app, &caller, &request)?;
     let request_id = request.request_id.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<WebSessions>();
@@ -320,11 +399,11 @@ pub async fn plugin_invoke(
             PluginMethod::ScreenOpenSystem(_) => {
                 #[cfg(target_os = "windows")]
                 {
-                    with_live_capability(
+                    with_live_capabilities(
                         &app,
                         &caller,
                         &request,
-                        "screen.system-capture",
+                        &["screen.capture", "screen.system-capture"],
                         |sessions| {
                             let result = crate::services::system_screenshot::open()
                                 .map_err(|_| error("screen.openFailed"));
@@ -335,6 +414,36 @@ pub async fn plugin_invoke(
                 }
                 #[cfg(not(target_os = "windows"))]
                 Err(error("api.unavailable"))
+            }
+            method @ (PluginMethod::ScreenCaptureDisplay(_)
+            | PluginMethod::ScreenReleaseCapture(_)
+            | PluginMethod::ScreenSetCapturePinned(_)
+            | PluginMethod::ScreenPrepareCaptureExport(_)) => {
+                #[cfg(all(target_os = "macos", feature = "screen-capture"))]
+                {
+                    super::capture_runtime::dispatch(&app, &caller, &request, method)
+                }
+                #[cfg(not(all(target_os = "macos", feature = "screen-capture")))]
+                {
+                    let _ = method;
+                    Err(error("api.unavailable"))
+                }
+            }
+            PluginMethod::ScreenCommitCaptureExport(_) => Err(error("request.binaryRequired")),
+            method @ (PluginMethod::DocumentChoose(_)
+            | PluginMethod::DocumentStart(_)
+            | PluginMethod::DocumentStatus(_)
+            | PluginMethod::DocumentCancel(_)
+            | PluginMethod::DocumentReveal(_)) => {
+                #[cfg(all(target_os = "macos", feature = "file-engine", debug_assertions))]
+                {
+                    super::document_runtime::dispatch(&app, &caller, &request, method)
+                }
+                #[cfg(not(all(target_os = "macos", feature = "file-engine", debug_assertions)))]
+                {
+                    let _ = method;
+                    Err(error("api.unavailable"))
+                }
             }
             method @ (PluginMethod::ApplicationScan(_)
             | PluginMethod::ApplicationPage(_)
@@ -662,6 +771,15 @@ fn storage(
         .map_err(|_| error("storage.unavailable"))?
 }
 
+fn close_tool_resources(_app: &tauri::AppHandle, _label: &str) {
+    #[cfg(all(target_os = "macos", feature = "screen-capture"))]
+    _app.state::<super::capture_runtime::CaptureState>()
+        .close_window(_label);
+    #[cfg(all(target_os = "macos", feature = "file-engine", debug_assertions))]
+    _app.state::<super::document_runtime::DocumentState>()
+        .close_window(_label);
+}
+
 pub fn revoke(app: &tauri::AppHandle, plugin: &str) -> Result<(), PluginError> {
     // A failed durable revocation still tears down all ephemeral authority.
     app.state::<super::media_runtime::NativeMediaState>()
@@ -677,7 +795,11 @@ pub fn revoke(app: &tauri::AppHandle, plugin: &str) -> Result<(), PluginError> {
         .revoke(plugin);
     app.state::<crate::services::network_fetch::NetworkFetchState>()
         .revoke(plugin);
+    #[cfg(all(target_os = "macos", feature = "file-engine", debug_assertions))]
+    app.state::<super::document_runtime::DocumentState>()
+        .revoke(plugin);
     for label in labels.as_ref().into_iter().flatten() {
+        close_tool_resources(app, label);
         if let Some(window) = app.get_webview_window(label) {
             let _ = crate::services::surface_activity::destroy_surface(&window);
         }

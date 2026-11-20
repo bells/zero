@@ -11,6 +11,7 @@ export interface PluginTransport {
   readonly session: Readonly<PluginSessionInfo>;
   ready(): Promise<PluginSessionInfo>;
   request(request: PluginRequest): Promise<PluginResponse>;
+  upload?(request: PluginRequest, bytes: Uint8Array): Promise<PluginResponse>;
   cancel(request: PluginRequest): Promise<void>;
 }
 export interface PluginRegistration extends Disposable {
@@ -33,51 +34,95 @@ function transportFromHost(): PluginTransport {
   return host.__ZERO_PLUGIN_TRANSPORT__;
 }
 
+const MAX_CAPTURE_UPLOAD_BYTES = 32 * 1024 * 1024;
+
 export function createZeroBridge(transport: PluginTransport, lifetime: AbortSignal): ZeroBridge {
+  function run<M extends PluginMethod>(
+    method: M,
+    payload: PluginMethodMap[M]["input"],
+    options?: {signal?: AbortSignal},
+    bytes?: Uint8Array,
+  ): Promise<Result<PluginMethodMap[M]["output"]>> {
+    if (lifetime.aborted || options?.signal?.aborted) return Promise.resolve(failure("request.cancelled"));
+    const request = {
+      protocolVersion: "1.0.0", requestId: crypto.randomUUID(),
+      sessionId: transport.session.sessionId, generation: transport.session.generation, method, payload,
+    } as PluginRequest;
+    return new Promise<Result<PluginMethodMap[M]["output"]>>(resolve => {
+      let settled = false;
+      let timeout: ReturnType<typeof setTimeout>;
+      const finish = (result: Result<PluginMethodMap[M]["output"]>) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        lifetime.removeEventListener("abort", cancel);
+        options?.signal?.removeEventListener("abort", cancel);
+        resolve(result);
+      };
+      const cancelNative = () => { void transport.cancel(request).catch(() => undefined); };
+      const cancel = () => { finish(failure("request.cancelled")); cancelNative(); };
+      lifetime.addEventListener("abort", cancel, { once: true });
+      options?.signal?.addEventListener("abort", cancel, { once: true });
+      const deadlineMs = ["media.exportImage", "screen.commitCaptureExport", "documents.chooseInput", "documents.start"].includes(method)
+        ? 120_000 : 10_000;
+      timeout = setTimeout(() => { finish(failure("request.timeout")); cancelNative(); }, deadlineMs);
+      if (lifetime.aborted || options?.signal?.aborted) { cancel(); return; }
+      Promise.resolve().then(() => {
+        if (settled) return;
+        return bytes ? transport.upload?.(request, bytes) : transport.request(request);
+      }).then(response => {
+        if (settled) return;
+        if (!response || response.requestId !== request.requestId) { finish(failure("transport.invalid")); return; }
+        if (response.ok === false) {
+          finish(response.error && typeof response.error.code === "string" && typeof response.error.message === "string"
+            ? { ok: false, error: response.error } : failure("transport.invalid"));
+          return;
+        }
+        if (!validOutput(method, response.value)) { finish(failure("transport.invalid")); return; }
+        finish({ ok: true, value: response.value as PluginMethodMap[M]["output"] });
+      }).catch((error: unknown) => finish(hostFailure(error)));
+    });
+  }
   const bridge: ZeroBridge = {
     schedule: {upsert: input => bridge.request("schedule.upsert", input), cancel: input => bridge.request("schedule.cancel", input)},
     background: {complete: input => bridge.request("background.complete", input)},
-    request<M extends PluginMethod>(method: M, payload: PluginMethodMap[M]["input"], options?: { signal?: AbortSignal }) {
-      if (lifetime.aborted || options?.signal?.aborted) return Promise.resolve(failure("request.cancelled"));
-      const request = {
-        protocolVersion: "1.0.0", requestId: crypto.randomUUID(),
-        sessionId: transport.session.sessionId, generation: transport.session.generation, method, payload,
-      } as PluginRequest;
-      return new Promise<Result<PluginMethodMap[M]["output"]>>(resolve => {
-        let settled = false;
-        let timeout: ReturnType<typeof setTimeout>;
-        const finish = (result: Result<PluginMethodMap[M]["output"]>) => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timeout);
-          lifetime.removeEventListener("abort", cancel);
-          options?.signal?.removeEventListener("abort", cancel);
-          resolve(result);
-        };
-        const cancelNative = () => { void transport.cancel(request).catch(() => undefined); };
-        const cancel = () => { finish(failure("request.cancelled")); cancelNative(); };
-        lifetime.addEventListener("abort", cancel, { once: true });
-        options?.signal?.addEventListener("abort", cancel, { once: true });
-        const deadlineMs = method === "media.exportImage" ? 120_000 : 10_000;
-        timeout = setTimeout(() => { finish(failure("request.timeout")); cancelNative(); }, deadlineMs);
-        if (lifetime.aborted || options?.signal?.aborted) { cancel(); return; }
-        Promise.resolve().then(() => settled ? undefined : transport.request(request)).then(response => {
-          if (settled) return;
-          if (!response || response.requestId !== request.requestId) { finish(failure("transport.invalid")); return; }
-          if (response.ok === false) {
-            finish(response.error && typeof response.error.code === "string" && typeof response.error.message === "string"
-              ? { ok: false, error: response.error } : failure("transport.invalid"));
-            return;
-          }
-          if (!validOutput(method, response.value)) { finish(failure("transport.invalid")); return; }
-          finish({ ok: true, value: response.value as PluginMethodMap[M]["output"] });
-        }).catch((error: unknown) => finish(hostFailure(error)));
-      });
+    request: run,
+    upload(leaseId, bytes, options) {
+      if (!token(leaseId) || bytes.byteLength === 0 || bytes.byteLength > MAX_CAPTURE_UPLOAD_BYTES) {
+        return Promise.resolve(failure("request.invalid"));
+      }
+      if (!transport.upload) return Promise.resolve(failure("api.unavailable"));
+      return run("screen.commitCaptureExport", {leaseId}, options, bytes);
     },
   };
   return bridge;
 }
 function validOutput(method: PluginMethod, value: JsonValue): boolean {
+  if (method === "screen.captureDisplay") {
+    return exact(value, ["captureId", "width", "height", "url"]) && token(value.captureId)
+      && value.url === `/__zero_capture/${value.captureId}`
+      && positiveInteger(value.width, 16_384) && positiveInteger(value.height, 16_384)
+      && value.width * value.height <= 40_000_000;
+  }
+  if (method === "screen.prepareCaptureExport") return exact(value, ["leaseId", "maxBytes"])
+    && token(value.leaseId) && positiveInteger(value.maxBytes, MAX_CAPTURE_UPLOAD_BYTES);
+  if (method === "screen.commitCaptureExport") return exact(value, ["cancelled"]) && typeof value.cancelled === "boolean";
+  if (method === "documents.chooseInput") return value === null
+    || exact(value, ["id", "fileName", "direction", "sizeBytes"]) && token(value.id) && safeFileName(value.fileName)
+      && (value.direction === "pdfToDocx" || value.direction === "docxToPdf")
+      && positiveInteger(value.sizeBytes, Number.MAX_SAFE_INTEGER);
+  if (method === "documents.start" && value === null) return true;
+  if (method === "documents.start" || method === "documents.status") {
+    return exact(value, ["id", "status", "stage", "percent", "outputName", "errorCode"])
+      && token(value.id) && typeof value.status === "string"
+      && ["preparing","running","cancelling","completed","failed","cancelled"].includes(value.status)
+      && (value.stage === null || typeof value.stage === "string"
+        && ["validating","waitingForProvider","converting","finalizing"].includes(value.stage))
+      && (value.percent === null || typeof value.percent === "number"
+        && Number.isFinite(value.percent) && value.percent >= 0 && value.percent <= 100)
+      && safeFileName(value.outputName) && (value.errorCode === null || typeof value.errorCode === "string"
+        && /^[a-zA-Z0-9_.-]{1,80}$/.test(value.errorCode));
+  }
   if (method === "apps.scan") return exact(value, ["catalogId", "itemCount"])
     && token(value.catalogId) && catalogOffset(value.itemCount);
   if (method === "apps.page") return exact(value, ["items", "nextOffset"])
@@ -117,6 +162,12 @@ function validOutput(method: PluginMethod, value: JsonValue): boolean {
   return value === null;
 }
 
+function positiveInteger(value: JsonValue | undefined, limit: number): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0 && value <= limit;
+}
+function safeFileName(value: JsonValue | undefined): boolean {
+  return typeof value === "string" && value.length > 0 && value.length <= 255 && !/[\\/\x00-\x1f]/.test(value);
+}
 function catalogOffset(value: JsonValue | undefined): boolean {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 4096;
 }

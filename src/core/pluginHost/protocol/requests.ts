@@ -9,9 +9,30 @@ export function parsePluginRequest(value: unknown): PluginRequest | null {
     sessionId: value.sessionId, generation: value.generation } as const;
   const payload = value.payload;
   switch (value.method) {
+    case "screen.captureDisplay":
+    case "documents.chooseInput":
     case "screen.openSystemCapture":
     case "apps.scan":
       return fields(payload, []) ? {...common, method:value.method, payload:{}} : null;
+    case "screen.releaseCapture":
+      return fields(payload, ["captureId"]) && catalogToken(payload.captureId)
+        ? {...common, method:value.method, payload:{captureId:payload.captureId}} : null;
+    case "screen.setCapturePinned":
+      return fields(payload, ["captureId", "pinned"]) && catalogToken(payload.captureId) && typeof payload.pinned === "boolean"
+        ? {...common, method:value.method, payload:{captureId:payload.captureId, pinned:payload.pinned}} : null;
+    case "screen.prepareCaptureExport":
+      return fields(payload, ["captureId", "action"]) && catalogToken(payload.captureId)
+        && (payload.action === "copy" || payload.action === "save")
+        ? {...common, method:value.method, payload:{captureId:payload.captureId, action:payload.action}} : null;
+    case "screen.commitCaptureExport":
+      return fields(payload, ["leaseId"]) && catalogToken(payload.leaseId)
+        ? {...common, method:value.method, payload:{leaseId:payload.leaseId}} : null;
+    case "documents.start":
+    case "documents.status":
+    case "documents.cancel":
+    case "documents.reveal":
+      return fields(payload, ["id"]) && catalogToken(payload.id)
+        ? {...common, method:value.method, payload:{id:payload.id}} : null;
     case "apps.page":
       return fields(payload, ["catalogId", "offset"]) && catalogToken(payload.catalogId)
         && typeof payload.offset === "number" && Number.isSafeInteger(payload.offset) && payload.offset >= 0 && payload.offset <= 4096

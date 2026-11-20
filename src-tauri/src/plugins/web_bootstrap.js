@@ -12,6 +12,7 @@
       ready: () => invoke('plugin_session_ready', {input: {sessionId: session.sessionId, generation: session.generation}}),
       request: request => invoke('plugin_invoke', {input: {request}}),
       cancel: request => invoke('plugin_cancel', {input: {request}}),
+      upload: (request, bytes) => invoke('plugin_upload', bytes, {headers: {'x-zero-plugin-request': JSON.stringify(request)}}),
     }), writable: false, configurable: false,
   });
 })();

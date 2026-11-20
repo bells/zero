@@ -4,7 +4,7 @@ pub fn plugin_command_allowed(command: &str) -> bool {
     matches!(
         command,
         "plugin_session_ready" | "plugin_invoke" | "plugin_cancel"
-    )
+    ) || cfg!(all(target_os = "macos", feature = "screen-capture")) && command == "plugin_upload"
 }
 
 /// Application commands are not protected by a capability allowlist by default.

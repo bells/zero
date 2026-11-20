@@ -669,5 +669,234 @@
       }
     },
     "valid": false
+  },
+  {
+    "name": "capture-display",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.captureDisplay",
+      "payload": {}
+    },
+    "valid": true
+  },
+  {
+    "name": "capture-display-manufactured-path",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.captureDisplay",
+      "payload": {
+        "path": "/tmp/file.png"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "capture-release",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.releaseCapture",
+      "payload": {
+        "captureId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "capture-bad-id",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.releaseCapture",
+      "payload": {
+        "captureId": "wrong"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "capture-pin",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.setCapturePinned",
+      "payload": {
+        "captureId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pinned": true
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "capture-prepare",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.prepareCaptureExport",
+      "payload": {
+        "captureId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "action": "save"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "capture-prepare-uncontrolled-target",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.prepareCaptureExport",
+      "payload": {
+        "captureId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "action": "save",
+        "target": "/tmp/file.png"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "capture-commit-body-metadata",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.commitCaptureExport",
+      "payload": {
+        "leaseId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "capture-commit-serialized-bytes",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "screen.commitCaptureExport",
+      "payload": {
+        "leaseId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": [
+          0,
+          1
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "file-choose",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "documents.chooseInput",
+      "payload": {}
+    },
+    "valid": true
+  },
+  {
+    "name": "file-choose-path",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "documents.chooseInput",
+      "payload": {
+        "path": "/tmp/file.pdf"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "file-start",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "documents.start",
+      "payload": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "file-start-path",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "documents.start",
+      "payload": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "outputPath": "/tmp/file.docx"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "file-cancel",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "documents.cancel",
+      "payload": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "file-cancel-other-id",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "documents.cancel",
+      "payload": {
+        "id": false
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "file-reveal",
+    "request": {
+      "protocolVersion": "1.0.0",
+      "requestId": "request-1",
+      "sessionId": "session-1",
+      "generation": 1,
+      "method": "documents.reveal",
+      "payload": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "valid": true
   }
 ]

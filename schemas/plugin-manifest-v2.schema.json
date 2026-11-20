@@ -99,6 +99,7 @@
           "system.apps.execute",
           "system.window.focus",
           "screen.capture",
+          "documents.convert",
           "files.export",
           "network"
         ]

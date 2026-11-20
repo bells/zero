@@ -2,8 +2,6 @@
 use tauri::Manager;
 
 pub fn manage_states(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
-    #[cfg(feature = "file-tool")]
-    let engine_bridge = crate::services::file::engine_bridge::FileEngineBridgeState::default();
     let builder = builder
         .manage(crate::services::power_lease::PowerLeaseState::default())
         .manage(crate::services::network_fetch::NetworkFetchState::default())
@@ -19,11 +17,8 @@ pub fn manage_states(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<taur
         .manage(crate::services::bing_wallpaper::BingWallpaperState::default())
         .manage(crate::services::quick_launcher::QuickLauncherState::default());
     #[cfg(feature = "file-tool")]
-    let builder = builder
-        .manage(crate::services::file::FileConversionState::default())
-        .manage(engine_bridge)
-        .manage(crate::services::file::engine_bridge::ocr::FileOcrLeases::default());
-    #[cfg(any(feature = "bundled-tools", feature = "file-tool"))]
+    let builder = builder.manage(crate::services::file::FileConversionState::default());
+    #[cfg(any(feature = "bundled-tools", feature = "file-engine"))]
     let builder = builder.manage(crate::services::ocr::OcrState::default());
     #[cfg(feature = "bundled-tools")]
     let builder = builder

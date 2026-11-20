@@ -20,10 +20,22 @@ pub struct WebSessions(pub Mutex<Sessions>);
 pub fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     #[cfg(target_os = "macos")]
     let builder = builder.manage(super::application_runtime::ApplicationScanGate::default());
+    #[cfg(all(target_os = "macos", feature = "screen-capture"))]
+    let builder = builder.manage(super::capture_runtime::CaptureState::default());
+    #[cfg(all(target_os = "macos", feature = "file-engine", debug_assertions))]
+    let builder = builder.manage(super::document_runtime::DocumentState::default());
     builder
         .manage(WebSessions::default())
         .register_uri_scheme_protocol(SCHEME, |context, request| {
             let state = context.app_handle().state::<WebSessions>();
+            #[cfg(all(target_os = "macos", feature = "screen-capture"))]
+            if request.uri().path().starts_with("/__zero_capture/") {
+                return super::capture_runtime::serve_capture(
+                    context.app_handle(),
+                    context.webview_label(),
+                    &request,
+                );
+            }
             if request.uri().path().starts_with("/__zero_preview") {
                 return super::media_runtime::serve_preview(
                     context.app_handle(),

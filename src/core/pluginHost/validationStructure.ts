@@ -31,6 +31,7 @@ export const SUPPORTED_PLUGIN_PERMISSIONS = [
   "system.settings.open",
   "document.convert",
   "screen.capture",
+  "documents.convert",
 ] as const;
 
 

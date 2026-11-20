@@ -22,13 +22,25 @@ fn core_capability_snapshot_never_promises_unimplemented_providers() {
         assert!(capabilities.contains(&id));
     }
     assert_eq!(
-        capabilities.len(),
-        4 + if cfg!(any(target_os = "macos", target_os = "windows")) {
-            5
-        } else {
-            0
-        } + usize::from(cfg!(any(target_os = "macos", target_os = "windows")))
+        capabilities.contains(&"screen.system-capture"),
+        cfg!(target_os = "windows")
     );
+    assert_eq!(
+        capabilities.contains(&"screen.capture"),
+        cfg!(any(
+            target_os = "windows",
+            all(target_os = "macos", feature = "screen-capture")
+        ))
+    );
+    if !cfg!(all(
+        target_os = "macos",
+        feature = "file-engine",
+        not(feature = "file-tool"),
+        debug_assertions
+    )) || std::env::var("ZERO_FILE_ENGINE_DEV_ASSETS").as_deref() != Ok("1")
+    {
+        assert!(!capabilities.contains(&"documents.convert"));
+    }
     assert!(capabilities.contains(&"network.fetch"));
     assert_eq!(
         capabilities.contains(&"power.lease"),
@@ -170,24 +182,25 @@ fn independent_launch_and_snap_require_their_platform_providers() {
     let cases = [
         (
             include_str!("../../src/plugins/quickLauncher/package/manifest.json"),
-            "macos",
-            "system.apps",
+            cfg!(target_os = "macos"),
         ),
         (
             include_str!("../../src/plugins/screenshot/package/manifest.json"),
-            "windows",
-            "screen.system-capture",
+            cfg!(any(
+                target_os = "windows",
+                all(target_os = "macos", feature = "screen-capture")
+            )),
         ),
-    ];
-    for (source, supported, capability) in cases {
-        let manifest = serde_json::from_str(source).unwrap();
-        assert_eq!(
+        (
+            include_str!("../../src/plugins/file/package/manifest.json"),
             snapshot
                 .capabilities
                 .iter()
-                .any(|item| item.id == capability),
-            current_platform() == supported
-        );
+                .any(|item| item.id == "documents.convert"),
+        ),
+    ];
+    for (source, expected) in cases {
+        let manifest = serde_json::from_str(source).unwrap();
         let report = check_manifest_for_host_with_capabilities(
             &manifest,
             &snapshot.host_version,
@@ -195,11 +208,6 @@ fn independent_launch_and_snap_require_their_platform_providers() {
             true,
             &snapshot.capabilities,
         );
-        assert_eq!(
-            report.compatible,
-            current_platform() == supported,
-            "{:?}",
-            report.issues
-        );
+        assert_eq!(report.compatible, expected, "{:?}", report.issues);
     }
 }

@@ -192,8 +192,10 @@ pub fn run() {
         registry_outcome,
         registry_started,
     );
-    #[cfg(feature = "file-tool")]
-    let builder = plugins::engine_assets::register(builder);
+    #[cfg(feature = "file-engine")]
+    let builder = plugins::engine_assets::register(builder)
+        .manage(services::file::engine_bridge::FileEngineBridgeState::default())
+        .manage(services::file::engine_bridge::ocr::FileOcrLeases::default());
     let builder = plugins::web_assets::register(builder)
         .manage(diagnostics.clone())
         .manage(registry_state)
@@ -344,6 +346,8 @@ pub fn run() {
             plugins::web_runtime::plugin_session_ready,
             plugins::web_runtime::plugin_invoke,
             plugins::web_runtime::plugin_cancel,
+            #[cfg(all(target_os = "macos", feature = "screen-capture"))]
+            plugins::web_runtime::plugin_upload,
             commands::plugins::validate_plugin_package,
             commands::plugins::install_market_plugin,
             commands::plugins::install_plugin_package,
@@ -401,19 +405,19 @@ pub fn run() {
             commands::file::open_file_conversion_output,
             #[cfg(feature = "file-tool")]
             commands::file::reveal_file_conversion_output,
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             services::file::engine_bridge::file_engine_ready,
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             services::file::engine_bridge::file_engine_read_input,
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             services::file::engine_bridge::file_engine_write_output,
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             services::file::engine_bridge::file_engine_progress,
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             services::file::engine_bridge::file_engine_complete,
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             services::file::engine_bridge::file_engine_print_rendered,
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             services::file::engine_bridge::file_engine_inspect_fonts,
             #[cfg(feature = "bundled-tools")]
             commands::bing_wallpaper::get_bing_wallpaper_snapshot,
@@ -461,9 +465,9 @@ pub fn run() {
             commands::screenshot::get_screenshot_capabilities,
             #[cfg(feature = "bundled-tools")]
             commands::ocr::get_ocr_capability,
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             commands::ocr::prepare_file_page_ocr,
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             commands::ocr::upload_file_page_ocr,
             #[cfg(feature = "bundled-tools")]
             commands::ocr::start_snap_ocr,
@@ -507,6 +511,26 @@ pub fn run() {
         None,
     );
     app.run(|app, event| {
+        #[cfg(all(target_os = "macos", feature = "file-engine", debug_assertions))]
+        if let tauri::RunEvent::ExitRequested { api, code, .. } = &event {
+            let documents = app.state::<plugins::document_runtime::DocumentState>();
+            if documents.shutdown() && documents.is_draining() {
+                api.prevent_exit();
+                let app = app.clone();
+                let code = code.unwrap_or(0);
+                tauri::async_runtime::spawn(async move {
+                    let documents = app.state::<plugins::document_runtime::DocumentState>();
+                    let _ = tokio::time::timeout(std::time::Duration::from_secs(4), async {
+                        while documents.is_draining() {
+                            tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+                        }
+                    })
+                    .await;
+                    app.exit(code);
+                });
+                return;
+            }
+        }
         #[cfg(target_os = "macos")]
         if matches!(
             &event,
@@ -585,7 +609,7 @@ pub fn run() {
             #[cfg(feature = "bundled-tools")]
             app.state::<services::screenshot::ScreenshotSessionStore>()
                 .cleanup_all();
-            #[cfg(feature = "file-tool")]
+            #[cfg(feature = "file-engine")]
             app.state::<services::file::engine_bridge::FileEngineBridgeState>()
                 .bridge
                 .reset_and_destroy(app, "Zero is shutting down.");

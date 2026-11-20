@@ -17,5 +17,5 @@ pub mod diagnostics;
 
 pub mod autostart;
 
-#[cfg(any(feature = "bundled-tools", feature = "file-tool"))]
+#[cfg(any(feature = "bundled-tools", feature = "file-engine"))]
 pub mod ocr;

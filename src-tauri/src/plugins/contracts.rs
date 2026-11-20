@@ -34,6 +34,8 @@ pub enum PluginPermission {
     SystemSettingsOpen,
     #[serde(rename = "screen.capture")]
     ScreenCapture,
+    #[serde(rename = "documents.convert")]
+    DocumentsConvert,
     #[serde(rename = "document.convert")]
     DocumentConvert,
 }

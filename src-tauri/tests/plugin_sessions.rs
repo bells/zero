@@ -470,3 +470,64 @@ fn application_activation_requires_all_original_and_live_grants() {
     });
     assert_eq!(denied.unwrap_err().code, "permission.denied");
 }
+
+#[test]
+fn document_dialogs_and_capture_uploads_keep_live_grants_and_bounded_deadlines() {
+    let now = Instant::now();
+    let mut sessions = Sessions::default();
+    let mut live = owner("test.media");
+    live.permissions = vec!["screen.capture".into(), "documents.convert".into()];
+    let info = sessions.issue(live.clone(), now).unwrap();
+    let caller = format!("plugin-{}", info.session_id);
+    sessions
+        .ready(&info.session_id, &caller, info.generation, now)
+        .unwrap();
+    let methods = [
+        (
+            "screen.commitCaptureExport",
+            serde_json::json!({"leaseId": "a".repeat(64)}),
+            "screen.capture",
+        ),
+        (
+            "documents.chooseInput",
+            serde_json::json!({}),
+            "documents.convert",
+        ),
+        (
+            "documents.start",
+            serde_json::json!({"id": "b".repeat(64)}),
+            "documents.convert",
+        ),
+    ];
+    for (method, payload, permission) in methods {
+        let req = PluginRequest {
+            request_id: method.replace('.', "-"),
+            method: method.into(),
+            payload,
+            ..request(&info.session_id, info.generation)
+        };
+        sessions.begin(&caller, &req, &live, true, now).unwrap();
+        let admitted = now + Duration::from_secs(119);
+        assert!(sessions
+            .commit_live(&caller, &req, &live, true, admitted, || Ok(()))
+            .is_ok());
+        let mut revoked = live.clone();
+        revoked.permissions.retain(|grant| grant != permission);
+        assert_eq!(
+            sessions
+                .commit_live::<()>(&caller, &req, &revoked, true, admitted, || panic!(
+                    "revoked grant must prevent native commit"
+                ))
+                .unwrap_err()
+                .code,
+            "permission.denied"
+        );
+        assert_eq!(
+            sessions
+                .can_commit(&caller, &req, now + Duration::from_secs(120))
+                .unwrap_err()
+                .code,
+            "request.timeout"
+        );
+    }
+}

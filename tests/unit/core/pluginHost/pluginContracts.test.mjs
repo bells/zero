@@ -64,6 +64,7 @@ test("accepts a valid MVP plugin manifest", () => {
     "system.settings.open",
     "document.convert",
     "screen.capture",
+    "documents.convert",
   ]);
 });
 

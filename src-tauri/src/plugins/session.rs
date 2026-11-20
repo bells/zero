@@ -317,7 +317,10 @@ impl Sessions {
             return Err(error("request.busy"));
         }
         let budget = match &method {
-            PluginMethod::MediaExport(_) => EXPORT_REQUEST_DEADLINE,
+            PluginMethod::MediaExport(_)
+            | PluginMethod::ScreenCommitCaptureExport(_)
+            | PluginMethod::DocumentChoose(_)
+            | PluginMethod::DocumentStart(_) => EXPORT_REQUEST_DEADLINE,
             _ => REQUEST_DEADLINE,
         };
         session

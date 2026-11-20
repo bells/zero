@@ -1,7 +1,7 @@
 pub mod capabilities;
 pub mod compatibility;
 pub mod contracts;
-#[cfg(feature = "file-tool")]
+#[cfg(feature = "file-engine")]
 pub mod engine_assets;
 pub mod invoke_gate;
 pub mod market;
@@ -23,4 +23,8 @@ pub mod web_runtime;
 
 #[cfg(target_os = "macos")]
 mod application_runtime;
+#[cfg(all(target_os = "macos", feature = "screen-capture"))]
+pub mod capture_runtime;
+#[cfg(all(target_os = "macos", feature = "file-engine", debug_assertions))]
+pub mod document_runtime;
 pub mod media_runtime;

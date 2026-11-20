@@ -36,7 +36,7 @@ pub const FILE_ENGINE_PROTOCOL_VERSION: u16 = 3;
 const FILE_ENGINE_PLUGIN_ID: &str = ZERO_FILE_PLUGIN_ID;
 const FILE_ENGINE_RUN_EVENT: &str = "zero://file-engine/run";
 const FILE_ENGINE_CANCEL_EVENT: &str = "zero://file-engine/cancel";
-const MAX_INPUT_BYTES: u64 = 512 * 1024 * 1024;
+pub(crate) const MAX_INPUT_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_OUTPUT_BYTES: usize = 768 * 1024 * 1024;
 const ENGINE_STARTUP_TIMEOUT: Duration = Duration::from_secs(2);
 const ENGINE_JOB_TIMEOUT: Duration = Duration::from_secs(120);
@@ -299,7 +299,9 @@ impl FileEngineBridge {
         let mut issued_token = None;
         let result = (|| {
             stage_validated_input(&request.source_path, &input_path)?;
+            cancellation.check()?;
             self.ensure_window_ready(app, &leased_engine)?;
+            cancellation.check()?;
             let (sender, receiver) = mpsc::channel();
             let token = random_token()?;
             issued_token = Some(token.clone());
@@ -474,8 +476,10 @@ impl FileEngineBridge {
                 ))
                 .map(WebviewUrl::CustomProtocol)
                 .map_err(|_| bridge_error("The installed File engine URL is invalid."))?
-            } else {
+            } else if cfg!(feature = "file-tool") {
                 WebviewUrl::App("index.html".into())
+            } else {
+                WebviewUrl::App("dev-file-engine/index.html".into())
             };
             app.run_on_main_thread(move || {
                 let result = (|| {

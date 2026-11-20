@@ -351,7 +351,7 @@ pub struct PowerUpdateTaskConditionsInput {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ApplicationCatalogPageInput {
-    #[serde(deserialize_with = "catalog_token")]
+    #[serde(deserialize_with = "opaque_token")]
     pub catalog_id: String,
     #[serde(deserialize_with = "catalog_offset")]
     pub offset: usize,
@@ -360,13 +360,13 @@ pub struct ApplicationCatalogPageInput {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ApplicationActivateInput {
-    #[serde(deserialize_with = "catalog_token")]
+    #[serde(deserialize_with = "opaque_token")]
     pub catalog_id: String,
-    #[serde(deserialize_with = "catalog_token")]
+    #[serde(deserialize_with = "opaque_token")]
     pub item_id: String,
 }
 
-fn catalog_token<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
+fn opaque_token<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
     let value = String::deserialize(deserializer)?;
     if value.len() != 64
         || !value
@@ -374,7 +374,7 @@ fn catalog_token<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<St
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
         return Err(serde::de::Error::custom(
-            "Expected an application catalog token",
+            "Expected an opaque resource token",
         ));
     }
     Ok(value)
@@ -390,6 +390,46 @@ fn catalog_offset<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<u
         ));
     }
     Ok(offset as usize)
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CaptureExportAction {
+    Copy,
+    Save,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ScreenCaptureIdInput {
+    #[serde(deserialize_with = "opaque_token")]
+    pub capture_id: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ScreenPinCaptureInput {
+    #[serde(deserialize_with = "opaque_token")]
+    pub capture_id: String,
+    pub pinned: bool,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ScreenPrepareCaptureExportInput {
+    #[serde(deserialize_with = "opaque_token")]
+    pub capture_id: String,
+    pub action: CaptureExportAction,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ScreenCommitCaptureExportInput {
+    #[serde(deserialize_with = "opaque_token")]
+    pub lease_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DocumentIdInput {
+    #[serde(deserialize_with = "opaque_token")]
+    pub id: String,
 }
 
 dto!(MediaCacheInput { url: String });
@@ -420,6 +460,26 @@ pub enum GetMethod {
 pub enum PluginMethod {
     #[serde(rename = "screen.openSystemCapture")]
     ScreenOpenSystem(PowerStatusInput),
+    #[serde(rename = "screen.captureDisplay")]
+    ScreenCaptureDisplay(PowerStatusInput),
+    #[serde(rename = "screen.releaseCapture")]
+    ScreenReleaseCapture(ScreenCaptureIdInput),
+    #[serde(rename = "screen.setCapturePinned")]
+    ScreenSetCapturePinned(ScreenPinCaptureInput),
+    #[serde(rename = "screen.prepareCaptureExport")]
+    ScreenPrepareCaptureExport(ScreenPrepareCaptureExportInput),
+    #[serde(rename = "screen.commitCaptureExport")]
+    ScreenCommitCaptureExport(ScreenCommitCaptureExportInput),
+    #[serde(rename = "documents.chooseInput")]
+    DocumentChoose(PowerStatusInput),
+    #[serde(rename = "documents.start")]
+    DocumentStart(DocumentIdInput),
+    #[serde(rename = "documents.status")]
+    DocumentStatus(DocumentIdInput),
+    #[serde(rename = "documents.cancel")]
+    DocumentCancel(DocumentIdInput),
+    #[serde(rename = "documents.reveal")]
+    DocumentReveal(DocumentIdInput),
     #[serde(rename = "apps.scan")]
     ApplicationScan(PowerStatusInput),
     #[serde(rename = "apps.page")]
@@ -497,6 +557,16 @@ impl PluginMethod {
                 | Self::MediaExport(_)
                 | Self::WallpaperRecover(_)
                 | Self::ScreenOpenSystem(_)
+                | Self::ScreenCaptureDisplay(_)
+                | Self::ScreenReleaseCapture(_)
+                | Self::ScreenSetCapturePinned(_)
+                | Self::ScreenPrepareCaptureExport(_)
+                | Self::ScreenCommitCaptureExport(_)
+                | Self::DocumentChoose(_)
+                | Self::DocumentStart(_)
+                | Self::DocumentStatus(_)
+                | Self::DocumentCancel(_)
+                | Self::DocumentReveal(_)
                 | Self::ApplicationScan(_)
                 | Self::ApplicationPage(_)
                 | Self::ApplicationActivate(_)
@@ -505,7 +575,17 @@ impl PluginMethod {
 
     pub fn permission(&self) -> &'static str {
         match self {
-            Self::ScreenOpenSystem(_) => "screen.capture",
+            Self::ScreenOpenSystem(_)
+            | Self::ScreenCaptureDisplay(_)
+            | Self::ScreenReleaseCapture(_)
+            | Self::ScreenSetCapturePinned(_)
+            | Self::ScreenPrepareCaptureExport(_)
+            | Self::ScreenCommitCaptureExport(_) => "screen.capture",
+            Self::DocumentChoose(_)
+            | Self::DocumentStart(_)
+            | Self::DocumentStatus(_)
+            | Self::DocumentCancel(_)
+            | Self::DocumentReveal(_) => "documents.convert",
             Self::ApplicationScan(_) | Self::ApplicationPage(_) => "system.apps.read",
             Self::ApplicationActivate(_) => "system.apps.execute",
             Self::ScheduleUpsert(_) | Self::ScheduleCancel(_) | Self::BackgroundComplete(_) => {
@@ -813,6 +893,7 @@ pub fn validate_web_manifest(m: &PluginManifestV2) -> Vec<CompatibilityIssue> {
                         | "system.apps.execute"
                         | "system.window.focus"
                         | "screen.capture"
+                        | "documents.convert"
                 )
             }),
         "permissions",

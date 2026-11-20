@@ -63,7 +63,7 @@ jobs:
         env:
           # Registry tests run before installer resources are prepared.
           TAURI_CONFIG: '{"bundle":{"resources":[]}}'
-        run: cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features ${{ matrix.profile == 'standard' && '--features bundled-tools' || '' }} --test build_profiles
+        run: cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features ${{ matrix.profile == 'standard' && '--features bundled-tools' || '--features screen-capture' }} --test build_profiles
       - name: Build installers and measure sizes
         run: pnpm package:desktop --profile ${{ matrix.profile }} --target ${{ matrix.target }} --ci
       - name: Verify tool exclusion in frontend bundle

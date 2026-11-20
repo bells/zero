@@ -1,0 +1,25 @@
+:root {
+  color-scheme: light dark;
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --border: color-mix(in srgb, CanvasText 18%, Canvas);
+  --soft-text: color-mix(in srgb, CanvasText 75%, Canvas);
+  --section: color-mix(in srgb, CanvasText 4%, Canvas);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: Canvas; color: CanvasText; }
+main { width: min(100%, 680px); margin-inline: auto; padding: 24px; }
+header { margin-bottom: 16px; }
+h1 { font-size: 22px; line-height: 1.25; margin: 0; }
+p { margin: 0; }
+section + *, [role="alert"] { margin-top: 12px; }
+.selection, .job { display: grid; gap: 8px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--section); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.fileName { font-weight: 600; overflow-wrap: anywhere; }
+.hint { color: var(--soft-text); font-size: 13px; }
+button { justify-self: start; min-height: 40px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 6px; background: Canvas; color: CanvasText; font: inherit; }
+button.primary:not(:disabled) { background: AccentColor; color: AccentColorText; border-color: AccentColor; }
+button:disabled { opacity: .55; }
+button:focus-visible { outline: 2px solid AccentColor; outline-offset: 2px; }
+progress { width: min(100%, 360px); }
+.error { color: light-dark(#a82724, #ffaea8); }
+@media (max-width: 360px) { main { padding: 14px; } }

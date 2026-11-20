@@ -750,7 +750,7 @@ fn export_image(
         |source, target| call.publish(source, target),
     )
 }
-fn export_with(
+pub(crate) fn export_with(
     bytes: &[u8],
     suggestion: &str,
     mime: &str,

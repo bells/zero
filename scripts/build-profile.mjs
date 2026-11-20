@@ -1,6 +1,6 @@
 export const BUILD_PROFILES = {
   full: { tools: ['snap', 'awake', 'paper', 'launch', 'file'], features: ['bundled-tools', 'file-tool'] },
-  core: { tools: [], features: [] },
+  core: { tools: [], features: ['screen-capture'] },
   standard: { tools: ['snap', 'awake', 'paper', 'launch'], features: ['bundled-tools'] },
 };
 

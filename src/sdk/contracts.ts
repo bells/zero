@@ -6,7 +6,7 @@ export type PluginId = string;
 export type PackagePath = string;
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type Platform = "macos" | "windows" | "linux";
-export type PublicPermission = "storage.plugin" | "ui.message" | "network" | "diagnostics.write" | "power.preventSleep" | "background.schedule" | "system.wallpaper" | "files.export" | "system.apps.read" | "system.apps.execute" | "system.window.focus" | "screen.capture";
+export type PublicPermission = "storage.plugin" | "ui.message" | "network" | "diagnostics.write" | "power.preventSleep" | "background.schedule" | "system.wallpaper" | "files.export" | "system.apps.read" | "system.apps.execute" | "system.window.focus" | "screen.capture" | "documents.convert";
 export type InternalPermission = PublicPermission | "clipboard.read" | "clipboard.write"
   | "process.execute" | "system.apps.read" | "system.apps.execute"
   | "system.window.focus" | "system.settings.open" | "document.convert";
@@ -183,7 +183,45 @@ export interface ApplicationPage {
   nextOffset: number | null;
 }
 export type ApplicationActivation = "focused" | "launched";
+export interface ScreenCapture {
+  captureId: string;
+  width: number;
+  height: number;
+  url: string;
+}
+export type CaptureExportAction = "copy" | "save";
+export interface CaptureExportLease { leaseId: string; maxBytes: number }
+export interface CaptureExportResult { cancelled: boolean }
+
+export type DocumentDirection = "pdfToDocx" | "docxToPdf";
+export type DocumentJobStatus = "preparing" | "running" | "cancelling" | "completed" | "failed" | "cancelled";
+export type DocumentJobStage = "validating" | "waitingForProvider" | "converting" | "finalizing";
+export interface DocumentInput {
+  id: string;
+  fileName: string;
+  direction: DocumentDirection;
+  sizeBytes: number;
+}
+export interface DocumentJob {
+  id: string;
+  status: DocumentJobStatus;
+  stage: DocumentJobStage | null;
+  percent: number | null;
+  outputName: string;
+  errorCode: string | null;
+}
+
 export interface PluginMethodMap {
+  "screen.captureDisplay": {input:Record<string, never>;output:ScreenCapture};
+  "screen.releaseCapture": {input:{captureId:string};output:null};
+  "screen.setCapturePinned": {input:{captureId:string;pinned:boolean};output:null};
+  "screen.prepareCaptureExport": {input:{captureId:string;action:CaptureExportAction};output:CaptureExportLease};
+  "screen.commitCaptureExport": {input:{leaseId:string};output:CaptureExportResult};
+  "documents.chooseInput": {input:Record<string, never>;output:DocumentInput|null};
+  "documents.start": {input:{id:string};output:DocumentJob|null};
+  "documents.status": {input:{id:string};output:DocumentJob};
+  "documents.cancel": {input:{id:string};output:null};
+  "documents.reveal": {input:{id:string};output:null};
   "screen.openSystemCapture": {input:Record<string, never>;output:null};
   "apps.scan": {input:Record<string, never>;output:ApplicationCatalog};
   "apps.page": {input:{catalogId:string;offset:number};output:ApplicationPage};
@@ -244,6 +282,7 @@ export interface PluginContext {
   bridge: ZeroBridge;
 }
 export interface ZeroBridge {
+  upload(leaseId: string, bytes: Uint8Array, options?: { signal?: AbortSignal }): Promise<Result<CaptureExportResult>>;
   schedule: {
     upsert(input: ScheduleUpsertInput): Promise<Result<ScheduleUpsertOutput>>;
     cancel(input: ScheduleCancelInput): Promise<Result<ScheduleCancelOutput>>;

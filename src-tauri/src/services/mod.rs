@@ -8,7 +8,7 @@ pub mod caffeine;
 pub mod caffeine_runtime;
 #[cfg(feature = "bundled-tools")]
 pub mod caffeine_schedule;
-#[cfg(feature = "file-tool")]
+#[cfg(feature = "file-engine")]
 pub mod file;
 pub mod global_shortcuts;
 pub mod native_resources;
@@ -43,7 +43,7 @@ pub mod status_bar_tooltips;
 
 pub mod desktop_entries;
 
-#[cfg(any(feature = "bundled-tools", feature = "file-tool"))]
+#[cfg(any(feature = "bundled-tools", feature = "file-engine"))]
 pub mod ocr;
 
 #[cfg(feature = "bundled-tools")]

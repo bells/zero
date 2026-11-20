@@ -50,7 +50,7 @@ fn validate_completed_record(
     Ok(output)
 }
 
-fn run_platform_output_action(
+pub(crate) fn run_platform_output_action(
     output: &Path,
     action: CompletedOutputAction,
 ) -> Result<(), FileConversionError> {

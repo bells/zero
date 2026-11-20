@@ -34,6 +34,16 @@ pub fn implemented_capabilities() -> Vec<HostCapability> {
     if cfg!(target_os = "windows") {
         ids.push("screen.system-capture");
     }
+    if cfg!(any(
+        target_os = "windows",
+        all(target_os = "macos", feature = "screen-capture")
+    )) {
+        ids.push("screen.capture");
+    }
+    #[cfg(all(target_os = "macos", feature = "file-engine", debug_assertions))]
+    if super::document_runtime::available() {
+        ids.push("documents.convert");
+    }
     ids.into_iter()
         .map(|id| HostCapability {
             id: id.into(),

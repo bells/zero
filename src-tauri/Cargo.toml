@@ -47,8 +47,10 @@ required-features = ["bundled-tools", "file-tool"]
 
 [features]
 default = ["bundled-tools", "file-tool"]
-bundled-tools = ["dep:chrono", "dep:notify", "dep:xcap", "dep:objc2-vision", "dep:paddle-ocr-rs", "dep:ort"]
-file-tool = ["dep:quick-xml", "dep:objc2-web-kit", "dep:objc2-vision"]
+screen-capture = ["dep:xcap"]
+bundled-tools = ["dep:chrono", "dep:notify", "screen-capture", "dep:objc2-vision", "dep:paddle-ocr-rs", "dep:ort"]
+file-tool = ["file-engine"]
+file-engine = ["dep:quick-xml", "dep:objc2-web-kit", "dep:objc2-vision"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

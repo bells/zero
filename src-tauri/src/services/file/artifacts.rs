@@ -152,86 +152,147 @@ pub fn commit_provider_output(
     job_id: &str,
 ) -> Result<(), FileConversionError> {
     let mut diagnostic = crate::services::diagnostics::Operation::new(Some("zero.file"), "output");
-    let result = (|| {
-        ensure_provider_output_is_owned(job_directory, provider_output)?;
-        validate_provider_output(provider_output, direction)?;
-        if !valid_job_id(job_id) {
-            return Err(artifact_error(
-                FileConversionErrorCode::Internal,
-                "The conversion job identifier is invalid.",
-                false,
-            ));
-        }
-        if final_output.exists() {
-            return Err(output_conflict());
-        }
-
-        let final_directory = final_output.parent().ok_or_else(|| {
-            artifact_error(
-                FileConversionErrorCode::OutputNotWritable,
-                "The final output has no destination directory.",
-                false,
-            )
-        })?;
-        let output_name = final_output
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("converted-output");
-        let staging = final_directory.join(format!(".{output_name}.zero-{job_id}.partial"));
-
-        let commit_result = (|| {
-            let mut source = BufReader::new(File::open(provider_output).map_err(|_| {
-                artifact_error(
-                    FileConversionErrorCode::InvalidProviderOutput,
-                    "The provider output is no longer readable.",
-                    true,
-                )
-            })?);
-            let staging_file = open_owner_only_staging_file(&staging)?;
-            let mut target = BufWriter::new(staging_file);
-            io::copy(&mut source, &mut target).map_err(|_| {
-                artifact_error(
-                    FileConversionErrorCode::OutputNotWritable,
-                    "The converted file could not be staged in the output directory.",
-                    true,
-                )
-            })?;
-            target.flush().map_err(|_| {
-                artifact_error(
-                    FileConversionErrorCode::OutputNotWritable,
-                    "The staged converted file could not be flushed.",
-                    true,
-                )
-            })?;
-            target.get_ref().sync_all().map_err(|_| {
-                artifact_error(
-                    FileConversionErrorCode::OutputNotWritable,
-                    "The staged converted file could not be synchronized.",
-                    true,
-                )
-            })?;
-            drop(target);
-
-            validate_provider_output(&staging, direction)?;
-            fs::hard_link(&staging, final_output).map_err(|error| {
-                if error.kind() == io::ErrorKind::AlreadyExists || final_output.exists() {
-                    output_conflict()
-                } else {
-                    artifact_error(
-                        FileConversionErrorCode::OutputNotWritable,
-                        "The converted file could not be committed to the output directory.",
-                        true,
-                    )
-                }
-            })?;
-            Ok(())
-        })();
-
-        let _ = fs::remove_file(&staging);
-        commit_result
-    })();
+    let result = prepare_provider_output(
+        job_directory,
+        provider_output,
+        final_output,
+        direction,
+        job_id,
+    )
+    .and_then(|prepared| prepared.publish());
     diagnostic.finish(&result);
     result
+}
+
+pub(crate) struct PreparedProviderOutput {
+    file: File,
+    staging: PathBuf,
+    destination: PathBuf,
+}
+
+impl PreparedProviderOutput {
+    pub(crate) fn publish(&self) -> Result<(), FileConversionError> {
+        if !self.owns_staging_path() {
+            return Err(output_conflict());
+        }
+        fs::hard_link(&self.staging, &self.destination).map_err(|error| {
+            if error.kind() == io::ErrorKind::AlreadyExists || self.destination.exists() {
+                output_conflict()
+            } else {
+                artifact_error(
+                    FileConversionErrorCode::OutputNotWritable,
+                    "The converted file could not be committed to the output directory.",
+                    true,
+                )
+            }
+        })
+    }
+    fn owns_staging_path(&self) -> bool {
+        let Ok(metadata) = fs::symlink_metadata(&self.staging) else {
+            return false;
+        };
+        if !metadata.is_file() {
+            return false;
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            self.file.metadata().is_ok_and(|opened| {
+                metadata.dev() == opened.dev() && metadata.ino() == opened.ino()
+            })
+        }
+        #[cfg(not(unix))]
+        {
+            true
+        }
+    }
+
+    #[cfg(all(target_os = "macos", debug_assertions, feature = "file-engine"))]
+    pub(crate) fn identity(&self) -> io::Result<(u64, u64)> {
+        use std::os::unix::fs::MetadataExt;
+        let metadata = self.file.metadata()?;
+        Ok((metadata.dev(), metadata.ino()))
+    }
+}
+
+impl Drop for PreparedProviderOutput {
+    fn drop(&mut self) {
+        if self.owns_staging_path() {
+            let _ = fs::remove_file(&self.staging);
+        }
+    }
+}
+
+pub(crate) fn prepare_provider_output(
+    job_directory: &Path,
+    provider_output: &Path,
+    final_output: &Path,
+    direction: FileConversionDirection,
+    job_id: &str,
+) -> Result<PreparedProviderOutput, FileConversionError> {
+    ensure_provider_output_is_owned(job_directory, provider_output)?;
+    validate_provider_output(provider_output, direction)?;
+    if !valid_job_id(job_id) {
+        return Err(artifact_error(
+            FileConversionErrorCode::Internal,
+            "The conversion job identifier is invalid.",
+            false,
+        ));
+    }
+    if final_output.exists() {
+        return Err(output_conflict());
+    }
+
+    let final_directory = final_output.parent().ok_or_else(|| {
+        artifact_error(
+            FileConversionErrorCode::OutputNotWritable,
+            "The final output has no destination directory.",
+            false,
+        )
+    })?;
+    let output_name = final_output
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("converted-output");
+    let staging = final_directory.join(format!(".{output_name}.zero-{job_id}.partial"));
+
+    let mut source = BufReader::new(File::open(provider_output).map_err(|_| {
+        artifact_error(
+            FileConversionErrorCode::InvalidProviderOutput,
+            "The provider output is no longer readable.",
+            true,
+        )
+    })?);
+    let prepared = PreparedProviderOutput {
+        file: open_owner_only_staging_file(&staging)?,
+        staging,
+        destination: final_output.to_path_buf(),
+    };
+    let mut target = BufWriter::new(&prepared.file);
+    io::copy(&mut source, &mut target).map_err(|_| {
+        artifact_error(
+            FileConversionErrorCode::OutputNotWritable,
+            "The converted file could not be staged in the output directory.",
+            true,
+        )
+    })?;
+    target.flush().map_err(|_| {
+        artifact_error(
+            FileConversionErrorCode::OutputNotWritable,
+            "The staged converted file could not be flushed.",
+            true,
+        )
+    })?;
+    target.get_ref().sync_all().map_err(|_| {
+        artifact_error(
+            FileConversionErrorCode::OutputNotWritable,
+            "The staged converted file could not be synchronized.",
+            true,
+        )
+    })?;
+    drop(target);
+    validate_provider_output(&prepared.staging, direction)?;
+    Ok(prepared)
 }
 
 fn ensure_provider_output_is_owned(
@@ -497,6 +558,36 @@ mod tests {
             .0
             .join(".notes-converted.pdf.zero-collision-test.partial")
             .exists());
+    }
+
+    #[test]
+    fn dropped_preparation_and_late_collision_leave_other_output_intact() {
+        let root = TestRoot::new();
+        let temp_root = root.0.join("file-conversion");
+        let id = "staged-output";
+        let job = create_job_temp_directory(&temp_root, id).unwrap();
+        let provider_output = job.join("provider.pdf");
+        let final_output = root.0.join("saved.pdf");
+        fs::write(&provider_output, b"%PDF-1.7\nfixture").unwrap();
+        let stage = prepare_provider_output(
+            &job,
+            &provider_output,
+            &final_output,
+            FileConversionDirection::DocxToPdf,
+            id,
+        )
+        .unwrap();
+        let stage_path = stage.staging.clone();
+        assert!(stage_path.exists());
+        assert!(!final_output.exists());
+        fs::write(&final_output, b"other author").unwrap();
+        assert_eq!(
+            stage.publish().unwrap_err().code,
+            FileConversionErrorCode::OutputConflict
+        );
+        drop(stage);
+        assert!(!stage_path.exists());
+        assert_eq!(fs::read(&final_output).unwrap(), b"other author");
     }
 
     #[test]

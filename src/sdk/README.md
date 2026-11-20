@@ -69,3 +69,13 @@ The item identifier is an index lookup. The host validates the view, live grants
 ## System capture (Windows capability)
 
 Declare `screen.system-capture@^1.0.0` and request `screen.capture`. From a ready view, call `screen.openSystemCapture` with `{}`. A successful response is `null` after Windows accepts the request. Windows controls screenshot interaction and output. This method supplies no image, path or clipboard data. Windows device conformance is pending.
+
+## Installed Snap capture
+
+Updated Snap declares `screen.capture@^1.0.0` and requests the `screen.capture` grant. On macOS, a focused view can call `screen.captureDisplay({})` and receive `{captureId, width, height, url}`. The root-relative URL serves the original PNG only to that view. The package owns crop, annotation, and preview state. To copy or save the edited pixels, call `screen.prepareCaptureExport({captureId, action})` and pass its single-use lease and a PNG byte array to `bridge.upload(leaseId, bytes)`. The native `plugin_upload` command binds the raw body to the same session and checks the permitted dimensions, live grants, and destination. The host limits images to 40 million pixels and transfers to 32 MiB. Ordinary view requests have a ten-second deadline. Export has up to two minutes for the save dialog.
+
+`screen.setCapturePinned({captureId, pinned})` controls the current Snap view's always-on-top state. `screen.releaseCapture({captureId})`, view closure, expiry, or revoke releases the source image. On Windows, the package invokes `screen.openSystemCapture({})` using the declared capability. The original `screen.system-capture` declaration remains recognized on Windows.
+
+## Installed File development capability
+
+`documents.convert@^1.0.0` and its corresponding `documents.convert` grant are available in the isolated macOS debug host with the File engine feature and its development asset setting. `documents.chooseInput({})` opens a native file picker and returns a nullable `DocumentInput` with an opaque ID, filename, direction, and size. `documents.start({id})` opens a destination picker and returns a nullable `DocumentJob`. The package reads it with `documents.status({id})`, cancels with `documents.cancel({id})`, and reveals a completed file with `documents.reveal({id})`. Pickers have a two-minute request deadline. The host owns source authorization, staging, the existing hidden engine lease, output validation and publication. Jobs belong to their originating view and receive cancellation on close or disable. The QA engine is bundled with the debug host. The independently distributed engine continues to use the signed engine release policy.
