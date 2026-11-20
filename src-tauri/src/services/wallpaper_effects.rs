@@ -701,7 +701,10 @@ fn read_bounded(path: &Path, limit: usize) -> Result<Vec<u8>, NativeResourceErro
     Ok(bytes)
 }
 fn private_options() -> OpenOptions {
+    #[cfg(unix)]
     let mut options = OpenOptions::new();
+    #[cfg(not(unix))]
+    let options = OpenOptions::new();
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;

@@ -14,6 +14,8 @@ Regression evidence lives under build/core-market/evidence/2026-11-16/task-paper
 
 Update policy: remove this patch only after a released upstream decoder passes these strict-completeness regressions. Re-audit the exact transplant and regenerate SOURCE.json/strict-completion.patch when updating the base. Do not import the complete Chromium fork.
 
+The local patch also removes the unused crate-level `#![macro_use]` attribute for Rust compiler compatibility.
+
 ## Round2: required baseline MCU and component coverage
 
 The entropy-bit counter alone did not establish completeness: the older decoder can dispatch COM/APP/SOS after an early row and then leave the scan before synthetic bits are consumed. The strict baseline path now keeps a non-RST marker latched while required rows remain. It consumes every MCU in each row (the lenient early-row-break remains unchanged); real buffered lookahead can legitimately serve later rows, so seeing a marker is not itself an error. Consuming synthetic bits still fails through the original backport. Only after all required rows can strict marker dispatch exit/reset a scan.

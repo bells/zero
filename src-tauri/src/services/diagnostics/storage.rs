@@ -46,12 +46,13 @@ pub struct Storage {
     identity: (u64, u64),
 }
 pub struct SafeWriter(pub Arc<Mutex<Storage>>);
+#[cfg(unix)]
 fn private_file(path: &Path) -> io::Result<()> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
-    }
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, fs::Permissions::from_mode(0o600))
+}
+#[cfg(not(unix))]
+fn private_file(_: &Path) -> io::Result<()> {
     Ok(())
 }
 fn directory(root: &Path) -> io::Result<()> {

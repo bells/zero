@@ -95,7 +95,7 @@ pub(crate) fn owner_from_registry(
     })
 }
 
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(target_os = "macos")]
 pub(crate) fn with_live_capability<T>(
     app: &tauri::AppHandle,
     caller: &str,

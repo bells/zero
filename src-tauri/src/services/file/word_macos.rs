@@ -61,8 +61,8 @@ impl Default for MicrosoftWordMacosProvider {
     }
 }
 
+#[cfg(all(test, target_os = "macos"))]
 impl MicrosoftWordMacosProvider {
-    #[cfg(test)]
     fn with_process_runner(
         installation: Option<WordMacosInstallation>,
         osascript_path: PathBuf,
@@ -328,18 +328,22 @@ fn word_error(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "macos")]
     use std::fs;
-    use std::sync::Mutex;
+    #[cfg(target_os = "macos")]
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::*;
+    #[cfg(target_os = "macos")]
     use crate::services::file::process::DirectProcessOutput;
 
+    #[cfg(target_os = "macos")]
     struct RecordingRunner {
         requests: Mutex<Vec<DirectProcessRequest>>,
         result: Mutex<DirectProcessOutput>,
     }
 
+    #[cfg(target_os = "macos")]
     impl DirectProcessRunner for RecordingRunner {
         fn run(
             &self,
@@ -354,16 +358,20 @@ mod tests {
         }
     }
 
+    #[cfg(target_os = "macos")]
     struct NoopProgress;
 
+    #[cfg(target_os = "macos")]
     impl FileConversionProgressSink for NoopProgress {
         fn report(&self, _progress: FileConversionProgress) -> Result<(), FileConversionError> {
             Ok(())
         }
     }
 
+    #[cfg(target_os = "macos")]
     struct TestRoot(PathBuf);
 
+    #[cfg(target_os = "macos")]
     impl TestRoot {
         fn new() -> Self {
             let root = std::env::temp_dir().join(format!(
@@ -379,6 +387,7 @@ mod tests {
         }
     }
 
+    #[cfg(target_os = "macos")]
     impl Drop for TestRoot {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.0);

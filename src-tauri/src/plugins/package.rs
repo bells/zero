@@ -176,7 +176,10 @@ struct PackageStage {
 }
 impl PackageStage {
     fn create(root: &Path) -> Result<Self, PluginPackageError> {
+        #[cfg(unix)]
         let mut builder = fs::DirBuilder::new();
+        #[cfg(not(unix))]
+        let builder = fs::DirBuilder::new();
         #[cfg(unix)]
         {
             use std::os::unix::fs::DirBuilderExt;

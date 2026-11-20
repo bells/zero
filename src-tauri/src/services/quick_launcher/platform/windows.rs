@@ -125,7 +125,7 @@ unsafe fn icon_to_png(
         let _ = ReleaseDC(HWND(0), screen_dc);
         return Err("CreateCompatibleDC returned no device context.".into());
     }
-    let mut bitmap_info = BITMAPINFO {
+    let bitmap_info = BITMAPINFO {
         bmiHeader: BITMAPINFOHEADER {
             biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
             biWidth: SIZE,

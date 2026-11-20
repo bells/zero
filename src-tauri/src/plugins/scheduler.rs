@@ -708,7 +708,10 @@ fn validate_state_path(path: &Path) -> Result<()> {
     validate_regular_or_missing(path)
 }
 fn private_options() -> OpenOptions {
+    #[cfg(unix)]
     let mut options = OpenOptions::new();
+    #[cfg(not(unix))]
+    let options = OpenOptions::new();
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;
@@ -787,15 +790,15 @@ fn persist(path: &Path, state: &State) -> Result<()> {
     Ok(())
 }
 
-fn sync_parent(path: &Path) {
+fn sync_parent(_path: &Path) {
     #[cfg(test)]
     SYNC_OBSERVER.with(|observer| {
         if let Some(observer) = observer.borrow().as_ref() {
-            observer(path);
+            observer(_path);
         }
     });
     #[cfg(unix)]
-    if let Some(parent) = path.parent() {
+    if let Some(parent) = _path.parent() {
         if let Ok(directory) = File::open(parent) {
             let _ = directory.sync_all();
         }
@@ -881,13 +884,18 @@ mod tests {
         SYNC_OBSERVER.with(|slot| *slot.borrow_mut() = None);
         assert!(observed.get());
         drop(staged);
-        // A post-rename sync error is not a rollback of the published generation.
         let mut staged = scheduler.prepare_cancel(&owner, "task").unwrap();
         let publication = staged.publish().unwrap();
-        let moved = root.with_extension("moved");
-        fs::rename(&root, &moved).unwrap();
-        assert!(publication.finish()); // Old parent path no longer opens.
-        fs::rename(&moved, &root).unwrap();
+        #[cfg(unix)]
+        {
+            // Make the post-rename directory sync fail after publication.
+            let moved = root.with_extension("moved");
+            fs::rename(&root, &moved).unwrap();
+            assert!(publication.finish());
+            fs::rename(&moved, &root).unwrap();
+        }
+        #[cfg(not(unix))]
+        assert!(publication.finish());
         drop(staged);
         assert!(scheduler.snapshot().unwrap().is_empty());
         drop(scheduler);

@@ -28,7 +28,9 @@ use crate::services::caffeine::CaffeineState;
 mod menu_position;
 
 pub const MACOS_COMPACT_STATUS_ITEM_LENGTH: f64 = 22.0;
+#[cfg(target_os = "macos")]
 const MACOS_STATUS_ITEM_ICON_SIZE: u32 = 22;
+#[cfg(target_os = "macos")]
 const MACOS_STATUS_ITEM_CELL_SIZE: u32 = 22;
 pub const PRIMARY_STATUS_ITEM_COLLAPSE_MENU_ID: &str = "zero.status-bar.toggle-tool-items";
 pub const PRIMARY_STATUS_ITEM_QUIT_MENU_ID: &str = "zero.status-bar.quit";
@@ -98,8 +100,8 @@ pub enum ToolStatusBarMenuAction {
     ScreenshotOcr,
 }
 
+#[cfg(all(feature = "bundled-tools", any(test, target_os = "macos")))]
 impl ToolStatusBarMenuAction {
-    #[cfg(feature = "bundled-tools")]
     fn capture_intent(self) -> Option<&'static str> {
         match self {
             Self::Screenshot => Some("copy"),
@@ -1056,6 +1058,7 @@ fn grouped_tool_window_anchor(
     tool_window_anchor(rect, scale_factor)
 }
 
+#[cfg(any(target_os = "macos", all(test, feature = "bundled-tools")))]
 fn tool_window_anchor(
     rect: tauri::Rect,
     scale_factor: f64,
@@ -1074,6 +1077,7 @@ fn tool_window_anchor(
     }
 }
 
+#[cfg(any(target_os = "macos", all(test, feature = "bundled-tools")))]
 fn grouped_primary_cell_rect(rect: tauri::Rect, item_count: usize) -> tauri::Rect {
     if item_count == 0 {
         return rect;

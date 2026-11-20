@@ -31,14 +31,17 @@ impl NativePrintLease {
     }
 }
 
+#[cfg(any(test, target_os = "macos"))]
 const MAX_CAPTURED_PAGE_BYTES: usize = 32 * 1024 * 1024;
 const MAX_CAPTURED_DOCUMENT_BYTES: usize = 128 * 1024 * 1024;
 
+#[cfg(any(test, target_os = "macos"))]
 struct CapturedDocument {
     pages: Vec<Option<Vec<u8>>>,
     total_bytes: usize,
 }
 
+#[cfg(any(test, target_os = "macos"))]
 fn native_pdf_export_supported(
     supported_os: bool,
     supports_webkit_capture: bool,
@@ -47,6 +50,7 @@ fn native_pdf_export_supported(
     supported_os && supports_webkit_capture && pdfkit_available
 }
 
+#[cfg(any(test, target_os = "macos"))]
 impl CapturedDocument {
     fn new(page_count: usize) -> Result<Self, String> {
         if page_count == 0 || page_count > 512 {
@@ -329,8 +333,6 @@ fn validate_printed_pdf(path: &Path) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
     use super::*;
 
     #[test]
@@ -407,6 +409,7 @@ mod tests {
     #[test]
     fn pdfkit_merge_preserves_requested_page_count() {
         use std::ffi::CString;
+        use std::fs;
         use std::time::{SystemTime, UNIX_EPOCH};
 
         use objc::runtime::{Class, Object};

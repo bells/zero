@@ -316,14 +316,12 @@ fn persistence_failure_preserves_prior_memory_disk_and_cleans_exclusive_temp() {
     s.upsert(&owner, schedule("original", 1)).unwrap();
     let before = fs::read(f.path()).unwrap();
     // A real path-validation fault at commit must leave the admitted in-memory schedule untouched.
-    let saved = f.0.with_extension("saved");
-    fs::rename(&f.0, &saved).unwrap();
-    fs::create_dir(&f.0).unwrap();
+    let saved = f.0.join("schedules.saved");
+    fs::rename(f.path(), &saved).unwrap();
     fs::create_dir(f.path()).unwrap();
     assert!(s.cancel(&owner, "original").is_err());
     fs::remove_dir(f.path()).unwrap();
-    fs::remove_dir(&f.0).unwrap();
-    fs::rename(&saved, &f.0).unwrap();
+    fs::rename(&saved, f.path()).unwrap();
     assert_eq!(fs::read(f.path()).unwrap(), before);
     let event = claim(&s, 1);
     assert_eq!(event.schedule.task_id, "original");

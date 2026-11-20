@@ -99,7 +99,7 @@
     },
     "src/lib.rs": {
       "original_sha256": "31cfd2c21b47b86595dde3b39e93e2754031541f35deb35a43ee8a56488de68d",
-      "vendored_sha256": "31cfd2c21b47b86595dde3b39e93e2754031541f35deb35a43ee8a56488de68d"
+      "vendored_sha256": "c4adb9dd346fc9b2953793b7abaa8a47ce32f798edc84b7a0c364d508b5dcb3a"
     },
     "src/marker.rs": {
       "original_sha256": "10014f879004c0b1ca4bca66155eb2385820cce02ae6e48a9e9b37ca60ecd294",

@@ -199,6 +199,7 @@ fn response(status: StatusCode, media_type: &str, body: Vec<u8>) -> Response<Vec
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::*;

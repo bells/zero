@@ -348,6 +348,8 @@ fn atomic_write(
         file.write_all(bytes)
             .and_then(|_| file.sync_all())
             .map_err(|_| failure("image.write"))?;
+        // ReplaceFileW needs to reopen the staging file without the writer.
+        drop(file);
         replace(&temporary, path).map_err(|_| failure("image.atomic"))
     })();
     if result.is_err() {

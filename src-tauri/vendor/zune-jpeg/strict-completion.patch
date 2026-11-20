@@ -235,3 +235,11 @@
          if self.todo == 0 {
              stream.refill(&mut self.stream)?;
          }
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -164,5 +164,4 @@
+ #![cfg_attr(not(feature = "std"), no_std)]
+ #![cfg_attr(feature = "portable_simd", feature(portable_simd))]
+-#![macro_use]
+ extern crate alloc;
+ extern crate core;

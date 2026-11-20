@@ -20,6 +20,7 @@ pub struct CaptureDisplaySnapshot {
     pub source_scale_y: f64,
 }
 
+#[cfg(any(test, target_os = "macos"))]
 pub fn appkit_frame(frame: &DisplayFrame, primary_height: f64) -> Option<DisplayFrame> {
     if ![frame.x, frame.y, frame.width, frame.height, primary_height]
         .iter()

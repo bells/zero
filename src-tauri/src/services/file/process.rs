@@ -191,7 +191,7 @@ fn join_reader(reader: Option<thread::JoinHandle<String>>) -> String {
         .unwrap_or_default()
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -221,7 +221,6 @@ mod tests {
         }
     }
 
-    #[cfg(unix)]
     #[test]
     fn direct_runner_preserves_argument_boundaries_and_bounds_output() {
         use std::os::unix::fs::PermissionsExt;
@@ -253,7 +252,6 @@ mod tests {
         assert!(!root.0.join("ignored").exists());
     }
 
-    #[cfg(unix)]
     #[test]
     fn direct_runner_enforces_timeout_and_cancellation() {
         use std::os::unix::fs::PermissionsExt;
@@ -291,7 +289,6 @@ mod tests {
         );
     }
 
-    #[cfg(unix)]
     #[test]
     fn timeout_terminates_descendants_in_the_provider_process_group() {
         use std::os::unix::fs::PermissionsExt;
