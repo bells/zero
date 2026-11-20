@@ -16,9 +16,9 @@
     },
     {
       "id": "onnxruntime",
-      "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-win-x64-1.22.0.zip",
-      "bytes": 72368545,
-      "sha256": "174c616efc0271194488642a72f1a514e01487da4dfe84c49296d66e40ebe0da"
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/1.22.0/microsoft.ml.onnxruntime.1.22.0.nupkg",
+      "bytes": 121402697,
+      "sha256": "d571e63a2329baacb713f441e65ad75284de354db6e1ac435fe4bebbb417986a"
     },
     {
       "id": "vc-runtime",
@@ -61,14 +61,14 @@
       "bytes": 12418080,
       "sha256": "579b636403983254346a5c1d80bd28f1519cd1e284cd204f8d4ff41f8d711559",
       "archive": "onnxruntime",
-      "member": "onnxruntime-win-x64-1.22.0/lib/onnxruntime.dll"
+      "member": "runtimes/win-x64/native/onnxruntime.dll"
     },
     {
       "path": "onnxruntime_providers_shared.dll",
       "bytes": 22064,
       "sha256": "ba00ea1ef846c9b909c7854bc56c51051a20f9773b3e1153dda118d4b85d0b93",
       "archive": "onnxruntime",
-      "member": "onnxruntime-win-x64-1.22.0/lib/onnxruntime_providers_shared.dll"
+      "member": "runtimes/win-x64/native/onnxruntime_providers_shared.dll"
     },
     {
       "path": "vcruntime140.dll",
